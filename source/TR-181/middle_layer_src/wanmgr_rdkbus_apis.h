@@ -33,6 +33,7 @@
 #define PPPMGR_DBUS_PATH            "/com/cisco/spvtg/ccsp/pppmanager"
 
 #define PPP_INTERFACE_TABLE          "Device.PPP.Interface."
+#define PPP_INTERFACE_INSTANCE       "Device.PPP.Interface.%d."
 #define PPP_INTERFACE_ENABLE         "Device.PPP.Interface.%d.Enable"
 #define PPP_INTERFACE_ALIAS          "Device.PPP.Interface.%d.Alias"
 #define PPP_INTERFACE_LOWERLAYERS    "Device.PPP.Interface.%d.LowerLayers"

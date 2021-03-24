@@ -1611,7 +1611,7 @@ ANSC_STATUS WanManager_DeletePPPSession(DML_WAN_IFACE* pInterface)
     WanMgr_RdkBus_SetParamValues( PPPMGR_COMPONENT_NAME, PPPMGR_DBUS_PATH, acSetParamName, acSetParamValue, ccsp_boolean, TRUE );
 
     //Delete PPP Instance
-    snprintf( acSetParamName, DATAMODEL_PARAM_LENGTH, PPP_INTERFACE_TABLE, iPPPInstance );
+    snprintf( acSetParamName, DATAMODEL_PARAM_LENGTH, PPP_INTERFACE_INSTANCE, iPPPInstance );
     if ( CCSP_SUCCESS != CcspBaseIf_DeleteTblRow (
                             bus_handle,
                             PPPMGR_COMPONENT_NAME,
@@ -1623,7 +1623,7 @@ ANSC_STATUS WanManager_DeletePPPSession(DML_WAN_IFACE* pInterface)
          return ANSC_STATUS_FAILURE;
      }
 
-    CcspTraceInfo(("%s %d Successfully created PPP interface \n", __FUNCTION__,__LINE__ ));
+    CcspTraceInfo(("%s %d Successfully deleted PPP interface \n", __FUNCTION__,__LINE__ ));
 
     sleep(2);
 
