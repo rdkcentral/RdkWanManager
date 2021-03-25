@@ -77,6 +77,8 @@ extern ANSC_HANDLE bus_handle;
 #define HW_TYPE "00:01:"    /* hw type is always 1 */
 #define DIBBLER_IPV6_CLIENT_ENABLE      "Device.DHCPv6.Client.%d.Enable"
 
+#define IPMONITOR_WAIT_MAX_TIMEOUT 240
+#define IPMONITOR_QUERY_INTERVAL 1
 /***************************************************************************
  * @brief API used to check the incoming nameserver is valid
  * @param af indicates ip address family
@@ -147,6 +149,7 @@ static void* DmlHandlePPPCreateRequestThread( void *arg );
 static void generate_client_duid_conf();
 static void createDummyWanBridge();
 static void deleteDummyWanBridgeIfExist();
+static INT IsIPObtained(char *pInterfaceName);
 
 static ANSC_STATUS SetDataModelParamValues( char *pComponent, char *pBus, char *pParamName, char *pParamVal, enum dataType_e type, BOOLEAN bCommit )
 {
@@ -1907,3 +1910,143 @@ ANSC_STATUS WanManager_CheckGivenTypeExists(INT IfIndex, UINT uiTotalIfaces, DML
     return retStatus;
 }
 
+static INT IsIPObtained(char *pInterfaceName)
+{
+    char command[256] = {0};
+    char buff[256] = {0};
+    FILE *fp = NULL;
+    if (!pInterfaceName)
+    {
+        return 0;
+    }
+
+    /* Validate IPv4 Connection on WAN interface */
+    memset(command,0,sizeof(command));
+    snprintf(command, sizeof(command), "ip addr show %s |grep -i 'inet ' |awk '{print $2}' |cut -f2 -d:", pInterfaceName);
+    memset(buff,0,sizeof(buff));
+
+    /* Open the command for reading. */
+    fp = popen(command, "r");
+    if (fp == NULL)
+    {
+        printf("<%s>:<%d> Error popen\n", __FUNCTION__, __LINE__);
+
+    }
+    else
+    {
+        /* Read the output a line at a time - output it. */
+        if (fgets(buff, 50, fp) != NULL)
+        {
+            printf("IP :%s", buff);
+        }
+        /* close */
+        pclose(fp);
+        if(buff[0] != 0)
+        {
+            CcspTraceInfo(("%s %d - IP obtained %s\n", __FUNCTION__, __LINE__,pInterfaceName));
+            return 1;
+        }
+    }
+
+    /* Validate IPv6 Connection on WAN interface */
+    memset(command,0,sizeof(command));
+    snprintf(command,sizeof(command), "ip addr show %s |grep -i 'inet6 ' |grep -i 'Global' |awk '{print $2}'", pInterfaceName);
+    memset(buff,0,sizeof(buff));
+
+    /* Open the command for reading. */
+    fp = popen(command, "r");
+    if (fp == NULL)
+    {
+       printf("<%s>:<%d> Error popen\n", __FUNCTION__, __LINE__);
+    }
+    else
+    {
+        /* Read the output a line at a time - output it. */
+        if (fgets(buff, 50, fp) != NULL)
+        {
+            printf("IP :%s", buff);
+        }
+        /* close */
+        pclose(fp);
+        if(buff[0] != 0)
+        {
+            CcspTraceInfo(("%s %d - IP obtained %s \n", __FUNCTION__, __LINE__,pInterfaceName));
+            return 2;
+        }
+    }
+    return 0;
+}
+
+
+void* ThreadWanMgr_MonitorAndUpdateIpStatus( void *arg )
+{
+    UINT counter = 0;
+    UINT  *puIndex = NULL;
+    INT ipstatus = 0;
+    DML_WAN_IFACE* pFixedInterface = NULL;
+
+    pthread_detach(pthread_self());
+
+    if ( NULL == arg )
+    {
+       CcspTraceError(("%s %d Invalid buffer\n", __FUNCTION__,__LINE__));
+       //Cleanup current thread when exit
+       pthread_exit(NULL);
+    }
+    puIndex = (UINT*)arg;
+    CcspTraceInfo(("%s %d index %d\n", __FUNCTION__,__LINE__,*puIndex));
+    while(1)
+    {
+       WanMgr_Iface_Data_t*   pWanDmlIfaceData = WanMgr_GetIfaceData_locked(*puIndex);
+        if (!pWanDmlIfaceData)
+        {
+            break;
+        }
+        pFixedInterface = &pWanDmlIfaceData->data;
+        if (!pFixedInterface)
+        {
+            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+            break;
+        }
+        ipstatus = IsIPObtained(pFixedInterface->Wan.Name);
+        if (ipstatus != 0)
+        {
+            if (ipstatus == 1)
+            {
+                pFixedInterface->IP.Ipv4Status = WAN_IFACE_IPV4_STATE_UP;
+            }
+            if (ipstatus == 2)
+            {
+                pFixedInterface->IP.Ipv6Status = WAN_IFACE_IPV6_STATE_UP;
+            }
+            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+            break;
+        }
+        if (counter >= IPMONITOR_WAIT_MAX_TIMEOUT)
+        {
+            pFixedInterface->IP.Ipv4Status = WAN_IFACE_IPV4_STATE_DOWN;
+            pFixedInterface->IP.Ipv6Status = WAN_IFACE_IPV6_STATE_DOWN;
+            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+            break;
+        }
+        WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+        sleep(IPMONITOR_QUERY_INTERVAL);
+        counter += IPMONITOR_QUERY_INTERVAL;
+    }
+    free(puIndex);
+    return arg;
+}
+
+INT WanMgr_StartIpMonitor(UINT iface_index)
+{
+    INT  iErrorCode     = 0;
+    pthread_t ipMonitorThreadId;
+
+    UINT *pIndex = malloc(sizeof(UINT));
+    if (pIndex)
+    {
+        *pIndex = iface_index;
+        iErrorCode = pthread_create( &ipMonitorThreadId, NULL, &ThreadWanMgr_MonitorAndUpdateIpStatus, (void*)pIndex );
+    }
+    return iErrorCode;
+}

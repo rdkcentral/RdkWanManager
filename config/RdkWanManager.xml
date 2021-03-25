@@ -46,7 +46,7 @@
                 </parameter>
                 <parameter>
                     <name>Policy</name>
-                    <type>string: FIXED_MODE_ON_BOOTUP(1),FIXED_MODE(2),PRIMARY_PRIORITY_ON_BOOTUP(3),PRIMARY_PRIORITY(4),MULTIWAN_MODE(5)</type>
+                    <type>string: FIXED_MODE_ON_BOOTUP(1),FIXED_MODE(2),PRIMARY_PRIORITY_ON_BOOTUP(3),PRIMARY_PRIORITY(4),MULTIWAN_MODE(5),AUTOWAN_MODE(6)</type>
                     <syntax>uint32/mapped</syntax>
                     <writable>true</writable>
                 </parameter>
@@ -67,11 +67,37 @@
                         <func_GetEntry>WanIf_GetEntry</func_GetEntry>
                         <func_GetParamStringValue>WanIf_GetParamStringValue</func_GetParamStringValue>
                         <func_SetParamStringValue>WanIf_SetParamStringValue</func_SetParamStringValue>
+                        <func_GetParamBoolValue>WanIf_GetParamBoolValue</func_GetParamBoolValue>
+                        <func_SetParamBoolValue>WanIf_SetParamBoolValue</func_SetParamBoolValue>
                         <func_Validate>WanIf_Validate</func_Validate>
                         <func_Commit>WanIf_Commit</func_Commit>
                         <func_Rollback>WanIf_Rollback</func_Rollback>
                     </functions>
                     <parameters>
+                        <parameter>
+                            <name>EnableOperStatusMonitor</name>
+                            <type>boolean</type>
+                            <syntax>bool</syntax>
+                            <writable>true</writable>
+                            </parameter>
+                        <parameter>
+                            <name>ConfigureWanEnable</name>
+                            <type>boolean</type>
+                            <syntax>bool</syntax>
+                            <writable>true</writable>
+                        </parameter>
+                        <parameter>
+                            <name>EnableCustomConfig</name>
+                            <type>boolean</type>
+                            <syntax>bool</syntax>
+                            <writable>true</writable>
+                        </parameter>
+                        <parameter>
+                            <name>CustomConfigPath</name>
+                            <type>string</type>
+                            <syntax>string</syntax>
+                            <writable>true</writable>
+                        </parameter>
                         <parameter>
                             <name>Name</name>
                             <type>string</type>
@@ -170,6 +196,12 @@
                                 <parameter>
                                     <name>Type</name>
                                     <type>string: Unconfigured(1),Primary(2),Secondary(3)</type>
+                                    <syntax>uint32/mapped</syntax>
+                                    <writable>true</writable>
+                                </parameter>
+                                <parameter>
+                                    <name>OperationalStatus</name>
+                                    <type>string: Unknown(1),Operational(2),NotOperational(3)</type>
                                     <syntax>uint32/mapped</syntax>
                                     <writable>true</writable>
                                 </parameter>

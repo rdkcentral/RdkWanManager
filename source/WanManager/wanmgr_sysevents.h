@@ -129,6 +129,9 @@
 #define SYSEVENT_IPV4_DHCP_STATE  "ipv4_%s_dhcp_state"
 #define SYSEVENT_IPV4_START_TIME  "ipv4_%s_start_time"
 
+#define SYSEVENT_WAN_STOP            "wan-stop"
+#define SYSEVENT_WAN_RESTART         "wan-restart"
+#define SYSEVENT_SSHD_RESTART         "sshd-restart"
 
 #define WAN_STATUS_STARTED      "started"
 #define WAN_STATUS_STOPPED      "stopped"
@@ -191,7 +194,11 @@ ANSC_STATUS wanmgr_sysevents_ipv4Info_set(const ipc_dhcpv4_data_t* dhcp4Info, co
 void wanmgr_sysevents_setWanLedState(const char * LedState);
 
 
-
+ANSC_STATUS wanmgr_setwanstart();
+ANSC_STATUS wanmgr_setwanstop();
+ANSC_STATUS wanmgr_sshd_restart();
+ANSC_STATUS wanmgr_setwanrestart();
+INT wanmgr_isWanStarted();
 //#ifdef FEATURE_MAPT
 ///*
 // * @brief Utility function used to store MAPT specific values in sysevent/

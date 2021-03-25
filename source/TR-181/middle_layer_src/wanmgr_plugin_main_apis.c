@@ -175,6 +175,9 @@ ANSC_STATUS BackEndManagerInitialize(ANSC_HANDLE hThisObject)
 
     AnscTraceWarning(("%s...\n", __FUNCTION__));
 
+    //syscfg DB Init
+    syscfg_init();
+    
     //Wan Manager Configuration
     WanMgr_WanConfigInit();
 

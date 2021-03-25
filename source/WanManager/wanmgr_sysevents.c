@@ -390,7 +390,6 @@ static int set_default_conf_entry()
     syscfg_set(NULL, SYSCFG_NTP_ENABLED, "1"); // Enable NTP in case of ETHWAN
 
     syscfg_commit();
-
     return 0;
 }
 
@@ -728,6 +727,54 @@ static int getVendorClassInfo(char *buffer, int length)
     return 0;
 }
 
+INT wanmgr_isWanStarted()
+{
+    char wan_st[BUFLEN_16];
+    memset(wan_st,0,sizeof(wan_st));
+    sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_WAN_STATUS, wan_st, sizeof(wan_st));
+
+    CcspTraceInfo(("%s %d - get wan status\n", __FUNCTION__, __LINE__));
+    CcspTraceInfo(("****************************************************\n"));
+    CcspTraceInfo(("   Wan Status = %s\n", wan_st));
+    CcspTraceInfo(("****************************************************\n"));
+    if (!strcmp(wan_st, SYSEVENT_VALUE_STARTED))
+    {
+        CcspTraceInfo(("%s %d - wan started\n", __FUNCTION__, __LINE__));
+        return 1;
+    }
+
+    return 0;
+}
+
+
+ANSC_STATUS wanmgr_setwanstart()
+{
+    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_WAN_START, "", 0);
+    CcspTraceInfo(("%s %d - wan started\n", __FUNCTION__, __LINE__));
+    return ANSC_STATUS_SUCCESS;
+}
+
+ANSC_STATUS wanmgr_setwanrestart()
+{
+    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_WAN_RESTART, "", 0);
+    CcspTraceInfo(("%s %d - wan restarted\n", __FUNCTION__, __LINE__));
+    return ANSC_STATUS_SUCCESS;
+}
+
+ANSC_STATUS wanmgr_setwanstop()
+{
+    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_WAN_STOP, "", 0);
+    CcspTraceInfo(("%s %d - wan stop\n", __FUNCTION__, __LINE__));
+    return ANSC_STATUS_SUCCESS;
+}
+
+ANSC_STATUS wanmgr_sshd_restart()
+{
+    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_SSHD_RESTART, "", 0);
+    CcspTraceInfo(("%s %d - sshd restart\n", __FUNCTION__, __LINE__));
+    return ANSC_STATUS_SUCCESS;
+}
+
 
 ANSC_STATUS WanMgr_SysEvents_Init(void)
 {
@@ -742,8 +789,9 @@ ANSC_STATUS WanMgr_SysEvents_Init(void)
         CcspTraceError(("%s %d - WanMgr_SyseventInit failed \n", __FUNCTION__, __LINE__));
         return ANSC_STATUS_FAILURE;
     }
-
+#ifdef _HUB4_PRODUCT_REQ_
     set_default_conf_entry();
+#endif
     //Init msg status handler
     if(pthread_create(&sysevent_tid, NULL, WanManagerSyseventHandler, NULL) == 0) {
         CcspTraceError(("%s %d - DmlWanMsgHandler -- pthread_create successfully \n", __FUNCTION__, __LINE__));    

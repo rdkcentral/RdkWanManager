@@ -29,7 +29,7 @@
 #include <time.h>
 #include "wanmgr_rdkbus_common.h"
 
-#ifdef _HUB4_PRODUCT_REQ_
+#if defined(_HUB4_PRODUCT_REQ_) || defined(_COSA_BCM_ARM_)
 
 #define CONSOLE_LOG_FILE "/rdklogs/logs/Consolelog.txt.0"
 #define LOG_CONSOLE(fmt ...)     {\

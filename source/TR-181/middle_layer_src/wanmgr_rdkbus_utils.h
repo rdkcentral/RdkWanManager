@@ -62,6 +62,9 @@
 #include "ansc_platform.h"
 #include "platform_hal.h"
 
+#include <syscfg.h>
+#include <syscfg/syscfg.h>
+
 //VLAN Agent
 #define VLAN_DBUS_PATH                     "/com/cisco/spvtg/ccsp/vlanmanager"
 #define VLAN_COMPONENT_NAME                "eRT.com.cisco.spvtg.ccsp.vlanmanager"
@@ -74,8 +77,22 @@
 #define DSL_UPSTREAM_NAME ".Upstream"
 //Eth Manager
 #define ETH_COMPONENT_NAME "eRT.com.cisco.spvtg.ccsp.ethagent"
+#define ETH_COMP_NAME_WITHOUTSUBSYSTEM "com.cisco.spvtg.ccsp.ethagent"
 #define ETH_COMPONENT_PATH "/com/cisco/spvtg/ccsp/ethagent"
 #define ETH_UPSTREAM_NAME ".Upstream"
+
+//CM Agent
+#define CMAGENT_COMPONENT_NAME "eRT.com.cisco.spvtg.ccsp.cm"
+#define CMAGENT_COMP_NAME_WITHOUTSUBSYSTEM "com.cisco.spvtg.ccsp.cm"
+#define CMAGENT_COMPONENT_PATH "/com/cisco/spvtg/ccsp/cm"
+
+
+//General Param for interfaces
+#define PARAM_NAME_REQUEST_PHY_STATUS "RequestPhyStatus"
+#define PARAM_NAME_REQUEST_OPERATIONAL_STATUS "RequestOperationalStatus"
+#define PARAM_NAME_CONFIGURE_WAN "ConfigureWan"
+#define PARAM_NAME_CUSTOM_CONFIG_WAN "CustomWanConfigUpdate"
+
 
 ANSC_STATUS WanMgr_RdkBus_SetParamValues( char *pComponent, char *pBus, char *pParamName, char *pParamVal, enum dataType_e type, BOOLEAN bCommit );
 ANSC_STATUS WanMgr_RdkBus_GetParamValues( char *pComponent, char *pBus, char *pParamName, char *pReturnVal );
@@ -89,5 +106,6 @@ ANSC_STATUS WanMgr_RdkBus_updateInterfaceUpstreamFlag(char *phyPath, BOOL flag);
 void* WanMgr_RdkBus_WanIfRefreshThread( void *arg );
 
 ANSC_STATUS DmlGetInstanceByKeywordFromPandM(char *ifname, int *piInstanceNumber);
-
+ANSC_STATUS WanMgr_RdkBus_SetRequestIfComponent(char *pPhyPath, char *pInputparamName, char *pInputParamValue, enum dataType_e type);
+ANSC_STATUS WaitForInterfaceComponentReady(char *pPhyPath);
 #endif /* _WANMGR_RDKBUS_UTILS_H_ */

@@ -49,6 +49,8 @@
     *  WanIf_DelEntry
     *  WanIf_GetParamStringValue
     *  WanIf_SetParamStringValue
+    *  WanIf_GetParamBoolValue
+    *  WanIf_SetParamBoolValue
     *  WanIf_Validate
     *  WanIf_Commit
     *  WanIf_Rollback
@@ -60,6 +62,8 @@ ANSC_HANDLE WanIf_AddEntry(ANSC_HANDLE hInsContext, ULONG* pInsNumber);
 ULONG WanIf_DelEntry(ANSC_HANDLE hInsContext, ANSC_HANDLE hInstance);
 ULONG WanIf_GetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, char* pValue, ULONG* pUlSize);
 BOOL WanIf_SetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, char* pString);
+BOOL WanIf_GetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL* pBool);
+BOOL WanIf_SetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL bValue);
 BOOL WanIf_Validate(ANSC_HANDLE hInsContext, char* pReturnParamName, ULONG* puLength);
 ULONG WanIf_Commit(ANSC_HANDLE hInsContext);
 ULONG WanIf_Rollback(ANSC_HANDLE hInsContext);

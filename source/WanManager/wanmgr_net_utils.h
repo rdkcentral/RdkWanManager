@@ -226,4 +226,5 @@ ANSC_HANDLE WanManager_AddIfaceMarking(DML_WAN_IFACE* pWanDmlIface, ULONG* pInsN
 #endif /* * FEATURE_802_1P_COS_MARKING */
 ANSC_STATUS WanManager_CheckGivenTypeExists(INT IfIndex, UINT uiTotalIfaces, DML_WAN_IFACE_TYPE priorityType, INT priority, BOOL *Status);
 ANSC_STATUS WanManager_CheckGivenPriorityExists(INT IfIndex, UINT uiTotalIfaces, INT priority, DML_WAN_IFACE_TYPE priorityType, BOOL *Status);
+INT WanMgr_StartIpMonitor(UINT iface_index);
 #endif // _WANMGR_NET_UTILS_H_

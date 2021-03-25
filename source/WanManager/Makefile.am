@@ -31,7 +31,7 @@ wanmanager_DEPENDENCIES = \
         ${top_builddir}/source/TR-181/middle_layer_src/libCcspWanManager_middle_layer_src.la
 
 wanmanager_CFLAGS = -D_ANSC_LINUX -D_ANSC_USER -D_ANSC_LITTLE_ENDIAN_ -DFEATURE_SUPPORT_RDKLOG $(DBUS_CFLAGS) $(SYSTEMD_CFLAGS)
-wanmanager_SOURCES = wanmgr_main.c  wanmgr_ssp_action.c wanmgr_ssp_messagebus_interface.c wanmgr_core.c wanmgr_controller.c wanmgr_data.c wanmgr_sysevents.c wanmgr_policy_fm_impl.c wanmgr_policy_fmob_impl.c wanmgr_policy_pp_impl.c wanmgr_policy_ppob_impl.c wanmgr_interface_sm.c wanmgr_platform_events.c wanmgr_utils.c wanmgr_net_utils.c wanmgr_dhcpv4_apis.c wanmgr_dhcpv6_apis.c wanmgr_ipc.c wanmgr_dhcpv4_internal.c wanmgr_dhcpv6_internal.c
+wanmanager_SOURCES = wanmgr_main.c  wanmgr_ssp_action.c wanmgr_ssp_messagebus_interface.c wanmgr_core.c wanmgr_controller.c wanmgr_data.c wanmgr_sysevents.c wanmgr_policy_fm_impl.c wanmgr_policy_fmob_impl.c wanmgr_policy_pp_impl.c wanmgr_policy_ppob_impl.c wanmgr_interface_sm.c wanmgr_platform_events.c wanmgr_utils.c wanmgr_net_utils.c wanmgr_dhcpv4_apis.c wanmgr_dhcpv6_apis.c wanmgr_ipc.c wanmgr_dhcpv4_internal.c wanmgr_dhcpv6_internal.c wanmgr_policy_autowan_impl.c
 wanmanager_LDFLAGS = -lccsp_common -lrdkloggers $(DBUS_LIBS) $(SYSTEMD_LDFLAGS) -lhal_platform -lapi_dhcpv4c -lbreakpadwrapper -lnanomsg
 wanmanager_LDADD =  $(wanmanager_DEPENDENCIES)
 

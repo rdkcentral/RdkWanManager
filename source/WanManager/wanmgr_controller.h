@@ -43,5 +43,6 @@ ANSC_STATUS WanMgr_Policy_FixedModePolicy(void);
 ANSC_STATUS WanMgr_Policy_FixedModeOnBootupPolicy(void);
 ANSC_STATUS WanMgr_Policy_PrimaryPriorityPolicy(void);
 ANSC_STATUS WanMgr_Policy_PrimaryPriorityOnBootupPolicy(void);
+ANSC_STATUS WanMgr_Policy_AutoWan(void);
 
 #endif /*_WANMGR_CONTROLLER_H_*/

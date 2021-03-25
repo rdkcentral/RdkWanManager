@@ -178,6 +178,11 @@ void WanMgr_IfaceData_Init(WanMgr_Iface_Data_t* pIfaceData, UINT iface_index)
     {
         DML_WAN_IFACE* pWanDmlIface = &(pIfaceData->data);
 
+        pWanDmlIface->MonitorOperStatus = FALSE;
+        pWanDmlIface->WanConfigEnabled = FALSE;
+        pWanDmlIface->CustomConfigEnable = FALSE;
+        memset(pWanDmlIface->CustomConfigPath,0,sizeof(pWanDmlIface->CustomConfigPath));
+        pWanDmlIface->Wan.OperationalStatus = WAN_OPERSTATUS_UNKNOWN;
         pWanDmlIface->uiIfaceIdx = iface_index;
         pWanDmlIface->uiInstanceNumber = iface_index+1;
         memset(pWanDmlIface->Name, 0, 64);

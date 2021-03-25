@@ -50,6 +50,8 @@
     *  WanIf_GetEntry
     *  WanIf_GetParamStringValue
     *  WanIf_SetParamStringValue
+    *  WanIf_GetParamBoolValue
+    *  WanIf_SetParamBoolValue
     *  WanIf_Validate
     *  WanIf_Commit
     *  WanIf_Rollback
@@ -193,6 +195,21 @@ ULONG WanIf_GetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, char* 
                }
             }
 
+            if( AnscEqualString(ParamName, "CustomConfigPath", TRUE) )
+            {
+               /* collect value */
+               if ( ( sizeof( pWanDmlIface->CustomConfigPath ) - 1 ) < *pUlSize )
+               {
+                   AnscCopyString( pValue, pWanDmlIface->CustomConfigPath );
+                   ret = 0;
+               }
+               else
+               {
+                   *pUlSize = sizeof( pWanDmlIface->CustomConfigPath );
+                   ret = 1;
+               }
+            }
+
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
         }
     }
@@ -243,12 +260,141 @@ BOOL WanIf_SetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, char* p
                 ret = TRUE;
             }
 
+            if( AnscEqualString(ParamName, "CustomConfigPath", TRUE))
+            {
+                AnscCopyString(pWanDmlIface->CustomConfigPath, pString);
+                ret = TRUE;
+            }
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
         }
     }
 
     return ret;
 }
+
+/**********************************************************************
+
+    caller:     owner of this object
+
+    prototype:
+
+        BOOL WanIf_GetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL* pBool);
+
+    description:
+
+        This function is called to retrieve Boolean parameter value;
+
+    argument:   ANSC_HANDLE                 hInsContext,
+                The instance handle;
+
+                char*                       ParamName,
+                The parameter name;
+
+                BOOL*                       pBool
+                The buffer of returned boolean value;
+
+    return:     TRUE if succeeded.
+
+**********************************************************************/
+BOOL WanIf_GetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL* pBool)
+{
+    BOOL ret = FALSE;
+
+    WanMgr_Iface_Data_t* pIfaceDmlEntry = (WanMgr_Iface_Data_t*) hInsContext;
+    if(pIfaceDmlEntry != NULL)
+    {
+        WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pIfaceDmlEntry->data.uiIfaceIdx);
+        if(pWanDmlIfaceData != NULL)
+        {
+            DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
+
+            //* check the parameter name and return the corresponding value */
+            if( AnscEqualString(ParamName, "EnableOperStatusMonitor", TRUE))
+            {
+                *pBool = pWanDmlIface->MonitorOperStatus;
+                ret = TRUE;
+            }
+
+            if( AnscEqualString(ParamName, "EnableCustomConfig", TRUE))
+            {
+                *pBool = pWanDmlIface->CustomConfigEnable;
+                ret = TRUE;
+            }
+
+            if( AnscEqualString(ParamName, "ConfigureWanEnable", TRUE))
+            {
+                *pBool = pWanDmlIface->WanConfigEnabled;
+                ret = TRUE;
+            }
+
+            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+        }
+    }
+
+    return ret;
+}
+
+/**********************************************************************
+
+    caller:     owner of this object
+
+    prototype:
+
+        BOOL WanIf_SetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL bValue);
+
+    description:
+
+        This function is called to set BOOL parameter value;
+
+    argument:   ANSC_HANDLE                 hInsContext,
+                The instance handle;
+
+                char*                       ParamName,
+                The parameter name;
+
+                BOOL                        bValue
+                The updated BOOL value;
+
+    return:     TRUE if succeeded.
+
+**********************************************************************/
+BOOL WanIf_SetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL bValue)
+{
+    BOOL ret = FALSE;
+
+    WanMgr_Iface_Data_t* pIfaceDmlEntry = (WanMgr_Iface_Data_t*) hInsContext;
+    if(pIfaceDmlEntry != NULL)
+    {
+        WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pIfaceDmlEntry->data.uiIfaceIdx);
+        if(pWanDmlIfaceData != NULL)
+        {
+            DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
+
+            /* check the parameter name and set the corresponding value */
+            if( AnscEqualString(ParamName, "ConfigureWanEnable", TRUE))
+            {
+                pWanDmlIface->WanConfigEnabled  = bValue;
+                ret = TRUE;
+            }
+            /* check the parameter name and set the corresponding value */
+            if( AnscEqualString(ParamName, "EnableCustomConfig", TRUE))
+            {
+                pWanDmlIface->CustomConfigEnable  = bValue;
+                ret = TRUE;
+            }
+            if( AnscEqualString(ParamName, "EnableOperStatusMonitor", TRUE))
+            {
+                pWanDmlIface->MonitorOperStatus = bValue;
+                ret = TRUE;
+            }
+            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+        }
+    }
+
+    return ret;
+}
+
+
 
 /**********************************************************************
 
@@ -519,6 +665,12 @@ BOOL WanIfCfg_GetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG
                 ret = TRUE;
             }
 
+            if( AnscEqualString(ParamName, "OperationalStatus", TRUE))
+            {
+                *puLong = pWanDmlIface->Wan.OperationalStatus;
+                ret = TRUE;
+            }
+
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
         }
     }
@@ -601,6 +753,11 @@ BOOL WanIfCfg_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG
                 ret = TRUE;
             }
 
+            if( AnscEqualString(ParamName, "OperationalStatus", TRUE))
+            {
+                pWanDmlIface->Wan.OperationalStatus = uValue;
+                ret = TRUE;
+            }
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
         }
     }
@@ -3242,6 +3399,8 @@ ULONG Marking_Commit(ANSC_HANDLE hInsContext)
 {
 
     ANSC_STATUS                              returnStatus  = ANSC_STATUS_SUCCESS;
+
+#ifdef FEATURE_802_1P_COS_MARKING
     CONTEXT_MARKING_LINK_OBJECT*        pCxtLink      = (CONTEXT_MARKING_LINK_OBJECT*)hInsContext;
     DML_MARKING*                        p_Marking     = (DML_MARKING* )pCxtLink->hContext;
 
@@ -3268,6 +3427,7 @@ ULONG Marking_Commit(ANSC_HANDLE hInsContext)
         //Update marking param values
         returnStatus = DmlSetMarking( NULL, p_Marking );
     }
+#endif /* * FEATURE_802_1P_COS_MARKING */
 
     return returnStatus;
 }

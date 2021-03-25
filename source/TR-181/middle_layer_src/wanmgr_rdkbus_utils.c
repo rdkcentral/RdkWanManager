@@ -62,7 +62,6 @@
 
 extern char g_Subsystem[32];
 extern ANSC_HANDLE bus_handle;
-
 ANSC_STATUS WanMgr_RdkBus_getWanPolicy(DML_WAN_POLICY *wan_policy)
 {
     int result = ANSC_STATUS_SUCCESS;
@@ -107,6 +106,123 @@ ANSC_STATUS WanMgr_RdkBus_setWanPolicy(DML_WAN_POLICY wan_policy)
     return result;
 }
 
+static void checkComponentHealthStatus(char * compName, char * dbusPath, char *status, int *retStatus)
+{
+    int ret = 0, val_size = 0;
+    parameterValStruct_t **parameterval = NULL;
+    char *parameterNames[1] = {};
+    char tmp[256];
+    char str[256];
+    char l_Subsystem[128] = { 0 };
+
+    sprintf(tmp,"%s.%s",compName, "Health");
+    parameterNames[0] = tmp;
+
+    strncpy(l_Subsystem, "eRT.",sizeof(l_Subsystem));
+    snprintf(str, sizeof(str), "%s%s", l_Subsystem, compName);
+    CcspTraceDebug(("str is:%s\n", str));
+
+    ret = CcspBaseIf_getParameterValues(bus_handle, str, dbusPath,  parameterNames, 1, &val_size, &parameterval);
+    CcspTraceDebug(("ret = %d val_size = %d\n",ret,val_size));
+    if(ret == CCSP_SUCCESS)
+    {
+        CcspTraceDebug(("parameterval[0]->parameterName : %s parameterval[0]->parameterValue : %s\n",parameterval[0]->parameterName,parameterval[0]->parameterValue));
+        strcpy(status, parameterval[0]->parameterValue);
+        CcspTraceDebug(("status of component:%s\n", status));
+    }
+    free_parameterValStruct_t (bus_handle, val_size, parameterval);
+
+    *retStatus = ret;
+}
+
+ANSC_STATUS WaitForInterfaceComponentReady(char *pPhyPath)
+{
+    char status[32] = {'\0'};
+    int count = 0;
+    int ret = -1;
+    char  pComponentName[BUFLEN_64] = {0};
+    char  pComponentPath[BUFLEN_64] = {0};
+
+    if (pPhyPath == NULL)
+    {
+        CcspTraceInfo(("%s %d Error: phyPath is NULL \n", __FUNCTION__, __LINE__ ));
+        return ANSC_STATUS_FAILURE;
+    }
+        
+    if(strstr(pPhyPath, "CableModem") != NULL) { // CM wan interface
+        strncpy(pComponentName, CMAGENT_COMP_NAME_WITHOUTSUBSYSTEM, sizeof(pComponentName));
+        strncpy(pComponentPath, CMAGENT_COMPONENT_PATH, sizeof(pComponentPath));
+    }
+    else if(strstr(pPhyPath, "Ethernet") != NULL) { // ethernet wan interface
+        strncpy(pComponentName, ETH_COMP_NAME_WITHOUTSUBSYSTEM, sizeof(pComponentName));
+        strncpy(pComponentPath, ETH_COMPONENT_PATH, sizeof(pComponentPath));
+    }
+    while(1)
+    {
+        checkComponentHealthStatus(pComponentName, pComponentPath, status,&ret);
+        if(ret == CCSP_SUCCESS && (strcmp(status, "Green") == 0))
+        {
+            CcspTraceInfo(("%s component health is %s, continue\n", pComponentName, status));
+            return ANSC_STATUS_SUCCESS;
+        }
+        else
+        {
+            count++;
+            if(count%5== 0)
+            {
+                CcspTraceError(("%s component Health, ret:%d, waiting\n", pComponentName, ret));
+            }
+            sleep(5);
+        }
+    }
+    return ANSC_STATUS_SUCCESS;
+}
+
+ANSC_STATUS WanMgr_RdkBus_SetRequestIfComponent(char *pPhyPath, char *pInputparamName, char *pInputParamValue, enum dataType_e type)
+{
+    char param_name[BUFLEN_256] = {0};
+    char  pComponentName[BUFLEN_64] = {0};
+    char  pComponentPath[BUFLEN_64] = {0};
+    char *faultParam = NULL;
+    int ret = 0;
+
+    CCSP_MESSAGE_BUS_INFO *bus_info = (CCSP_MESSAGE_BUS_INFO *)bus_handle;
+    parameterValStruct_t param_info[1] = {0};
+
+    if((pPhyPath == NULL) || (pInputparamName == NULL) || (pInputParamValue == NULL)) {
+        CcspTraceInfo(("%s %d Error: phyPath/inputParamName is NULL \n", __FUNCTION__, __LINE__ ));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    strncpy(param_name, pPhyPath, sizeof(param_name));
+    strncat(param_name,pInputparamName,sizeof(param_name));
+
+    if(strstr(param_name, "CableModem") != NULL) { // CM wan interface
+        strncpy(pComponentName, CMAGENT_COMPONENT_NAME, sizeof(pComponentName));
+        strncpy(pComponentPath, CMAGENT_COMPONENT_PATH, sizeof(pComponentPath));
+    }
+    else if(strstr(param_name, "Ethernet") != NULL) { // ethernet wan interface
+        strncpy(pComponentName, ETH_COMPONENT_NAME, sizeof(pComponentName));
+        strncpy(pComponentPath, ETH_COMPONENT_PATH, sizeof(pComponentPath));
+    }
+     CcspTraceInfo(("%s: Param Name %s value %s\n", __FUNCTION__,param_name,pInputParamValue));
+    param_info[0].parameterName = param_name;
+    param_info[0].parameterValue = pInputParamValue;
+    param_info[0].type = type;
+
+    ret = CcspBaseIf_setParameterValues(bus_handle, pComponentName, pComponentPath,
+                                        0, 0x0,   /* session id and write id */
+                                        param_info, 1, TRUE,   /* Commit  */
+                                        &faultParam);
+
+    if ( ( ret != CCSP_SUCCESS ) && ( faultParam )) {
+        CcspTraceInfo(("%s CcspBaseIf_setParameterValues failed with error %d\n",__FUNCTION__, ret ));
+        bus_info->freefunc( faultParam );
+        return ANSC_STATUS_FAILURE;
+    }
+    
+    return ANSC_STATUS_SUCCESS;
+}
 
 ANSC_STATUS WanMgr_RdkBus_updateInterfaceUpstreamFlag(char *phyPath, BOOL flag)
 {

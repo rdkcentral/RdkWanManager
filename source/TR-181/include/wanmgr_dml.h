@@ -35,9 +35,16 @@ typedef enum _DML_WAN_POLICY
    FIXED_MODE,
    PRIMARY_PRIORITY_ON_BOOTUP,
    PRIMARY_PRIORITY,
-   MULTIWAN_MODE
+   MULTIWAN_MODE,
+   AUTOWAN_MODE
 } DML_WAN_POLICY;
 
+typedef enum _DML_WAN_IFACE_OPER_STATUS
+{
+    WAN_OPERSTATUS_UNKNOWN = 1,
+    WAN_OPERSTATUS_OPERATIONAL,
+    WAN_OPERSTATUS_NOT_OPERATIONAL
+} DML_WAN_IFACE_OPER_STATUS;
 
 typedef enum _DML_WAN_IFACE_STATUS
 {
@@ -64,7 +71,8 @@ typedef enum _DML_WAN_IFACE_PHY_STATUS
 {
     WAN_IFACE_PHY_STATUS_DOWN = 1,
     WAN_IFACE_PHY_STATUS_INITIALIZING,
-    WAN_IFACE_PHY_STATUS_UP
+    WAN_IFACE_PHY_STATUS_UP,
+    WAN_IFACE_PHY_STATUS_UNKNOWN
 } DML_WAN_IFACE_PHY_STATUS;
 
 /** enum wan status */
@@ -79,14 +87,16 @@ typedef enum _DML_WAN_IFACE_TYPE
 typedef enum _DML_WAN_IFACE_IPV4_STATUS
 {
     WAN_IFACE_IPV4_STATE_UP = 1,
-    WAN_IFACE_IPV4_STATE_DOWN
+    WAN_IFACE_IPV4_STATE_DOWN,
+    WAN_IFACE_IPV4_STATE_UNKNOWN
 } DML_WAN_IFACE_IPV4_STATUS;
 
 /** enum wan status */
 typedef enum _DML_WAN_IFACE_IPV6_STATUS
 {
     WAN_IFACE_IPV6_STATE_UP = 1,
-    WAN_IFACE_IPV6_STATE_DOWN
+    WAN_IFACE_IPV6_STATE_DOWN,
+    WAN_IFACE_IPV6_STATE_UNKNOWN
 } DML_WAN_IFACE_IPV6_STATUS;
 
 /** enum wan status */
@@ -231,6 +241,7 @@ typedef struct _DML_WANIFACE_INFO
     DML_WAN_IFACE_LINKSTATUS    LinkStatus;
     BOOL                        Refresh;
     DML_WANIFACE_WANCFG_VALID   Validation;
+    DML_WAN_IFACE_OPER_STATUS   OperationalStatus;
 } DML_WANIFACE_INFO;
 
 typedef struct _DML_WANIFACE_DYNTRIGGER
@@ -305,6 +316,10 @@ typedef struct _DML_WAN_INTERFACE
     UINT                        uiInstanceNumber;
     CHAR                        Name[BUFLEN_64];
     CHAR                        DisplayName[BUFLEN_64];
+    BOOL                        MonitorOperStatus;
+    BOOL                        WanConfigEnabled;
+    BOOL                        CustomConfigEnable;
+    CHAR                        CustomConfigPath[BUFLEN_128];
     DML_WANIFACE_PHY            Phy;
     DML_WANIFACE_INFO           Wan;
     DML_WANIFACE_DYNTRIGGER     DynamicTrigger;

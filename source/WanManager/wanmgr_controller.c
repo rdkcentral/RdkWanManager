@@ -102,6 +102,10 @@ ANSC_STATUS WanController_Start_StateMachine(DML_WAN_POLICY swan_policy)
 
         case MULTIWAN_MODE:
             break;
+
+        case AUTOWAN_MODE: 
+            retStatus = WanMgr_Policy_AutoWan();
+            break;
     }
 
     if( ANSC_STATUS_SUCCESS != retStatus )
