@@ -879,6 +879,40 @@ static int wan_tearDownIPv6(DML_WAN_IFACE* pInterface)
     return ret;
 }
 
+#ifdef FEATURE_IPOE_HEALTH_CHECK
+static ANSC_STATUS WanMgr_IfaceSM_IHC_Init(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
+{
+    CcspTraceInfo(("[%s:%d] Init IHC details in Intf StateMachine data\n", __FUNCTION__, __LINE__));
+    if (pWanIfaceCtrl == NULL)
+    {
+        CcspTraceError(("%s %d - Invalid args\n", __FUNCTION__, __LINE__));
+        return ANSC_STATUS_FAILURE;
+    }
+    pWanIfaceCtrl->IhcPid = 0;
+    pWanIfaceCtrl->IhcV4Status = IHC_STOPPED;
+    pWanIfaceCtrl->IhcV6Status = IHC_STOPPED;
+    return ANSC_STATUS_SUCCESS; 
+}
+
+static ANSC_STATUS WanManager_StopIHC(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
+{
+    if (pWanIfaceCtrl == NULL)
+    {
+        CcspTraceError(("%s %d - invalid args \n", __FUNCTION__, __LINE__));
+        return ANSC_STATUS_FAILURE;
+    }
+    CcspTraceInfo(("[%s:%d] Stopping IHC App\n", __FUNCTION__, __LINE__));
+    if (WanManager_StopIpoeHealthCheckService(pWanIfaceCtrl->IhcPid) == ANSC_STATUS_FAILURE)
+    {
+        CcspTraceError(("%s %d - Failed to kill IHC process interface %s \n", __FUNCTION__, __LINE__, pWanIfaceCtrl->pIfaceData->Wan.Name));
+        return ANSC_STATUS_FAILURE;
+    }
+    WanMgr_IfaceSM_IHC_Init(pWanIfaceCtrl);
+    return ANSC_STATUS_SUCCESS;
+}
+#endif
+
+
 /* WanManager_ClearDHCPData */
 /* This function must be used only with the mutex locked */
 static ANSC_STATUS WanManager_ClearDHCPData(DML_WAN_IFACE* pInterface)
@@ -976,11 +1010,7 @@ static eWanState_t wan_transition_physical_interface_down(WanMgr_IfaceSM_Control
 #ifdef FEATURE_IPOE_HEALTH_CHECK
         if (pWanIfaceCtrl->IhcPid > 0)
         {
-            if (WanManager_StopIpoeHealthCheckService(pWanIfaceCtrl->IhcPid) == ANSC_STATUS_FAILURE)
-            {
-                CcspTraceError(("%s %d - Failed to kill IHC process interface %s \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
-            }
-            pWanIfaceCtrl->IhcPid = 0;
+            WanManager_StopIHC(pWanIfaceCtrl);
         }
 #endif  // FEATURE_IPOE_HEALTH_CHECK
     }
@@ -1046,7 +1076,7 @@ static eWanState_t wan_transition_wan_validated(WanMgr_IfaceSM_Controller_t* pWa
     if( pInterface->PPP.Enable == FALSE )
     {
 #ifdef FEATURE_IPOE_HEALTH_CHECK
-        if (pInterface->Wan.ActiveLink == TRUE)
+        if ((pInterface->Wan.EnableIPoE) && (pInterface->Wan.ActiveLink == TRUE))
         {
             UINT IhcPid = 0;
             IhcPid = WanManager_StartIpoeHealthCheckService(pInterface->Wan.Name);
@@ -1182,9 +1212,10 @@ static eWanState_t wan_transition_ipv4_up(WanMgr_IfaceSM_Controller_t* pWanIface
         }
 
 #ifdef FEATURE_IPOE_HEALTH_CHECK
-        if ((pInterface->PPP.Enable == FALSE) && (pWanIfaceCtrl->IhcPid > 0))
+        if ((pInterface->Wan.EnableIPoE) && (pInterface->PPP.Enable == FALSE) && (pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV4Status == IHC_STOPPED))
         {
             WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_UP, pInterface->Wan.Name);
+            pWanIfaceCtrl->IhcV4Status = IHC_STARTED;
         }
 #endif
     }
@@ -1244,9 +1275,10 @@ static eWanState_t wan_transition_ipv4_down(WanMgr_IfaceSM_Controller_t* pWanIfa
 
     WanManager_UpdateInterfaceStatus(pInterface, WANMGR_IFACE_CONNECTION_DOWN);
 #ifdef FEATURE_IPOE_HEALTH_CHECK
-    if((pInterface->Wan.ActiveLink == TRUE) && (pInterface->PPP.Enable == FALSE) && (pWanIfaceCtrl->IhcPid > 0))
+    if((pInterface->Wan.EnableIPoE) && (pInterface->Wan.ActiveLink == TRUE) && (pInterface->PPP.Enable == FALSE) && (pWanIfaceCtrl->IhcPid > 0))
     {
         WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_DOWN, pInterface->Wan.Name);
+        pWanIfaceCtrl->IhcV4Status = IHC_STOPPED;
     }
 #endif
 
@@ -1293,9 +1325,10 @@ static eWanState_t wan_transition_ipv6_up(WanMgr_IfaceSM_Controller_t* pWanIface
             CcspTraceError(("%s %d - Failed to configure IPv6 successfully \n", __FUNCTION__, __LINE__));
         }
 #ifdef FEATURE_IPOE_HEALTH_CHECK
-        if ((pInterface->PPP.Enable == FALSE) && (pWanIfaceCtrl->IhcPid > 0))
+        if ((pInterface->Wan.EnableIPoE) && (pInterface->PPP.Enable == FALSE) && (pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV6Status == IHC_STOPPED))
         {
             WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_IPV6_UP, pInterface->Wan.Name);
+            pWanIfaceCtrl->IhcV6Status = IHC_STARTED;
         }
 #endif
     }
@@ -1352,9 +1385,10 @@ static eWanState_t wan_transition_ipv6_down(WanMgr_IfaceSM_Controller_t* pWanIfa
     WanManager_UpdateInterfaceStatus(pInterface, WANMGR_IFACE_CONNECTION_IPV6_DOWN);
 
 #ifdef FEATURE_IPOE_HEALTH_CHECK
-    if ((pInterface->Wan.ActiveLink == TRUE) && (pInterface->PPP.Enable == FALSE) && (pWanIfaceCtrl->IhcPid > 0))
+    if ((pInterface->Wan.EnableIPoE) && (pInterface->Wan.ActiveLink == TRUE) && (pInterface->PPP.Enable == FALSE) && (pWanIfaceCtrl->IhcPid > 0))
     {
         WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_IPV6_DOWN, pInterface->Wan.Name);
+        pWanIfaceCtrl->IhcV6Status = IHC_STOPPED;
     }
 #endif
 
@@ -1544,6 +1578,38 @@ static eWanState_t wan_state_ipv4_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
 
     DML_WAN_IFACE* pInterface = pWanIfaceCtrl->pIfaceData;
 
+#ifdef FEATURE_IPOE_HEALTH_CHECK
+    if (pInterface->Wan.EnableIPoE)
+    {
+        if ((pWanIfaceCtrl->IhcPid > 0) != TRUE)
+        {
+            // IHC Enabled but not running, So Starting IHC
+            UINT IhcPid = 0;
+            IhcPid = WanManager_StartIpoeHealthCheckService(pInterface->Wan.Name);
+            if (IhcPid > 0)
+            {
+                pWanIfaceCtrl->IhcPid = IhcPid;
+                CcspTraceError(("%s %d - Starting IPoE Health Check pid - %u for interface %s \n", __FUNCTION__, __LINE__, pWanIfaceCtrl->IhcPid, pInterface->Wan.Name));
+            }
+            else
+            {
+                CcspTraceError(("%s %d - Failed to start IPoE Health Check for interface %s \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
+            }
+        }
+        if ((pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV4Status == IHC_STOPPED))
+        {
+            // sending v4 UP event to IHC, IHC starts to send BFD v4 packts to BNG
+            WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_UP, pInterface->Wan.Name);
+            pWanIfaceCtrl->IhcV4Status = IHC_STARTED;
+        }
+    }
+    else if ((pInterface->Wan.EnableIPoE == FALSE) && (pWanIfaceCtrl->IhcPid > 0))
+    {
+        // IHC is diabled but is running, So Stopping IHC & clearing IntfSM IHC data
+        WanManager_StopIHC(pWanIfaceCtrl);
+    }
+#endif // FEATURE_IPOE_HEALTH_CHECK
+
     if (pWanIfaceCtrl->WanEnable == FALSE ||
         pInterface->Wan.ActiveLink == FALSE ||
         pInterface->Phy.Status ==  WAN_IFACE_PHY_STATUS_DOWN ||
@@ -1584,6 +1650,38 @@ static eWanState_t wan_state_ipv6_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
 
     DML_WAN_IFACE* pInterface = pWanIfaceCtrl->pIfaceData;
 
+#ifdef FEATURE_IPOE_HEALTH_CHECK
+    if (pInterface->Wan.EnableIPoE)
+    {
+        if ((pWanIfaceCtrl->IhcPid > 0) != TRUE)
+        {
+            // IHC Enabled but not running, So Starting IHC
+            UINT IhcPid = 0;
+            IhcPid = WanManager_StartIpoeHealthCheckService(pInterface->Wan.Name);
+            if (IhcPid > 0)
+            {
+                pWanIfaceCtrl->IhcPid = IhcPid;
+                CcspTraceError(("%s %d - Starting IPoE Health Check pid - %u for interface %s \n", __FUNCTION__, __LINE__, pWanIfaceCtrl->IhcPid, pInterface->Wan.Name));
+            }
+            else
+            {
+                CcspTraceError(("%s %d - Failed to start IPoE Health Check for interface %s \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
+            }
+        }
+        if ((pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV6Status == IHC_STOPPED))
+        {
+            // sending v6 UP event to IHC, IHC starts to send BFD v6 packts to BNG
+            WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_IPV6_UP, pInterface->Wan.Name);
+            pWanIfaceCtrl->IhcV6Status = IHC_STARTED;
+        }
+    }
+    else if ((pInterface->Wan.EnableIPoE == FALSE) && (pWanIfaceCtrl->IhcPid > 0))
+    {
+        // IHC is diabled but is running, So Stopping IHC & clearing IntfSM IHC data
+        WanManager_StopIHC(pWanIfaceCtrl);
+    }
+#endif 
+
     if (pWanIfaceCtrl->WanEnable == FALSE ||
         pInterface->Wan.ActiveLink == FALSE ||
         pInterface->Phy.Status ==  WAN_IFACE_PHY_STATUS_DOWN ||
@@ -1621,6 +1719,44 @@ static eWanState_t wan_state_dual_stack_active(WanMgr_IfaceSM_Controller_t* pWan
     }
 
     DML_WAN_IFACE* pInterface = pWanIfaceCtrl->pIfaceData;
+
+#ifdef FEATURE_IPOE_HEALTH_CHECK
+    if (pInterface->Wan.EnableIPoE)
+    {
+        if ((pWanIfaceCtrl->IhcPid > 0) != TRUE)
+        {
+            // IHC Enabled but not running, So Starting IHC
+            UINT IhcPid = 0;
+            IhcPid = WanManager_StartIpoeHealthCheckService(pInterface->Wan.Name);
+            if (IhcPid > 0)
+            {
+                pWanIfaceCtrl->IhcPid = IhcPid;
+                CcspTraceError(("%s %d - Starting IPoE Health Check pid - %u for interface %s \n", __FUNCTION__, __LINE__, pWanIfaceCtrl->IhcPid, pInterface->Wan.Name));
+            }
+            else
+            {
+                CcspTraceError(("%s %d - Failed to start IPoE Health Check for interface %s \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
+            }
+        }
+        if ((pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV4Status == IHC_STOPPED))
+        {
+            // sending v4 UP event to IHC, IHC starts to send BFD v4 packts to BNG
+            WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_UP, pInterface->Wan.Name);
+            pWanIfaceCtrl->IhcV4Status = IHC_STARTED;
+        }
+        if ((pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV6Status == IHC_STOPPED))
+        {
+            // sending v6 UP event to IHC, IHC starts to send BFD v6 packts to BNG
+            WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_IPV6_UP, pInterface->Wan.Name);
+            pWanIfaceCtrl->IhcV6Status = IHC_STARTED;
+        }
+    }
+    else if ((pInterface->Wan.EnableIPoE == FALSE) && (pWanIfaceCtrl->IhcPid > 0))
+    {
+        // IHC is diabled but is running, So Stopping IHC & clearing IntfSM IHC data
+        WanManager_StopIHC(pWanIfaceCtrl);
+    }
+#endif
 
     if (pWanIfaceCtrl->WanEnable == FALSE ||
         pInterface->Wan.ActiveLink == FALSE ||
@@ -2005,11 +2141,11 @@ void WanMgr_IfaceSM_Init(WanMgr_IfaceSM_Controller_t* pWanIfaceSMCtrl, INT iface
 {
     if(pWanIfaceSMCtrl != NULL)
     {
-       pWanIfaceSMCtrl->WanEnable = FALSE;
-       pWanIfaceSMCtrl->interfaceIdx = iface_idx;
+        pWanIfaceSMCtrl->WanEnable = FALSE;
+        pWanIfaceSMCtrl->interfaceIdx = iface_idx;
 #ifdef FEATURE_IPOE_HEALTH_CHECK
-       pWanIfaceSMCtrl->IhcPid = 0;
+        WanMgr_IfaceSM_IHC_Init(pWanIfaceSMCtrl);
 #endif
-       pWanIfaceSMCtrl->pIfaceData = NULL;
+        pWanIfaceSMCtrl->pIfaceData = NULL;
     }
 }

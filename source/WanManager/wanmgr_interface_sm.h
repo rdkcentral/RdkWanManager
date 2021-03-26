@@ -36,6 +36,13 @@
 extern int sysevent_fd;
 extern token_t sysevent_token;
 
+#ifdef FEATURE_IPOE_HEALTH_CHECK
+typedef enum
+{
+    IHC_STOPPED = 0,
+    IHC_STARTED
+}wanmgr_ihc_status_t;
+#endif
 
 typedef enum
 {
@@ -60,6 +67,8 @@ typedef struct WanMgr_IfaceSM_Ctrl_st
     INT                     interfaceIdx;
 #ifdef FEATURE_IPOE_HEALTH_CHECK
     UINT                    IhcPid;
+    wanmgr_ihc_status_t     IhcV4Status;
+    wanmgr_ihc_status_t     IhcV6Status;
 #endif
     DML_WAN_IFACE*          pIfaceData;
 } WanMgr_IfaceSM_Controller_t;
