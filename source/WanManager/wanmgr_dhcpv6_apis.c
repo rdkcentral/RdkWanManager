@@ -1924,7 +1924,14 @@ dhcpv6c_dbg_thrd(void * in)
                     /*for now we only support one address, one prefix notify, if need multiple addr/prefix, must modify dibbler-client code*/
                     if (strncmp(v6addr, "::", 2) != 0)
                     {
-                        sysevent_set(sysevent_fd, sysevent_token, COSA_DML_DHCPV6C_ADDR_SYSEVENT_NAME, v6addr , 0);
+                        if (strncmp(v6addr, "''", 2) == 0)
+			{
+                            sysevent_set(sysevent_fd, sysevent_token, COSA_DML_DHCPV6C_ADDR_SYSEVENT_NAME, "" , 0);
+                        }
+                        else
+			{
+                            sysevent_set(sysevent_fd, sysevent_token, COSA_DML_DHCPV6C_ADDR_SYSEVENT_NAME, v6addr , 0);
+                        }
                         sysevent_set(sysevent_fd, sysevent_token, COSA_DML_DHCPV6C_ADDR_IAID_SYSEVENT_NAME,  iana_iaid , 0);
                         sysevent_set(sysevent_fd, sysevent_token, COSA_DML_DHCPV6C_ADDR_T1_SYSEVENT_NAME,    iana_t1 , 0);
                         sysevent_set(sysevent_fd, sysevent_token, COSA_DML_DHCPV6C_ADDR_T2_SYSEVENT_NAME,    iana_t2 , 0);
