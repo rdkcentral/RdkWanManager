@@ -153,6 +153,14 @@ BOOL WanManager_IsApplicationRunning(const char* appName);
 int WanManager_Ipv6AddrUtil(char *ifname,Ipv6OperType opr,int preflft,int vallft);
 
 #ifdef FEATURE_MAPT
+/*************************************************************************************
+ * @brief checks kernel module loaded.
+ * This API calls the proc entry.
+ * @param moduleName is the kernal modulename
+ * @return RETURN_OK upon success else RETURN_ERR returned
+ **************************************************************************************/
+int isModuleLoaded(char *moduleName); // checks kernel module loaded.
+
 /***********************************************************************************
  * @brief This API used to process mapt configuration data.
  * @param dhcp6cMAPTMsgBody Hold the mapt data received from dhcp6 server.
@@ -160,7 +168,7 @@ int WanManager_Ipv6AddrUtil(char *ifname,Ipv6OperType opr,int preflft,int vallft
  * @param vlanIf Vlan interface name
  * @return RETURN_OK in case of success else error code returned.
  ************************************************************************************/
-int WanManager_ProcessMAPTConfiguration(Dhcp6cMAPTParametersMsgBody *dhcp6cMAPTMsgBody, const char *baseIf, const char *vlanIf);
+int WanManager_ProcessMAPTConfiguration(ipc_mapt_data_t *dhcp6cMAPTMsgBody, const char *baseIf, const char *vlanIf);
 #endif
 
 /***********************************************************************************

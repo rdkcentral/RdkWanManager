@@ -39,7 +39,6 @@ extern char g_Subsystem[32];
 #define IFADDRCONF_ADD 0
 #define IFADDRCONF_REMOVE 1
 
-
 #ifdef _HUB4_PRODUCT_REQ_
 #include "wanmgr_ipc.h"
 #if defined SUCCESS
@@ -2277,17 +2276,16 @@ ANSC_STATUS wanmgr_handle_dchpv6_event_data(DML_WAN_IFACE* pIfaceData)
 
     memset(set_value, 0, sizeof(set_value));
 
-    CcspTraceInfo(("prefixAssigned=%dprefixCmd=%dsitePrefix=%spdIfAddress=%sprefixPltime=%dprefixVltime=%d\n"
-                   "addrAssigned=%daddrCmd=%daddress=%sifname=%s\n"
+    CcspTraceInfo(("prefixAssigned=%d prefixCmd=%d sitePrefix=%s pdIfAddress=%s \n"
+                   "prefixPltime=%d prefixVltime=%d\n"
+                   "addrAssigned=%d addrCmd=%d address=%s ifname=%s\n"
                    "maptAssigned=%d mapeAssigned=%d\n"
-                   "dnsAssigned=%dnameserver=%s,%saftrAssigned=%daftr=%sisExpired=%d \n",
+                   "dnsAssigned=%d nameserver=%s,%s aftrAssigned=%d aftr=%s isExpired=%d \n",
                    pNewIpcMsg->prefixAssigned, pNewIpcMsg->prefixCmd, pNewIpcMsg->sitePrefix,
                    pNewIpcMsg->pdIfAddress, pNewIpcMsg->prefixPltime, pNewIpcMsg->prefixVltime,
                    pNewIpcMsg->addrAssigned, pNewIpcMsg->addrCmd, pNewIpcMsg->address, pNewIpcMsg->ifname,
                    pNewIpcMsg->maptAssigned, pNewIpcMsg->mapeAssigned,
                    pNewIpcMsg->dnsAssigned, pNewIpcMsg->nameserver, pNewIpcMsg->nameserver1, pNewIpcMsg->aftrAssigned, pNewIpcMsg->aftr, pNewIpcMsg->isExpired));
-
-
 
     /*Check lease expiry*/
     if (pNewIpcMsg->isExpired)
@@ -2307,44 +2305,6 @@ ANSC_STATUS wanmgr_handle_dchpv6_event_data(DML_WAN_IFACE* pIfaceData)
 
         return ANSC_STATUS_SUCCESS;
     }
-
-
-#ifdef FEATURE_MAPT
-    Dhcp6cMAPTParametersMsgBody dhcp6cMAPTMsgBodyPrvs;
-    size_t expectedLength = sizeof(ipc_dhcpv6_data_t) + sizeof(Dhcp6cMAPTParametersMsgBody);
-    CcspTraceNotice(("FEATURE_MAPT: MAP-T Enable %d\n", pNewIpcMsg->maptAssigned));
-    if (pNewIpcMsg->maptAssigned && (msg->dataLength == expectedLength))
-    {
-        Dhcp6cMAPTParametersMsgBody *dhcp6cMAPTMsgBody = (Dhcp6cMAPTParametersMsgBody *)(pNewIpcMsg + 1);
-#ifdef FEATURE_MAPT_DEBUG
-        LOG_PRINT_MAPT("Got an event in Wanmanager for MAPT - CONFIG");
-#endif
-        //get MAP-T previous data
-        memcpy(&dhcp6cMAPTMsgBodyPrvs, &(pIfaceData->MAP.dhcp6cMAPTparameters), sizeof(Dhcp6cMAPTParametersMsgBody));
-
-        if (memcmp(dhcp6cMAPTMsgBody, &dhcp6cMAPTMsgBodyPrvs, sizeof(Dhcp6cMAPTParametersMsgBody)) != 0)
-        {
-            //WanManager_UpdateGlobalWanData(MAPT_CONFIG_CHANGED, TRUE);
-            pIfaceData->MAP.MaptChanged = TRUE;
-        }
-
-        // store MAP-T parameters locally
-        memcpy(&(pIfaceData->MAP.dhcp6cMAPTparameters), dhcp6cMAPTMsgBody, sizeof(Dhcp6cMAPTParametersMsgBody));
-
-        // update MAP-T flags
-        WanManager_UpdateInterfaceStatus(pIfaceData, WANMGR_IFACE_MAPT_START);
-    }
-    else
-    {
-#ifdef FEATURE_MAPT_DEBUG
-        LOG_PRINT_MAPT("Got an event in Wanmanager for MAPT - STOP");
-#endif
-        // reset MAP-T parameters
-        memset(&(pIfaceData->MAP.dhcp6cMAPTparameters), 0, sizeof(Dhcp6cMAPTParametersMsgBody));
-        WanManager_UpdateInterfaceStatus(pIfaceData, WANMGR_IFACE_MAPT_STOP);
-    }
-#endif // FEATURE_MAPT
-
 
     /* dhcp6c receives an IPv6 address for WAN interface */
     if (pNewIpcMsg->addrAssigned)
@@ -2534,6 +2494,39 @@ ANSC_STATUS wanmgr_handle_dchpv6_event_data(DML_WAN_IFACE* pIfaceData)
         pIfaceData->IP.Ipv6Status = WAN_IFACE_IPV6_STATE_UP;
     }
 
+#ifdef FEATURE_MAPT
+    ipc_mapt_data_t dhcp6cMAPTMsgBodyPrvs;
+    CcspTraceNotice(("FEATURE_MAPT: MAP-T Enable %d\n", pNewIpcMsg->maptAssigned));
+    if (pNewIpcMsg->maptAssigned)
+    {
+#ifdef FEATURE_MAPT_DEBUG
+        LOG_PRINT_MAPT("Got an event in Wanmanager for MAPT - CONFIG");
+#endif
+        //get MAP-T previous data
+        memcpy(&dhcp6cMAPTMsgBodyPrvs, &(pIfaceData->MAP.dhcp6cMAPTparameters), sizeof(ipc_mapt_data_t));
+
+        if (memcmp(&(pNewIpcMsg->mapt), &dhcp6cMAPTMsgBodyPrvs, sizeof(ipc_mapt_data_t)) != 0)
+        {
+            pIfaceData->MAP.MaptChanged = TRUE;
+            CcspTraceInfo(("MAPT configuration has been changed \n"));
+        }
+
+        // store MAP-T parameters locally
+        memcpy(&(pIfaceData->MAP.dhcp6cMAPTparameters), &(pNewIpcMsg->mapt), sizeof(ipc_mapt_data_t));
+
+        // update MAP-T flags
+        WanManager_UpdateInterfaceStatus(pIfaceData, WANMGR_IFACE_MAPT_START);
+    }
+    else
+    {
+#ifdef FEATURE_MAPT_DEBUG
+        LOG_PRINT_MAPT("Got an event in Wanmanager for MAPT - STOP");
+#endif
+        // reset MAP-T parameters
+        memset(&(pIfaceData->MAP.dhcp6cMAPTparameters), 0, sizeof(ipc_mapt_data_t));
+        WanManager_UpdateInterfaceStatus(pIfaceData, WANMGR_IFACE_MAPT_STOP);
+    }
+#endif // FEATURE_MAPT
 
     //Free buffer
     if (pIfaceData->IP.pIpcIpv6Data != NULL )

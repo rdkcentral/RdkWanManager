@@ -38,8 +38,10 @@
 #define WAN_IPV4_DOWN                  "rdkb_ipv4_down"
 #define WAN_IPV6_UP                    "rdkb_ipv6_up"
 #define WAN_IPV6_DOWN                  "rdkb_ipv6_down"
+#define WAN_MAPT_UP                   "rdkb_mapt_up"
+#define WAN_MAPT_DOWN                 "rdkb_mapt_down"
 
-// * The following defines are used for sysevent retrieval. */
+/* The following defines are used for sysevent retrieval. */
 #define SYSEVENT_IPV4_CONNECTION_STATE "ipv4_connection_state"
 #define SYSEVENT_CURRENT_IPV4_LINK_STATE  "current_ipv4_link_state"
 #define SYSEVENT_IPV6_CONNECTION_STATE "ipv6_connection_state"
@@ -142,6 +144,30 @@
 #define SET "set"
 #define UNSET "unset"
 #define RESET "reset"
+
+#ifdef FEATURE_MAPT
+/* MAPT specific field names. */
+#define SYSEVENT_BASE_INTERFACE_NAME "base_interface_name"
+#define SYSEVENT_MAPT_CONFIG_FLAG "mapt_config_flag"
+#define SYSEVENT_MAPT_RATIO "mapt_ratio"
+#define SYSEVENT_MAPT_IPADDRESS "mapt_ip_address"
+#define SYSEVENT_MAPT_PSID_OFFSET "mapt_psid_offset"
+#define SYSEVENT_MAPT_PSID_VALUE "mapt_psid_value"
+#define SYSEVENT_MAPT_PSID_LENGTH "mapt_psid_length"
+#define SYSEVENT_MAPT_IPV6_ADDRESS "mapt_ipv6_address"
+#define SYSEVENT_MAP_RULE_IPADDRESS "map_rule_ip_address"
+#define SYSEVENT_MAP_RULE_IPV6_ADDRESS "map_rule_ipv6_address"
+#define SYSEVENT_MAP_BR_IPV6_PREFIX "map_br_ipv6_prefix"
+#define SYSEVENT_MAP_EA_LENGTH "map_ea_length"
+#define SYSEVENT_MAP_TRANSPORT_MODE "map_transport_mode"
+#define SYSEVENT_MAP_IS_FMR "map_is_fmr"
+#define SYSEVENT_MAPT_V4LENGTH "map_v4len"
+
+/* Lan specific syscfg field names. */
+#define SYSCFG_LAN_IP_ADDRESS "lan_ipaddr"
+#define SYSCFG_LAN_NET_MASK "lan_netmask"
+#define IVICTL_COMMAND_ERROR             0xff
+#endif // FEATURE_MAPT
 
 /**********************************************************************
                 FUNCTION PROTOTYPES

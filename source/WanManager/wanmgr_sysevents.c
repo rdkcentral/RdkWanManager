@@ -592,7 +592,7 @@ static void *WanManagerSyseventHandler(void *args)
                     }
                     set_vendor_spec_conf();
                     system("gw_lan_refresh &");
-#ifdef FEATURE_MAPT
+#if defined(FEATURE_MAPT) && defined(IVI_KERNEL_SUPPORT)
                     memset(buf, '\0', sizeof(buf));
                     sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_MAP_TRANSPORT_MODE, buf, sizeof(buf));
                     if( !strcmp(buf, "MAPT") || !strcmp(buf, "MAPE") )  {

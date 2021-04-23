@@ -22,6 +22,8 @@
 #include <sys/sysinfo.h>
 #include <sys/time.h>
 #include <time.h>
+#include <sysevent/sysevent.h>
+#include "wanmgr_sysevents.h"
 #include "wanmgr_net_utils.h"
 #include "wanmgr_rdkbus_utils.h"
 #include "wanmgr_dhcpv4_apis.h"
@@ -52,6 +54,10 @@
 #define BASE_IFNAME_PPPoA "atm0"
 #define BASE_IFNAME_PPPoE "vlan101"
 #define DEFAULT_IFNAME    "erouter0"
+#define MAP_INTERFACE "map0"
+#define DSL_INTERFACE "dsl0"
+#define PTM_INTERFACE "ptm0"
+#define NF_NAT_FTP_MODULE "nf_nat_ftp"
 
 /** Macro to determine if a string parameter is empty or not */
 #define IS_EMPTY_STR(s)    ((s == NULL) || (*s == '\0'))
@@ -73,7 +79,6 @@
 #define AF_SELECT_IPV6       0x0002
 
 extern ANSC_HANDLE bus_handle;
-
 extern int sysevent_fd;
 extern token_t sysevent_token;
 
@@ -151,6 +156,51 @@ static ANSC_STATUS setDibblerClientEnable(BOOL * enable);
  ****************************************************************************/
 #define SERIALIZATION_DATA "/tmp/serial.txt"
 static ANSC_STATUS GetAdslUsernameAndPassword(char *Username, char *Password);
+static int WanManager_CalculatePsidAndV4Index(char *pdIPv6Prefix, int v6PrefixLen, int iapdPrefixLen, int v4PrefixLen, int *psidValue, int *ipv4IndexValue, int *psidLen);
+#endif
+
+#ifdef FEATURE_MAPT
+/*************************************************************************************
+ * @brief checks kernel module loaded.
+ * This API calls the proc entry.
+ * @param moduleName is the kernal modulename
+ * @return RETURN_OK upon success else RETURN_ERR returned
+ **************************************************************************************/
+int isModuleLoaded(char *moduleName)
+{
+    char cmd[BUFLEN_128] = {0};
+    char line[BUFLEN_64] = {0};
+    int  ret = RETURN_ERR;
+    FILE *file = NULL;
+
+    if (moduleName == NULL)
+    {
+        return ret;
+    }
+
+    snprintf(cmd, BUFLEN_128, "cat /proc/modules | grep %s", moduleName);
+
+    file = popen(cmd, "r");
+
+    if(file == NULL)
+    {
+        CcspTraceError(("[%s][%d]Failed to open  /proc/modules \n", __FUNCTION__, __LINE__));
+    }
+    else
+    {
+        if(fgets (line, BUFLEN_64, file) != NULL)
+        {
+            if(strstr(line, moduleName))
+            {
+                ret = RETURN_OK;
+                CcspTraceInfo(("[%s][%d] %s module is loaded \n", __FUNCTION__, __LINE__, moduleName));
+            }
+        }
+        pclose(file);
+    }
+
+    return ret;
+}
 #endif
 
  /***************************************************************************
@@ -414,11 +464,6 @@ ANSC_STATUS WanManager_StopDhcpv4Client(BOOL sendReleaseAndExit)
             {
                 WanManager_DoStopApp(DHCPV4_CLIENT_NAME);
             }
-            else
-            {
-                /* Collect if any zombie process. */
-                WanManager_DoCollectApp(DHCPV4_CLIENT_NAME);
-            }
         }
     }
 
@@ -454,10 +499,12 @@ void WanUpdateDhcp6cProcessId(char *currentBaseIfName)
 const char *nat44PostRoutingTable = "OUTBOUND_POSTROUTING";
 char ipv6AddressString[BUFLEN_256] = " ";
 #ifdef FEATURE_MAPT_DEBUG
-void WanManager_UpdateMaptLogFile(Dhcp6cMAPTParametersMsgBody *dhcp6cMAPTMsgBody);
+void WanManager_UpdateMaptLogFile(ipc_mapt_data_t *dhcp6cMAPTMsgBody);
 #endif // FEATURE_MAPT_DEBUG
-static int WanManager_CalculateMAPTPsid(char *pdIPv6Prefix, int v6PrefixLen, int iapdPrefixLen, int v4PrefixLen, int *psidValue, int *ipv4IndexValue, int *psidLen);
 static int WanManager_ConfigureIpv6Sysevents(char *pdIPv6Prefix, char *ipAddressString, int psidValue);
+#ifdef NAT46_KERNEL_SUPPORT
+static int get_V6_defgateway_wan_interface(char *defGateway);
+#endif // NAT46_KERNEL_SUPPORT
 
 static unsigned WanManager_GetMAPTbits(unsigned value, int pos, int num)
 {
@@ -500,12 +547,16 @@ static ANSC_STATUS WanManager_GetLANIPAddress(char *ipAddress, size_t length)
     return ANSC_STATUS_SUCCESS;
 }
 
-int WanManager_ProcessMAPTConfiguration(Dhcp6cMAPTParametersMsgBody *dhcp6cMAPTMsgBody, const char *baseIf, const char *vlanIf)
+int WanManager_ProcessMAPTConfiguration(ipc_mapt_data_t *dhcp6cMAPTMsgBody, const char *baseIf, const char *vlanIf)
 {
+    /* IVI_KERNEL_SUPPORT : To Enable IVI sopprted MAPT work flow
+     * NAT46_KERNEL_SUPPORT : To Enable NAT46 sopprted MAPT work flow
+     * Enable any one of the build flag at a time */
     int ret = RETURN_OK;
     char cmdDMRConfig[BUFLEN_128 + BUFLEN_64];
     char cmdBMRConfig[BUFLEN_256];
     char cmdStartMAPT[BUFLEN_256];
+    char cmdStartMAPTMeshBr[BUFLEN_256];
     char cmdDisableMapFiltering[BUFLEN_64];
     int psidValue = 0;
     int ipv4IndexValue = 0;
@@ -513,100 +564,65 @@ int WanManager_ProcessMAPTConfiguration(Dhcp6cMAPTParametersMsgBody *dhcp6cMAPTM
     char ipLANAddressString[BUFLEN_32] = "";
     struct in_addr result;
     unsigned char ipAddressBytes[BUFLEN_4];
-    unsigned int ipValue = 0;
+    unsigned long int ipValue = 0;
     int psidLen = 0;
     char cmdConfigureMTUSize[BUFLEN_64] = "";
     char cmdEnableIpv4Traffic[BUFLEN_64] = "";
+    char cmdEnableDefaultIpv4Route[BUFLEN_64] = "";
+
+    if (dhcp6cMAPTMsgBody == NULL)
+    {
+        CcspTraceError(("%s %d: Invalid args. MAPTMsgBody is NULL \n", __FUNCTION__, __LINE__));
+        return RETURN_ERR;
+    }
+
     MaptData_t maptInfo;
 
-    /* RM16042: Since erouter0 is vlan interface on top of eth3, we need
-       to first set the MTU size of eth3 to 1520 and then change MTU of erouter0.
-       Otherwise we can't configure MTU as we are getting `Numerical result out of range` error.
-       Configure eth3 MTU size to 1520.
-    */
-    snprintf(cmdConfigureMTUSize, sizeof(cmdConfigureMTUSize), "ip link set dev %s mtu %d ", baseIf, MTU_SIZE);
-
-#ifdef FEATURE_MAPT_DEBUG
-    LOG_PRINT_MAPT("ivictl:cmdConfigureMTUSize:%s", cmdConfigureMTUSize);
-#endif
-
-    if ((ret = WanManager_DoSystemActionWithStatus("ivictl", cmdConfigureMTUSize)) < RETURN_OK)
-    {
-        CcspTraceError(("Failed to run: %s:%d", cmdConfigureMTUSize, ret));
-        return ret;
-    }
-
-    /*  Configure erouter0 MTU size. */
-    snprintf(cmdConfigureMTUSize, sizeof(cmdConfigureMTUSize), "ip link set dev %s mtu %d ", vlanIf, MTU_SIZE);
-
-#ifdef FEATURE_MAPT_DEBUG
-    LOG_PRINT_MAPT("ivictl:cmdConfigureMTUSize:%s", cmdConfigureMTUSize);
-#endif
-
-    if ((ret = WanManager_DoSystemActionWithStatus("ivictl", cmdConfigureMTUSize)) < RETURN_OK)
-    {
-        CcspTraceError(("Failed to run: %s:%d", cmdConfigureMTUSize, ret));
-        return ret;
-    }
-
-    snprintf(cmdDMRConfig, sizeof(cmdDMRConfig), "ivictl -r -d -P %s -T", dhcp6cMAPTMsgBody->brIPv6Prefix);
 #ifdef FEATURE_MAPT_DEBUG
     WanManager_UpdateMaptLogFile(dhcp6cMAPTMsgBody);
-    LOG_PRINT_MAPT("### ivictl commands - START ###");
-    LOG_PRINT_MAPT("ivictl:DMR config:%s", cmdDMRConfig);
 #endif
 
-    if ((ret = WanManager_DoSystemActionWithStatus("ivictl", cmdDMRConfig)) < RETURN_OK)
+#if defined(IVI_KERNEL_SUPPORT) || (NAT46_KERNEL_SUPPORT)
+    if ((dhcp6cMAPTMsgBody->psidLen > 0) && (dhcp6cMAPTMsgBody->eaLen == 0))
     {
-        CcspTraceError(("Failed to run: %s:%d", cmdDMRConfig, ret));
-        return ret;
-    }
-    snprintf(cmdBMRConfig, sizeof(cmdBMRConfig), "ivictl -r -p %s -P %s -z %d -R %d -T", dhcp6cMAPTMsgBody->ruleIPv4Prefix,
-             dhcp6cMAPTMsgBody->ruleIPv6Prefix, dhcp6cMAPTMsgBody->psidOffset, dhcp6cMAPTMsgBody->ratio);
-
+        psidValue = dhcp6cMAPTMsgBody->psid;
+        psidLen = dhcp6cMAPTMsgBody->psidLen;
+        ipv4IndexValue = 0;
 #ifdef FEATURE_MAPT_DEBUG
-    LOG_PRINT_MAPT("ivictl:BMR config:%s", cmdBMRConfig);
+        LOG_PRINT_MAPT("Using psid value from dhcp6c options : %d", psidValue);
+        LOG_PRINT_MAPT("Using psidLen value from dhcp6c options : %d", psidLen);
+        LOG_PRINT_MAPT("Using psidOffset value from dhcp6c options : %d", dhcp6cMAPTMsgBody->psidOffset);
 #endif
-
-    if ((ret = WanManager_DoSystemActionWithStatus("ivictl", cmdBMRConfig)) < RETURN_OK)
-    {
-        CcspTraceError(("Failed to run: %s:%d", cmdBMRConfig, ret));
-        return ret;
     }
-
-    ret = WanManager_CalculateMAPTPsid(dhcp6cMAPTMsgBody->pdIPv6Prefix, dhcp6cMAPTMsgBody->v6Len, dhcp6cMAPTMsgBody->iapdPrefixLen,
-                                          dhcp6cMAPTMsgBody->v4Len, &psidValue, &ipv4IndexValue, &psidLen);
+    else
+    {
+        ret = WanManager_CalculatePsidAndV4Index(dhcp6cMAPTMsgBody->pdIPv6Prefix, dhcp6cMAPTMsgBody->v6Len, dhcp6cMAPTMsgBody->iapdPrefixLen,
+                dhcp6cMAPTMsgBody->v4Len, &psidValue, &ipv4IndexValue, &psidLen);
+    }
 
     if (ret != RETURN_OK)
     {
-        CcspTraceInfo(("Error in calculating MAPT PSID value"));
+        CcspTraceError(("Error in calculating MAPT PSID value \n"));
 #ifdef FEATURE_MAPT_DEBUG
-        LOG_PRINT_MAPT("Exiting MAPT configuration, MAPT will not be configured, as invalid dhcpc6c options found");
+        LOG_PRINT_MAPT("Exiting MAPT configuration, MAPT will not be configured, error found in getting PSID value");
 #endif
         CcspTraceNotice(("FEATURE_MAPT: MAP-T configuration failed\n"));
         return ret;
     }
-
 #ifdef FEATURE_MAPT_DEBUG
     LOG_PRINT_MAPT("ivictl:PSID Value: %d, ipv4IndexValue: %d", psidValue, ipv4IndexValue);
 #endif
 
     inet_pton(AF_INET, dhcp6cMAPTMsgBody->ruleIPv4Prefix, &(result));
 
-    ipValue = htonl(result.s_addr);
+    ipValue = htonl(result.s_addr) + ipv4IndexValue;
 
     ipAddressBytes[0] = ipValue & 0xFF;
     ipAddressBytes[1] = (ipValue >> 8) & 0xFF;
     ipAddressBytes[2] = (ipValue >> 16) & 0xFF;
     ipAddressBytes[3] = (ipValue >> 24) & 0xFF;
 
-    if (ipAddressBytes[0] + ipv4IndexValue < 255)
-        ipAddressBytes[0] += ipv4IndexValue;
-    else
-        ipAddressBytes[0] = (ipAddressBytes[0] + ipv4IndexValue) - 255;
-
     //store new ipv4 address
-    //dhcp6cMAPTMsgBody->ipv4Address = ( ((ipAddressBytes[3] & 0xFF) << 24) | ((ipAddressBytes[2] & 0xFF) << 16) | ((ipAddressBytes[1] & 0xFF) << 8) | (ipAddressBytes[0] & 0xFF) );
     snprintf(ipAddressString, sizeof(ipAddressString), "%d.%d.%d.%d", ipAddressBytes[3], ipAddressBytes[2], ipAddressBytes[1], ipAddressBytes[0]);
 
 #ifdef FEATURE_MAPT_DEBUG
@@ -619,19 +635,158 @@ int WanManager_ProcessMAPTConfiguration(Dhcp6cMAPTParametersMsgBody *dhcp6cMAPTM
         CcspTraceError(("Could not get LAN IP Address"));
         return ret;
     }
-    //The sharing ratio cannot be zero, a value of zero means the sharing ratio is 1
-    if (dhcp6cMAPTMsgBody->ratio == 0)
-        dhcp6cMAPTMsgBody->ratio = 1;
 
     if ((ret = WanManager_ConfigureIpv6Sysevents(dhcp6cMAPTMsgBody->pdIPv6Prefix, ipAddressString, psidValue)) != RETURN_OK)
     {
         CcspTraceError(("Failed to configure ipv6Tablerules"));
         return ret;
     }
+
+    /* RM16042: Since erouter0 is vlan interface on top of eth3 ptm, we need
+       to first set the MTU size of eth3 to 1520 and then change MTU of erouter0.
+       Otherwise we can't configure MTU as we are getting `Numerical result out of range` error.
+       Configure eth3 MTU size to 1520.
+    */
+    if(!strcmp(DSL_INTERFACE, baseIf))
+        strcpy(baseIf, PTM_INTERFACE);
+
+    snprintf(cmdConfigureMTUSize, sizeof(cmdConfigureMTUSize), "ip link set dev %s mtu %d ", baseIf, MTU_SIZE);
+
+#ifdef FEATURE_MAPT_DEBUG
+    LOG_PRINT_MAPT("mapt:cmdConfigureMTUSize:%s", cmdConfigureMTUSize);
+#endif
+
+    if ((ret = WanManager_DoSystemActionWithStatus("map", cmdConfigureMTUSize)) < RETURN_OK)
+    {
+        CcspTraceError(("Failed to run: %s:%d", cmdConfigureMTUSize, ret));
+        return ret;
+    }
+
+    /*  Configure erouter0 MTU size. */
+    snprintf(cmdConfigureMTUSize, sizeof(cmdConfigureMTUSize), "ip link set dev %s mtu %d ", vlanIf, MTU_SIZE);
+
+#ifdef FEATURE_MAPT_DEBUG
+    LOG_PRINT_MAPT("mapt:cmdConfigureMTUSize:%s", cmdConfigureMTUSize);
+#endif
+    if ((ret = WanManager_DoSystemActionWithStatus("map", cmdConfigureMTUSize)) < RETURN_OK)
+    {
+        CcspTraceError(("Failed to run: %s:%d", cmdConfigureMTUSize, ret));
+        return ret;
+    }
+
+    //The sharing ratio cannot be zero, a value of zero means the sharing ratio is 1
+    if (dhcp6cMAPTMsgBody->ratio == 0)
+        dhcp6cMAPTMsgBody->ratio = 1;
+#endif  // (IVI_KERNEL_SUPPORT) || (NAT46_KERNEL_SUPPORT)
+
+#ifdef NAT46_KERNEL_SUPPORT
+    /* We currently have an issue with the netfilter module, as on the MAP-T 16:1 line the
+       netfilter ftp module(nf_nat_ftp.ko) is not able to use the assigned ports generated
+       from the PSID values.
+       The below snippet removes netfitler ftp kernel module when on MAP-T 16:1 line and loads it
+       back when we have changed the line type to 1:1 line.
+    */
+    int isNatFtpModuleLoaded = RETURN_ERR;
+    isNatFtpModuleLoaded = isModuleLoaded(NF_NAT_FTP_MODULE);
+
+    if(dhcp6cMAPTMsgBody->ratio != 1)
+    {
+        if(isNatFtpModuleLoaded == RETURN_OK)
+        {
+            if (WanManager_DoSystemActionWithStatus("wanmanager", "rmmod -f /lib/modules/`uname -r`/kernel/net/netfilter/nf_nat_ftp.ko") != RETURN_OK)
+            {
+                CcspTraceError(("%s %d rmmod:!!!!! Failed to remove nf_nat_ftp.ko !!!!!\n", __FUNCTION__, __LINE__));
+            }
+            else
+            {
+                CcspTraceInfo(("%s %d !!!!! nf_nat_ftp.ko module removed !!!!! \n", __FUNCTION__, __LINE__));
+            }
+        }
+    }
+    else
+    {
+        if(isNatFtpModuleLoaded != RETURN_OK)
+        {
+            if (WanManager_DoSystemActionWithStatus("wanmanager", "insmod /lib/modules/`uname -r`/kernel/net/netfilter/nf_nat_ftp.ko") != RETURN_OK)
+            {
+                CcspTraceError(("%s %d insmod: !!!!! Failed to add nf_nat_ftp.ko !!!!! \n", __FUNCTION__, __LINE__));
+            }
+            else
+            {
+                CcspTraceInfo(("%s %d!!!!! nf_nat_ftp.ko added !!!!!\n", __FUNCTION__, __LINE__));
+            }
+        }
+    }
+#endif
+
+#ifdef IVI_KERNEL_SUPPORT
+    /*Configure Default Ipv4 route*/
+    snprintf(cmdEnableDefaultIpv4Route, sizeof(cmdEnableDefaultIpv4Route), "ip -4 r a default dev %s ", vlanIf);
+#ifdef FEATURE_MAPT_DEBUG
+    LOG_PRINT_MAPT("mapt:cmdEnableDefaultIpv4Route:%s", cmdEnableDefaultIpv4Route);
+#endif
+
+    if ((ret = WanManager_DoSystemActionWithStatus("map", cmdEnableDefaultIpv4Route)) < RETURN_OK)
+    {
+        CcspTraceError(("Failed to run: %s:%d", cmdEnableDefaultIpv4Route, ret));
+        return ret;
+    }
+
+
+    if (dhcp6cMAPTMsgBody->ratio == 1)
+        snprintf(cmdDMRConfig, sizeof(cmdDMRConfig), "ivictl -r -d -P %s -R 1 -T", dhcp6cMAPTMsgBody->brIPv6Prefix);
+    else
+        snprintf(cmdDMRConfig, sizeof(cmdDMRConfig), "ivictl -r -d -P %s -T", dhcp6cMAPTMsgBody->brIPv6Prefix);
+
+#ifdef FEATURE_MAPT_DEBUG
+    /*Configure Default Ipv4 route*/
+    LOG_PRINT_MAPT("### ivictl commands - START ###");
+    LOG_PRINT_MAPT("ivictl:DMR config:%s", cmdDMRConfig);
+#endif //FEATURE_MAPT_DEBUG
+
+    if ((ret = WanManager_DoSystemActionWithStatus("ivictl", cmdDMRConfig)) < RETURN_OK)
+    {
+        CcspTraceError(("Failed to run: %s:%d", cmdDMRConfig, ret));
+        return ret;
+    }
+
+
+    snprintf(cmdBMRConfig, sizeof(cmdBMRConfig), "ivictl -r -p %s/%d -P %s -z %d -R %d -T", dhcp6cMAPTMsgBody->ruleIPv4Prefix,dhcp6cMAPTMsgBody->v4Len,
+             dhcp6cMAPTMsgBody->ruleIPv6Prefix, dhcp6cMAPTMsgBody->psidOffset, dhcp6cMAPTMsgBody->ratio);
+
+#ifdef FEATURE_MAPT_DEBUG
+    LOG_PRINT_MAPT("ivictl:BMR config:%s", cmdBMRConfig);
+#endif
+
+    if ((ret = WanManager_DoSystemActionWithStatus("ivictl", cmdBMRConfig)) < RETURN_OK)
+    {
+        CcspTraceError(("Failed to run: %s:%d", cmdBMRConfig, ret));
+        return ret;
+    }
+
     // create MAP-T command string
-    snprintf(cmdStartMAPT, sizeof(cmdStartMAPT), "ivictl -s -i %s -I %s -H -a %s -A %s/%d -P %s -z %d -R %d -T -o %d", ETH_BRIDGE_NAME, vlanIf,
-             ipLANAddressString, ipAddressString, dhcp6cMAPTMsgBody->v4Len, dhcp6cMAPTMsgBody->ruleIPv6Prefix, dhcp6cMAPTMsgBody->psidOffset,
-             dhcp6cMAPTMsgBody->ratio, psidValue);
+    // On a sharing ratio of 1, since the psid value is zero, we don't require to specify PSID, in the MAP-T command string
+    {
+        snprintf(cmdStartMAPT, sizeof(cmdStartMAPT), "ivictl -s -i %s -I %s -H -a %s -A %s/%d -P %s -z %d -R %d -T ", ETH_BRIDGE_NAME, vlanIf,
+                 ipLANAddressString, ipAddressString, dhcp6cMAPTMsgBody->v4Len, dhcp6cMAPTMsgBody->ruleIPv6Prefix, dhcp6cMAPTMsgBody->psidOffset,
+                 dhcp6cMAPTMsgBody->ratio);
+#ifdef IVI_MULTI_BRIDGE_SUPPORT
+        snprintf(cmdStartMAPTMeshBr, sizeof(cmdStartMAPTMeshBr), "ivictl -s -i %s -I %s -H -a %s/%d -A %s/%d -P %s -z %d -R %d -o %d -T", ETH_MESH_BRIDGE, vlanIf,
+                 MESH_BRIP,MESH_BRMASK, ipAddressString, dhcp6cMAPTMsgBody->v4Len, dhcp6cMAPTMsgBody->ruleIPv6Prefix, dhcp6cMAPTMsgBody->psidOffset,
+                 dhcp6cMAPTMsgBody->ratio, psidValue);
+#endif  //IVI_MULTI_BRIDGE_SUPPORT
+    }
+    else
+    {
+        snprintf(cmdStartMAPT, sizeof(cmdStartMAPT), "ivictl -s -i %s -I %s -H -a %s -A %s/%d -P %s -z %d -R %d -T -o %d", ETH_BRIDGE_NAME, vlanIf,
+                 ipLANAddressString, ipAddressString, dhcp6cMAPTMsgBody->v4Len, dhcp6cMAPTMsgBody->ruleIPv6Prefix, dhcp6cMAPTMsgBody->psidOffset,
+                 dhcp6cMAPTMsgBody->ratio, psidValue);
+#ifdef IVI_MULTI_BRIDGE_SUPPORT
+        snprintf(cmdStartMAPTMeshBr, sizeof(cmdStartMAPTMeshBr), "ivictl -s -i %s -I %s -H -a %s/%d -A %s/%d -P %s -z %d -R %d -T -o %d", ETH_MESH_BRIDGE, vlanIf,
+                MESH_BRIP,MESH_BRMASK, ipAddressString, dhcp6cMAPTMsgBody->v4Len, dhcp6cMAPTMsgBody->ruleIPv6Prefix, dhcp6cMAPTMsgBody->psidOffset,
+                dhcp6cMAPTMsgBody->ratio, psidValue);
+#endif  //IVI_MULTI_BRIDGE_SUPPORT
+    }
 
 #ifdef FEATURE_MAPT_DEBUG
     LOG_PRINT_MAPT("ivictl:startMapt Command:%s", cmdStartMAPT);
@@ -645,22 +800,129 @@ int WanManager_ProcessMAPTConfiguration(Dhcp6cMAPTParametersMsgBody *dhcp6cMAPTM
         return ret;
     }
 
+#ifdef IVI_MULTI_BRIDGE_SUPPORT
+#ifdef FEATURE_MAPT_DEBUG
+    LOG_PRINT_MAPT("ivictl:startMapt Command:%s", cmdStartMAPTMeshBr);
+#endif
+    ret = WanManager_DoSystemActionWithStatus("ivictl", cmdStartMAPTMeshBr);
+    if (ret == IVICTL_COMMAND_ERROR)
+    {
+       CcspTraceError(("Failed to run: %s:%d", cmdStartMAPTMeshBr, ret));
+       return ret;
+    }
+#endif  //IVI_MULTI_BRIDGE_SUPPORT
+#endif  //IVI_KERNEL_SUPPORT
+
     snprintf(cmdDisableMapFiltering, sizeof(cmdDisableMapFiltering), "echo 0 > /proc/sys/net/ipv4/conf/%s/rp_filter", vlanIf);
 
 #ifdef FEATURE_MAPT_DEBUG
-    LOG_PRINT_MAPT("ivictl:Disable RP Filtering:%s", cmdDisableMapFiltering);
+    LOG_PRINT_MAPT("mapt:Disable RP Filtering:%s", cmdDisableMapFiltering);
 #endif
 
-    if ((ret = WanManager_DoSystemActionWithStatus("ivictl", cmdDisableMapFiltering)) < RETURN_OK)
+    if ((ret = WanManager_DoSystemActionWithStatus("mapt", cmdDisableMapFiltering)) < RETURN_OK)
     {
         CcspTraceError(("Failed to run: %s:%d", cmdDisableMapFiltering, ret));
         return ret;
     }
 
+#ifdef NAT46_KERNEL_SUPPORT
+    char cmdinterfaceCreate[BUFLEN_512];
+    char cmdInterfaceConfig[BUFLEN_1024];
+    char cmdInterfaceUp[BUFLEN_512];
+    char cmdInterfaceDefaultRouteDefault[BUFLEN_512];
+    char cmdInterfaceDefaultRoDel[BUFLEN_512];
+    char defaultGatewayV6[BUFLEN_128];
+    char cmdInterfaceMTU1[BUFLEN_512];
+    char cmdInterfaceMTU2[BUFLEN_512];
+    char cmdInterfaceMTU3[BUFLEN_512];
+
+    if(get_V6_defgateway_wan_interface(defaultGatewayV6) == RETURN_ERR)
+    {
+        return RETURN_ERR;
+    }
+
+    snprintf(cmdinterfaceCreate , sizeof(cmdinterfaceCreate), "echo add %s > /proc/net/nat46/control", MAP_INTERFACE);
+    if ((ret = WanManager_DoSystemActionWithStatus("map_nat46", cmdinterfaceCreate)) < RETURN_OK)
+    {
+        CcspTraceError(("Failed to run: %s:%d", cmdinterfaceCreate, ret));
+        return ret;
+    }
+
+    snprintf(cmdInterfaceConfig , sizeof(cmdInterfaceConfig), "echo config %s local.style MAP local.v4 %s/%d local.v6 %s local.ea-len %d local.psid-offset %d remote.v4 0.0.0.0/0 remote.v6 %s remote.style RFC6052 remote.ea-len 0 remote.psid-offset 0 > /proc/net/nat46/control",
+    MAP_INTERFACE, dhcp6cMAPTMsgBody->ruleIPv4Prefix, dhcp6cMAPTMsgBody->v4Len, dhcp6cMAPTMsgBody->ruleIPv6Prefix, dhcp6cMAPTMsgBody->eaLen, dhcp6cMAPTMsgBody->psidOffset, dhcp6cMAPTMsgBody->brIPv6Prefix);
+    if ((ret = WanManager_DoSystemActionWithStatus("map_nat46", cmdInterfaceConfig)) < RETURN_OK)
+    {
+        CcspTraceError(("Failed to run: %s:%d", cmdInterfaceConfig, ret));
+        return ret;
+    }
+
+    snprintf(cmdInterfaceUp , sizeof(cmdInterfaceUp), "ip link set %s up", MAP_INTERFACE);
+    if ((ret = WanManager_DoSystemActionWithStatus("map_nat46", cmdInterfaceUp)) < RETURN_OK)
+    {
+        CcspTraceError(("Failed to run: %s:%d", cmdInterfaceUp, ret));
+        return ret;
+    }
+
+    snprintf(cmdInterfaceDefaultRoDel , sizeof(cmdInterfaceDefaultRoDel), "ip route del default");
+    snprintf(cmdConfigureMTUSize, sizeof(cmdConfigureMTUSize), "ip link set dev %s mtu %d ", MAP_INTERFACE, MTU_SIZE);
+    snprintf(cmdInterfaceMTU1, sizeof(cmdInterfaceMTU1), "echo %d > /proc/sys/net/ipv6/conf/%s/mtu", MTU_DEFAULT_SIZE, vlanIf);
+    snprintf(cmdInterfaceMTU2, sizeof(cmdInterfaceMTU2), "ip -6 ro change default via %s dev %s mtu %d", defaultGatewayV6, vlanIf, MTU_DEFAULT_SIZE) ;
+    snprintf(cmdEnableIpv4Traffic, sizeof(cmdEnableIpv4Traffic), "ip ro rep default dev %s mtu %d", MAP_INTERFACE, MTU_DEFAULT_SIZE) ;
+    snprintf(cmdInterfaceMTU3, sizeof(cmdInterfaceMTU3), "ip -6 ro rep %s via %s dev %s mtu %d", dhcp6cMAPTMsgBody->brIPv6Prefix, defaultGatewayV6, vlanIf, MTU_SIZE);
+    snprintf(cmdInterfaceDefaultRouteDefault , sizeof(cmdInterfaceDefaultRouteDefault), "ip -6 ro rep %s/128 dev %s mtu %d", ipv6AddressString, MAP_INTERFACE, MTU_SIZE);
 #ifdef FEATURE_MAPT_DEBUG
-    LOG_PRINT_MAPT("ivictl:Calling configureDefaultIpTableRules()... ");
+    LOG_PRINT_MAPT("------ map_nat46 --STARTS----");
+    LOG_PRINT_MAPT("map_nat46:%s", cmdinterfaceCreate);
+    LOG_PRINT_MAPT("map_nat46:%s", cmdInterfaceConfig);
+    LOG_PRINT_MAPT("map_nat46:%s", cmdInterfaceUp);
+    LOG_PRINT_MAPT("map_nat46:%s", cmdInterfaceDefaultRoDel);
+    LOG_PRINT_MAPT("map_nat46:%s", cmdConfigureMTUSize);
+    LOG_PRINT_MAPT("map_nat46:%s", cmdInterfaceMTU1);
+    LOG_PRINT_MAPT("map_nat46:%s", cmdInterfaceMTU2);
+    LOG_PRINT_MAPT("map_nat46:%s", cmdEnableIpv4Traffic);
+    LOG_PRINT_MAPT("map_nat46:%s", cmdInterfaceMTU3);
+    LOG_PRINT_MAPT("map_nat46:%s", cmdInterfaceDefaultRouteDefault);
+    LOG_PRINT_MAPT("------ map_nat46 --ENDS------");
 #endif
 
+    if ((ret = WanManager_DoSystemActionWithStatus("map_nat46", cmdInterfaceDefaultRoDel)) < RETURN_OK)
+    {
+        CcspTraceError(("Failed to run: %s:%d", cmdInterfaceDefaultRoDel, ret));
+        return ret;
+    }
+    if ((ret = WanManager_DoSystemActionWithStatus("map_nat46", cmdConfigureMTUSize)) < RETURN_OK)
+    {
+        CcspTraceError(("Failed to run: %s:%d", cmdConfigureMTUSize, ret));
+        return ret;
+    }
+    if ((ret = WanManager_DoSystemActionWithStatus("map_nat46", cmdInterfaceMTU1)) < RETURN_OK)
+    {
+        CcspTraceError(("Failed to run: %s:%d", cmdInterfaceMTU1, ret));
+        return ret;
+    }
+    if ((ret = WanManager_DoSystemActionWithStatus("map_nat46", cmdInterfaceMTU2)) < RETURN_OK)
+    {
+        CcspTraceError(("Failed to run: %s:%d", cmdInterfaceMTU2, ret));
+        return ret;
+    }
+    if ((ret = WanManager_DoSystemActionWithStatus("map_nat46", cmdEnableIpv4Traffic)) < RETURN_OK)
+    {
+        CcspTraceError(("Failed to run: %s:%d", cmdEnableIpv4Traffic, ret));
+        return ret;
+    }
+    if ((ret = WanManager_DoSystemActionWithStatus("map_nat46", cmdInterfaceMTU3)) < RETURN_OK)
+    {
+        CcspTraceError(("Failed to run: %s:%d", cmdInterfaceMTU3, ret));
+        return ret;
+    }
+    if ((ret = WanManager_DoSystemActionWithStatus("map_nat46", cmdInterfaceDefaultRouteDefault)) < RETURN_OK)
+    {
+        CcspTraceError(("Failed to run: %s:%d", cmdInterfaceDefaultRouteDefault, ret));
+        return ret;
+    }
+#endif  // NAT46_KERNEL_SUPPORT
+
+#if defined(IVI_KERNEL_SUPPORT) || (NAT46_KERNEL_SUPPORT)
     /**
      * Firewall rules are changed to utopia firewall
      * To update the firewall rules, required the MAPT specific values, so
@@ -678,22 +940,23 @@ int WanManager_ProcessMAPTConfiguration(Dhcp6cMAPTParametersMsgBody *dhcp6cMAPTM
     maptInfo.ratio = dhcp6cMAPTMsgBody->ratio;
     maptInfo.psidOffset = dhcp6cMAPTMsgBody->psidOffset;
     maptInfo.eaLen = dhcp6cMAPTMsgBody->eaLen;
-    pthread_mutex_lock(&gmWanDataMutex);
-    maptInfo.maptAssigned = gWanData.ipv6Data.maptAssigned;
-    maptInfo.mapeAssigned = gWanData.ipv6Data.mapeAssigned;
-    maptInfo.isFMR = gWanData.ipv6Data.isFMR;
-    pthread_mutex_unlock(&gmWanDataMutex);
+    maptInfo.maptAssigned = TRUE;
+    maptInfo.mapeAssigned = FALSE;
+    maptInfo.isFMR = dhcp6cMAPTMsgBody->isFMR;;
+    maptInfo.v4Len = dhcp6cMAPTMsgBody->v4Len;
 
     if ((ret = maptInfo_set(&maptInfo)) != RETURN_OK)
     {
         CcspTraceError(("Failed to set sysevents for MAPT feature to set firewall rules \n"));
         return ret;
     }
+#endif  // (IVI_KERNEL_SUPPORT) || (NAT46_KERNEL_SUPPORT)
 
-    /* Restart firewall to reflect the changes. Do a sysevent to notify firewall to
-     * restart and update rules. */
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, NULL, 0);
+
+#if defined(IVI_KERNEL_SUPPORT)
     snprintf(cmdEnableIpv4Traffic, sizeof(cmdEnableIpv4Traffic), "ip ro rep default dev %s", vlanIf);
+
 #ifdef FEATURE_MAPT_DEBUG
     LOG_PRINT_MAPT("ivictl:cmdEnableIpv4Traffic:%s", cmdEnableIpv4Traffic);
 #endif
@@ -702,61 +965,148 @@ int WanManager_ProcessMAPTConfiguration(Dhcp6cMAPTParametersMsgBody *dhcp6cMAPTM
         CcspTraceError(("Failed to run: %s:%d", cmdEnableIpv4Traffic, ret));
         return ret;
     }
-
 #ifdef FEATURE_MAPT_DEBUG
     LOG_PRINT_MAPT("### ivictl commands - ENDS  ###");
 #endif
+#endif //IVI_KERNEL_SUPPORT
+
     CcspTraceNotice(("FEATURE_MAPT: MAP-T configuration done\n"));
     return RETURN_OK;
 }
 
-static int WanManager_CalculateMAPTPsid(char *pdIPv6Prefix, int v6PrefixLen, int iapdPrefixLen, int v4PrefixLen, int *psidValue, int *ipv4IndexValue, int *psidLen)
+#ifdef NAT46_KERNEL_SUPPORT
+static int get_V6_defgateway_wan_interface(char *defGateway)
 {
     int ret = RETURN_OK;
-    int len, startPdOffset, endPdOffset;
-    int psidByte;
+    char command[BUFLEN_128] = {0};
+    char line[BUFLEN_1024] = {0};
     struct in6_addr in6Addr;
-    int ipv4BitIndexLen;
-    int psidBitIndexLen;
+    FILE *fp;
 
-    startPdOffset = v6PrefixLen;
-    endPdOffset = iapdPrefixLen;
-    if (endPdOffset <= startPdOffset)
+    snprintf(command, sizeof(command), "ip -6 route show default | grep default | awk '{print $3}'");
+
+    fp = popen(command, "r");
+
+    if (fp)
     {
-#ifdef FEATURE_MAPT_DEBUG
-        LOG_PRINT_MAPT("Error: Invalid dhcpc6 option,endPdOffset(%d) has a value which <= startPdOffset(%d)", endPdOffset, startPdOffset);
-#endif
-        CcspTraceError(("Error: Invalid dhcpc6 option,endPdOffset(%d) has a value which <= startPdOffset(%d)", endPdOffset, startPdOffset));
-        ret = RETURN_ERR;
-        return ret;
-    }
-
-    len = endPdOffset - startPdOffset;
-    ipv4BitIndexLen = 32 - v4PrefixLen;
-    psidBitIndexLen = len - ipv4BitIndexLen;
-
-    *psidLen = psidBitIndexLen;
-
-    if (inet_pton(AF_INET6, pdIPv6Prefix, &in6Addr) <= 0)
-    {
-        CcspTraceError(("Invalid ipv6 address=%s", pdIPv6Prefix));
-    }
-
-    if (len > 8)
-    {
-        psidByte = (in6Addr.s6_addr[v6PrefixLen / 8] << 8) | (in6Addr.s6_addr[v6PrefixLen / 8 + 1]);
-        *ipv4IndexValue = WanManager_GetMAPTbits(psidByte, 15, ipv4BitIndexLen);
-        *psidValue = WanManager_GetMAPTbits(psidByte, 15 - ipv4BitIndexLen, psidBitIndexLen);
+        if (fgets(line, sizeof(line), fp) != NULL)
+        {
+            char *token = strtok(line, "\n");
+            if (token)
+            {
+                if (inet_pton (AF_INET6, token, &in6Addr) <= 0)
+                {
+                    CcspTraceError(("Invalid ipv6 address=%s \n", token));
+                    ret = RETURN_ERR;
+                    return ret;
+                }
+                strncpy(defGateway, token, BUFLEN_128);
+                CcspTraceNotice(("IPv6 Default GW address  = %s \n", defGateway));
+            }
+            else
+            {
+                CcspTraceError(("Could not parse ipv6 gw addr\n"));
+                ret = RETURN_ERR;
+            }
+        }
+        else
+        {
+            CcspTraceError(("Could not read ipv6 gw addr \n"));
+            ret = RETURN_ERR;
+        }
+        pclose(fp);
     }
     else
     {
-        psidByte = in6Addr.s6_addr[v6PrefixLen / 8];
-        *ipv4IndexValue = WanManager_GetMAPTbits(psidByte, 7, ipv4BitIndexLen);
-        *psidValue = WanManager_GetMAPTbits(psidByte, 7 - ipv4BitIndexLen, psidBitIndexLen);
+        CcspTraceError(("Failed to get the default gw address \n"));
+        ret = RETURN_ERR;
     }
-#ifdef FEATURE_MAPT_DEBUG
-    LOG_PRINT_MAPT("ivictl:psidByte:%d", psidByte);
-#endif
+
+    return ret;
+}
+#endif  // NAT46_KERNEL_SUPPORT
+
+static int WanManager_CalculatePsidAndV4Index(char *pdIPv6Prefix, int v6PrefixLen, int iapdPrefixLen, int v4PrefixLen, int *psidValue, int *ipv4IndexValue, int *psidLen)
+{
+
+    int ret = RETURN_OK;
+    int ipv4BitIndexLen = 0, psidBitIndexLen = 0, tempShift = 0;
+    int EAlen = 0, EAStartByte = 0, EAStartByteShift = 0,  startV4Offset = 0;
+    int EAStartPos = 0;
+    unsigned long EAbytes = 0;
+    struct in6_addr in6Addr;
+    
+    ipv4BitIndexLen = 32 - v4PrefixLen;
+    startV4Offset  = v6PrefixLen;
+    EAlen = iapdPrefixLen - startV4Offset;
+    psidBitIndexLen = EAlen - ipv4BitIndexLen;
+
+    if (iapdPrefixLen <= startV4Offset)
+    {
+        CcspTraceError(("Error: Invalid dhcpc6 option,iapdPrefixLen(%d) has a value which <= startV4Offset(%d) \n", iapdPrefixLen, startV4Offset));
+	ret = RETURN_ERR;
+	return ret;
+    }
+
+    if (inet_pton (AF_INET6, pdIPv6Prefix, &in6Addr) <= 0)
+    {
+        CcspTraceError(("Invalid ipv6 address=%s \n", pdIPv6Prefix));
+	ret = RETURN_ERR;
+	return ret;
+    }
+
+    EAStartByte = startV4Offset / 8;
+    EAStartByteShift = startV4Offset % 8;
+
+    if(EAlen <= 8)
+    {
+        EAbytes = (in6Addr.s6_addr[EAStartByte]) ;
+        tempShift = 8;
+    }
+    else if(EAlen <= 16)
+    {
+        EAbytes = (in6Addr.s6_addr[EAStartByte] << 8) | (in6Addr.s6_addr[EAStartByte + 1]);
+        tempShift = 16;
+    }
+    else if(EAlen <= 24)
+    {
+        EAbytes = (in6Addr.s6_addr[EAStartByte] << 16) | (in6Addr.s6_addr[EAStartByte + 1] << 8 ) |
+              (in6Addr.s6_addr[startV4Offset / 8 + 2]);
+        tempShift = 24;
+    }
+    else if(EAlen <= 32)
+    {
+        EAbytes = (in6Addr.s6_addr[EAStartByte] << 24) | (in6Addr.s6_addr[EAStartByte + 1] << 16 ) |
+              (in6Addr.s6_addr[EAStartByte + 2] << 8) | (in6Addr.s6_addr[EAStartByte + 3])  ;
+        tempShift = 32;
+    }
+    else if(EAlen <= 40)
+    {
+        EAbytes = ((unsigned long)(in6Addr.s6_addr[EAStartByte]) << 32) |((unsigned long)(in6Addr.s6_addr[EAStartByte + 1]) << 24) | 
+              (in6Addr.s6_addr[EAStartByte + 2] << 16 ) | (in6Addr.s6_addr[EAStartByte + 3] << 8) | 
+	      (in6Addr.s6_addr[EAStartByte + 4]);
+        tempShift = 40;
+    }
+    else if(EAlen <= 48)
+    {
+        EAbytes = ((unsigned long)(in6Addr.s6_addr[EAStartByte]) << 40) |((unsigned long)(in6Addr.s6_addr[EAStartByte + 1]) << 32) |
+              (in6Addr.s6_addr[EAStartByte + 2] << 24) | (in6Addr.s6_addr[EAStartByte + 3] << 16 ) |
+              (in6Addr.s6_addr[EAStartByte + 4] << 8) | (in6Addr.s6_addr[EAStartByte + 5])  ;
+        tempShift = 48;
+    }
+
+    EAStartPos = tempShift - EAStartByteShift -1;
+
+    if(EAStartByteShift) {
+        EAbytes <<= 8;
+        EAbytes |= (in6Addr.s6_addr[EAStartByte + (tempShift/8)]);
+	EAStartPos += 8;
+    }
+
+    *ipv4IndexValue = WanManager_GetMAPTbits(EAbytes, EAStartPos, ipv4BitIndexLen);
+    *psidValue = WanManager_GetMAPTbits(EAbytes, EAStartPos - ipv4BitIndexLen, psidBitIndexLen);
+    *psidLen = psidBitIndexLen;
+
     return ret;
 }
 
@@ -803,7 +1153,7 @@ int WanManager_ResetMAPTConfiguration(const char *baseIf, const char *vlanIf)
     LOG_PRINT_MAPT("ivictl:cmdConfigureMTUSize:%s", cmdConfigureMTUSize);
 #endif
 
-    if ((ret = WanManager_DoSystemActionWithStatus("ivictl", cmdConfigureMTUSize)) < RETURN_OK)
+    if ((ret = WanManager_DoSystemActionWithStatus("mapt", cmdConfigureMTUSize)) < RETURN_OK)
     {
         CcspTraceError(("Failed to run: %s:%d", cmdConfigureMTUSize, ret));
         return ret;
@@ -816,7 +1166,7 @@ int WanManager_ResetMAPTConfiguration(const char *baseIf, const char *vlanIf)
     LOG_PRINT_MAPT("ivictl:cmdConfigureMTUSize:%s", cmdConfigureMTUSize);
 #endif
 
-    if ((ret = WanManager_DoSystemActionWithStatus("ivictl", cmdConfigureMTUSize)) < RETURN_OK)
+    if ((ret = WanManager_DoSystemActionWithStatus("mapt", cmdConfigureMTUSize)) < RETURN_OK)
     {
         CcspTraceError(("Failed to run: %s:%d", cmdConfigureMTUSize, ret));
         return ret;
@@ -837,7 +1187,7 @@ int WanManager_ResetMAPTConfiguration(const char *baseIf, const char *vlanIf)
 void logPrintMapt(char *fmt,...)
 {
     static FILE *fpMaptLogFile;
-    static char strMaptLogFileName[BUFLEN_32] = "/tmp/log_mapt.txt";
+    static char strMaptLogFileName[BUFLEN_32] = "/rdklogs/logs/log_mapt.txt";
     va_list list;
     char *p, *r;
     int e;
@@ -891,7 +1241,7 @@ void logPrintMapt(char *fmt,...)
     fclose(fpMaptLogFile);
 }
 
-void WanManager_UpdateMaptLogFile(Dhcp6cMAPTParametersMsgBody *dhcp6cMAPTMsgBody)
+void WanManager_UpdateMaptLogFile(ipc_mapt_data_t *dhcp6cMAPTMsgBody)
 {
 
     LOG_PRINT_MAPT("############MAP-T Options DHCP - START#######################");

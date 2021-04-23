@@ -475,6 +475,10 @@ int ANSC_EXPORT_API WanManagerDmlInit(ULONG uMaxVersionSupported, void* hCosaPlu
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "SentOption1_Commit", SentOption1_Commit);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "SentOption1_Rollback", SentOption1_Rollback);
 
+    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "dhcp6c_mapt_mape_GetParamBoolValue", dhcp6c_mapt_mape_GetParamBoolValue);
+    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "dhcp6c_mapt_mape_GetParamUlongValue", dhcp6c_mapt_mape_GetParamUlongValue);
+    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "dhcp6c_mapt_mape_GetParamStringValue", dhcp6c_mapt_mape_GetParamStringValue);
+
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "DHCPv4_GetParamBoolValue", DHCPv4_GetParamBoolValue);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "DHCPv4_GetParamIntValue", DHCPv4_GetParamIntValue);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "DHCPv4_GetParamUlongValue", DHCPv4_GetParamUlongValue);

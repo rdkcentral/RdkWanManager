@@ -286,6 +286,28 @@ typedef struct _DML_WANIFACE_IP
     UINT                        Dhcp6cPid;
 } DML_WANIFACE_IP;
 
+#ifdef FEATURE_MAPT
+/* Data body for MAPT information to set sysevents*/
+typedef struct
+{
+    char maptConfigFlag[BUFLEN_8]; //Flag to indicates to set/reset firewall rules. [SET/RESET]
+    UINT ratio;
+    char baseIfName[BUFLEN_64];
+    char ipAddressString[BUFLEN_32];
+    char ruleIpAddressString[BUFLEN_32];
+    char ipv6AddressString[BUFLEN_128];
+    char brIpv6PrefixString[BUFLEN_128];
+    char ruleIpv6AddressString[BUFLEN_128];
+    UINT psidOffset;
+    UINT psidValue;
+    UINT psidLen;
+    UINT eaLen;
+    UINT v4Len;
+    BOOL mapeAssigned;     /**< Have we been assigned mape config ? */
+    BOOL maptAssigned;     /**< Have we been assigned mapt config ? */
+    BOOL isFMR;
+}MaptData_t;
+#endif
 
 typedef struct _DML_WANIFACE_MAP
 {
@@ -293,7 +315,7 @@ typedef struct _DML_WANIFACE_MAP
     CHAR                        Path[BUFLEN_64];
     BOOL                        MaptChanged;
 #ifdef FEATURE_MAPT
-    Dhcp6cMAPTParametersMsgBody dhcp6cMAPTparameters;
+    ipc_mapt_data_t dhcp6cMAPTparameters;
 #endif
 } DML_WANIFACE_MAP;
 
