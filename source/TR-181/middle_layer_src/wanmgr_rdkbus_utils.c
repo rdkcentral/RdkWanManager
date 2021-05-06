@@ -65,21 +65,17 @@ ANSC_STATUS WanMgr_RdkBus_getWanPolicy(DML_WAN_POLICY *wan_policy)
 {
     int result = ANSC_STATUS_SUCCESS;
     int retPsmGet = CCSP_SUCCESS;
-    char *param_value= NULL;
+    char param_value[BUFLEN_256] = {0};
     char param_name[BUFLEN_256]= {0};
 
     memset(param_name, 0, sizeof(param_name));
     _ansc_sprintf(param_name, PSM_WANMANAGER_WANPOLICY);
-    retPsmGet = PSM_Get_Record_Value2(bus_handle, g_Subsystem, param_name, NULL, &param_value);
-    if (retPsmGet == CCSP_SUCCESS && param_value != NULL) {
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name, param_value, sizeof(param_value));
+    if (retPsmGet == CCSP_SUCCESS && param_value[0] != '\0') {
         *wan_policy = strtol(param_value, NULL, 10);
     }
     else {
         result = ANSC_STATUS_FAILURE;
-    }
-
-    if (retPsmGet == CCSP_SUCCESS) {
-        ((CCSP_MESSAGE_BUS_INFO *)bus_handle)->freefunc(param_value);
     }
 
     return result;
@@ -100,7 +96,7 @@ ANSC_STATUS WanMgr_RdkBus_setWanPolicy(DML_WAN_POLICY wan_policy)
     snprintf(param_value, sizeof(param_value), "%d", wan_policy);
     _ansc_sprintf(param_name, PSM_WANMANAGER_WANPOLICY);
 
-    retPsmSet = PSM_Set_Record_Value2(bus_handle,g_Subsystem, param_name, ccsp_string, param_value);
+    retPsmSet = WanMgr_RdkBus_SetParamValuesToDB(param_name, param_value);
     if (retPsmSet != CCSP_SUCCESS) {
         AnscTraceError(("%s Error %d writing %s %s\n", __FUNCTION__, retPsmSet, param_name, param_value));
         result = ANSC_STATUS_FAILURE;
@@ -481,4 +477,73 @@ ANSC_STATUS DmlGetInstanceByKeywordFromPandM(char *ifname, int *piInstanceNumber
     }
 
     return ANSC_STATUS_SUCCESS;
+}
+
+int WanMgr_RdkBus_GetParamValuesFromDB( char *pParamName, char *pReturnVal, int returnValLength )
+{
+    int     retPsmGet     = CCSP_SUCCESS;
+    CHAR   *param_value   = NULL, tmpOutput[BUFLEN_256] = {0};
+
+    /* Input Validation */
+    if( ( NULL == pParamName) || ( NULL == pReturnVal ) || ( 0 >= returnValLength ) )
+    {
+        CcspTraceError(("%s Invalid Input Parameters\n",__FUNCTION__));
+        return CCSP_FAILURE;
+    }
+
+#ifndef WAN_DB_USAGE_BY_SYSCFG
+    retPsmGet = PSM_Get_Record_Value2(bus_handle,g_Subsystem, pParamName, NULL, &param_value); 
+    if (retPsmGet != CCSP_SUCCESS) { 
+        CcspTraceError(("%s Error %d reading %s\n", __FUNCTION__, retPsmGet, pParamName));
+    } 
+    else { 
+        /* Copy DB Value */
+        snprintf(pReturnVal, returnValLength, "%s", param_value);
+        ((CCSP_MESSAGE_BUS_INFO *)bus_handle)->freefunc(param_value);
+    } 
+#else
+    if( 0 == syscfg_get( NULL, pParamName, tmpOutput, sizeof(tmpOutput)) )
+    {
+        /* Copy DB Value */
+        snprintf(pReturnVal, returnValLength, "%s", tmpOutput);
+        retPsmGet = CCSP_SUCCESS;
+    }
+    else
+    {
+        retPsmGet = CCSP_FAILURE;
+    }
+#endif
+
+   return retPsmGet;
+}
+
+int WanMgr_RdkBus_SetParamValuesToDB( char *pParamName, char *pParamVal )
+{
+    int     retPsmSet  = CCSP_SUCCESS;
+
+    /* Input Validation */
+    if( ( NULL == pParamName) || ( NULL == pParamVal ) )
+    {
+        CcspTraceError(("%s Invalid Input Parameters\n",__FUNCTION__));
+        return CCSP_FAILURE;
+    }
+
+#ifndef WAN_DB_USAGE_BY_SYSCFG
+    retPsmSet = PSM_Set_Record_Value2(bus_handle,g_Subsystem, pParamName, ccsp_string, pParamVal); 
+    if (retPsmSet != CCSP_SUCCESS) { 
+        CcspTraceError(("%s Error %d writing %s\n", __FUNCTION__, retPsmSet, pParamName));
+    } 
+#else
+    if ( syscfg_set(NULL, pParamName, pParamVal) == 0 )
+    {
+        syscfg_commit();
+    }
+    else
+    {
+        CcspTraceError(("%s Error writing %s\n", __FUNCTION__,pParamName));
+        retPsmSet  = CCSP_FAILURE;
+    }
+#endif
+
+    return retPsmSet;
 }

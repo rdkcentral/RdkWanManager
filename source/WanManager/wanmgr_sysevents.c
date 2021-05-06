@@ -722,13 +722,6 @@ ANSC_STATUS WanMgr_SysEvents_Init(void)
     ANSC_STATUS retStatus = ANSC_STATUS_SUCCESS;
     pthread_t sysevent_tid;
 
-    // Initialise syscfg
-    if (syscfg_init() < 0)
-    {
-        CcspTraceError(("failed to initialise syscfg"));
-        return ANSC_STATUS_FAILURE;
-    }
-
     // Initialize sysevent daemon
     retStatus = WanMgr_SyseventInit();
     if (retStatus != ANSC_STATUS_SUCCESS)

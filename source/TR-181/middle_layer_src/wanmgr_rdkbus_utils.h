@@ -62,7 +62,6 @@
 #include "ansc_platform.h"
 #include "platform_hal.h"
 
-
 //VLAN Agent
 #define VLAN_DBUS_PATH                     "/com/cisco/spvtg/ccsp/vlanmanager"
 #define VLAN_COMPONENT_NAME                "eRT.com.cisco.spvtg.ccsp.vlanmanager"
@@ -78,9 +77,11 @@
 #define ETH_COMPONENT_PATH "/com/cisco/spvtg/ccsp/ethagent"
 #define ETH_UPSTREAM_NAME ".Upstream"
 
-
 ANSC_STATUS WanMgr_RdkBus_SetParamValues( char *pComponent, char *pBus, char *pParamName, char *pParamVal, enum dataType_e type, BOOLEAN bCommit );
 ANSC_STATUS WanMgr_RdkBus_GetParamValues( char *pComponent, char *pBus, char *pParamName, char *pReturnVal );
+
+int WanMgr_RdkBus_GetParamValuesFromDB( char *pParamName, char *pReturnVal, int ReturnValLength );
+int WanMgr_RdkBus_SetParamValuesToDB( char *pParamName, char *pParamVal );
 
 ANSC_STATUS WanMgr_RdkBus_getWanPolicy(DML_WAN_POLICY *wan_policy);
 ANSC_STATUS WanMgr_RdkBus_setWanPolicy(DML_WAN_POLICY wan_policy);

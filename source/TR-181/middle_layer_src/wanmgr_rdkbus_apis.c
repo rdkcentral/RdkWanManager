@@ -49,42 +49,18 @@
 extern char g_Subsystem[32];
 extern ANSC_HANDLE bus_handle;
 
-#define _PSM_READ_PARAM(_PARAM_NAME) { \
-    _ansc_memset(param_name, 0, sizeof(param_name)); \
-    _ansc_sprintf(param_name, _PARAM_NAME, instancenum); \
-    retPsmGet = PSM_Get_Record_Value2(bus_handle,g_Subsystem, param_name, NULL, &param_value); \
-    if (retPsmGet != CCSP_SUCCESS) { \
-        AnscTraceFlow(("%s Error %d reading %s %s\n", __FUNCTION__, retPsmGet, param_name, param_value));\
-    } \
-    else { \
-        /*AnscTraceFlow(("%s: retPsmGet == CCSP_SUCCESS reading %s = \n%s\n", __FUNCTION__,param_name, param_value)); */\
-    } \
-}
-
-#define _PSM_WRITE_PARAM(_PARAM_NAME) { \
-    _ansc_sprintf(param_name, _PARAM_NAME, instancenum); \
-    retPsmSet = PSM_Set_Record_Value2(bus_handle,g_Subsystem, param_name, ccsp_string, param_value); \
-    if (retPsmSet != CCSP_SUCCESS) { \
-        AnscTraceFlow(("%s Error %d writing %s %s\n", __FUNCTION__, retPsmSet, param_name, param_value));\
-    } \
-    else \
-    { \
-        /*AnscTraceFlow(("%s: retPsmSet == CCSP_SUCCESS writing %s = %s \n", __FUNCTION__,param_name,param_value)); */\
-    } \
-    _ansc_memset(param_name, 0, sizeof(param_name)); \
-    _ansc_memset(param_value, 0, sizeof(param_value)); \
-}
-
-
 static int get_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFACE* p_Interface)
 {
     int retPsmGet = CCSP_SUCCESS;
-    char *param_value= NULL;
-    char param_name[256]= {0};
+    char param_value[256];
+    char param_name[512];
 
     p_Interface->uiInstanceNumber = instancenum;
 
-    _PSM_READ_PARAM(PSM_WANMANAGER_IF_ENABLE);
+    _ansc_memset(param_name, 0, sizeof(param_name));
+    _ansc_memset(param_value, 0, sizeof(param_value));
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_ENABLE, instancenum);
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
     if (retPsmGet == CCSP_SUCCESS)
     {
         if(strcmp(param_value, PSM_ENABLE_STRING_TRUE) == 0)
@@ -95,50 +71,62 @@ static int get_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFACE*
         {
              p_Interface->Wan.Enable = FALSE;
         }
-        ((CCSP_MESSAGE_BUS_INFO *)bus_handle)->freefunc(param_value);
     }
     else
     {
         p_Interface->Wan.Enable = FALSE;
     }
 
-    _PSM_READ_PARAM(PSM_WANMANAGER_IF_NAME);
+    _ansc_memset(param_name, 0, sizeof(param_name));
+    _ansc_memset(param_value, 0, sizeof(param_value));
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_NAME, instancenum);
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
     if (retPsmGet == CCSP_SUCCESS)
     {
         AnscCopyString(p_Interface->Name, param_value);
         AnscCopyString(p_Interface->Wan.Name, param_value);
-        ((CCSP_MESSAGE_BUS_INFO *)bus_handle)->freefunc(param_value);
     }
 
-    _PSM_READ_PARAM(PSM_WANMANAGER_IF_DISPLAY_NAME);
+    _ansc_memset(param_name, 0, sizeof(param_name));
+    _ansc_memset(param_value, 0, sizeof(param_value));
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_DISPLAY_NAME, instancenum);
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
     if (retPsmGet == CCSP_SUCCESS)
     {
         AnscCopyString(p_Interface->DisplayName, param_value);
-        ((CCSP_MESSAGE_BUS_INFO *)bus_handle)->freefunc(param_value);
     }
 
-    _PSM_READ_PARAM(PSM_WANMANAGER_IF_TYPE);
+    _ansc_memset(param_name, 0, sizeof(param_name));
+    _ansc_memset(param_value, 0, sizeof(param_value));
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_TYPE, instancenum);
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
     if (retPsmGet == CCSP_SUCCESS)
     {
         _ansc_sscanf(param_value, "%d", &(p_Interface->Wan.Type));
-        ((CCSP_MESSAGE_BUS_INFO *)bus_handle)->freefunc(param_value);
     }
 
-    _PSM_READ_PARAM(PSM_WANMANAGER_IF_PRIORITY);
+    _ansc_memset(param_name, 0, sizeof(param_name));
+    _ansc_memset(param_value, 0, sizeof(param_value));
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_PRIORITY, instancenum);
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
     if (retPsmGet == CCSP_SUCCESS)
     {
         _ansc_sscanf(param_value, "%d", &(p_Interface->Wan.Priority));
-        ((CCSP_MESSAGE_BUS_INFO *)bus_handle)->freefunc(param_value);
     }
 
-    _PSM_READ_PARAM(PSM_WANMANAGER_IF_SELECTIONTIMEOUT);
+    _ansc_memset(param_name, 0, sizeof(param_name));
+    _ansc_memset(param_value, 0, sizeof(param_value));
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_SELECTIONTIMEOUT, instancenum);
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
     if (retPsmGet == CCSP_SUCCESS)
     {
         _ansc_sscanf(param_value, "%d", &(p_Interface->Wan.SelectionTimeout));
-        ((CCSP_MESSAGE_BUS_INFO *)bus_handle)->freefunc(param_value);
     }
 
-    _PSM_READ_PARAM(PSM_WANMANAGER_IF_WAN_ENABLE_MAPT);
+    _ansc_memset(param_name, 0, sizeof(param_name));
+    _ansc_memset(param_value, 0, sizeof(param_value));
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_ENABLE_MAPT, instancenum);
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
     if (retPsmGet == CCSP_SUCCESS)
     {
         if(strcmp(param_value, PSM_ENABLE_STRING_TRUE) == 0)
@@ -149,14 +137,16 @@ static int get_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFACE*
         {
              p_Interface->Wan.EnableMAPT = FALSE;
         }
-        ((CCSP_MESSAGE_BUS_INFO *)bus_handle)->freefunc(param_value);
     }
     else
     {
         p_Interface->Wan.EnableMAPT = FALSE;
     }
 
-    _PSM_READ_PARAM(PSM_WANMANAGER_IF_WAN_ENABLE_DSLITE);
+    _ansc_memset(param_name, 0, sizeof(param_name));
+    _ansc_memset(param_value, 0, sizeof(param_value));
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_ENABLE_DSLITE, instancenum);
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
     if (retPsmGet == CCSP_SUCCESS)
     {
         if(strcmp(param_value, PSM_ENABLE_STRING_TRUE) == 0)
@@ -167,14 +157,16 @@ static int get_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFACE*
         {
              p_Interface->Wan.EnableDSLite = FALSE;
         }
-        ((CCSP_MESSAGE_BUS_INFO *)bus_handle)->freefunc(param_value);
     }
     else
     {
         p_Interface->Wan.EnableDSLite = FALSE;
     }
 
-    _PSM_READ_PARAM(PSM_WANMANAGER_IF_WAN_ENABLE_IPOE);
+    _ansc_memset(param_name, 0, sizeof(param_name));
+    _ansc_memset(param_value, 0, sizeof(param_value));
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_ENABLE_IPOE, instancenum);
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
     if (retPsmGet == CCSP_SUCCESS)
     {
         if(strcmp(param_value, PSM_ENABLE_STRING_TRUE) == 0)
@@ -185,14 +177,16 @@ static int get_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFACE*
         {
              p_Interface->Wan.EnableIPoE = FALSE;
         }
-        ((CCSP_MESSAGE_BUS_INFO *)bus_handle)->freefunc(param_value);
     }
     else
     {
         p_Interface->Wan.EnableIPoE = FALSE;
     }
 
-    _PSM_READ_PARAM(PSM_WANMANAGER_IF_WAN_VALIDATION_DISCOVERY_OFFER);
+    _ansc_memset(param_name, 0, sizeof(param_name));
+    _ansc_memset(param_value, 0, sizeof(param_value));
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_VALIDATION_DISCOVERY_OFFER, instancenum);
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
     if (retPsmGet == CCSP_SUCCESS)
     {
         if(strcmp(param_value, PSM_ENABLE_STRING_TRUE) == 0)
@@ -203,14 +197,16 @@ static int get_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFACE*
         {
              p_Interface->Wan.Validation.DiscoverOffer = FALSE;
         }
-        ((CCSP_MESSAGE_BUS_INFO *)bus_handle)->freefunc(param_value);
     }
     else
     {
         p_Interface->Wan.Validation.DiscoverOffer = FALSE;
     }
 
-    _PSM_READ_PARAM(PSM_WANMANAGER_IF_WAN_VALIDATION_SOLICIT_ADVERTISE);
+    _ansc_memset(param_name, 0, sizeof(param_name));
+    _ansc_memset(param_value, 0, sizeof(param_value));
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_VALIDATION_SOLICIT_ADVERTISE, instancenum);
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
     if (retPsmGet == CCSP_SUCCESS)
     {
         if(strcmp(param_value, PSM_ENABLE_STRING_TRUE) == 0)
@@ -221,14 +217,16 @@ static int get_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFACE*
         {
              p_Interface->Wan.Validation.SolicitAdvertise = FALSE;
         }
-        ((CCSP_MESSAGE_BUS_INFO *)bus_handle)->freefunc(param_value);
     }
     else
     {
         p_Interface->Wan.Validation.SolicitAdvertise = FALSE;
     }
 
-    _PSM_READ_PARAM(PSM_WANMANAGER_IF_WAN_VALIDATION_RS_RA);
+    _ansc_memset(param_name, 0, sizeof(param_name));
+    _ansc_memset(param_value, 0, sizeof(param_value));
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_VALIDATION_RS_RA, instancenum);
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
     if (retPsmGet == CCSP_SUCCESS)
     {
         if(strcmp(param_value, PSM_ENABLE_STRING_TRUE) == 0)
@@ -239,14 +237,16 @@ static int get_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFACE*
         {
              p_Interface->Wan.Validation.RS_RA = FALSE;
         }
-        ((CCSP_MESSAGE_BUS_INFO *)bus_handle)->freefunc(param_value);
     }
     else
     {
         p_Interface->Wan.Validation.RS_RA = FALSE;
     }
 
-    _PSM_READ_PARAM(PSM_WANMANAGER_IF_WAN_VALIDATION_PADI_PADO);
+    _ansc_memset(param_name, 0, sizeof(param_name));
+    _ansc_memset(param_value, 0, sizeof(param_value));
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_VALIDATION_PADI_PADO, instancenum);
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
     if (retPsmGet == CCSP_SUCCESS)
     {
         if(strcmp(param_value, PSM_ENABLE_STRING_TRUE) == 0)
@@ -257,14 +257,16 @@ static int get_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFACE*
         {
              p_Interface->Wan.Validation.PadiPado = FALSE;
         }
-        ((CCSP_MESSAGE_BUS_INFO *)bus_handle)->freefunc(param_value);
     }
     else
     {
         p_Interface->Wan.Validation.PadiPado = FALSE;
     }
 
-    _PSM_READ_PARAM(PSM_WANMANAGER_IF_DYNTRIGGERENABLE);
+    _ansc_memset(param_name, 0, sizeof(param_name));
+    _ansc_memset(param_value, 0, sizeof(param_value));
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_DYNTRIGGERENABLE, instancenum);
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
     if (retPsmGet == CCSP_SUCCESS)
     {
         if(strcmp(param_value, PSM_ENABLE_STRING_TRUE) == 0)
@@ -275,9 +277,16 @@ static int get_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFACE*
         {
              p_Interface->DynamicTrigger.Enable = FALSE;
         }
-        ((CCSP_MESSAGE_BUS_INFO *)bus_handle)->freefunc(param_value);
     }
-    _PSM_READ_PARAM(PSM_WANMANAGER_IF_WAN_PPP_ENABLE);
+    else
+    {
+        p_Interface->DynamicTrigger.Enable = FALSE;
+    }
+
+    _ansc_memset(param_name, 0, sizeof(param_name));
+    _ansc_memset(param_value, 0, sizeof(param_value));
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_PPP_ENABLE, instancenum);
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
     if (retPsmGet == CCSP_SUCCESS)
     {
         if(strcmp(param_value, PSM_ENABLE_STRING_TRUE) == 0)
@@ -288,14 +297,16 @@ static int get_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFACE*
         {
              p_Interface->PPP.Enable = FALSE;
         }
-        ((CCSP_MESSAGE_BUS_INFO *)bus_handle)->freefunc(param_value);
     }
     else
     {
         p_Interface->PPP.Enable = FALSE;
     }
 
-    _PSM_READ_PARAM(PSM_WANMANAGER_IF_WAN_PPP_IPCP_ENABLE);
+    _ansc_memset(param_name, 0, sizeof(param_name));
+    _ansc_memset(param_value, 0, sizeof(param_value));
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_PPP_IPCP_ENABLE, instancenum);
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
     if (retPsmGet == CCSP_SUCCESS)
     {
         if(strcmp(param_value, PSM_ENABLE_STRING_TRUE) == 0)
@@ -306,14 +317,16 @@ static int get_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFACE*
         {
              p_Interface->PPP.IPCPEnable = FALSE;
         }
-        ((CCSP_MESSAGE_BUS_INFO *)bus_handle)->freefunc(param_value);
     }
     else
     {
         p_Interface->PPP.IPCPEnable = FALSE;
     }
 
-    _PSM_READ_PARAM(PSM_WANMANAGER_IF_WAN_PPP_IPV6CP_ENABLE);
+    _ansc_memset(param_name, 0, sizeof(param_name));
+    _ansc_memset(param_value, 0, sizeof(param_value));
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_PPP_IPV6CP_ENABLE, instancenum);
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
     if (retPsmGet == CCSP_SUCCESS)
     {
         if(strcmp(param_value, PSM_ENABLE_STRING_TRUE) == 0)
@@ -324,14 +337,16 @@ static int get_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFACE*
         {
              p_Interface->PPP.IPV6CPEnable = FALSE;
         }
-        ((CCSP_MESSAGE_BUS_INFO *)bus_handle)->freefunc(param_value);
     }
     else
     {
         p_Interface->PPP.IPV6CPEnable = FALSE;
     }
 
-    _PSM_READ_PARAM(PSM_WANMANAGER_IF_WAN_PPP_LINKTYPE);
+    _ansc_memset(param_name, 0, sizeof(param_name));
+    _ansc_memset(param_value, 0, sizeof(param_value));
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_PPP_LINKTYPE, instancenum);
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
     if (retPsmGet == CCSP_SUCCESS)
     {
         if(strcmp(param_value, PPP_LINKTYPE_PPPOA) == 0)
@@ -342,18 +357,19 @@ static int get_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFACE*
         {
              p_Interface->PPP.LinkType = WAN_IFACE_PPP_LINK_TYPE_PPPoE;
         }
-        ((CCSP_MESSAGE_BUS_INFO *)bus_handle)->freefunc(param_value);
     }
     else
     {
         p_Interface->PPP.LinkType = WAN_IFACE_PPP_LINK_TYPE_PPPoA;
     }
 
-    _PSM_READ_PARAM(PSM_WANMANAGER_IF_DYNTRIGGERDELAY);
+    _ansc_memset(param_name, 0, sizeof(param_name));
+    _ansc_memset(param_value, 0, sizeof(param_value));
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_DYNTRIGGERDELAY, instancenum);
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
     if (retPsmGet == CCSP_SUCCESS)
     {
         _ansc_sscanf(param_value, "%d", &(p_Interface->DynamicTrigger.Delay));
-        ((CCSP_MESSAGE_BUS_INFO *)bus_handle)->freefunc(param_value);
     }
 
     return ANSC_STATUS_SUCCESS;
@@ -376,25 +392,34 @@ static int write_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFAC
     {
         _ansc_sprintf(param_value, "FALSE");
     }
-    _PSM_WRITE_PARAM(PSM_WANMANAGER_IF_ENABLE);
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_ENABLE, instancenum);
+    WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
 
+    memset(param_value, 0, sizeof(param_value));
+    memset(param_name, 0, sizeof(param_name));
     _ansc_sprintf(param_value, "%d", p_Interface->Wan.Type );
-    _PSM_WRITE_PARAM(PSM_WANMANAGER_IF_TYPE);
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_TYPE, instancenum);
+    WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
 
-    _ansc_sprintf(param_value, "%d", p_Interface->Wan.Priority );
-    _PSM_WRITE_PARAM(PSM_WANMANAGER_IF_PRIORITY);
-
-    _PSM_WRITE_PARAM(PSM_WANMANAGER_IF_SELECTIONTIMEOUT);
+    memset(param_value, 0, sizeof(param_value));
+    memset(param_name, 0, sizeof(param_name));
     _ansc_sprintf(param_value, "%d", p_Interface->Wan.SelectionTimeout );
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_SELECTIONTIMEOUT, instancenum);
+    WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
 
+    memset(param_value, 0, sizeof(param_value));
+    memset(param_name, 0, sizeof(param_name));
     if(p_Interface->DynamicTrigger.Enable) {
         _ansc_sprintf(param_value, "TRUE");
     }
     else {
         _ansc_sprintf(param_value, "FALSE");
     }
-    _PSM_WRITE_PARAM(PSM_WANMANAGER_IF_DYNTRIGGERENABLE);
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_DYNTRIGGERENABLE, instancenum);
+    WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
 
+    memset(param_value, 0, sizeof(param_value));
+    memset(param_name, 0, sizeof(param_name));
     if(p_Interface->Wan.EnableMAPT)
     {
         _ansc_sprintf(param_value, "TRUE");
@@ -403,8 +428,11 @@ static int write_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFAC
     {
         _ansc_sprintf(param_value, "FALSE");
     }
-    _PSM_WRITE_PARAM(PSM_WANMANAGER_IF_WAN_ENABLE_MAPT);
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_ENABLE_MAPT, instancenum);
+    WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
 
+    memset(param_value, 0, sizeof(param_value));
+    memset(param_name, 0, sizeof(param_name));
     if(p_Interface->Wan.EnableDSLite)
     {
         _ansc_sprintf(param_value, "TRUE");
@@ -413,8 +441,11 @@ static int write_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFAC
     {
         _ansc_sprintf(param_value, "FALSE");
     }
-    _PSM_WRITE_PARAM(PSM_WANMANAGER_IF_WAN_ENABLE_DSLITE);
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_ENABLE_DSLITE, instancenum);
+    WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
 
+    memset(param_value, 0, sizeof(param_value));
+    memset(param_name, 0, sizeof(param_name));
     if(p_Interface->Wan.EnableIPoE)
     {
         _ansc_sprintf(param_value, "TRUE");
@@ -423,7 +454,8 @@ static int write_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFAC
     {
         _ansc_sprintf(param_value, "FALSE");
     }
-    _PSM_WRITE_PARAM(PSM_WANMANAGER_IF_WAN_ENABLE_IPOE);
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_ENABLE_IPOE, instancenum);
+    WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
 
     if(p_Interface->Wan.Validation.DiscoverOffer)
     {
@@ -434,6 +466,8 @@ static int write_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFAC
         _ansc_sprintf(param_value, "FALSE");
     }
 
+    memset(param_value, 0, sizeof(param_value));
+    memset(param_name, 0, sizeof(param_name));
     if(p_Interface->PPP.Enable)
     {
         _ansc_sprintf(param_value, "TRUE");
@@ -442,8 +476,11 @@ static int write_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFAC
     {
         _ansc_sprintf(param_value, "FALSE");
     }
-    _PSM_WRITE_PARAM(PSM_WANMANAGER_IF_WAN_PPP_ENABLE);
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_PPP_ENABLE, instancenum);
+    WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
 
+    memset(param_value, 0, sizeof(param_value));
+    memset(param_name, 0, sizeof(param_name));
     if(p_Interface->PPP.LinkType == WAN_IFACE_PPP_LINK_TYPE_PPPoA)
     {
         _ansc_sprintf(param_value, "PPPoA");
@@ -452,8 +489,11 @@ static int write_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFAC
     {
         _ansc_sprintf(param_value, "PPPoE");
     }
-    _PSM_WRITE_PARAM(PSM_WANMANAGER_IF_WAN_PPP_LINKTYPE);
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_PPP_LINKTYPE, instancenum);
+    WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
 
+    memset(param_value, 0, sizeof(param_value));
+    memset(param_name, 0, sizeof(param_name));
     if(p_Interface->PPP.IPCPEnable)
     {
         _ansc_sprintf(param_value, "TRUE");
@@ -462,8 +502,11 @@ static int write_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFAC
     {
         _ansc_sprintf(param_value, "FALSE");
     }
-    _PSM_WRITE_PARAM(PSM_WANMANAGER_IF_WAN_PPP_IPCP_ENABLE);
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_PPP_IPCP_ENABLE, instancenum);
+    WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
 
+    memset(param_value, 0, sizeof(param_value));
+    memset(param_name, 0, sizeof(param_name));
     if(p_Interface->PPP.IPV6CPEnable)
     {
         _ansc_sprintf(param_value, "TRUE");
@@ -472,13 +515,20 @@ static int write_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFAC
     {
         _ansc_sprintf(param_value, "FALSE");
     }
-    _PSM_WRITE_PARAM(PSM_WANMANAGER_IF_WAN_PPP_IPV6CP_ENABLE);
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_PPP_IPV6CP_ENABLE, instancenum);
+    WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
 
+    memset(param_value, 0, sizeof(param_value));
+    memset(param_name, 0, sizeof(param_name));
     _ansc_sprintf(param_value, "%d", p_Interface->Wan.Priority );
-    _PSM_WRITE_PARAM(PSM_WANMANAGER_IF_PRIORITY);
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_PRIORITY, instancenum);
+    WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
 
-    _PSM_WRITE_PARAM(PSM_WANMANAGER_IF_DYNTRIGGERDELAY);
+    memset(param_value, 0, sizeof(param_value));
+    memset(param_name, 0, sizeof(param_name));
     _ansc_sprintf(param_value, "%d", p_Interface->DynamicTrigger.Delay );
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_DYNTRIGGERDELAY, instancenum);
+    WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
 
     return ANSC_STATUS_SUCCESS;
 }
@@ -506,8 +556,11 @@ static int write_Wan_Interface_Validation_ParametersToPSM(ULONG instancenum, DML
     {
         _ansc_sprintf(param_value, "FALSE");
     }
-    _PSM_WRITE_PARAM(PSM_WANMANAGER_IF_WAN_VALIDATION_DISCOVERY_OFFER);
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_VALIDATION_DISCOVERY_OFFER, instancenum);
+    WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
 
+    memset(param_value, 0, sizeof(param_value));
+    memset(param_name, 0, sizeof(param_name));
     if(p_Interface->Wan.Validation.SolicitAdvertise)
     {
         _ansc_sprintf(param_value, "TRUE");
@@ -516,8 +569,11 @@ static int write_Wan_Interface_Validation_ParametersToPSM(ULONG instancenum, DML
     {
         _ansc_sprintf(param_value, "FALSE");
     }
-    _PSM_WRITE_PARAM(PSM_WANMANAGER_IF_WAN_VALIDATION_SOLICIT_ADVERTISE);
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_VALIDATION_SOLICIT_ADVERTISE, instancenum);
+    WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
 
+    memset(param_value, 0, sizeof(param_value));
+    memset(param_name, 0, sizeof(param_name));
     if(p_Interface->Wan.Validation.RS_RA)
     {
         _ansc_sprintf(param_value, "TRUE");
@@ -526,8 +582,11 @@ static int write_Wan_Interface_Validation_ParametersToPSM(ULONG instancenum, DML
     {
         _ansc_sprintf(param_value, "FALSE");
     }
-    _PSM_WRITE_PARAM(PSM_WANMANAGER_IF_WAN_VALIDATION_RS_RA);
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_VALIDATION_RS_RA, instancenum);
+    WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
 
+    memset(param_value, 0, sizeof(param_value));
+    memset(param_name, 0, sizeof(param_name));
     if(p_Interface->Wan.Validation.PadiPado)
     {
         _ansc_sprintf(param_value, "TRUE");
@@ -536,7 +595,8 @@ static int write_Wan_Interface_Validation_ParametersToPSM(ULONG instancenum, DML
     {
         _ansc_sprintf(param_value, "FALSE");
     }
-    _PSM_WRITE_PARAM(PSM_WANMANAGER_IF_WAN_VALIDATION_PADI_PADO);
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_VALIDATION_PADI_PADO, instancenum);
+    WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
 
     return ANSC_STATUS_SUCCESS;
 }
@@ -552,7 +612,7 @@ DmlWanGetPSMRecordValue
     )
 {
     int   retPsmGet = CCSP_SUCCESS;
-    char *strValue  = NULL;
+    char  strValue[256]  = {0};
 
     //Validate buffer
     if( ( NULL == pPSMEntry ) && ( NULL == pOutputString ) )
@@ -561,13 +621,11 @@ DmlWanGetPSMRecordValue
         return retPsmGet;
     }
 
-    retPsmGet = PSM_Get_Record_Value2( bus_handle, g_Subsystem, pPSMEntry, NULL, &strValue );
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB( pPSMEntry, strValue, sizeof(strValue) );
     if ( retPsmGet == CCSP_SUCCESS )
     {
         //Copy till end of the string
         snprintf( pOutputString, strlen( strValue ) + 1, "%s", strValue );
-
-        ((CCSP_MESSAGE_BUS_INFO *)bus_handle)->freefunc(strValue);
     }
 
     return retPsmGet;
@@ -590,7 +648,7 @@ DmlWanSetPSMRecordValue
         return retPsmGet;
     }
 
-    retPsmGet = PSM_Set_Record_Value2( bus_handle, g_Subsystem, pPSMEntry, ccsp_string, pSetString );
+    retPsmGet = WanMgr_RdkBus_SetParamValuesToDB(pPSMEntry,pSetString);
 
     return retPsmGet;
 }
@@ -834,37 +892,6 @@ SListPushMarkingEntryByInsNum
 
     return ANSC_STATUS_SUCCESS;
 }
-
-PCONTEXT_LINK_OBJECT SListGetEntryByInsNum( PSLIST_HEADER pListHead, ULONG InstanceNumber)
-{
-    ANSC_STATUS                     returnStatus      = ANSC_STATUS_SUCCESS;
-    PCONTEXT_LINK_OBJECT            pContextEntry = (PCONTEXT_LINK_OBJECT)NULL;
-    PSINGLE_LINK_ENTRY              pSLinkEntry       = (PSINGLE_LINK_ENTRY       )NULL;
-    ULONG                           ulIndex           = 0;
-
-    if ( pListHead->Depth == 0 )
-    {
-        return NULL;
-    }
-    else
-    {
-        pSLinkEntry = AnscSListGetFirstEntry(pListHead);
-
-        for ( ulIndex = 0; ulIndex < pListHead->Depth; ulIndex++ )
-        {
-            pContextEntry = ACCESS_CONTEXT_LINK_OBJECT(pSLinkEntry);
-            pSLinkEntry       = AnscSListGetNextEntry(pSLinkEntry);
-
-            if ( pContextEntry->InstanceNumber == InstanceNumber )
-            {
-                return pContextEntry;
-            }
-        }
-    }
-
-    return NULL;
-}
-
 
 ANSC_STATUS
 DmlCheckAndProceedMarkingOperations
@@ -1259,16 +1286,15 @@ ANSC_STATUS DmlGetTotalNoOfWanInterfaces(int *wan_if_count)
 {
     int ret_val = ANSC_STATUS_SUCCESS;
     int retPsmGet = CCSP_SUCCESS;
-    char* param_value = NULL;
+    char param_value[64] = {0};
 
-    retPsmGet = PSM_Get_Record_Value2(bus_handle,g_Subsystem, PSM_WANMANAGER_WANIFCOUNT, NULL, &param_value);
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(PSM_WANMANAGER_WANIFCOUNT,param_value,sizeof(param_value));
     if (retPsmGet != CCSP_SUCCESS) { \
-        AnscTraceFlow(("%s Error %d reading %s %s\n", __FUNCTION__, retPsmGet, PSM_WANMANAGER_WANIFCOUNT, param_value));
+        AnscTraceFlow(("%s Error %d reading %s\n", __FUNCTION__, retPsmGet, PSM_WANMANAGER_WANIFCOUNT));
         ret_val = ANSC_STATUS_FAILURE;
     }
-    else if(param_value != NULL) {
+    else if(param_value[0] != '\0') {
         _ansc_sscanf(param_value, "%d", wan_if_count);
-        ((CCSP_MESSAGE_BUS_INFO *)bus_handle)->freefunc(param_value);
     }
 
     return ret_val;
@@ -1356,12 +1382,13 @@ static ANSC_STATUS WanMgr_WanConfInit (DML_WANMGR_CONFIG* pWanConfig)
     int ret_val = ANSC_STATUS_SUCCESS;
     int retPsmGet = CCSP_SUCCESS;
     char param_name[256] = {0};
-    char* param_value = NULL;
+    char param_value[256] = {0};
 
     memset(param_name, 0, sizeof(param_name));
+    memset(param_value, 0, sizeof(param_value));
     _ansc_sprintf(param_name, PSM_WANMANAGER_WANENABLE);
-    retPsmGet = PSM_Get_Record_Value2(bus_handle, g_Subsystem, param_name, NULL, &param_value);
-    if (retPsmGet == CCSP_SUCCESS && param_value != NULL)
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
+    if (retPsmGet == CCSP_SUCCESS && param_value[0] != '\0')
         wan_enable = atoi(param_value);
     else
         ret_val = ANSC_STATUS_FAILURE;
@@ -1369,9 +1396,10 @@ static ANSC_STATUS WanMgr_WanConfInit (DML_WANMGR_CONFIG* pWanConfig)
     pWanConfig->Enable = wan_enable;
 
     memset(param_name, 0, sizeof(param_name));
+    memset(param_value, 0, sizeof(param_value));
     _ansc_sprintf(param_name, PSM_WANMANAGER_WANPOLICY);
-    retPsmGet = PSM_Get_Record_Value2(bus_handle, g_Subsystem, param_name, NULL, &param_value);
-    if (retPsmGet == CCSP_SUCCESS && param_value != NULL)
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
+    if (retPsmGet == CCSP_SUCCESS && param_value[0] != '\0')
         wan_policy = atoi(param_value);
     else
         ret_val = ANSC_STATUS_FAILURE;
@@ -1379,17 +1407,15 @@ static ANSC_STATUS WanMgr_WanConfInit (DML_WANMGR_CONFIG* pWanConfig)
     pWanConfig->Policy = wan_policy;
 
     memset(param_name, 0, sizeof(param_name));
+    memset(param_value, 0, sizeof(param_value));
     _ansc_sprintf(param_name, PSM_WANMANAGER_WANIDLETIMEOUT);
-    retPsmGet = PSM_Get_Record_Value2(bus_handle, g_Subsystem, param_name, NULL, &param_value);
-    if (retPsmGet == CCSP_SUCCESS && param_value != NULL)
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
+    if (retPsmGet == CCSP_SUCCESS && param_value[0] != '\0')
         wan_idle_timeout = atoi(param_value);
     else
         ret_val = ANSC_STATUS_FAILURE;
 
     pWanConfig->IdleTimeout = wan_idle_timeout;
-
-    if(param_value != NULL)
-        ((CCSP_MESSAGE_BUS_INFO *)bus_handle)->freefunc(param_value);
 
     return ret_val;
 }
@@ -1470,4 +1496,34 @@ SListPushEntryByInsNum
     }
 
     return ANSC_STATUS_SUCCESS;
+}
+
+PCONTEXT_LINK_OBJECT SListGetEntryByInsNum( PSLIST_HEADER pListHead, ULONG InstanceNumber)
+{
+    ANSC_STATUS                     returnStatus      = ANSC_STATUS_SUCCESS;
+    PCONTEXT_LINK_OBJECT            pContextEntry = (PCONTEXT_LINK_OBJECT)NULL;
+    PSINGLE_LINK_ENTRY              pSLinkEntry       = (PSINGLE_LINK_ENTRY       )NULL;
+    ULONG                           ulIndex           = 0;
+
+    if ( pListHead->Depth == 0 )
+    {
+        return NULL;
+    }
+    else
+    {
+        pSLinkEntry = AnscSListGetFirstEntry(pListHead);
+
+        for ( ulIndex = 0; ulIndex < pListHead->Depth; ulIndex++ )
+        {
+            pContextEntry = ACCESS_CONTEXT_LINK_OBJECT(pSLinkEntry);
+            pSLinkEntry       = AnscSListGetNextEntry(pSLinkEntry);
+
+            if ( pContextEntry->InstanceNumber == InstanceNumber )
+            {
+                return pContextEntry;
+            }
+        }
+    }
+
+    return NULL;
 }
