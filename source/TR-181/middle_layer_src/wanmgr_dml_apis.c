@@ -122,9 +122,53 @@ WanManager_GetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL* pBo
     return ret;
 }
 
-ULONG WanManager_GetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, char* pValue, ULONG* pulSize)
+BOOL WanManager_SetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, char* pString)
 {
-    return -1; //Not supported parameter.
+    BOOL ret = FALSE;
+    WanMgr_Config_Data_t*   pWanConfigData = WanMgr_GetConfigData_locked();
+
+    if(!pWanConfigData)
+    {
+        CcspTraceError(("%s: Failed to get wan config structure..\n",__FUNCTION__));
+    }
+    else if( AnscEqualString(ParamName, "Data", TRUE) )
+    {
+        char *webConf = NULL;
+        int webSize = 0;
+
+        webConf = AnscBase64Decode(pString, &webSize);
+        if(!webConf)
+        {
+            CcspTraceError(("%s: Failed to decode webconfig blob..\n",__FUNCTION__));
+            WanMgrDml_GetConfigData_release(pWanConfigData);
+            return ret;
+        }
+        if ( ANSC_STATUS_SUCCESS == WanMgrDmlWanDataSet(webConf,webSize) )
+        {
+            CcspTraceInfo(("%s Success in parsing web config blob..\n",__FUNCTION__));
+            ret = TRUE;
+        }
+        else
+        {
+            CcspTraceError(("%s Failed to parse webconfig blob..\n",__FUNCTION__));
+        }
+        AnscFreeMemory(webConf);
+        WanMgrDml_GetConfigData_release(pWanConfigData);
+    }
+
+    return ret;
+}
+
+LONG WanManager_GetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, char* pValue, ULONG* pulSize)
+{
+    if( AnscEqualString(ParamName, "Data", TRUE) )
+    {
+        /* Data value should be empty for all get */
+        snprintf(pValue, pulSize, "%s", "");
+        return 0;
+    }
+
+    return -1;
 }
 
 BOOL WanManager_SetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL bValue)
@@ -148,14 +192,14 @@ BOOL WanManager_SetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL
 
     return ret;
 }
-ULONG WanManager_Validate(ANSC_HANDLE hInsContext)
+ULONG WanManager_Validate(ANSC_HANDLE hInsContext, char* pReturnParamName, ULONG* puLength)
 {
     return TRUE;
 }
 
 ULONG WanManager_Commit(ANSC_HANDLE hInsContext)
 {
-    ULONG ret = -1;
+    ULONG ret = 0;
 
     return ret;
 }

@@ -52,9 +52,10 @@
 ***********************************************************************/
 BOOL WanManager_GetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG* puLong);
 BOOL WanManager_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG uValue);
+ULONG WanManager_Validate(ANSC_HANDLE hInsContext, char* pReturnParamName, ULONG* puLength);
 ULONG WanManager_Commit(ANSC_HANDLE hInsContext);
 BOOL WanManager_SetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, char* pString);
-ULONG WanManager_GetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, char* pValue, ULONG* pUlSize);
+LONG WanManager_GetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, char* pValue, ULONG* pUlSize);
 BOOL WanManager_GetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL* pBool);
 BOOL WanManager_SetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL bValue);
 

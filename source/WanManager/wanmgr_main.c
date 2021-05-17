@@ -61,6 +61,8 @@
 #include "stdlib.h"
 #include "ccsp_dm_api.h"
 
+#include "webconfig_framework.h"
+
 #define DEBUG_INI_NAME "/etc/debug.ini"
 
 #ifdef ENABLE_SD_NOTIFY
@@ -351,6 +353,9 @@ int main(int argc, char* argv[])
 
     CcspTraceInfo(("RDKB_SYSTEM_BOOT_UP_LOG : wanmanager sd_notify Called\n"));
 #endif //ENABLE_SD_NOTIFY
+
+    /* Inform Webconfig framework if component is coming after crash */
+    check_component_crash("/tmp/wanmanager_initialized");
 
     system("touch /tmp/wanmanager_initialized");
 

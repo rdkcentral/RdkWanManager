@@ -45,6 +45,12 @@
                     <writable>true</writable>
                 </parameter>
                 <parameter>
+                  <name>Data</name>
+                  <type>string</type>
+                  <syntax>string</syntax>
+                  <writable>true</writable>
+                </parameter>
+                <parameter>
                     <name>Policy</name>
                     <type>string: FIXED_MODE_ON_BOOTUP(1),FIXED_MODE(2),PRIMARY_PRIORITY_ON_BOOTUP(3),PRIMARY_PRIORITY(4),MULTIWAN_MODE(5),AUTOWAN_MODE(6)</type>
                     <syntax>uint32/mapped</syntax>

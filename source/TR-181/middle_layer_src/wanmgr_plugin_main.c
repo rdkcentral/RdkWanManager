@@ -350,6 +350,8 @@ int ANSC_EXPORT_API WanManagerDmlInit(ULONG uMaxVersionSupported, void* hCosaPlu
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "WanManager_GetParamBoolValue",  WanManager_GetParamBoolValue);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "WanManager_SetParamBoolValue",  WanManager_SetParamBoolValue);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "WanManager_GetParamStringValue", WanManager_GetParamStringValue);
+    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "WanManager_SetParamStringValue", WanManager_SetParamStringValue);
+    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "WanManager_Validate", WanManager_Validate);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "WanManager_Commit",  WanManager_Commit);
 
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "WanIf_GetEntryCount", WanIf_GetEntryCount);

@@ -187,7 +187,7 @@ ANSC_STATUS BackEndManagerInitialize(ANSC_HANDLE hThisObject)
     pMyObject->hDhcpv6        = (ANSC_HANDLE)WanMgr_Dhcpv6Create();
     AnscTraceWarning(("  WanMgr_Dhcpv6Create done!\n"));
 
-
+    WanMgrDmlWanWebConfigInit();
 
     return returnStatus;
 }

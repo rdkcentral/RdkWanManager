@@ -79,6 +79,8 @@
 #include "dslh_dmagnt_interface.h"
 #include "ccsp_ifo_ccd.h"
 
+#include "wanmgr_webconfig_apis.h"
+
 /*
 #include "bbhm_diageo_interface.h"
 #include "bbhm_diagip_interface.h"
