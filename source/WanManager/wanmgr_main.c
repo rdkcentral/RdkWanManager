@@ -70,6 +70,9 @@
 #ifdef INCLUDE_BREAKPAD
 #include "breakpad_wrapper.h"
 #endif
+#include "cap.h"
+
+cap_user appcaps;
 
 extern char*                                pComponentName;
 char                                        g_Subsystem[32]         = {0};
@@ -244,10 +247,23 @@ int main(int argc, char* argv[])
     char                            cmd[1024]          = {0};
     FILE                           *fd                 = NULL;
 
+    appcaps.caps = NULL;
+    appcaps.user_name = NULL;
+    char buf[8] = {'\0'};
     extern ANSC_HANDLE bus_handle;
     char *subSys            = NULL;
     DmErr_t    err;
 
+    syscfg_init();
+    syscfg_get( NULL, "NonRootSupport", buf, sizeof(buf));
+    if( buf != NULL )  {
+        if (strncmp(buf, "true", strlen("true")) == 0) {
+            init_capability();
+            drop_root_caps(&appcaps);
+            update_process_caps(&appcaps);
+            read_capability(&appcaps);
+        }
+    }
 
     for (idx = 1; idx < argc; idx++)
     {
