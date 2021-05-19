@@ -353,7 +353,7 @@ static ANSC_STATUS WanMgr_RdkBus_GetInterfaceInstanceInOtherAgent( WAN_NOTIFY_EN
                 char acTmpQueryParam[BUFLEN_256] = { 0 };
 
                 //Query
-                snprintf( acTmpQueryParam, sizeof(acTmpQueryParam ), "%sAlias", a2cTmpTableParams[ iLoopCount ] );
+                snprintf( acTmpQueryParam, sizeof(acTmpQueryParam ), "%sX_RDK_BaseInterface", a2cTmpTableParams[ iLoopCount ] );
 
                 memset( acTmpReturnValue, 0, sizeof( acTmpReturnValue ) );
                 if ( ANSC_STATUS_FAILURE == WanMgr_RdkBus_GetParamValues( VLAN_COMPONENT_NAME, VLAN_DBUS_PATH, acTmpQueryParam, acTmpReturnValue ) )
