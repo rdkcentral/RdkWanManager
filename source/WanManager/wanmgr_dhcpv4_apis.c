@@ -33,7 +33,7 @@
 #include <netinet/if_ether.h>
 #include <net/if_arp.h>
 
-#include <syscfg.h>
+#include <syscfg/syscfg.h>
 #include "dhcpv4c_api.h"
 #include <sys/stat.h>
 #include <sys/file.h>

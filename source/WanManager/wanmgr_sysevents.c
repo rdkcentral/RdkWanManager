@@ -19,7 +19,6 @@
 
 #include <sysevent/sysevent.h>
 #include <pthread.h>
-#include <syscfg.h>
 #include <syscfg/syscfg.h>
 
 #include "wanmgr_sysevents.h"

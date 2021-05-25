@@ -34,7 +34,7 @@
 #include <ifaddrs.h>
 #include "platform_hal.h"
 #include <sys/sysinfo.h>
-#include "syscfg.h"
+#include <syscfg/syscfg.h>
 #include "dhcp_client_utils.h"
 #include "wanmgr_sysevents.h"
 #include <sysevent/sysevent.h>

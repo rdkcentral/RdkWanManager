@@ -29,7 +29,7 @@
 #include <net/if.h>
 #include <sys/ioctl.h>
 #include <ctype.h>
-#include "syscfg.h"
+#include <syscfg/syscfg.h>
 
 extern int sysevent_fd;
 extern token_t sysevent_token;
