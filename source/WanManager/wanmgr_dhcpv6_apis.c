@@ -97,6 +97,7 @@ typedef struct ipv6_prefix {
 } ipv6_prefix_t;
 
 #if defined(MULTILAN_FEATURE)
+#define IPV6_PREF_MAXLEN 128
 static char v6addr_prev[IPV6_PREF_MAXLEN] = {0};
 #endif
 
