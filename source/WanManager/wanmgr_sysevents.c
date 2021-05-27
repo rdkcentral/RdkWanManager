@@ -385,7 +385,6 @@ static int set_default_conf_entry()
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_MULTINET_INSTANCES, LAN_BRIDGE_NAME, 0);
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_MULTINET_NAME, LAN_BRIDGE_NAME, 0);
     syscfg_set(NULL, SYSEVENT_LAN_PD_INTERFACES, LAN_BRIDGE_NAME); // sets the lan interface for prefix deligation
-    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_WAN_START, "", 0);
     syscfg_set(NULL, SYSCFG_ETH_WAN_ENABLED, "false"); // to handle Factory reset case
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_ETHWAN_INITIALIZED, "0", 0);
     syscfg_set(NULL, SYSCFG_NTP_ENABLED, "1"); // Enable NTP in case of ETHWAN

@@ -663,6 +663,7 @@ static int wan_setUpIPv4(DML_WAN_IFACE* pInterface)
         int  uptime = 0;
         char buffer[64] = {0};
 
+        sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_WAN_START, "", 0);
         sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_WAN_STATUS, WAN_STATUS_STARTED, 0);
         CcspTraceInfo(("%s %d - wan-status event set to started \n", __FUNCTION__, __LINE__));
 
@@ -768,6 +769,7 @@ static int wan_setUpIPv6(DML_WAN_IFACE* pInterface)
 
     if (pInterface->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_DOWN)
     {
+        sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_WAN_START, "", 0);
         sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_WAN_STATUS, WAN_STATUS_STARTED, 0);
         CcspTraceInfo(("%s %d - wan-status event set to started \n", __FUNCTION__, __LINE__));
 
