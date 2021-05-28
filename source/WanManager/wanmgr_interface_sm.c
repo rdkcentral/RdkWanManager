@@ -1658,6 +1658,10 @@ static eWanState_t wan_state_ipv4_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
     {
         return wan_transition_ipv4_down(pWanIfaceCtrl);
     }
+    else if (pInterface->Wan.Refresh == TRUE)
+    {
+        return wan_state_refreshing_wan(pWanIfaceCtrl);
+    }
     else if (pInterface->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_UP)
     {
         if(pInterface->IP.Ipv6Changed == TRUE)
@@ -1729,6 +1733,10 @@ static eWanState_t wan_state_ipv6_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
         pInterface->IP.Ipv6Changed == TRUE)
     {
         return wan_transition_ipv6_down(pWanIfaceCtrl);
+    }
+    else if (pInterface->Wan.Refresh == TRUE)
+    {
+        return wan_state_refreshing_wan(pWanIfaceCtrl);
     }
     else if (pInterface->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_UP)
     {
@@ -1803,6 +1811,10 @@ static eWanState_t wan_state_dual_stack_active(WanMgr_IfaceSM_Controller_t* pWan
         pInterface->Wan.LinkStatus ==  WAN_IFACE_LINKSTATUS_DOWN)
     {
         return wan_transition_dual_stack_down(pWanIfaceCtrl);
+    }
+    else if (pInterface->Wan.Refresh == TRUE)
+    {
+        return wan_state_refreshing_wan(pWanIfaceCtrl);
     }
     else if (pInterface->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_DOWN ||
                pInterface->IP.Ipv4Changed == TRUE)
