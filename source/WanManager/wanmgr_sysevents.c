@@ -540,7 +540,8 @@ static void *WanManagerSyseventHandler(void *args)
                 {
                     pnm_inited = 1;
                     lan_start();
-                    system("firewall && execute_dir /etc/utopia/post.d/ restart");
+                    system("execute_dir /etc/utopia/post.d/ restart");
+                    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, NULL, 0);
                 }
             }
             else if (strcmp(name, SYSEVENT_PRIMARY_LAN_L3NET) == 0)
