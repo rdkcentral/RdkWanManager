@@ -479,16 +479,24 @@ static int _dibbler_client_operation(char * arg)
 #endif
 
 #ifdef _COSA_BCM_ARM_
-        sprintf(cmd, "killall %s", CLIENT_BIN);
-        system(cmd);
-        sleep(2);
-        sprintf(cmd, "ps -A|grep %s", CLIENT_BIN);
-        _get_shell_output(cmd, out, sizeof(out));
-         if (strstr(out, CLIENT_BIN))
-         {
-            sprintf(cmd, "killall -9 %s", CLIENT_BIN);
+        if (TRUE == WanManager_IsApplicationRunning (CLIENT_BIN))
+        {
+            CcspTraceInfo(("%s-%d [%s] is already running, killing it \n", __FUNCTION__,__LINE__,CLIENT_BIN));
+            sprintf(cmd, "killall %s", CLIENT_BIN);
             system(cmd);
-          }
+            sleep(2);
+#ifdef _HUB4_PRODUCT_REQ_
+            sprintf(cmd, "ps | grep %s | grep -v grep", CLIENT_BIN);
+#else
+            sprintf(cmd, "ps -A|grep %s", CLIENT_BIN);
+#endif // _HUB4_PRODUCT_REQ_
+            _get_shell_output(cmd, out, sizeof(out));
+            if (strstr(out, CLIENT_BIN))
+            {
+                sprintf(cmd, "killall -9 %s", CLIENT_BIN);
+                system(cmd);
+            }
+        }
 #endif
     }
     else if (!strncmp(arg, "start", 5))

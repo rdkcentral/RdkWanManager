@@ -191,7 +191,23 @@ static ANSC_STATUS setDibblerClientEnable(BOOL *enable)
     pthread_t        dibblerThreadId;
     INT              iErrorCode          = -1;
 
-    iErrorCode = pthread_create( &dibblerThreadId, NULL, &Dhcpv6HandlingThread, (void*)enable );
+    if (NULL == enable)
+    {
+        CcspTraceError(("%s %d - Invalid memory \n", __FUNCTION__, __LINE__));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    BOOL *enable_client = NULL;
+    enable_client = (BOOL *) malloc (sizeof(BOOL));
+    if (NULL == enable_client)
+    {
+        CcspTraceError(("%s %d - Failed to reserve memory \n", __FUNCTION__, __LINE__));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    *enable_client = *enable;
+
+    iErrorCode = pthread_create( &dibblerThreadId, NULL, &Dhcpv6HandlingThread, (void*)enable_client );
     if( 0 != iErrorCode )
     {
         CcspTraceInfo(("%s %d - Dhcpv6HandlingThread thread failed. EC:%d\n", __FUNCTION__, __LINE__, iErrorCode ));
@@ -209,23 +225,29 @@ static void* Dhcpv6HandlingThread( void *arg )
     //detach thread from caller stack
     pthread_detach(pthread_self());
 
-    BOOL *enable_client = (BOOL *) arg;
-
-    if( NULL == enable_client )
+    if( NULL == arg)
     {
         CcspTraceError(("%s Invalid Memory\n", __FUNCTION__));
         pthread_exit(NULL);
     }
 
+    BOOL enable_client = *(BOOL *) arg;
     snprintf( ParamName, BUFLEN_256, DIBBLER_IPV6_CLIENT_ENABLE, 1 );
-    if(*enable_client)
+    if(enable_client)
         snprintf( ParamValue, BUFLEN_256, "%s", "true");
     else
         snprintf( ParamValue, BUFLEN_256, "%s", "false");
 
     SetDataModelParamValues( WAN_COMPONENT_NAME, COMPONENT_PATH_WANMANAGER, ParamName, ParamValue, ccsp_boolean, TRUE );
 
-    CcspTraceInfo(("%s %d Successfully set %d value to %s data model \n", __FUNCTION__, __LINE__, *enable_client, ParamName));
+    CcspTraceInfo(("%s %d Successfully set %d value to %s data model \n", __FUNCTION__, __LINE__, enable_client, ParamName));
+
+    //free memory.
+    if (arg)
+    {
+        free (arg);
+        arg = NULL;
+    }
 
     pthread_exit(NULL);
 }
