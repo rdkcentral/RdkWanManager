@@ -65,15 +65,14 @@ void WanMgrDml_GetConfigData_release(WanMgr_Config_Data_t* pWanConfigData);
 void WanMgr_SetConfigData_Default(DML_WANMGR_CONFIG* pWanDmlConfig);
 
 //WAN IFACE
+UINT WanMgr_IfaceData_GetTotalWanIface(void);
 WanMgr_Iface_Data_t* WanMgr_GetIfaceData_locked(UINT iface_index);
 WanMgr_Iface_Data_t* WanMgr_GetIfaceDataByName_locked(char* iface_name);
 void WanMgrDml_GetIfaceData_release(WanMgr_Iface_Data_t* pWanIfaceData);
 void WanMgr_IfaceData_Init(WanMgr_Iface_Data_t* pIfaceData, UINT uiInstNumber);
-
+ANSC_STATUS WanMgr_WanDataInit(void);
 
 //WAN IFACE CTRL
-WanMgr_IfaceCtrl_Data_t* WanMgr_GetIfaceCtrl_locked(void);
-void WanMgrDml_GetIfaceCtrl_release(WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl);
 void WanMgr_SetIfaceCtrl_Default(WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl);
 
 // WAN MGR

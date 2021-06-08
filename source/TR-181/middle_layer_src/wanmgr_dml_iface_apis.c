@@ -76,15 +76,7 @@
 ULONG WanIf_GetEntryCount(ANSC_HANDLE hInsContext)
 {
     ULONG count = 0;
-
-    WanMgr_IfaceCtrl_Data_t*    pWanDmlIfaceCtrl = WanMgr_GetIfaceCtrl_locked();
-    if(pWanDmlIfaceCtrl != NULL)
-    {
-        count = pWanDmlIfaceCtrl->ulTotalNumbWanInterfaces;
-
-        WanMgrDml_GetIfaceCtrl_release(pWanDmlIfaceCtrl);
-    }
-
+    count = (ULONG)WanMgr_IfaceData_GetTotalWanIface();
     return count;
 }
 

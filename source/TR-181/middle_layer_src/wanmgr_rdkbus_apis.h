@@ -26,6 +26,7 @@
 #include "ansc_platform.h"
 #include "ansc_string_util.h"
 #include "wanmgr_dml.h"
+#include "wanmgr_data.h"
 
 //PPP Manager
 #define PPPMGR_COMPONENT_NAME       "eRT.com.cisco.spvtg.ccsp.pppmanager"
@@ -51,4 +52,6 @@ ANSC_STATUS DmlSetWanIfValidationCfg( INT WanIfIndex, DML_WAN_IFACE* pWanIfInfo)
 ANSC_STATUS DmlAddMarking(ANSC_HANDLE hContext,DML_MARKING* pMarking);
 ANSC_STATUS DmlDeleteMarking(ANSC_HANDLE hContext, DML_MARKING* pMarking);
 ANSC_STATUS DmlSetMarking(ANSC_HANDLE hContext, DML_MARKING*   pMarking);
+ANSC_STATUS WanMgr_WanIfaceConfInit(WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl);
+ANSC_STATUS WanMgr_WanIfaceMarkingInit (WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl);
 #endif /* _WANMGR_RDKBUS_APIS_H_ */

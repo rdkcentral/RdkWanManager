@@ -62,13 +62,7 @@ static INT WanMgr_Policy_FM_SelectWANActive(void)
     INT  iActivePriority = DML_WAN_IFACE_PRIORITY_MAX;
 
     //Get uiTotalIfaces
-    WanMgr_IfaceCtrl_Data_t*   pWanIfaceCtrl = WanMgr_GetIfaceCtrl_locked();
-    if(pWanIfaceCtrl != NULL)
-    {
-        uiTotalIfaces = pWanIfaceCtrl->ulTotalNumbWanInterfaces;
-        WanMgrDml_GetIfaceCtrl_release(pWanIfaceCtrl);
-    }
-
+    uiTotalIfaces = WanMgr_IfaceData_GetTotalWanIface();
     if(uiTotalIfaces > 0)
     {
         // Check the policy to determine if any primary interface should be used for WAN

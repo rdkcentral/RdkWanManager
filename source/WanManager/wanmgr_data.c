@@ -61,28 +61,6 @@ void WanMgr_SetConfigData_Default(DML_WANMGR_CONFIG* pWanDmlConfig)
 
 
 /******** WANMGR IFACE CTRL FUNCTIONS ********/
-WanMgr_IfaceCtrl_Data_t* WanMgr_GetIfaceCtrl_locked(void)
-{
-    WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl = &(gWanMgrDataBase.IfaceCtrl);
-
-    //lock
-    if(pthread_mutex_lock(&(pWanIfaceCtrl->mDataMutex)) == 0)
-    {
-        return pWanIfaceCtrl;
-    }
-
-    return NULL;
-}
-
-void WanMgrDml_GetIfaceCtrl_release(WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl)
-{
-    if(pWanIfaceCtrl != NULL)
-    {
-        pthread_mutex_unlock (&(pWanIfaceCtrl->mDataMutex));
-    }
-}
-
-
 void WanMgr_SetIfaceCtrl_Default(WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl)
 {
     if(pWanIfaceCtrl != NULL)
@@ -108,11 +86,44 @@ void WanMgr_IfaceCtrl_Delete(WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl)
 }
 
 /******** WANMGR IFACE FUNCTIONS ********/
+
+ANSC_STATUS WanMgr_WanDataInit(void)
+{
+    ANSC_STATUS retStatus = ANSC_STATUS_FAILURE;
+    if(pthread_mutex_lock(&(gWanMgrDataBase.IfaceCtrl.mDataMutex)) == 0)
+    {
+        WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl = &(gWanMgrDataBase.IfaceCtrl);
+        retStatus = WanMgr_WanIfaceConfInit(pWanIfaceCtrl);
+
+#ifdef FEATURE_802_1P_COS_MARKING
+        /* Initialize middle layer for Device.X_RDK_WanManager.CPEInterface.{i}.Marking.  */
+        WanMgr_WanIfaceMarkingInit(pWanIfaceCtrl);
+#endif /* * FEATURE_802_1P_COS_MARKING */
+
+        WanMgrDml_GetIfaceData_release(NULL);
+    }
+    return retStatus;
+}
+
+UINT WanMgr_IfaceData_GetTotalWanIface(void)
+{
+   UINT TotalIfaces = 0;
+   if(pthread_mutex_lock(&(gWanMgrDataBase.IfaceCtrl.mDataMutex)) == 0)
+   {
+       if(&(gWanMgrDataBase.IfaceCtrl) != NULL)
+       {
+           TotalIfaces = gWanMgrDataBase.IfaceCtrl.ulTotalNumbWanInterfaces;
+       }
+       WanMgrDml_GetIfaceData_release(NULL);
+   }
+   return TotalIfaces;
+}
+
 WanMgr_Iface_Data_t* WanMgr_GetIfaceData_locked(UINT iface_index)
 {
-    WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl = WanMgr_GetIfaceCtrl_locked();
-    if(pWanIfaceCtrl != NULL)
+    if(pthread_mutex_lock(&(gWanMgrDataBase.IfaceCtrl.mDataMutex)) == 0)
     {
+        WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl = &(gWanMgrDataBase.IfaceCtrl);
         if(iface_index < pWanIfaceCtrl->ulTotalNumbWanInterfaces)
         {
             if(pWanIfaceCtrl->pIface != NULL)
@@ -121,8 +132,7 @@ WanMgr_Iface_Data_t* WanMgr_GetIfaceData_locked(UINT iface_index)
                 return pWanIfaceData;
             }
         }
-
-        WanMgrDml_GetIfaceCtrl_release(pWanIfaceCtrl);
+        WanMgrDml_GetIfaceData_release(NULL);
     }
 
     return NULL;
@@ -132,9 +142,9 @@ WanMgr_Iface_Data_t* WanMgr_GetIfaceDataByName_locked(char* iface_name)
 {
    UINT idx;
 
-    WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl = WanMgr_GetIfaceCtrl_locked();
-    if(pWanIfaceCtrl != NULL)
+    if(pthread_mutex_lock(&(gWanMgrDataBase.IfaceCtrl.mDataMutex)) == 0)
     {
+        WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl = &(gWanMgrDataBase.IfaceCtrl);
         if(pWanIfaceCtrl->pIface != NULL)
         {
             for(idx = 0; idx < pWanIfaceCtrl->ulTotalNumbWanInterfaces; idx++)
@@ -147,8 +157,7 @@ WanMgr_Iface_Data_t* WanMgr_GetIfaceDataByName_locked(char* iface_name)
                 }
             }
         }
-
-        WanMgrDml_GetIfaceCtrl_release(pWanIfaceCtrl);
+        WanMgrDml_GetIfaceData_release(NULL);
     }
 
     return NULL;
@@ -156,7 +165,11 @@ WanMgr_Iface_Data_t* WanMgr_GetIfaceDataByName_locked(char* iface_name)
 
 void WanMgrDml_GetIfaceData_release(WanMgr_Iface_Data_t* pWanIfaceData)
 {
-    WanMgrDml_GetIfaceCtrl_release(&(gWanMgrDataBase.IfaceCtrl));
+    WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl = &(gWanMgrDataBase.IfaceCtrl);
+    if(pWanIfaceCtrl != NULL)
+    {
+        pthread_mutex_unlock (&(pWanIfaceCtrl->mDataMutex));
+    }
 }
 
 void WanMgr_IfaceData_Init(WanMgr_Iface_Data_t* pIfaceData, UINT iface_index)

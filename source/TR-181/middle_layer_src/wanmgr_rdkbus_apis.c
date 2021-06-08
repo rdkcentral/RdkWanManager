@@ -37,7 +37,6 @@
 //!!!  So it uses casting from one to the other
 #include "wanmgr_rdkbus_apis.h"
 #include "dmsb_tr181_psm_definitions.h"
-#include "wanmgr_data.h"
 #include "wanmgr_net_utils.h"
 //
 #define PSM_ENABLE_STRING_TRUE  "TRUE"
@@ -694,7 +693,7 @@ static void AddSkbMarkingToConfFile(UINT data_skb_mark)
 #endif
 
 /* DmlWanIfMarkingInit() */
-static ANSC_STATUS WanMgr_WanIfaceMarkingInit (WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl)
+ANSC_STATUS WanMgr_WanIfaceMarkingInit (WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl)
 {
     INT iLoopCount  = 0;
 
@@ -1337,7 +1336,7 @@ ANSC_STATUS DmlSetWanIfValidationCfg( INT WanIfIndex, DML_WAN_IFACE* pWanIfInfo)
     return ret_val;
 }
 
-static ANSC_STATUS WanMgr_WanIfaceConfInit(WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl)
+ANSC_STATUS WanMgr_WanIfaceConfInit(WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl)
 {
     if(pWanIfaceCtrl != NULL)
     {
@@ -1441,20 +1440,7 @@ ANSC_STATUS WanMgr_WanConfigInit(void)
 
 
     //Wan Interface Configuration init
-    WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl = WanMgr_GetIfaceCtrl_locked();
-    if(pWanIfaceCtrl != NULL)
-    {
-        retStatus = WanMgr_WanIfaceConfInit(pWanIfaceCtrl);
-
-#ifdef FEATURE_802_1P_COS_MARKING
-        /* Initialize middle layer for Device.X_RDK_WanManager.CPEInterface.{i}.Marking.  */
-        WanMgr_WanIfaceMarkingInit(pWanIfaceCtrl);
-#endif /* * FEATURE_802_1P_COS_MARKING */
-
-
-        WanMgrDml_GetIfaceCtrl_release(pWanIfaceCtrl);
-    }
-
+    retStatus = WanMgr_WanDataInit();
     return retStatus;
 }
 
