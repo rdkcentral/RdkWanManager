@@ -447,6 +447,7 @@ static void *WanManagerSyseventHandler(void *args)
         char name[BUFLEN_42] = {0};
         char val[BUFLEN_42] = {0};
         char buf[BUF_SIZE] = {0};
+        char cmd_str[BUF_SIZE] = {0};
         int namelen = sizeof(name);
         int vallen  = sizeof(val);
         async_id_t getnotification_asyncid;
@@ -486,6 +487,11 @@ static void *WanManagerSyseventHandler(void *args)
                         CcspTraceError(("%s %d - SetDataModelParameter() failed for X_RDKCENTRAL-COM_DNSServersEnabled parameter \n", __FUNCTION__, __LINE__));
                     }
                     free(datamodel_value);
+                }
+                snprintf(cmd_str, sizeof(cmd_str), "ip -6 addr add %s/64 dev %s", val, LAN_BRIDGE_NAME);
+                if (WanManager_DoSystemActionWithStatus("wanmanager", cmd_str) != RETURN_OK)
+                {
+                    CcspTraceError(("%s %d failed set command: %s\n", __FUNCTION__, __LINE__, cmd_str));
                 }
             }
             else if ( strcmp(name, SYSEVENT_ULA_ENABLE) == 0 )
@@ -592,6 +598,11 @@ static void *WanManagerSyseventHandler(void *args)
                         set_mapt_rule();
                     }
 #endif
+                }
+                snprintf(cmd_str, sizeof(cmd_str), "ip -6 addr add %s/64 dev %s", buf, LAN_BRIDGE_NAME);
+                if (WanManager_DoSystemActionWithStatus("wanmanager", cmd_str) != RETURN_OK)
+                {
+                    CcspTraceError(("%s %d failed set command: %s\n", __FUNCTION__, __LINE__, cmd_str));
                 }
             }
             else if (strcmp(name, SYSEVENT_RADVD_RESTART) == 0)
