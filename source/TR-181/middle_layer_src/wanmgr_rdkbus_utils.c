@@ -58,6 +58,8 @@
 #include "wanmgr_data.h"
 #include "wanmgr_data.h"
 
+#define UPSTREAM_SET_MAX_RETRY_COUNT 10 // max. retry count for Upstream set requests
+
 extern char g_Subsystem[32];
 extern ANSC_HANDLE bus_handle;
 
@@ -114,6 +116,7 @@ ANSC_STATUS WanMgr_RdkBus_updateInterfaceUpstreamFlag(char *phyPath, BOOL flag)
     char  pComponentPath[BUFLEN_64] = {0};
     char *faultParam = NULL;
     int ret = 0;
+    int retry_count = UPSTREAM_SET_MAX_RETRY_COUNT;
 
     CCSP_MESSAGE_BUS_INFO *bus_info = (CCSP_MESSAGE_BUS_INFO *)bus_handle;
     parameterValStruct_t upstream_param[1] = {0};
@@ -144,18 +147,24 @@ ANSC_STATUS WanMgr_RdkBus_updateInterfaceUpstreamFlag(char *phyPath, BOOL flag)
     upstream_param[0].parameterValue = param_value;
     upstream_param[0].type = ccsp_boolean;
 
-    ret = CcspBaseIf_setParameterValues(bus_handle, pComponentName, pComponentPath,
+    while (retry_count--)
+    {
+        ret = CcspBaseIf_setParameterValues(bus_handle, pComponentName, pComponentPath,
                                         0, 0x0,   /* session id and write id */
                                         upstream_param, 1, TRUE,   /* Commit  */
                                         &faultParam);
 
-    if ( ( ret != CCSP_SUCCESS ) && ( faultParam )) {
-        CcspTraceInfo(("%s CcspBaseIf_setParameterValues failed with error %d\n",__FUNCTION__, ret ));
-        bus_info->freefunc( faultParam );
-        return ANSC_STATUS_FAILURE;
+        if ( ( ret != CCSP_SUCCESS ) && ( faultParam )) {
+            CcspTraceInfo(("%s CcspBaseIf_setParameterValues failed with error %d\n",__FUNCTION__, ret ));
+            bus_info->freefunc( faultParam );
+        }
+        else {
+            break;
+        }
+        usleep(500000);
     }
 
-    return ANSC_STATUS_SUCCESS;
+    return (ret == CCSP_SUCCESS) ? ANSC_STATUS_SUCCESS : ANSC_STATUS_FAILURE;
 }
 
 

@@ -969,7 +969,11 @@ static eWanState_t wan_transition_start(WanMgr_IfaceSM_Controller_t* pWanIfaceCt
     pInterface->Wan.Status = WAN_IFACE_STATUS_INITIALISING;
     pInterface->Wan.LinkStatus = WAN_IFACE_LINKSTATUS_CONFIGURING;
 
-    WanMgr_RdkBus_updateInterfaceUpstreamFlag(pInterface->Phy.Path, TRUE);
+    if (WanMgr_RdkBus_updateInterfaceUpstreamFlag(pInterface->Phy.Path, TRUE) != ANSC_STATUS_SUCCESS)
+    {
+        CcspTraceInfo(("%s - Failed to set Upstream data model, exiting interface state machine\n", __FUNCTION__));
+        return WAN_STATE_EXIT;
+    }
 
     if(pInterface->Wan.ActiveLink == TRUE)
     {
