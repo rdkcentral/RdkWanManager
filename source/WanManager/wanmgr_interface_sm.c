@@ -588,6 +588,9 @@ static void do_toggle_v6_status()
     char cmdLine[BUFLEN_128] = {0};
     snprintf(cmdLine, sizeof(cmdLine), "echo 1 > /proc/sys/net/ipv6/conf/erouter0/disable_ipv6");
     system(cmdLine);
+    /* This is a workaround delay to avoid hung behaviour in bcm kernal 
+    while receiving back to back enable/disable requests */
+    sleep(1);
     snprintf(cmdLine, sizeof(cmdLine), "echo 0 > /proc/sys/net/ipv6/conf/erouter0/disable_ipv6");
     system(cmdLine);
     return;
