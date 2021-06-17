@@ -555,7 +555,7 @@ static int _dibbler_client_operation(char * arg)
 #ifdef _COSA_BCM_ARM_
         /* Dibbler-init is called to set the pre-configuration for dibbler */
         CcspTraceInfo(("%s dibbler-init.sh Called \n", __func__));
-        system("/etc/dibbler/dibbler-init.sh");
+        system("/lib/rdk/dibbler-init.sh");
         /*Start Dibber client for tchxb6*/
         CcspTraceInfo(("%s Dibbler Client Started \n", __func__));
         snprintf(cmd, sizeof(cmd)-1, "%s start", CLIENT_BIN);
