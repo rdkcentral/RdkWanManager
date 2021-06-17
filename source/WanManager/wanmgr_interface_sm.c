@@ -557,11 +557,12 @@ static int checkIpv6LanAddressIsReadyToUse()
                 }
             }
         }
-
+        /*TODO: Back to back toggling causes timing issues in ADA boxes during 
+        neighbor discovery is inprogress. This needs to be improved.
         if (route_flag == 0)
         {
             do_toggle_v6_status();
-        }
+        }*/
 
         if(dad_flag == 0 || route_flag == 0) {
             sleep(1);
