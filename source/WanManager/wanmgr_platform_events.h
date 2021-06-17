@@ -45,7 +45,7 @@
 
 #else
 
-#define LOG_CONSOLE()
+#define LOG_CONSOLE(fmt ...)
 
 #endif //_HUB4_PRODUCT_REQ_
 
