@@ -165,14 +165,6 @@ int _datetime_to_secs(char * p_dt);
                 FUNCTION PROTOTYPES
 **********************************************************************/
 
-ANSC_STATUS
-WanMgr_DmlDhcpv6Init
-    (
-        ANSC_HANDLE                 hDml,
-        PANSC_HANDLE                phContext
-    );
-
-
 ULONG
 WanMgr_DmlDhcpv6cGetNumberOfEntries
     (

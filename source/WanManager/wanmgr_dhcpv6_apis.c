@@ -160,59 +160,6 @@ int _get_shell_output2(char * cmd, char * dststr)
     return bFound;
 }
 
-#if defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) && ! defined(_CBR_PRODUCT_REQ_) && ! defined(_BCI_FEATURE_REQ)
-
-#else
-ANSC_STATUS
-WanMgr_DmlDhcpv6SMsgHandler
-    (
-        ANSC_HANDLE                 hContext
-    )
-{
-    UNREFERENCED_PARAMETER(hContext);
-    char ret[16] = {0};
-    CcspTraceWarning(("%s -- %d Inside WanMgr_DmlDhcpv6SMsgHandler \n", __FUNCTION__, __LINE__));
-    CcspTraceWarning(("%s -- %d dhcpv6c_dbg_thrd invoking  \n", __FUNCTION__, __LINE__));
-    /*we start a thread to hear dhcpv6 client message about prefix/address */
-    if ( ( !mkfifo(CCSP_COMMON_FIFO, 0666) || errno == EEXIST ) )
-    {
-        if (pthread_create(&gDhcpv6c_ctx.dhcpv6c_thread, NULL, dhcpv6c_dbg_thrd, NULL)  || pthread_detach(gDhcpv6c_ctx.dhcpv6c_thread))
-            CcspTraceWarning(("%s error in creating dhcpv6c_dbg_thrd\n", __FUNCTION__));
-    }
-
-    //WanMgr_DmlStartDHCP6Client();
-//    dhcp v6 client is now initialized in service_wan, no need to initialize from PandM
-    #if 0
-    pthread_t dibblerthread;
-    pthread_create(&dibblerthread, NULL, &WanMgr_DmlStartDHCP6Client, NULL);
-    #endif
-    return 0;
-}
-
-#endif
-ANSC_STATUS
-WanMgr_DmlDhcpv6Init
-    (
-        ANSC_HANDLE                 hDml,
-        PANSC_HANDLE                phContext
-    )
-{
-    UNREFERENCED_PARAMETER(hDml);
-    UNREFERENCED_PARAMETER(phContext);
-    DSLHDMAGNT_CALLBACK *  pEntry = NULL;
-    CcspTraceWarning(("Inside %s %d \n", __FUNCTION__, __LINE__));
-#if defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) && ! defined(_CBR_PRODUCT_REQ_) && ! defined(_BCI_FEATURE_REQ)
-
-#else
-/* handle message from wan dchcp6 client */
-    WanMgr_DmlDhcpv6SMsgHandler(NULL);
-
-#endif
-
-
-    return ANSC_STATUS_SUCCESS;
-}
-
 /*
     Description:
         The API retrieves the number of DHCP clients in the system.
