@@ -636,7 +636,7 @@ static int setUpLanPrefixIPv6(DML_WAN_IFACE* pIfaceData)
             char previousPrefix[BUFLEN_48] = {0};
             char previousPrefix_vldtime[BUFLEN_48] = {0};
             char previousPrefix_prdtime[BUFLEN_48] = {0};
-            strncat(lanPrefix, "/64", 3);
+            strcat(lanPrefix, "/64");
             sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_PREFIX, previousPrefix, sizeof(previousPrefix));
             sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_PREFIXVLTIME, previousPrefix_vldtime, sizeof(previousPrefix_vldtime));
             sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_PREFIXPLTIME, previousPrefix_prdtime, sizeof(previousPrefix_prdtime));
@@ -2007,7 +2007,7 @@ static void* WanMgr_InterfaceSMThread( void *arg )
     if(WanMgr_InterfaceSMThread_Init(pWanIfaceCtrl) != ANSC_STATUS_SUCCESS)
     {
         CcspTraceError(("%s %d Policy Controller Error \n", __FUNCTION__, __LINE__));
-        return ANSC_STATUS_FAILURE;
+        return (void *)ANSC_STATUS_FAILURE;
     }
 
     //Transition Start

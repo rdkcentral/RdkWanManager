@@ -1168,7 +1168,7 @@ Client_SetParamStringValue
     if (pDhcpv4 == NULL)
     {
         AnscTraceError(("%s:%d:: Pointer is null!!\n", __FUNCTION__, __LINE__));
-        return ANSC_STATUS_FAILURE;
+        return FALSE;
     }
     /* check the parameter name and set the corresponding value */
     if( AnscEqualString(ParamName, "Alias", TRUE))

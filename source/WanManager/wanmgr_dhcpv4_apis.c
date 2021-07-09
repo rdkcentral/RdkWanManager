@@ -209,7 +209,7 @@ void* IPCPStateChangeHandler (void *arg)
     const char *dhcpcInterface = (char *) arg;
     if(NULL == dhcpcInterface)
     {
-       return ANSC_STATUS_FAILURE;
+       return (void *)ANSC_STATUS_FAILURE;
     }
     pthread_detach(pthread_self());
 
@@ -552,7 +552,7 @@ ANSC_STATUS WanMgr_DmlDhcpcSetValues
     Arguments:
         pEntry        Caller fills in pEntry->Cfg, except Alias field. Upon return, callee fills pEntry->Cfg.Alias field and as many as possible fields in pEntry->Info.
 */
-ANSC_STATUS WanMgr_DmlDhcpcAddEntry ( ANSC_HANDLE hContext, ULONG pInsNumber )
+ANSC_HANDLE WanMgr_DmlDhcpcAddEntry ( ANSC_HANDLE hContext, ULONG pInsNumber )
 {
     PDHCPC_CONTEXT_LINK_OBJECT        pCxtLink          = NULL;
     PDML_DHCPC_FULL                 pDhcpc              = NULL;

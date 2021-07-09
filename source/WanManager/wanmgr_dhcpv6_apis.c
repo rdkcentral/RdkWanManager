@@ -232,7 +232,7 @@ WanMgr_DmlDhcpv6cGetEntry
     memset(pEntry->Cfg.Alias, 0, sizeof(pEntry->Cfg.Alias));
     if( syscfg_get( NULL, buf, out, sizeof(out)) == 0 )
     {
-        strncpy(pEntry->Cfg.Alias, out, sizeof(out));
+        strncpy(pEntry->Cfg.Alias, out, sizeof(pEntry->Cfg.Alias));
     }
 
     pEntry->Cfg.SuggestedT1 = pEntry->Cfg.SuggestedT2 = 0;
@@ -1749,7 +1749,7 @@ dhcpv6c_dbg_thrd(void * in)
     //When PaM restart, this is to get previous addr.
     sysevent_get(sysevent_fd, sysevent_token,"lan_ipaddr_v6", globalIP2, sizeof(globalIP2));
     if ( globalIP2[0] )
-        CcspTraceWarning((stderr,"%s  It seems there is old value(%s)\n", __FUNCTION__, globalIP2));
+        CcspTraceWarning(("%s  It seems there is old value(%s)\n", __FUNCTION__, globalIP2));
 
     sysevent_fd_global = sysevent_open("127.0.0.1", SE_SERVER_WELL_KNOWN_PORT, SE_VERSION, "Multinet Status", &sysevent_token_global);
 
@@ -2449,7 +2449,7 @@ ANSC_STATUS wanmgr_handle_dchpv6_event_data(DML_WAN_IFACE* pIfaceData)
                 if (strcmp(pDhcp6cInfoCur->sitePrefix, pNewIpcMsg->sitePrefix) != 0)
                 {
                     CcspTraceInfo(("%s %d new prefix = %s, current prefix = %s \n", __FUNCTION__, __LINE__, pNewIpcMsg->sitePrefix, pDhcp6cInfoCur->sitePrefix));
-                    strncat(prefix, "/64", 3);
+                    strcat(prefix, "/64");
                     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_PREFIX, prefix, 0);
                 }
             }
@@ -2584,7 +2584,7 @@ void* IPV6CPStateChangeHandler (void *arg)
     const char *dhcpcInterface = (char *) arg;
     if(NULL == dhcpcInterface)
     {
-        return ANSC_STATUS_FAILURE;
+        return (void *)ANSC_STATUS_FAILURE;
     }
 
     pthread_detach(pthread_self());
@@ -2607,5 +2607,5 @@ void* IPV6CPStateChangeHandler (void *arg)
 
     free (arg);
 
-    return ANSC_STATUS_SUCCESS;
+    return (void *)ANSC_STATUS_SUCCESS;
 }

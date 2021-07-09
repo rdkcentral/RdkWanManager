@@ -245,12 +245,12 @@ ANSC_STATUS WanMgr_RdkBus_updateInterfaceUpstreamFlag(char *phyPath, BOOL flag)
     strncpy(param_name, phyPath, sizeof(param_name));
 
     if(strstr(param_name, "DSL") != NULL) { // dsl wan interface
-        strncat(param_name, DSL_UPSTREAM_NAME, sizeof(param_name));
+        strncat(param_name, DSL_UPSTREAM_NAME, sizeof(param_name) - strlen(param_name));
         strncpy(pComponentName, DSL_COMPONENT_NAME, sizeof(pComponentName));
         strncpy(pComponentPath, DSL_COMPONENT_PATH, sizeof(pComponentPath));
     }
     else if(strstr(param_name, "Ethernet") != NULL) { // ethernet wan interface
-        strncat(param_name, ETH_UPSTREAM_NAME, sizeof(param_name));
+        strncat(param_name, ETH_UPSTREAM_NAME, sizeof(param_name) - strlen(param_name));
         strncpy(pComponentName, ETH_COMPONENT_NAME, sizeof(pComponentName));
         strncpy(pComponentPath, ETH_COMPONENT_PATH, sizeof(pComponentPath));
     }

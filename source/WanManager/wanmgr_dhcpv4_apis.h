@@ -27,6 +27,7 @@
 #include "wanmgr_dml.h"
 #include "wanmgr_rdkbus_apis.h"
 #include "wanmgr_rdkbus_common.h"
+#include "wanmgr_rdkbus_utils.h"
 
 #include "ansc_platform.h"
 #include "ipc_msg.h"
@@ -189,7 +190,7 @@ WanMgr_DmlDhcpcSetValues
         char*                       pAlias
     );
 
-ANSC_STATUS
+ANSC_HANDLE
 WanMgr_DmlDhcpcAddEntry
     (
         ANSC_HANDLE                 hContext,

@@ -67,6 +67,8 @@
 
 #include "ansc_platform.h"
 #include "wanmgr_rdkbus_common.h"
+#include "wanmgr_rdkbus_apis.h"
+#include "wanmgr_rdkbus_utils.h"
 #include "dslh_cpeco_interface.h"
 
 // include files needed by diagnostic

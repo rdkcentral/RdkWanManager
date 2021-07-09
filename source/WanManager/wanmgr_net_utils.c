@@ -25,6 +25,7 @@
 #include "wanmgr_net_utils.h"
 #include "wanmgr_rdkbus_utils.h"
 #include "wanmgr_dhcpv4_apis.h"
+#include "wanmgr_dhcpv6_apis.h"
 #include "wanmgr_rdkbus_apis.h"
 #include "wanmgr_ssp_internal.h"
 #include "ansc_platform.h"
@@ -33,6 +34,7 @@
 #include <ifaddrs.h>
 #include "platform_hal.h"
 #include <sys/sysinfo.h>
+#include "syscfg.h"
 
 #define RESOLV_CONF_FILE "/etc/resolv.conf"
 #define LOOPBACK "127.0.0.1"
@@ -312,7 +314,7 @@ int WanManager_Ipv6AddrUtil(char *ifname, Ipv6OperType opr, int preflft, int val
 ANSC_STATUS WanManager_StartDhcpv6Client(const char *pcInterfaceName, BOOL isPPP)
 {
     char cmdLine[BUFLEN_128];
-    bool enableClient = TRUE;
+    BOOL enableClient = TRUE;
 
     CcspTraceInfo(("Enter WanManager_StartDhcpv6Client for  %s \n", DHCPV6_CLIENT_NAME));
     sprintf(cmdLine, "%s start", DHCPV6_CLIENT_NAME);
@@ -1461,12 +1463,12 @@ static void* DmlHandlePPPCreateRequestThread( void *arg )
     char adslUserName[DATAMODEL_PARAM_LENGTH] = {0};
     INT  iPPPInstance = -1;
 
-    DML_WAN_IFACE* pInterface = (char *) arg;
+    DML_WAN_IFACE* pInterface = (DML_WAN_IFACE *) arg;
 
     if( NULL == pInterface )
     {
         CcspTraceError(("%s Invalid Memory\n", __FUNCTION__));
-        return ANSC_STATUS_FAILURE;
+        return (void *)ANSC_STATUS_FAILURE;
     }
 
     pthread_detach(pthread_self());
@@ -1488,7 +1490,7 @@ static void* DmlHandlePPPCreateRequestThread( void *arg )
            ) )
        {
             CcspTraceError(("%s Failed to add table %s\n", __FUNCTION__,acTableName));
-            return ANSC_STATUS_FAILURE;
+            return (void *)ANSC_STATUS_FAILURE;
        }
 
        //Assign new instance

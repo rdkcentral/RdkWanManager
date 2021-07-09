@@ -17,12 +17,13 @@
  * limitations under the License.
 */
 
-
+#include <syscfg.h>
 
 #include "wanmgr_core.h"
 #include "wanmgr_sysevents.h"
 #include "wanmgr_rdkbus_apis.h"
-
+#include "wanmgr_ipc.h"
+#include "wanmgr_controller.h"
 
 ANSC_STATUS WanMgr_Core_Init(void)
 {
