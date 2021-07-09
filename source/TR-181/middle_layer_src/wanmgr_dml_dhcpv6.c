@@ -447,10 +447,6 @@ Client3_AddEntry
     PDML_DHCPCV6_FULL            pDhcpc          = NULL;
 	PWAN_DHCPV6_DATA             pDhcpv6       = (PWAN_DHCPV6_DATA)g_pWanMgrBE->hDhcpv6;
 
-#if (defined _COSA_DRG_CNS_)  || (defined _COSA_DRG_TPG_)
-    /*not supported*/
-    return NULL;
-#endif
 
     if (pDhcpv6 != NULL)
     {
@@ -543,10 +539,6 @@ Client3_DelEntry
     /* Normally, two sublinks are empty because our framework will firstly 
        call delEntry for them before coming here. We needn't care them.
        */
-#if (defined _COSA_DRG_CNS_)  || (defined _COSA_DRG_TPG_)
-    /*not supported*/
-    return ANSC_STATUS_FAILURE;
-#endif
 
     if (pDhcpv6 != NULL)
     {
@@ -1187,10 +1179,6 @@ Client3_SetParamStringValue
     }
     else if( AnscEqualString(ParamName, "Interface", TRUE) )
     {
-#if defined _COSA_DRG_CNS_  || defined _COSA_DRG_TPG_
-        /*not supported*/
-        return FALSE;
-#endif
 
         /* save update to backup */
         AnscCopyString(pDhcpc->Cfg.Interface, pString);

@@ -365,11 +365,7 @@ static ANSC_STATUS DhcpcDmlScan()
                 fp = NULL;
             }
 
-#ifdef _COSA_DRG_TPG_
-            fp = fopen("/tmp/udhcp_lan.log", "r"); 
-#else
             return ANSC_STATUS_SUCCESS;
-#endif
 
         }
         pEntry = &CH_g_dhcpv4_client[ulIndex];
