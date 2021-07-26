@@ -30,6 +30,9 @@ typedef  struct _WANMGR_POLICY_CONTROLLER_
     INT                     activeInterfaceIdx;
     INT                     selSecondaryInterfaceIdx;
     WanMgr_Iface_Data_t*    pWanActiveIfaceData;
+    struct timespec         SelectionTimeOutStart;
+    struct timespec         SelectionTimeOutEnd;
+    UINT                    InterfaceSelectionTimeOut;
 } WanMgr_Policy_Controller_t;
 
 
@@ -44,5 +47,6 @@ ANSC_STATUS WanMgr_Policy_FixedModeOnBootupPolicy(void);
 ANSC_STATUS WanMgr_Policy_PrimaryPriorityPolicy(void);
 ANSC_STATUS WanMgr_Policy_PrimaryPriorityOnBootupPolicy(void);
 ANSC_STATUS WanMgr_Policy_AutoWan(void);
+ANSC_STATUS WanMgr_Policy_AutoWanPolicy(void);
 
 #endif /*_WANMGR_CONTROLLER_H_*/

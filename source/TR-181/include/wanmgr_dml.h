@@ -51,7 +51,8 @@ typedef enum _DML_WAN_IFACE_STATUS
     WAN_IFACE_STATUS_DISABLED = 1,
     WAN_IFACE_STATUS_INITIALISING,
     WAN_IFACE_STATUS_VALIDATING,
-    WAN_IFACE_STATUS_UP
+    WAN_IFACE_STATUS_UP,
+    WAN_IFACE_STATUS_INVALID
 } DML_WAN_IFACE_STATUS;
 
 typedef enum _DML_WAN_IFACE_LINKSTATUS
@@ -242,6 +243,7 @@ typedef struct _DML_WANIFACE_INFO
     BOOL                        Refresh;
     DML_WANIFACE_WANCFG_VALID   Validation;
     DML_WAN_IFACE_OPER_STATUS   OperationalStatus;
+    BOOL                        RebootOnConfiguration;
 } DML_WANIFACE_INFO;
 
 typedef struct _DML_WANIFACE_DYNTRIGGER
@@ -337,6 +339,7 @@ typedef struct _DML_WANMGR_CONFIG_
     BOOLEAN Enable;
     DML_WAN_POLICY Policy;
     UINT IdleTimeout;
+    BOOLEAN ResetActiveInterface;
 } DML_WANMGR_CONFIG;
 
 #endif //_WANMGR_DML_H_

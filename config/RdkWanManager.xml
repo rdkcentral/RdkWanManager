@@ -61,6 +61,12 @@
                     <type>unsignedInt</type>
                     <syntax>uint32</syntax>
                     <writable>true</writable>
+	        </parameter>
+                <parameter>
+                    <name>ResetActiveInterface</name>
+                    <type>boolean</type>
+                    <syntax>bool</syntax>
+                    <writable>true</writable>
                 </parameter>
             </parameters>
             <objects>
@@ -228,9 +234,15 @@
                                     <type>boolean</type>
                                     <syntax>bool</syntax>
                                     <writable>true</writable>
-                                </parameter>
-                                <parameter>
+			        </parameter>
+				<parameter>
                                     <name>ActiveLink</name>
+                                    <type>boolean</type>
+                                    <syntax>bool</syntax>
+                                    <writable>false</writable>
+			        </parameter>
+                                <parameter>
+                                    <name>RebootOnConfiguration</name>
                                     <type>boolean</type>
                                     <syntax>bool</syntax>
                                     <writable>true</writable>

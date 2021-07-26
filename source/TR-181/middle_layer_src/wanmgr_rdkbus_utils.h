@@ -80,6 +80,7 @@
 #define ETH_COMP_NAME_WITHOUTSUBSYSTEM "com.cisco.spvtg.ccsp.ethagent"
 #define ETH_COMPONENT_PATH "/com/cisco/spvtg/ccsp/ethagent"
 #define ETH_UPSTREAM_NAME ".Upstream"
+#define ETH_X_RDK_REBOOTREQUIRED_PARAM_NAME     "Device.Ethernet.Interface.%d.X_RDK_RebootRequired"
 
 //CM Agent
 #define CMAGENT_COMPONENT_NAME "eRT.com.cisco.spvtg.ccsp.cm"
@@ -108,4 +109,5 @@ void* WanMgr_RdkBus_WanIfRefreshThread( void *arg );
 ANSC_STATUS DmlGetInstanceByKeywordFromPandM(char *ifname, int *piInstanceNumber);
 ANSC_STATUS WanMgr_RdkBus_SetRequestIfComponent(char *pPhyPath, char *pInputparamName, char *pInputParamValue, enum dataType_e type);
 ANSC_STATUS WaitForInterfaceComponentReady(char *pPhyPath);
+ANSC_STATUS WanMgr_RdkBus_Get_InterfaceRebootRequired(UINT IfaceIndex, BOOL *RebootRequired);
 #endif /* _WANMGR_RDKBUS_UTILS_H_ */

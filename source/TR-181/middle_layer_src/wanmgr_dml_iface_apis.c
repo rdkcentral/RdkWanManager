@@ -832,6 +832,11 @@ BOOL WanIfCfg_GetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL* 
                 *pBool = pWanDmlIface->Wan.EnableMAPT;
                 ret = TRUE;
             }
+            if( AnscEqualString(ParamName, "RebootOnConfiguration", TRUE))
+            {
+                *pBool = pWanDmlIface->Wan.RebootOnConfiguration;
+                ret = TRUE;
+            }
 
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
         }
@@ -905,6 +910,11 @@ BOOL WanIfCfg_SetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL b
             if( AnscEqualString(ParamName, "EnableMAPT", TRUE))
             {
                 pWanDmlIface->Wan.EnableMAPT = bValue;
+                ret = TRUE;
+            }
+            if( AnscEqualString(ParamName, "RebootOnConfiguration", TRUE))
+            {
+                pWanDmlIface->Wan.RebootOnConfiguration = bValue;
                 ret = TRUE;
             }
 

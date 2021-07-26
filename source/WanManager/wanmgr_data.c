@@ -55,6 +55,7 @@ void WanMgr_SetConfigData_Default(DML_WANMGR_CONFIG* pWanDmlConfig)
         pWanDmlConfig->Enable = TRUE;
         pWanDmlConfig->Policy = FIXED_MODE;
         pWanDmlConfig->IdleTimeout = 0;
+        pWanDmlConfig->ResetActiveInterface = FALSE;
     }
 }
 
@@ -201,6 +202,7 @@ void WanMgr_IfaceData_Init(WanMgr_Iface_Data_t* pIfaceData, UINT iface_index)
         pWanDmlIface->Wan.Status = WAN_IFACE_STATUS_DISABLED;
         pWanDmlIface->Wan.LinkStatus = WAN_IFACE_LINKSTATUS_DOWN;
         pWanDmlIface->Wan.Refresh = FALSE;
+        pWanDmlIface->Wan.RebootOnConfiguration = FALSE;
         pWanDmlIface->Wan.Validation.DiscoverOffer = FALSE;
         pWanDmlIface->Wan.Validation.SolicitAdvertise = FALSE;
         pWanDmlIface->Wan.Validation.RS_RA = FALSE;

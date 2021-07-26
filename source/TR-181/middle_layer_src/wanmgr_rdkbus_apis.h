@@ -55,4 +55,6 @@ ANSC_STATUS DmlDeleteMarking(ANSC_HANDLE hContext, DML_MARKING* pMarking);
 ANSC_STATUS DmlSetMarking(ANSC_HANDLE hContext, DML_MARKING*   pMarking);
 ANSC_STATUS WanMgr_WanIfaceConfInit(WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl);
 ANSC_STATUS WanMgr_WanIfaceMarkingInit (WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl);
+
+ANSC_STATUS DmlSetWanActiveLinkInPSMDB( ULONG instancenum, DML_WAN_IFACE* p_Interface );
 #endif /* _WANMGR_RDKBUS_APIS_H_ */

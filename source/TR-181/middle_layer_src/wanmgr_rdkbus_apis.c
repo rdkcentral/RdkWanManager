@@ -78,6 +78,26 @@ static int get_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFACE*
 
     _ansc_memset(param_name, 0, sizeof(param_name));
     _ansc_memset(param_value, 0, sizeof(param_value));
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_ACTIVELINK, instancenum);
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
+    if (retPsmGet == CCSP_SUCCESS)
+    {
+        if(strcmp(param_value, PSM_ENABLE_STRING_TRUE) == 0)
+        {
+             p_Interface->Wan.ActiveLink = TRUE;
+        }
+        else
+        {
+             p_Interface->Wan.ActiveLink = FALSE;
+        }
+    }
+    else
+    {
+        p_Interface->Wan.ActiveLink = FALSE;
+    }
+    
+    _ansc_memset(param_name, 0, sizeof(param_name));
+    _ansc_memset(param_value, 0, sizeof(param_value));
     _ansc_sprintf(param_name, PSM_WANMANAGER_IF_NAME, instancenum);
     retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
     if (retPsmGet == CCSP_SUCCESS)
@@ -180,6 +200,26 @@ static int get_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFACE*
     else
     {
         p_Interface->Wan.EnableIPoE = FALSE;
+    }
+
+    _ansc_memset(param_name, 0, sizeof(param_name));
+    _ansc_memset(param_value, 0, sizeof(param_value));
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_REBOOTONCONFIGURATION, instancenum);
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
+    if (retPsmGet == CCSP_SUCCESS)
+    {
+        if(strcmp(param_value, PSM_ENABLE_STRING_TRUE) == 0)
+        {
+             p_Interface->Wan.RebootOnConfiguration = TRUE;
+        }
+        else
+        {
+             p_Interface->Wan.RebootOnConfiguration = FALSE;
+        }
+    }
+    else
+    {
+        p_Interface->Wan.RebootOnConfiguration = FALSE;
     }
 
     _ansc_memset(param_name, 0, sizeof(param_name));
@@ -396,6 +436,20 @@ static int write_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFAC
 
     memset(param_value, 0, sizeof(param_value));
     memset(param_name, 0, sizeof(param_name));
+
+    if(p_Interface->Wan.ActiveLink)
+    {
+        _ansc_sprintf(param_value, PSM_ENABLE_STRING_TRUE);
+    }
+    else
+    {
+        _ansc_sprintf(param_value, PSM_ENABLE_STRING_FALSE);
+    }
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_ACTIVELINK, instancenum);
+    WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
+    
+    memset(param_value, 0, sizeof(param_value));
+    memset(param_name, 0, sizeof(param_name));
     _ansc_sprintf(param_value, "%d", p_Interface->Wan.Type );
     _ansc_sprintf(param_name, PSM_WANMANAGER_IF_TYPE, instancenum);
     WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
@@ -454,6 +508,19 @@ static int write_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFAC
         _ansc_sprintf(param_value, "FALSE");
     }
     _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_ENABLE_IPOE, instancenum);
+    WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
+
+    memset(param_value, 0, sizeof(param_value));
+    memset(param_name, 0, sizeof(param_name));
+    if(p_Interface->Wan.RebootOnConfiguration)
+    {
+        _ansc_sprintf(param_value, PSM_ENABLE_STRING_TRUE);
+    }
+    else
+    {
+        _ansc_sprintf(param_value, PSM_ENABLE_STRING_FALSE);
+    }
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_REBOOTONCONFIGURATION, instancenum);
     WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
 
     if(p_Interface->Wan.Validation.DiscoverOffer)
@@ -1513,3 +1580,27 @@ PCONTEXT_LINK_OBJECT SListGetEntryByInsNum( PSLIST_HEADER pListHead, ULONG Insta
 
     return NULL;
 }
+
+ANSC_STATUS DmlSetWanActiveLinkInPSMDB( ULONG instancenum, DML_WAN_IFACE* p_Interface )
+{
+    int retPsmSet = CCSP_SUCCESS;
+    char param_name[256] = {0};
+    char param_value[256] = {0};
+
+    memset(param_value, 0, sizeof(param_value));
+    memset(param_name, 0, sizeof(param_name));
+
+    if(p_Interface->Wan.ActiveLink)
+    {
+        _ansc_sprintf(param_value, PSM_ENABLE_STRING_TRUE);
+    }
+    else
+    {
+        _ansc_sprintf(param_value, PSM_ENABLE_STRING_FALSE);
+    }
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_ACTIVELINK, (instancenum+1));
+    WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
+
+    return ANSC_STATUS_SUCCESS;
+}
+

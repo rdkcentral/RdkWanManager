@@ -22,7 +22,6 @@
 #include "wanmgr_rdkbus_utils.h"
 #include "wanmgr_data.h"
 
-
 ANSC_STATUS WanController_Policy_Change(void)
 {
     /* Wan policy changed. Cpe needs a restart! */
@@ -81,7 +80,6 @@ ANSC_STATUS WanController_Start_StateMachine(DML_WAN_POLICY swan_policy)
         WanMgrDml_GetConfigData_release(pWanConfigData);
     }
 
-
     //Starts wan controller threads
     switch (wan_policy) {
         case FIXED_MODE:
@@ -104,7 +102,11 @@ ANSC_STATUS WanController_Start_StateMachine(DML_WAN_POLICY swan_policy)
             break;
 
         case AUTOWAN_MODE: 
+#if defined (_XB8_PRODUCT_REQ_)
             retStatus = WanMgr_Policy_AutoWan();
+#else
+            retStatus = WanMgr_Policy_AutoWanPolicy();
+#endif
             break;
     }
 
@@ -152,6 +154,9 @@ ANSC_STATUS WanMgr_Controller_PolicyCtrlInit(WanMgr_Policy_Controller_t* pWanPol
         pWanPolicyCtrl->activeInterfaceIdx = -1;
         pWanPolicyCtrl->selSecondaryInterfaceIdx = -1;
         pWanPolicyCtrl->pWanActiveIfaceData = NULL;
+        memset(&(pWanPolicyCtrl->SelectionTimeOutStart), 0, sizeof(struct timespec));
+        memset(&(pWanPolicyCtrl->SelectionTimeOutEnd), 0, sizeof(struct timespec));
+        pWanPolicyCtrl->InterfaceSelectionTimeOut = 0;
 
         retStatus = ANSC_STATUS_SUCCESS;
     }
