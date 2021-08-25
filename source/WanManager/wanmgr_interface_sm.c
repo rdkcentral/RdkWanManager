@@ -752,6 +752,7 @@ static int wan_setUpIPv4(DML_WAN_IFACE* pInterface)
         WanManager_GetDateAndUptime( buffer, &uptime );
         LOG_CONSOLE("%s Wan_init_complete:%d\n",buffer,uptime);
 
+        system("print_uptime \"Waninit_complete\"");
         system("print_uptime \"boot_to_wan_uptime\"");
     }
 
@@ -851,6 +852,16 @@ static int wan_setUpIPv6(DML_WAN_IFACE* pInterface)
     {
         sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_WAN_STATUS, WAN_STATUS_STARTED, 0);
         CcspTraceInfo(("%s %d - wan-status event set to started \n", __FUNCTION__, __LINE__));
+
+        int  uptime = 0;
+        char buffer[64] = {0};
+
+        //Get WAN uptime
+        WanManager_GetDateAndUptime( buffer, &uptime );
+        LOG_CONSOLE("%s Wan_init_complete:%d\n",buffer,uptime);
+
+        system("print_uptime \"Waninit_complete\"");
+        system("print_uptime \"boot_to_wan_uptime\"");
     }
 
     return ret;
@@ -993,6 +1004,9 @@ static eWanState_t wan_transition_start(WanMgr_IfaceSM_Controller_t* pWanIfaceCt
         return ANSC_STATUS_FAILURE;
     }
 
+    int  uptime = 0;
+    char buffer[64] = {0};
+
     DML_WAN_IFACE* pInterface = pWanIfaceCtrl->pIfaceData;
 
     pInterface->IP.Ipv4Status = WAN_IFACE_IPV4_STATE_DOWN;
@@ -1010,6 +1024,11 @@ static eWanState_t wan_transition_start(WanMgr_IfaceSM_Controller_t* pWanIfaceCt
     }
 
     CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION START\n", __FUNCTION__, __LINE__, pInterface->Name));
+
+    WanManager_GetDateAndUptime( buffer, &uptime );
+    LOG_CONSOLE("%s Wan_init_start:%d\n",buffer,uptime);
+
+    system("print_uptime \"Waninit_start\"");
 
     /* TODO: Need to handle crash recovery */
     return WAN_STATE_CONFIGURING_WAN;
