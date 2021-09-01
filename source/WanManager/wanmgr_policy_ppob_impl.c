@@ -31,6 +31,8 @@
 /* ---- Global Constants -------------------------- */
 #define LOOP_TIMEOUT 500000 // timeout in milliseconds. This is the state machine loop interval
 
+struct timespec PPoB_SelectionTimer;
+
 typedef enum {
     SELECTING_WAN_INTERFACE = 0,
     SELECTED_INTERFACE_DOWN,
@@ -52,6 +54,39 @@ static WcPpobPolicyState_t Transition_SelectedInterfaceDown(WanMgr_Policy_Contro
 /*********************************************************************************/
 /**************************** ACTIONS ********************************************/
 /*********************************************************************************/
+static UINT SelectionTimer()
+{
+    UINT uiTotalIfaces = -1;
+    UINT uiLoopCount;
+    //Get uiTotalIfaces
+    uiTotalIfaces = WanMgr_IfaceData_GetTotalWanIface();
+    if(uiTotalIfaces > 0)
+    {
+        for( uiLoopCount = 0; uiLoopCount < uiTotalIfaces; uiLoopCount++ )
+       {
+           WanMgr_Iface_Data_t*   pWanDmlIfaceData = WanMgr_GetIfaceData_locked(uiLoopCount);
+           if(pWanDmlIfaceData != NULL)
+           {
+               DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
+               //get current time
+               struct timespec         SelectionTimeOutEnd;
+               memset(&(SelectionTimeOutEnd), 0, sizeof(struct timespec));
+               clock_gettime( CLOCK_MONOTONIC_RAW, &(SelectionTimeOutEnd));
+
+               if(((difftime(SelectionTimeOutEnd.tv_sec, PPoB_SelectionTimer.tv_sec)) > pWanIfaceData->Wan.SelectionTimeout) && 
+                   (pWanIfaceData->Phy.Status == WAN_IFACE_PHY_STATUS_DOWN))
+               {
+                   pWanIfaceData->Wan.Status = WAN_IFACE_STATUS_INVALID;
+               }else
+               {
+                   pWanIfaceData->Wan.Status = WAN_IFACE_STATUS_DISABLED;
+               }
+               WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+           }
+       }
+    }
+}
+
 static void WanMgr_Policy_FM_SelectWANActive(WanMgr_Policy_Controller_t* pWanController, INT* pPrimaryInterface, INT* pSecondaryInterface)
 {
     UINT uiLoopCount;
@@ -60,6 +95,7 @@ static void WanMgr_Policy_FM_SelectWANActive(WanMgr_Policy_Controller_t* pWanCon
     INT iSelSecondaryInterface = -1;
     INT iSelPrimaryPriority = DML_WAN_IFACE_PRIORITY_MAX;
     INT iSelSecondaryPriority = DML_WAN_IFACE_PRIORITY_MAX;
+    UINT validPrimaryCount = 0;
 
     //Get uiTotalIfaces
     uiTotalIfaces = WanMgr_IfaceData_GetTotalWanIface();
@@ -68,6 +104,8 @@ static void WanMgr_Policy_FM_SelectWANActive(WanMgr_Policy_Controller_t* pWanCon
         // Check the policy to determine if any primary interface should be used for WAN
         if(pWanController->WanEnable == TRUE)
         {
+            //Selection Timer
+            SelectionTimer();
             for( uiLoopCount = 0; uiLoopCount < uiTotalIfaces; uiLoopCount++ )
             {
 
@@ -77,8 +115,7 @@ static void WanMgr_Policy_FM_SelectWANActive(WanMgr_Policy_Controller_t* pWanCon
                     DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
 
                     if (pWanIfaceData->Wan.Enable == TRUE &&
-                       (pWanIfaceData->Phy.Status == WAN_IFACE_PHY_STATUS_UP ||
-                        pWanIfaceData->Phy.Status == WAN_IFACE_PHY_STATUS_INITIALIZING))
+                        pWanIfaceData->Wan.Status != WAN_IFACE_STATUS_INVALID)
                     {
                         if(pWanIfaceData->Wan.Type == WAN_IFACE_TYPE_PRIMARY)
                         {
@@ -90,6 +127,7 @@ static void WanMgr_Policy_FM_SelectWANActive(WanMgr_Policy_Controller_t* pWanCon
                                     iSelPrimaryPriority = pWanIfaceData->Wan.Priority;
                                 }
                             }
+                            validPrimaryCount++;
                         }
                         else
                         {
@@ -110,9 +148,52 @@ static void WanMgr_Policy_FM_SelectWANActive(WanMgr_Policy_Controller_t* pWanCon
         }
     }
 
+    if(iSelPrimaryInterface != -1)
+    {
+        WanMgr_Iface_Data_t*   pWanDmlIfaceData = WanMgr_GetIfaceData_locked(iSelPrimaryInterface);
+        if(pWanDmlIfaceData != NULL)
+        {
+            DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
+            if(pWanIfaceData->Phy.Status == WAN_IFACE_PHY_STATUS_UP ||
+               pWanIfaceData->Phy.Status == WAN_IFACE_PHY_STATUS_INITIALIZING)
+            {
+                *pPrimaryInterface = iSelPrimaryInterface;
+            }
+            else
+            {
+                iSelPrimaryInterface = -1;
+            }
+            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+        }
+    }
+
+    if(iSelSecondaryInterface != -1 )
+    {
+        if(validPrimaryCount ==0)
+        {
+            WanMgr_Iface_Data_t*   pWanDmlIfaceData = WanMgr_GetIfaceData_locked(iSelSecondaryInterface);
+            if(pWanDmlIfaceData != NULL)
+            {
+                DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
+                if(pWanIfaceData->Phy.Status == WAN_IFACE_PHY_STATUS_UP ||
+                   pWanIfaceData->Phy.Status == WAN_IFACE_PHY_STATUS_INITIALIZING)
+                {
+                    *pSecondaryInterface = iSelSecondaryInterface;
+                }
+                 else
+                {
+                    iSelSecondaryInterface= -1;
+                }
+                WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+            }
+         }else
+         {
+             iSelSecondaryInterface= -1;
+         }
+    }         
+
     *pPrimaryInterface = iSelPrimaryInterface;
     *pSecondaryInterface = iSelSecondaryInterface;
-
     return ;
 }
 
@@ -126,6 +207,9 @@ static WcPpobPolicyState_t Transition_Start(WanMgr_Policy_Controller_t* pWanCont
     {
         return ANSC_STATUS_FAILURE;
     }
+    //Start the selectionTimer
+    memset(&(PPoB_SelectionTimer), 0, sizeof(struct timespec));
+    clock_gettime(CLOCK_MONOTONIC_RAW, &(PPoB_SelectionTimer));
 
     wanmgr_sysevents_setWanState(WAN_LINK_DOWN_STATE);
 
