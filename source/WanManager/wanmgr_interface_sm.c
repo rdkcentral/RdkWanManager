@@ -1117,6 +1117,12 @@ static eWanState_t wan_transition_wan_validated(WanMgr_IfaceSM_Controller_t* pWa
     /* Clear DHCP data */
     WanManager_ClearDHCPData(pInterface);
 
+    /* WAN link is just up and validated.
+    This is just a link establishment/re-establishment phase and trying to acquire IP from dhcp
+    Untill ip is acquired, show green strobing*/
+    wanmgr_sysevents_setWanState(WAN_IPV4_DOWN);
+    wanmgr_sysevents_setWanState(WAN_IPV6_DOWN);
+
     if( pInterface->PPP.Enable == FALSE )
     {
 #ifdef FEATURE_IPOE_HEALTH_CHECK
@@ -1209,6 +1215,11 @@ static eWanState_t wan_transition_wan_refreshed(WanMgr_IfaceSM_Controller_t* pWa
 
     /* Clear DHCP data */
     WanManager_ClearDHCPData(pInterface);
+
+    /* WAN is just refreshed. Trying to get IP again
+    Untill ip is acquired, show green strobing*/
+    wanmgr_sysevents_setWanState(WAN_IPV4_DOWN);
+    wanmgr_sysevents_setWanState(WAN_IPV6_DOWN);
 
     if( pInterface->PPP.Enable == FALSE )
     {
