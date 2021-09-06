@@ -1306,6 +1306,8 @@ static eWanState_t wan_transition_ipv4_down(WanMgr_IfaceSM_Controller_t* pWanIfa
 
     DML_WAN_IFACE* pInterface = pWanIfaceCtrl->pIfaceData;
 
+    WanManager_UpdateInterfaceStatus (pInterface, WANMGR_IFACE_CONNECTION_DOWN);
+
     if (wan_tearDownIPv4(pInterface) != RETURN_OK)
     {
         CcspTraceError(("%s %d - Failed to tear down IPv4 for %s \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
@@ -1411,6 +1413,8 @@ static eWanState_t wan_transition_ipv6_down(WanMgr_IfaceSM_Controller_t* pWanIfa
     }
 
     DML_WAN_IFACE* pInterface = pWanIfaceCtrl->pIfaceData;
+
+    WanManager_UpdateInterfaceStatus (pInterface, WANMGR_IFACE_CONNECTION_IPV6_DOWN);
 
     if (wan_tearDownIPv6(pInterface) != RETURN_OK)
     {
