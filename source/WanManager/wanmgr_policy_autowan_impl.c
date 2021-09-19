@@ -466,7 +466,7 @@ static INT StartWanClients(WanMgr_AutoWan_SMInfo_t *pSmInfo)
         eRouterMode = atoi(out_value);
     }
 
-    CcspTraceInfo(("%s %d - last known mode %d Current index %d\n", __FUNCTION__, __LINE__,lastKnownMode,pFixedInterface->uiIfaceIdx));
+    CcspTraceInfo(("%s %d - last known mode %d Current index %d If_name %s \n", __FUNCTION__, __LINE__,lastKnownMode,pFixedInterface->uiIfaceIdx,pFixedInterface->Wan.Name));
     switch (lastKnownMode)
     {
         case WAN_MODE_PRIMARY:
@@ -593,7 +593,14 @@ static WcFmobPolicyState_t Transition_StartAuto(WanMgr_AutoWan_SMInfo_t *pSmInfo
                         // Release lock before goes for wait for interface component ready
                         WanMgrDml_GetIfaceData_release(pWanActiveIfaceData);
                         if (ANSC_STATUS_SUCCESS == WaitForInterfaceComponentReady(path))
-                        {                            
+                        {    
+                            char *mode = "WAN_SECONDARY";
+                            if (pFixedInterface->Wan.Type == WAN_IFACE_TYPE_PRIMARY)
+                            {
+                                mode = "WAN_PRIMARY";
+                            }
+
+                             CcspTraceInfo(("%s %d - AUTOWAN Selected Interface %s Type:%s\n", __FUNCTION__, __LINE__,pFixedInterface->Wan.Name,mode));
                             ANSC_STATUS ret = WanMgr_RdkBus_SetRequestIfComponent(path,PARAM_NAME_REQUEST_PHY_STATUS,buf,ccsp_string);
                             if (ret == ANSC_STATUS_FAILURE)
                             {
@@ -634,7 +641,7 @@ static WcFmobPolicyState_t Transition_WanInterfacePhyUp(WanMgr_AutoWan_SMInfo_t 
         return STATE_WAN_SELECTING_INTERFACE;
     }
 
-    CcspTraceInfo(("%s %d - State changed to STATE_WAN_SCANNING_INTERFACE \n", __FUNCTION__, __LINE__));
+    CcspTraceInfo(("%s %d - State changed to STATE_WAN_SCANNING_INTERFACE If_Name %s \n", __FUNCTION__, __LINE__,pFixedInterface->Wan.Name));
     pFixedInterface->Wan.OperationalStatus = WAN_OPERSTATUS_UNKNOWN;
     pFixedInterface->IP.Ipv4Status = WAN_IFACE_IPV4_STATE_UNKNOWN;
     pFixedInterface->IP.Ipv6Status = WAN_IFACE_IPV6_STATE_UNKNOWN;
@@ -662,6 +669,7 @@ static WcFmobPolicyState_t Transition_WaitingForInterface(WanMgr_Iface_Data_t *p
 {
     WcFmobPolicyState_t retState = STATE_WAN_WAITING_FOR_INTERFACE;
     DML_WAN_IFACE* pFixedInterface = NULL;
+    char *mode = "WAN_SECONDARY";
 
         if (!pWanActiveIfaceData)
         return retState;
@@ -691,7 +699,13 @@ static WcFmobPolicyState_t Transition_WaitingForInterface(WanMgr_Iface_Data_t *p
             CcspTraceError(("%s WanMgr_RdkBus_SetRequestIfComponent failed for param %s%s\n",__FUNCTION__,pFixedInterface->Phy.Path,PARAM_NAME_REQUEST_PHY_STATUS));
         } 
     }
+    
+    if (pFixedInterface->Wan.Type == WAN_IFACE_TYPE_PRIMARY)
+    {
+        mode = "WAN_PRIMARY";
+    }
 
+    CcspTraceInfo(("%s %d - AUTOWAN Selected Interface %s type %s \n", __FUNCTION__, __LINE__,pFixedInterface->Wan.Name,mode));
     CcspTraceInfo(("%s %d - State changed to STATE_WAN_WAITING_FOR_INTERFACE \n", __FUNCTION__, __LINE__));
     return STATE_WAN_WAITING_FOR_INTERFACE;
 }
@@ -764,8 +778,7 @@ static WcFmobPolicyState_t Transition_WanInterfaceActive(WanMgr_AutoWan_SMInfo_t
         return retState;
     }
 
-
-    CcspTraceInfo(("%s %d - State changed to STATE_WAN_INTERFACE_ACTIVE \n", __FUNCTION__, __LINE__));
+    CcspTraceInfo(("%s %d - State changed to STATE_WAN_INTERFACE_ACTIVE if_name %s\n", __FUNCTION__, __LINE__,pFixedInterface->Wan.Name));
     CcspTraceInfo(("%s %d - LastKnownMode %d  Active index %d\n", __FUNCTION__, __LINE__,lastKnownMode,pWanController->activeInterfaceIdx));
     switch (lastKnownMode)
     {
@@ -1102,6 +1115,7 @@ static WcFmobPolicyState_t State_WanConfiguringInterface(WanMgr_AutoWan_SMInfo_t
         return STATE_WAN_WAITING_FOR_INTERFACE;
     }
 
+    CcspTraceInfo(("%s %d - AUTOWAN ifname %s \n", __FUNCTION__, __LINE__,pFixedInterface->Wan.Name));
     if (pFixedInterface->WanConfigEnabled == TRUE)
     {
         ret = WanMgr_RdkBus_SetRequestIfComponent(pFixedInterface->Phy.Path,PARAM_NAME_CONFIGURE_WAN,"true",ccsp_boolean);
@@ -1131,7 +1145,6 @@ static WcFmobPolicyState_t State_WanDeConfiguringInterface(WanMgr_AutoWan_SMInfo
     WanMgr_Policy_Controller_t    *pWanController = NULL;
     DML_WAN_IFACE* pFixedInterface = NULL;
     ANSC_STATUS ret = ANSC_STATUS_SUCCESS;
-    char out_value[64];
 
     if (!pSmInfo)
         return STATE_WAN_SELECTING_INTERFACE;
@@ -1150,6 +1163,7 @@ static WcFmobPolicyState_t State_WanDeConfiguringInterface(WanMgr_AutoWan_SMInfo
 
     //Update ActiveLink
     pFixedInterface->Wan.ActiveLink = FALSE;
+    CcspTraceInfo(("%s %d - AUTOWAN ifname %s \n", __FUNCTION__, __LINE__,pFixedInterface->Wan.Name));
 
     if (pFixedInterface->CustomConfigEnable == TRUE)
     {
@@ -1167,14 +1181,6 @@ static WcFmobPolicyState_t State_WanDeConfiguringInterface(WanMgr_AutoWan_SMInfo
         {
             CcspTraceError(("%s WanMgr_RdkBus_SetRequestIfComponent failed for param %s%s\n",__FUNCTION__,pFixedInterface->Phy.Path,PARAM_NAME_CONFIGURE_WAN));
         }
-    }
-    memset(out_value,0,sizeof(out_value));
-    syscfg_get(NULL, "bridge_mode", out_value, sizeof(out_value));
-    // Secondary wan not supported in bridge mode.
-    // Alternate wan selection not supported in bridge mode
-    if (atoi(out_value) != 0)
-    {
-        retState = STATE_WAN_INTERFACE_DOWN;
     }
     CcspTraceInfo(("%s %d - going to state %d \n", __FUNCTION__, __LINE__,retState));
     return retState;
@@ -1270,7 +1276,7 @@ static WcFmobPolicyState_t State_WanInterfaceActive(WanMgr_AutoWan_SMInfo_t *pSm
         // wan stop
         wanmgr_setwanstop();
         retState = STATE_WAN_INTERFACE_DOWN;
-        CcspTraceInfo(("%s %d - RetState %d GOING DOWN  \n", __FUNCTION__, __LINE__,retState));
+        CcspTraceInfo(("%s %d - RetState %d GOING DOWN if_name %s \n", __FUNCTION__, __LINE__,retState,pFixedInterface->Wan.Name));
     }
 
     return retState;
@@ -1333,6 +1339,7 @@ static WcFmobPolicyState_t State_WanInterfaceDown(WanMgr_AutoWan_SMInfo_t *pSmIn
         wanmgr_setwanstart();
         wanmgr_sshd_restart();
         retState = STATE_WAN_INTERFACE_UP;
+        CcspTraceInfo(("%s %d - AUTOWAN ifname %s \n", __FUNCTION__, __LINE__,pFixedInterface->Wan.Name));
         CcspTraceInfo(("%s %d - RetState %d WAN INTERFACE UP PhyStatus %d  \n", __FUNCTION__, __LINE__,retState,pFixedInterface->Phy.Status));
     }
     return retState;
@@ -1550,7 +1557,6 @@ ANSC_STATUS WanMgr_Policy_AutoWan(void)
 {
     int wanMode = -1;
     ANSC_STATUS retStatus = ANSC_STATUS_SUCCESS;
-    char out_value[64];
 
     CcspTraceInfo(("%s %d \n", __FUNCTION__, __LINE__));
     IntializeAutoWanConfig();
@@ -1558,13 +1564,6 @@ ANSC_STATUS WanMgr_Policy_AutoWan(void)
     wanMode = GetSelectedWanMode();
     CcspTraceInfo(("%s %d - SelWanMode %d  \n", __FUNCTION__, __LINE__,wanMode));
 
-    memset(out_value,0,sizeof(out_value));
-    syscfg_get(NULL, "bridge_mode", out_value, sizeof(out_value));
-    // Secondary wan not supported in bridge mode.
-    if (atoi(out_value) != 0)
-    {
-        wanMode = WAN_MODE_PRIMARY;
-    }
     switch (wanMode)
     {
         case WAN_MODE_PRIMARY:

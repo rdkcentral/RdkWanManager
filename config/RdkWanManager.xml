@@ -54,7 +54,11 @@
                     <name>Policy</name>
                     <type>string: FIXED_MODE_ON_BOOTUP(1),FIXED_MODE(2),PRIMARY_PRIORITY_ON_BOOTUP(3),PRIMARY_PRIORITY(4),MULTIWAN_MODE(5),AUTOWAN_MODE(6)</type>
                     <syntax>uint32/mapped</syntax>
+<?ifdef WANMGR_POLICY_TR181_READONLY?>
+                        <writable>false</writable>
+<?else?>
                     <writable>true</writable>
+<?endif?>
                 </parameter>
                 <parameter>
                     <name>ResetActiveInterface</name>

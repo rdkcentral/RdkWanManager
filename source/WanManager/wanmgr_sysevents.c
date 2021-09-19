@@ -540,6 +540,13 @@ static void *WanManagerSyseventHandler(void *args)
                     do_toggle_v6_status();
                 }
             }
+/*  RDKB-38572
+ *  For comcast platforms, lan start is handled in Gwprovapp.
+ *  also ipv4-up event is updated in lanhandler service script.
+ *  Hence below part of code is not needed for
+ *  comcast platforms where wan manager is enabled.
+ */
+#if !defined (_XB6_PRODUCT_REQ_)
             else if (strcmp(name, SYSEVENT_PNM_STATUS) == 0)
             {
                 if (strcmp(val, STATUS_UP_STRING)==0)
@@ -605,6 +612,7 @@ static void *WanManagerSyseventHandler(void *args)
                     CcspTraceError(("%s %d failed set command: %s\n", __FUNCTION__, __LINE__, cmd_str));
                 }
             }
+#endif
             else if (strcmp(name, SYSEVENT_RADVD_RESTART) == 0)
             {
                 sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_SERVICE_ROUTED_STATUS, "", 0);

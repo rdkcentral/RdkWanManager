@@ -103,7 +103,7 @@ ANSC_STATUS WanController_Start_StateMachine(DML_WAN_POLICY swan_policy)
             break;
 
         case AUTOWAN_MODE: 
-#if defined (_XB8_PRODUCT_REQ_)
+#if defined (_XB6_PRODUCT_REQ_)
             retStatus = WanMgr_Policy_AutoWan();
 #else
             retStatus = WanMgr_Policy_AutoWanPolicy();

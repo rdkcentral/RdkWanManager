@@ -140,8 +140,8 @@ ANSC_STATUS WaitForInterfaceComponentReady(char *pPhyPath)
     char status[32] = {'\0'};
     int count = 0;
     int ret = -1;
-    char  pComponentName[BUFLEN_64] = {0};
-    char  pComponentPath[BUFLEN_64] = {0};
+    char  pCompName[BUFLEN_64] = {0};
+    char  pCompPath[BUFLEN_64] = {0};
 
     if (pPhyPath == NULL)
     {
@@ -150,19 +150,19 @@ ANSC_STATUS WaitForInterfaceComponentReady(char *pPhyPath)
     }
         
     if(strstr(pPhyPath, "CableModem") != NULL) { // CM wan interface
-        strncpy(pComponentName, CMAGENT_COMP_NAME_WITHOUTSUBSYSTEM, sizeof(pComponentName));
-        strncpy(pComponentPath, CMAGENT_COMPONENT_PATH, sizeof(pComponentPath));
+        strncpy(pCompName, CMAGENT_COMP_NAME_WITHOUTSUBSYSTEM, sizeof(pCompName));
+        strncpy(pCompPath, CMAGENT_COMPONENT_PATH, sizeof(pCompPath));
     }
     else if(strstr(pPhyPath, "Ethernet") != NULL) { // ethernet wan interface
-        strncpy(pComponentName, ETH_COMP_NAME_WITHOUTSUBSYSTEM, sizeof(pComponentName));
-        strncpy(pComponentPath, ETH_COMPONENT_PATH, sizeof(pComponentPath));
+        strncpy(pCompName, ETH_COMP_NAME_WITHOUTSUBSYSTEM, sizeof(pCompName));
+        strncpy(pCompPath, ETH_COMPONENT_PATH, sizeof(pCompPath));
     }
     while(1)
     {
-        checkComponentHealthStatus(pComponentName, pComponentPath, status,&ret);
+        checkComponentHealthStatus(pCompName, pCompPath, status,&ret);
         if(ret == CCSP_SUCCESS && (strcmp(status, "Green") == 0))
         {
-            CcspTraceInfo(("%s component health is %s, continue\n", pComponentName, status));
+            CcspTraceInfo(("%s component health is %s, continue\n", pCompName, status));
             return ANSC_STATUS_SUCCESS;
         }
         else
@@ -170,7 +170,7 @@ ANSC_STATUS WaitForInterfaceComponentReady(char *pPhyPath)
             count++;
             if(count%5== 0)
             {
-                CcspTraceError(("%s component Health, ret:%d, waiting\n", pComponentName, ret));
+                CcspTraceError(("%s component Health, ret:%d, waiting\n", pCompName, ret));
             }
             sleep(5);
         }
@@ -181,8 +181,8 @@ ANSC_STATUS WaitForInterfaceComponentReady(char *pPhyPath)
 ANSC_STATUS WanMgr_RdkBus_SetRequestIfComponent(char *pPhyPath, char *pInputparamName, char *pInputParamValue, enum dataType_e type)
 {
     char param_name[BUFLEN_256] = {0};
-    char  pComponentName[BUFLEN_64] = {0};
-    char  pComponentPath[BUFLEN_64] = {0};
+    char  pCompName[BUFLEN_64] = {0};
+    char  pCompPath[BUFLEN_64] = {0};
     char *faultParam = NULL;
     int ret = 0;
 
@@ -198,19 +198,19 @@ ANSC_STATUS WanMgr_RdkBus_SetRequestIfComponent(char *pPhyPath, char *pInputpara
     strncat(param_name,pInputparamName,sizeof(param_name));
 
     if(strstr(param_name, "CableModem") != NULL) { // CM wan interface
-        strncpy(pComponentName, CMAGENT_COMPONENT_NAME, sizeof(pComponentName));
-        strncpy(pComponentPath, CMAGENT_COMPONENT_PATH, sizeof(pComponentPath));
+        strncpy(pCompName, CMAGENT_COMPONENT_NAME, sizeof(pCompName));
+        strncpy(pCompPath, CMAGENT_COMPONENT_PATH, sizeof(pCompPath));
     }
     else if(strstr(param_name, "Ethernet") != NULL) { // ethernet wan interface
-        strncpy(pComponentName, ETH_COMPONENT_NAME, sizeof(pComponentName));
-        strncpy(pComponentPath, ETH_COMPONENT_PATH, sizeof(pComponentPath));
+        strncpy(pCompName, ETH_COMPONENT_NAME, sizeof(pCompName));
+        strncpy(pCompPath, ETH_COMPONENT_PATH, sizeof(pCompPath));
     }
      CcspTraceInfo(("%s: Param Name %s value %s\n", __FUNCTION__,param_name,pInputParamValue));
     param_info[0].parameterName = param_name;
     param_info[0].parameterValue = pInputParamValue;
     param_info[0].type = type;
 
-    ret = CcspBaseIf_setParameterValues(bus_handle, pComponentName, pComponentPath,
+    ret = CcspBaseIf_setParameterValues(bus_handle, pCompName, pCompPath,
                                         0, 0x0,   /* session id and write id */
                                         param_info, 1, TRUE,   /* Commit  */
                                         &faultParam);
@@ -252,8 +252,8 @@ ANSC_STATUS WanMgr_RdkBus_updateInterfaceUpstreamFlag(char *phyPath, BOOL flag)
 {
     char param_name[BUFLEN_256] = {0};
     char param_value[BUFLEN_256] = {0};
-    char  pComponentName[BUFLEN_64] = {0};
-    char  pComponentPath[BUFLEN_64] = {0};
+    char  pCompName[BUFLEN_64] = {0};
+    char  pCompPath[BUFLEN_64] = {0};
     char *faultParam = NULL;
     int ret = 0;
     int retry_count = UPSTREAM_SET_MAX_RETRY_COUNT;
@@ -270,13 +270,13 @@ ANSC_STATUS WanMgr_RdkBus_updateInterfaceUpstreamFlag(char *phyPath, BOOL flag)
 
     if(strstr(param_name, "DSL") != NULL) { // dsl wan interface
         strncat(param_name, DSL_UPSTREAM_NAME, sizeof(param_name) - strlen(param_name));
-        strncpy(pComponentName, DSL_COMPONENT_NAME, sizeof(pComponentName));
-        strncpy(pComponentPath, DSL_COMPONENT_PATH, sizeof(pComponentPath));
+        strncpy(pCompName, DSL_COMPONENT_NAME, sizeof(pCompName));
+        strncpy(pCompPath, DSL_COMPONENT_PATH, sizeof(pCompPath));
     }
     else if(strstr(param_name, "Ethernet") != NULL) { // ethernet wan interface
         strncat(param_name, ETH_UPSTREAM_NAME, sizeof(param_name) - strlen(param_name));
-        strncpy(pComponentName, ETH_COMPONENT_NAME, sizeof(pComponentName));
-        strncpy(pComponentPath, ETH_COMPONENT_PATH, sizeof(pComponentPath));
+        strncpy(pCompName, ETH_COMPONENT_NAME, sizeof(pCompName));
+        strncpy(pCompPath, ETH_COMPONENT_PATH, sizeof(pCompPath));
     }
     if(flag)
         strncpy(param_value, "true", sizeof(param_value));
@@ -289,7 +289,7 @@ ANSC_STATUS WanMgr_RdkBus_updateInterfaceUpstreamFlag(char *phyPath, BOOL flag)
 
     while (retry_count--)
     {
-        ret = CcspBaseIf_setParameterValues(bus_handle, pComponentName, pComponentPath,
+        ret = CcspBaseIf_setParameterValues(bus_handle, pCompName, pCompPath,
                                         0, 0x0,   /* session id and write id */
                                         upstream_param, 1, TRUE,   /* Commit  */
                                         &faultParam);
