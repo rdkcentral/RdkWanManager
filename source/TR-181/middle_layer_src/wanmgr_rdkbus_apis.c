@@ -1604,3 +1604,27 @@ ANSC_STATUS DmlSetWanActiveLinkInPSMDB( ULONG instancenum, DML_WAN_IFACE* p_Inte
     return ANSC_STATUS_SUCCESS;
 }
 
+ANSC_STATUS WanController_ClearWanConfigurationsInPSM()
+{
+    char param_name[256] = {0};
+    char param_value[256] = {0};
+    UINT        uiTotalIfaces;
+    ANSC_STATUS result;
+
+    result = DmlGetTotalNoOfWanInterfaces(&uiTotalIfaces);
+    if(result != ANSC_STATUS_SUCCESS) 
+    {
+        return ANSC_STATUS_FAILURE;
+    }
+
+    memset(param_value, 0, sizeof(param_value));
+    memset(param_name, 0, sizeof(param_name));
+
+    for(int instancenum = 1; instancenum <=uiTotalIfaces; instancenum++)
+    {
+        _ansc_sprintf(param_value, PSM_ENABLE_STRING_FALSE);
+        _ansc_sprintf(param_name, PSM_WANMANAGER_IF_ACTIVELINK, (instancenum));
+        WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
+    }
+    return ANSC_STATUS_SUCCESS;
+}
