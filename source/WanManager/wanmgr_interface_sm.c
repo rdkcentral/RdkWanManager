@@ -156,22 +156,10 @@ static int wan_tearDownMapt(const char *ifName);
 static int checkIpv6AddressAssignedToBridge();
 
 /*************************************************************************************
- * @brief Toggles IPv6 enable/disable status on wan interface
- * @return no return value
- *************************************************************************************/
-static void do_toggle_v6_status();
-
-/*************************************************************************************
  * @brief Check IPv6 address is ready to use or not
  * @return RETURN_OK on success else RETURN_ERR
  *************************************************************************************/
 static int checkIpv6LanAddressIsReadyToUse();
-
-/*************************************************************************************
- * @brief Check CPE received a valid IPv6 gw address
- * @return RETURN_OK on success else RETURN_ERR
- ************************************************************************************/
-static int validate_v6_gateway_address(void);
 
 /************************************************************************************
  * @brief Set v6 prefixe required for lan configuration
@@ -444,50 +432,6 @@ static int wan_updateDNS(DML_WAN_IFACE* pInterface, BOOL addIPv4, BOOL addIPv6)
     return ret;
 }
 
-static int validate_v6_gateway_address(void)
-{
-    char command[BUFLEN_64] = {0};
-    char line[BUFLEN_128] = {0};
-    char defaultGateway[BUFLEN_64] = {0};
-    int defaultGatewayLen = 64;
-    FILE *fp;
-    int ret = RETURN_OK;
-
-    snprintf(command, sizeof(command), "ip -6 route show default | grep default | awk '{print $3}'");
-
-    fp = popen(command, "r");
-
-    if (fp)
-    {
-        if (fgets(line, sizeof(line), fp) != NULL)
-        {
-            char *token = strtok(line, "\n"); // get string up until newline character
-            if (token)
-            {
-                strncpy(defaultGateway, token, defaultGatewayLen);
-                CcspTraceInfo(("IPv6 Default Gateway Address  = %s \n", defaultGateway));
-            }
-            else
-            {
-                CcspTraceError(("Could not parse IPv6 Gateway Address \n"));
-                ret = RETURN_ERR;
-            }
-        }
-        else
-        {
-            ret = RETURN_ERR;
-        }
-        pclose(fp);
-    }
-    else
-    {
-        CcspTraceError(("Failed to get the default Gateway Address \n"));
-        ret = RETURN_ERR;
-    }
-
-    return ret;
-}
-
 static int checkIpv6LanAddressIsReadyToUse()
 {
     char buffer[BUFLEN_256] = {0};
@@ -557,12 +501,6 @@ static int checkIpv6LanAddressIsReadyToUse()
                 }
             }
         }
-        /*TODO: Back to back toggling causes timing issues in ADA boxes during 
-        neighbor discovery is inprogress. This needs to be improved.
-        if (route_flag == 0)
-        {
-            do_toggle_v6_status();
-        }*/
 
         if(dad_flag == 0 || route_flag == 0) {
             sleep(1);
@@ -579,23 +517,6 @@ static int checkIpv6LanAddressIsReadyToUse()
     return 0;
 }
 
-/* SKYH4-942: Making global v6 address assignement for erouter0 resulted in creating multiple route
- * entries in v6 route table. This caused issue in ipv6 traffic and connected clients are not
- * getting IPv6 services. So we are not assigning global IPv6 address  for erouter0 but kept
- * the toggling part of ipv6 enable/disable status here. */
-static void do_toggle_v6_status()
-{
-    char cmdLine[BUFLEN_128] = {0};
-    snprintf(cmdLine, sizeof(cmdLine), "echo 1 > /proc/sys/net/ipv6/conf/erouter0/disable_ipv6");
-    system(cmdLine);
-    /* This is a workaround delay to avoid hung behaviour in bcm kernal 
-    while receiving back to back enable/disable requests */
-    sleep(1);
-    snprintf(cmdLine, sizeof(cmdLine), "echo 0 > /proc/sys/net/ipv6/conf/erouter0/disable_ipv6");
-    system(cmdLine);
-    return;
-}
-
 static int checkIpv6AddressAssignedToBridge()
 {
     char lanPrefix[BUFLEN_128] = {0};
@@ -607,10 +528,7 @@ static int checkIpv6AddressAssignedToBridge()
     {
         if (checkIpv6LanAddressIsReadyToUse() == 0)
         {
-            if (validate_v6_gateway_address() == RETURN_OK)
-            {
-                ret = RETURN_OK;
-            }
+            ret = RETURN_OK;
         }
     }
 
@@ -1637,10 +1555,28 @@ static eWanState_t wan_state_ipv4_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
         pInterface->Wan.ActiveLink == FALSE ||
         pInterface->Phy.Status ==  WAN_IFACE_PHY_STATUS_DOWN ||
         pInterface->Wan.LinkStatus ==  WAN_IFACE_LINKSTATUS_DOWN ||
-        pInterface->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_DOWN ||
-        pInterface->IP.Ipv4Changed == TRUE)
+        pInterface->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_DOWN)
     {
         return wan_transition_ipv4_down(pWanIfaceCtrl);
+    }
+    else if (pInterface->IP.Ipv4Changed == TRUE)
+    {
+        if (wan_tearDownIPv4(pInterface) == RETURN_OK)
+        {
+            if (wan_setUpIPv4(pInterface) == RETURN_OK)
+            {
+                pInterface->IP.Ipv4Changed = FALSE;
+		CcspTraceInfo(("%s %d - Successfully updated IPv4 configure Changes for %s Interface \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
+            }
+            else
+            {
+                CcspTraceError(("%s %d - Failed to configure IPv4 for %s Interface \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
+            }
+        }
+        else
+        {
+            CcspTraceError(("%s %d - Failed to tear down IPv4 for %s Interface \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
+        }
     }
     else if (pInterface->Wan.Refresh == TRUE)
     {
@@ -1713,10 +1649,35 @@ static eWanState_t wan_state_ipv6_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
         pInterface->Wan.ActiveLink == FALSE ||
         pInterface->Phy.Status ==  WAN_IFACE_PHY_STATUS_DOWN ||
         pInterface->Wan.LinkStatus ==  WAN_IFACE_LINKSTATUS_DOWN ||
-        pInterface->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_DOWN ||
-        pInterface->IP.Ipv6Changed == TRUE)
+        pInterface->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_DOWN)
     {
         return wan_transition_ipv6_down(pWanIfaceCtrl);
+    }
+    else if (pInterface->IP.Ipv6Changed == TRUE)
+    {
+        if (wan_tearDownIPv6(pInterface) == RETURN_OK)
+        {
+            if (setUpLanPrefixIPv6(pInterface) == RETURN_OK)
+            {
+                if (wan_setUpIPv6(pInterface) == RETURN_OK)
+                {
+                    pInterface->IP.Ipv6Changed = FALSE;
+		    CcspTraceInfo(("%s %d - Successfully updated IPv6 configure Changes for %s Interface \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
+                }
+                else
+                {
+                    CcspTraceError(("%s %d - Failed to configure IPv6 for %s Interface \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
+                }
+            }
+            else
+            {
+                CcspTraceError((" %s %d - Failed to configure IPv6 prefix for %s Interface \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
+            }
+        }
+        else
+        {
+            CcspTraceError(("%s %d - Failed to tear down IPv6 for %s Interface \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
+        }
     }
     else if (pInterface->Wan.Refresh == TRUE)
     {
@@ -1800,17 +1761,60 @@ static eWanState_t wan_state_dual_stack_active(WanMgr_IfaceSM_Controller_t* pWan
     {
         return wan_state_refreshing_wan(pWanIfaceCtrl);
     }
-    else if (pInterface->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_DOWN ||
-               pInterface->IP.Ipv4Changed == TRUE)
+    else if (pInterface->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_DOWN)
     {
         /* TODO: Add IPoE Health Check failed for IPv4 here */
         return wan_transition_ipv4_down(pWanIfaceCtrl);
     }
-    else if (pInterface->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_DOWN ||
-               pInterface->IP.Ipv6Changed == TRUE )
+    else if (pInterface->IP.Ipv4Changed == TRUE)
+    {
+        if (wan_tearDownIPv4(pInterface) == RETURN_OK)
+        {
+            if (wan_setUpIPv4(pInterface) == RETURN_OK)
+            {
+                pInterface->IP.Ipv4Changed = FALSE;
+		CcspTraceInfo(("%s %d - Successfully updated IPv4 configure Changes for %s Interface \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
+            }
+	    else
+	    {
+                CcspTraceError(("%s %d - Failed to configure IPv4 for %s Interface \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
+	    }
+        }
+	else
+	{
+            CcspTraceError(("%s %d - Failed to tear down IPv4 for %s Interface \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
+	}
+    }
+    else if (pInterface->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_DOWN)
     {
         /* TODO: Add IPoE Health Check failed for IPv6 here */
         return wan_transition_ipv6_down(pWanIfaceCtrl);
+    }
+    else if (pInterface->IP.Ipv6Changed == TRUE)
+    {
+        if (wan_tearDownIPv6(pInterface) == RETURN_OK)
+        {
+            if (setUpLanPrefixIPv6(pInterface) == RETURN_OK)
+            {
+                if (wan_setUpIPv6(pInterface) == RETURN_OK)
+                {
+                    pInterface->IP.Ipv6Changed = FALSE;
+		    CcspTraceInfo(("%s %d - Successfully updated IPv6 configure Changes for %s Interface \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
+                }
+                else
+                {
+                    CcspTraceError(("%s %d - Failed to configure IPv6 for %s Interface \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
+                }
+            }
+            else
+            {
+                CcspTraceError((" %s %d - Failed to configure IPv6 prefix for %s Interface \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
+            }
+        }
+        else
+        {
+            CcspTraceError(("%s %d - Failed to tear down IPv6 for %s Interface \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
+        }
     }
     else if (pInterface->Wan.EnableDSLite == TRUE &&
              pInterface->Wan.ActiveLink == TRUE &&
