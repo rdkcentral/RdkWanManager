@@ -262,7 +262,7 @@ static bool WanMgr_CheckAllIfacesDown(void)
 
                 if ((pWanIfaceData->Wan.Status != WAN_IFACE_STATUS_DISABLED) &&
                     (pWanIfaceData->Wan.Status != WAN_IFACE_STATUS_INVALID) &&
-                    (pWanIfaceData->Wan.ActiveLink == FALSE))
+                    (pWanIfaceData->SelectionStatus == WAN_IFACE_NOT_SELECTED))
                 {
                     bAllDown = FALSE;
                 }
@@ -387,7 +387,7 @@ static WcAwPolicyState_t Transition_InterfaceFound(WanMgr_Policy_Controller_t* p
     if (pWanController->pWanActiveIfaceData)
     {
         DML_WAN_IFACE* pWanIfaceData = &(pWanController->pWanActiveIfaceData->data);
-        pWanIfaceData->Wan.ActiveLink = TRUE;
+        pWanIfaceData->SelectionStatus = WAN_IFACE_ACTIVE;
         WanMgr_IfaceSM_Init(&wanIfCtrl, pWanIfaceData->uiIfaceIdx);
 
         /* Starts an instance of the WAN Interface State Machine on
@@ -418,9 +418,10 @@ static WcAwPolicyState_t Transition_ScaningNextInterface(WanMgr_Policy_Controlle
         DML_WAN_IFACE* pWanIfaceData = &(pWanController->pWanActiveIfaceData->data);
         //Set ActiveLink to TRUE
         if ((pWanIfaceData->Wan.Enable == TRUE) &&
-            (pWanIfaceData->Wan.ActiveLink == TRUE))
+            (pWanIfaceData->SelectionStatus == WAN_IFACE_ACTIVE))
         {
             pWanIfaceData->Wan.ActiveLink = FALSE;
+            pWanIfaceData->SelectionStatus = WAN_IFACE_NOT_SELECTED;
             CcspTraceInfo(("%s-%d: State changed to STATE_AUTO_WAN_INTERFACE_SM_WAIT \n", __FUNCTION__, __LINE__));
             return STATE_AUTO_WAN_INTERFACE_SM_WAIT;
         }
@@ -485,11 +486,12 @@ static WcAwPolicyState_t Transition_ReconfiguringPlatform(WanMgr_Policy_Controll
         DML_WAN_IFACE* pWanIfaceData = &(pWanController->pWanActiveIfaceData->data);;
         if(pWanIfaceData->Wan.Status == WAN_IFACE_STATUS_DISABLED)
         {
-            pWanIfaceData->Wan.ActiveLink = TRUE;
+            pWanIfaceData->SelectionStatus = WAN_IFACE_ACTIVE;
         }
         else
         {
             pWanIfaceData->Wan.ActiveLink = FALSE;
+            pWanIfaceData->SelectionStatus = WAN_IFACE_NOT_SELECTED;
         }
     }
 
@@ -543,7 +545,7 @@ static WcAwPolicyState_t Transition_WanInterfaceUp(WanMgr_Policy_Controller_t* p
     if (pWanController->pWanActiveIfaceData)
     {
         DML_WAN_IFACE* pWanIfaceData = &(pWanController->pWanActiveIfaceData->data);
-        pWanIfaceData->Wan.ActiveLink = TRUE;
+        pWanIfaceData->SelectionStatus = WAN_IFACE_ACTIVE;
         WanMgr_IfaceSM_Init(&wanIfCtrl, pWanIfaceData->uiIfaceIdx);
 
         /* Starts an instance of the WAN Interface State Machine on
@@ -568,6 +570,7 @@ static WcAwPolicyState_t Transition_ResetActiveInterface(WanMgr_Policy_Controlle
     {
         DML_WAN_IFACE* pWanIfaceData = &(pWanController->pWanActiveIfaceData->data);
         pWanIfaceData->Wan.ActiveLink = FALSE;
+        pWanIfaceData->SelectionStatus = WAN_IFACE_NOT_SELECTED;
         if (DmlSetWanActiveLinkInPSMDB(pWanController->activeInterfaceIdx, pWanIfaceData) != ANSC_STATUS_SUCCESS)
         {
             CcspTraceError(("%s-%d: Failed to set ActiveLink in PSM, SelectedInterface %d \n",
@@ -720,12 +723,13 @@ static WcAwPolicyState_t State_ScaningInterface(WanMgr_Policy_Controller_t* pWan
            (pActiveInterface->Phy.Status == WAN_IFACE_PHY_STATUS_DOWN))
        {
            pActiveInterface->Wan.ActiveLink = FALSE;
+           pActiveInterface->SelectionStatus = WAN_IFACE_NOT_SELECTED;
            return Transition_ScaningNextInterface(pWanController);
        }
 
        //To check If any Instance of Interface State Machine Running.
        if ((pActiveInterface->Wan.Enable == TRUE) &&
-           (pActiveInterface->Wan.ActiveLink == FALSE))
+           (pActiveInterface->SelectionStatus == WAN_IFACE_NOT_SELECTED))
        {
            memset(&(pWanController->SelectionTimeOutStart), 0, sizeof(struct timespec));
            return Transition_InterfaceFound(pWanController);
@@ -735,6 +739,7 @@ static WcAwPolicyState_t State_ScaningInterface(WanMgr_Policy_Controller_t* pWan
        if ((pActiveInterface->Wan.Enable == TRUE) &&
            (pActiveInterface->Wan.Status == WAN_IFACE_STATUS_UP))
        {
+           pActiveInterface->Wan.ActiveLink = TRUE;
            memset(&(pWanController->SelectionTimeOutStart), 0, sizeof(struct timespec));
 
            //if interface is not configured for WAN, do it. this check is done by DM Device.Ethernet.X_RDK_Interface.{i}.UpStream
@@ -783,6 +788,7 @@ static WcAwPolicyState_t State_Rebooting(WanMgr_Policy_Controller_t* pWanControl
        {
            DML_WAN_IFACE* pWanIfaceData = &(pWanController->pWanActiveIfaceData->data);;
            pWanIfaceData->Wan.ActiveLink = FALSE;
+           pWanIfaceData->SelectionStatus = WAN_IFACE_NOT_SELECTED;
            if (DmlSetWanActiveLinkInPSMDB(pWanController->activeInterfaceIdx, pWanIfaceData) != ANSC_STATUS_SUCCESS)
            {
                CcspTraceError(("%s-%d: Failed to set ActiveLink in PSM, SelectedInterface %d \n",

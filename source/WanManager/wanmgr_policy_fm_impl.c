@@ -119,6 +119,7 @@ static WcFmPolicyState_t Transition_WanInterfaceFixed(WanMgr_Policy_Controller_t
 
     //ActiveLink
     pFixedInterface->Wan.ActiveLink = TRUE;
+    pFixedInterface->SelectionStatus = WAN_IFACE_ACTIVE;
 
     return STATE_FIXED_WAN_INTERFACE_DOWN;
 }
@@ -172,7 +173,9 @@ static WcFmPolicyState_t Transition_FixedInterfaceChanged(WanMgr_Policy_Controll
     pFixedInterface->Wan.Status = WAN_IFACE_STATUS_DISABLED;
 
     //ActiveLink
-    pFixedInterface->Wan.ActiveLink = TRUE;
+    pFixedInterface->Wan.ActiveLink = FALSE;
+    pFixedInterface->SelectionStatus = WAN_IFACE_NOT_SELECTED;
+
 
     return STATE_FIXING_WAN_INTERFACE;
 }

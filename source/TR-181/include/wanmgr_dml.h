@@ -29,6 +29,13 @@
 #define PAM_IF_PARAM_NAME           "Device.IP.Interface.%d.Name"
 #define DML_WAN_IFACE_PRIORITY_MAX  255
 
+typedef enum _WANMGR_IFACE_SELECTION_STATUS
+{
+    WAN_IFACE_NOT_SELECTED = 1,
+    WAN_IFACE_SELECTED,
+    WAN_IFACE_ACTIVE
+} WANMGR_IFACE_SELECTION;
+
 typedef enum _DML_WAN_POLICY
 {
    FIXED_MODE_ON_BOOTUP = 1,
@@ -318,6 +325,7 @@ typedef struct _DML_WAN_INTERFACE
     UINT                        uiInstanceNumber;
     CHAR                        Name[BUFLEN_64];
     CHAR                        DisplayName[BUFLEN_64];
+    WANMGR_IFACE_SELECTION      SelectionStatus;
     BOOL                        MonitorOperStatus;
     BOOL                        WanConfigEnabled;
     BOOL                        CustomConfigEnable;

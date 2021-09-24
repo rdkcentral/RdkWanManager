@@ -1395,7 +1395,7 @@ static eWanState_t wan_transition_exit(WanMgr_IfaceSM_Controller_t* pWanIfaceCtr
 
     pInterface->Wan.Status = WAN_IFACE_STATUS_DISABLED;
     pInterface->Wan.Refresh = FALSE;
-    pInterface->Wan.ActiveLink = FALSE;
+    pInterface->SelectionStatus = WAN_IFACE_NOT_SELECTED;
 
     wanmgr_sysevents_setWanState(WAN_LINK_DOWN_STATE);
 
@@ -1417,7 +1417,7 @@ static eWanState_t wan_state_configuring_wan(WanMgr_IfaceSM_Controller_t* pWanIf
     DML_WAN_IFACE* pInterface = pWanIfaceCtrl->pIfaceData;
 
     if (pWanIfaceCtrl->WanEnable == FALSE ||
-        pInterface->Wan.ActiveLink == FALSE ||
+        pInterface->SelectionStatus == WAN_IFACE_NOT_SELECTED ||
         pInterface->Phy.Status ==  WAN_IFACE_PHY_STATUS_DOWN ||
         pInterface->Wan.LinkStatus ==  WAN_IFACE_LINKSTATUS_DOWN )
     {
@@ -1442,7 +1442,7 @@ static eWanState_t wan_state_validating_wan(WanMgr_IfaceSM_Controller_t* pWanIfa
     DML_WAN_IFACE* pInterface = pWanIfaceCtrl->pIfaceData;
 
     if (pWanIfaceCtrl->WanEnable == FALSE ||
-        pInterface->Wan.ActiveLink == FALSE ||
+        pInterface->SelectionStatus == WAN_IFACE_NOT_SELECTED ||
         pInterface->Phy.Status ==  WAN_IFACE_PHY_STATUS_DOWN ||
         pInterface->Wan.LinkStatus ==  WAN_IFACE_LINKSTATUS_DOWN )
     {
@@ -1471,7 +1471,7 @@ static eWanState_t wan_state_obtaining_ip_addresses(WanMgr_IfaceSM_Controller_t*
     DML_WAN_IFACE* pInterface = pWanIfaceCtrl->pIfaceData;
 
     if (pWanIfaceCtrl->WanEnable == FALSE ||
-        pInterface->Wan.ActiveLink == FALSE ||
+        pInterface->SelectionStatus == WAN_IFACE_NOT_SELECTED ||
         pInterface->Phy.Status ==  WAN_IFACE_PHY_STATUS_DOWN ||
         pInterface->Wan.LinkStatus ==  WAN_IFACE_LINKSTATUS_DOWN )
     {
@@ -1552,7 +1552,7 @@ static eWanState_t wan_state_ipv4_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
 #endif // FEATURE_IPOE_HEALTH_CHECK
 
     if (pWanIfaceCtrl->WanEnable == FALSE ||
-        pInterface->Wan.ActiveLink == FALSE ||
+        pInterface->SelectionStatus == WAN_IFACE_NOT_SELECTED ||
         pInterface->Phy.Status ==  WAN_IFACE_PHY_STATUS_DOWN ||
         pInterface->Wan.LinkStatus ==  WAN_IFACE_LINKSTATUS_DOWN ||
         pInterface->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_DOWN)
@@ -1646,7 +1646,7 @@ static eWanState_t wan_state_ipv6_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
 #endif 
 
     if (pWanIfaceCtrl->WanEnable == FALSE ||
-        pInterface->Wan.ActiveLink == FALSE ||
+        pInterface->SelectionStatus == WAN_IFACE_NOT_SELECTED ||
         pInterface->Phy.Status ==  WAN_IFACE_PHY_STATUS_DOWN ||
         pInterface->Wan.LinkStatus ==  WAN_IFACE_LINKSTATUS_DOWN ||
         pInterface->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_DOWN)
@@ -1751,7 +1751,7 @@ static eWanState_t wan_state_dual_stack_active(WanMgr_IfaceSM_Controller_t* pWan
 #endif
 
     if (pWanIfaceCtrl->WanEnable == FALSE ||
-        pInterface->Wan.ActiveLink == FALSE ||
+        pInterface->SelectionStatus == WAN_IFACE_NOT_SELECTED ||
         pInterface->Phy.Status ==  WAN_IFACE_PHY_STATUS_DOWN ||
         pInterface->Wan.LinkStatus ==  WAN_IFACE_LINKSTATUS_DOWN)
     {
@@ -1841,7 +1841,7 @@ static eWanState_t wan_state_ipv4_over_ipv6_active(WanMgr_IfaceSM_Controller_t* 
     DML_WAN_IFACE* pInterface = pWanIfaceCtrl->pIfaceData;
 
     if (pWanIfaceCtrl->WanEnable == FALSE ||
-        pInterface->Wan.ActiveLink == FALSE ||
+        pInterface->SelectionStatus == WAN_IFACE_NOT_SELECTED ||
         pInterface->Phy.Status ==  WAN_IFACE_PHY_STATUS_DOWN ||
         pInterface->Wan.LinkStatus ==  WAN_IFACE_LINKSTATUS_DOWN ||
         pInterface->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_DOWN ||
@@ -1875,7 +1875,7 @@ static eWanState_t wan_state_refreshing_wan(WanMgr_IfaceSM_Controller_t* pWanIfa
     DML_WAN_IFACE* pInterface = pWanIfaceCtrl->pIfaceData;
 
     if (pWanIfaceCtrl->WanEnable == FALSE ||
-        pInterface->Wan.ActiveLink == FALSE ||
+        pInterface->SelectionStatus == WAN_IFACE_NOT_SELECTED ||
         pInterface->Phy.Status ==  WAN_IFACE_PHY_STATUS_DOWN ||
         pInterface->Wan.LinkStatus ==  WAN_IFACE_LINKSTATUS_DOWN)
     {

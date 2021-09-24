@@ -195,6 +195,7 @@ static WcPpPolicyState_t Transition_PrimaryInterfaceSelected(WanMgr_Policy_Contr
 
         //Set ActiveLink to FALSE
         pActiveInterface->Wan.ActiveLink = FALSE;
+        pActiveInterface->SelectionStatus = WAN_IFACE_NOT_SELECTED;
     }
 
 
@@ -206,6 +207,7 @@ static WcPpPolicyState_t Transition_PrimaryInterfaceSelected(WanMgr_Policy_Contr
 
         //Set ActiveLink to TRUE
         pWanIfaceData->Wan.ActiveLink = TRUE;
+        pWanIfaceData->SelectionStatus = WAN_IFACE_ACTIVE;
 
         WanMgr_IfaceSM_Init(&wanIfCtrl, pWanIfaceData->uiIfaceIdx);
 
@@ -256,6 +258,7 @@ static WcPpPolicyState_t Transition_PrimaryInterfaceDeSelected(WanMgr_Policy_Con
 
     //Set ActiveLink to FALSE
     pActiveInterface->Wan.ActiveLink = FALSE;
+    pActiveInterface->SelectionStatus = WAN_IFACE_NOT_SELECTED;
 
 
     pWanController->activeInterfaceIdx = -1;
@@ -288,6 +291,7 @@ static WcPpPolicyState_t Transition_PrimaryInterfaceChanged(WanMgr_Policy_Contro
 
     //Set ActiveLink to FALSE
     pActiveInterface->Wan.ActiveLink = FALSE;
+    pActiveInterface->SelectionStatus = WAN_IFACE_NOT_SELECTED;
 
     pWanController->activeInterfaceIdx = -1;
 
@@ -306,6 +310,7 @@ static WcPpPolicyState_t Transition_PrimaryInterfaceChanged(WanMgr_Policy_Contro
 
             //Set ActiveLink to TRUE
             pWanIfaceData->Wan.ActiveLink = TRUE;
+            pWanIfaceData->SelectionStatus = WAN_IFACE_ACTIVE;
             WanMgr_IfaceSM_Init(&wanIfCtrl, pWanIfaceData->uiIfaceIdx);
 
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
@@ -338,6 +343,7 @@ static WcPpPolicyState_t Transition_SecondaryInterfaceSelected(WanMgr_Policy_Con
 
         //Set ActiveLink to FALSE
         pActiveInterface->Wan.ActiveLink = FALSE;
+        pActiveInterface->SelectionStatus = WAN_IFACE_NOT_SELECTED;
     }
 
 
@@ -354,6 +360,7 @@ static WcPpPolicyState_t Transition_SecondaryInterfaceSelected(WanMgr_Policy_Con
 
     //Set ActiveLink to TRUE
     pWanIfaceData->Wan.ActiveLink = TRUE;
+    pWanIfaceData->SelectionStatus = WAN_IFACE_ACTIVE;
     WanMgr_IfaceSM_Init(&wanIfCtrl, pWanIfaceData->uiIfaceIdx);
 
     WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
@@ -383,6 +390,7 @@ static WcPpPolicyState_t Transition_SecondaryInterfaceDeSelected(WanMgr_Policy_C
 
         //Set ActiveLink to FALSE
         pActiveInterface->Wan.ActiveLink = FALSE;
+        pActiveInterface->SelectionStatus = WAN_IFACE_NOT_SELECTED;
     }
 
     pWanController->activeInterfaceIdx = -1;

@@ -237,6 +237,7 @@ static WcPpobPolicyState_t Transition_WanInterfaceSelected(WanMgr_Policy_Control
 
         //Set ActiveLink to TRUE
         pWanIfaceData->Wan.ActiveLink = TRUE;
+        pWanIfaceData->SelectionStatus = WAN_IFACE_ACTIVE;
         bWanActive = true;
 
         WanMgr_IfaceSM_Init(&wanIfCtrl, pWanIfaceData->uiIfaceIdx);

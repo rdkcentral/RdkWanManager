@@ -119,6 +119,7 @@ static WcFmobPolicyState_t Transition_WanInterfaceFixed(WanMgr_Policy_Controller
 
     //ActiveLink
     pFixedInterface->Wan.ActiveLink = TRUE;
+    pFixedInterface->SelectionStatus = WAN_IFACE_ACTIVE;
 
     CcspTraceInfo(("%s %d - State changed to STATE_FIXED_WAN_INTERFACE_DOWN \n", __FUNCTION__, __LINE__));
     return STATE_FIXED_WAN_INTERFACE_DOWN;
