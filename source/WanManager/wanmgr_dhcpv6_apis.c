@@ -217,7 +217,7 @@ WanMgr_DmlDhcpv6cGetEntry
         PDML_DHCPCV6_FULL      pEntry
     )
 {
-    UNREFERENCED_PARAMETER(hContext); 
+    UNREFERENCED_PARAMETER(hContext);
     char buf[256] = {0};
     char out[256] = {0};
 
@@ -228,7 +228,7 @@ WanMgr_DmlDhcpv6cGetEntry
 
 
     /*Cfg members*/
-    strcpy(buf, SYSCFG_FORMAT_DHCP6C"_alias");
+    strncpy(buf, SYSCFG_FORMAT_DHCP6C"_alias",sizeof(buf)-1);
     memset(pEntry->Cfg.Alias, 0, sizeof(pEntry->Cfg.Alias));
     if( syscfg_get( NULL, buf, out, sizeof(out)) == 0 )
     {
@@ -237,14 +237,14 @@ WanMgr_DmlDhcpv6cGetEntry
 
     pEntry->Cfg.SuggestedT1 = pEntry->Cfg.SuggestedT2 = 0;
 
-    strcpy(buf, SYSCFG_FORMAT_DHCP6C"_t1");
+    strncpy(buf, SYSCFG_FORMAT_DHCP6C"_t1",sizeof(buf)-1);
     memset(out, 0, sizeof(out));
     if( syscfg_get( NULL, buf, out, sizeof(out)) == 0 )
     {
     sscanf(out, "%lu", &pEntry->Cfg.SuggestedT1);
     }
 
-    strcpy(buf, SYSCFG_FORMAT_DHCP6C"_t2");
+    strncpy(buf, SYSCFG_FORMAT_DHCP6C"_t2",sizeof(buf)-1);
     memset(out, 0, sizeof(out));
     if( syscfg_get( NULL, buf, out, sizeof(out)) == 0 )
     {
@@ -252,9 +252,9 @@ WanMgr_DmlDhcpv6cGetEntry
     }
 
     /*pEntry->Cfg.Interface stores interface name, dml will calculate the full path name*/
-    strcpy(pEntry->Cfg.Interface, DML_DHCP_CLIENT_IFNAME);
+    strncpy(pEntry->Cfg.Interface, DML_DHCP_CLIENT_IFNAME,sizeof(pEntry->Cfg.Interface)-1);
 
-    strcpy(buf, SYSCFG_FORMAT_DHCP6C"_requested_options");
+    strncpy(buf, SYSCFG_FORMAT_DHCP6C"_requested_options",sizeof(buf)-1);
     memset(out, 0, sizeof(out));
     memset(pEntry->Cfg.RequestedOptions, 0, sizeof(pEntry->Cfg.RequestedOptions));
     if( syscfg_get( NULL, buf, out, sizeof(out)) == 0 )
@@ -262,28 +262,28 @@ WanMgr_DmlDhcpv6cGetEntry
         strncpy(pEntry->Cfg.RequestedOptions, out, sizeof(out));
     }
 
-    strcpy(buf, SYSCFG_FORMAT_DHCP6C"_enabled");
+    strncpy(buf, SYSCFG_FORMAT_DHCP6C"_enabled",sizeof(buf)-1);
     memset(out, 0, sizeof(out));
     if( syscfg_get( NULL, buf, out, sizeof(out)) == 0 )
     {
     pEntry->Cfg.bEnabled = (out[0] == '1') ? TRUE:FALSE;
     }
 
-    strcpy(buf, SYSCFG_FORMAT_DHCP6C"_iana_enabled");
+    strncpy(buf, SYSCFG_FORMAT_DHCP6C"_iana_enabled",sizeof(buf)-1);
     memset(out, 0, sizeof(out));
     if( syscfg_get( NULL, buf, out, sizeof(out)) == 0 )
     {
     pEntry->Cfg.RequestAddresses = (out[0] == '1') ? TRUE:FALSE;
     }
 
-    strcpy(buf, SYSCFG_FORMAT_DHCP6C"_iapd_enabled");
+    strncpy(buf, SYSCFG_FORMAT_DHCP6C"_iapd_enabled",sizeof(buf)-1);
     memset(out, 0, sizeof(out));
     if( syscfg_get( NULL, buf, out, sizeof(out)) == 0 )
     {
     pEntry->Cfg.RequestPrefixes = (out[0] == '1') ? TRUE:FALSE;
     }
 
-    strcpy(buf, SYSCFG_FORMAT_DHCP6C"_rapidcommit_enabled");
+    strncpy(buf, SYSCFG_FORMAT_DHCP6C"_rapidcommit_enabled",sizeof(buf)-1);
     memset(out, 0, sizeof(out));
     if( syscfg_get( NULL, buf, out, sizeof(out)) == 0 )
     {
@@ -329,7 +329,7 @@ WanMgr_DmlDhcpv6cSetValues
         return ANSC_STATUS_FAILURE;
     }
 
-    strcpy(g_dhcpv6_client.Cfg.Alias, pAlias);
+    strncpy(g_dhcpv6_client.Cfg.Alias, pAlias,sizeof(g_dhcpv6_client.Cfg.Alias)-1);
 
 
     return ANSC_STATUS_SUCCESS;
@@ -482,18 +482,18 @@ static int _dibbler_client_operation(char * arg)
         if (TRUE == WanManager_IsApplicationRunning (CLIENT_BIN))
         {
             CcspTraceInfo(("%s-%d [%s] is already running, killing it \n", __FUNCTION__,__LINE__,CLIENT_BIN));
-            sprintf(cmd, "killall %s", CLIENT_BIN);
+            snprintf(cmd, sizeof(cmd)-1, "killall %s", CLIENT_BIN);
             system(cmd);
             sleep(2);
 #ifdef _HUB4_PRODUCT_REQ_
-            sprintf(cmd, "ps | grep %s | grep -v grep", CLIENT_BIN);
+            snprintf(cmd, sizeof(cmd)-1, "ps | grep %s | grep -v grep", CLIENT_BIN);
 #else
             sprintf(cmd, "ps -A|grep %s", CLIENT_BIN);
 #endif // _HUB4_PRODUCT_REQ_
             _get_shell_output(cmd, out, sizeof(out));
             if (strstr(out, CLIENT_BIN))
             {
-                sprintf(cmd, "killall -9 %s", CLIENT_BIN);
+                snprintf(cmd,sizeof(cmd)-1, "killall -9 %s", CLIENT_BIN);
                 system(cmd);
             }
         }
@@ -558,7 +558,7 @@ static int _dibbler_client_operation(char * arg)
         system("/etc/dibbler/dibbler-init.sh");
         /*Start Dibber client for tchxb6*/
         CcspTraceInfo(("%s Dibbler Client Started \n", __func__));
-        sprintf(cmd, "%s start", CLIENT_BIN);
+        snprintf(cmd, sizeof(cmd)-1, "%s start", CLIENT_BIN);
         system(cmd);
 #endif
     }
@@ -606,13 +606,13 @@ WanMgr_DmlDhcpv6cSetCfg
 
     if (!AnscEqualString((char*)pCfg->Alias, (char*)g_dhcpv6_client.Cfg.Alias, TRUE))
     {
-        strcpy(buf, SYSCFG_FORMAT_DHCP6C"_alias");
+        strncpy(buf, SYSCFG_FORMAT_DHCP6C"_alias",sizeof(buf)-1);
         syscfg_set_string(buf,(char*)pCfg->Alias);
     }
 
     if (pCfg->SuggestedT1 != g_dhcpv6_client.Cfg.SuggestedT1)
     {
-        strcpy(buf, SYSCFG_FORMAT_DHCP6C"_t1");
+        strncpy(buf, SYSCFG_FORMAT_DHCP6C"_t1",sizeof(buf)-1);
         sprintf(out, "%lu", pCfg->SuggestedT1);
         syscfg_set_string(buf, out);
         need_to_restart_service = 1;
@@ -620,7 +620,7 @@ WanMgr_DmlDhcpv6cSetCfg
 
     if (pCfg->SuggestedT2 != g_dhcpv6_client.Cfg.SuggestedT2)
     {
-        strcpy(buf, SYSCFG_FORMAT_DHCP6C"_t2");
+        strncpy(buf, SYSCFG_FORMAT_DHCP6C"_t2",sizeof(buf)-1);
         sprintf(out, "%lu", pCfg->SuggestedT2);
         syscfg_set_string(buf, out);
         need_to_restart_service = 1;
@@ -628,14 +628,14 @@ WanMgr_DmlDhcpv6cSetCfg
 
     if (!AnscEqualString((char*)pCfg->RequestedOptions, (char*)g_dhcpv6_client.Cfg.RequestedOptions, TRUE))
     {
-        strcpy(buf, SYSCFG_FORMAT_DHCP6C"_requested_options");
+        strncpy(buf, SYSCFG_FORMAT_DHCP6C"_requested_options",sizeof(buf)-1);
         syscfg_set_string(buf, (char*)pCfg->RequestedOptions);
         need_to_restart_service = 1;
     }
 
     if (pCfg->bEnabled != g_dhcpv6_client.Cfg.bEnabled)
     {
-        strcpy(buf, SYSCFG_FORMAT_DHCP6C"_enabled");
+        strncpy(buf, SYSCFG_FORMAT_DHCP6C"_enabled",sizeof(buf)-1);
         out[0] = pCfg->bEnabled ? '1':'0';
         out[1] = 0;
         syscfg_set_string(buf, out);
@@ -644,7 +644,7 @@ WanMgr_DmlDhcpv6cSetCfg
 
     if (pCfg->RequestAddresses != g_dhcpv6_client.Cfg.RequestAddresses)
     {
-        strcpy(buf, SYSCFG_FORMAT_DHCP6C"_iana_enabled");
+        strncpy(buf, SYSCFG_FORMAT_DHCP6C"_iana_enabled",sizeof(buf)-1);
         out[0] = pCfg->RequestAddresses ? '1':'0';
         out[1] = 0;
         syscfg_set_string(buf, out);
@@ -653,7 +653,7 @@ WanMgr_DmlDhcpv6cSetCfg
 
     if (pCfg->RequestPrefixes != g_dhcpv6_client.Cfg.RequestPrefixes)
     {
-        strcpy(buf, SYSCFG_FORMAT_DHCP6C"_iapd_enabled");
+        strncpy(buf, SYSCFG_FORMAT_DHCP6C"_iapd_enabled",sizeof(buf)-1);
         out[0] = pCfg->RequestPrefixes ? '1':'0';
         out[1] = 0;
         syscfg_set_string(buf, out);
@@ -662,7 +662,7 @@ WanMgr_DmlDhcpv6cSetCfg
 
     if (pCfg->RapidCommit != g_dhcpv6_client.Cfg.RapidCommit)
     {
-        strcpy(buf, SYSCFG_FORMAT_DHCP6C"_rapidcommit_enabled");
+        strncpy(buf, SYSCFG_FORMAT_DHCP6C"_rapidcommit_enabled",sizeof(buf)-1);
         out[0] = pCfg->RapidCommit ? '1':'0';
         out[1] = 0;
         syscfg_set_string(buf, out);
@@ -825,17 +825,17 @@ WanMgr_DmlDhcpv6cGetServerCfg
         memset(*ppCfg, 0, sizeof(DML_DHCPCV6_SVR));
 
         /*InformationRefreshTime not supported*/
-        strcpy((char*)(*ppCfg)->InformationRefreshTime, "0001-01-01T00:00:00Z");
+        strncpy((char*)(*ppCfg)->InformationRefreshTime, "0001-01-01T00:00:00Z",sizeof((*ppCfg)->InformationRefreshTime)-1);
 
         while(fgets(buf, sizeof(buf)-1, fp))
         {
             memset(val, 0, sizeof(val));
-            if (sscanf(buf, "addr %s", val))
+            if (sscanf(buf, "addr %1023s", val))
             {
-                strcpy((char*)(*ppCfg)->SourceAddress, val);
+                strncpy((char*)(*ppCfg)->SourceAddress, val,sizeof((*ppCfg)->SourceAddress)-1);
                 entry_count |= 1;
             }
-            else if (sscanf(buf, "duid %s", val))
+            else if (sscanf(buf, "duid %1023s", val))
             {
                 unsigned int i = 0, j = 0;
                 /*the file stores duid in this format 00:01:..., we need to transfer it to continuous hex*/
@@ -878,7 +878,7 @@ WanMgr_DmlDhcpv6cRenew
     UNREFERENCED_PARAMETER(ulInstanceNumber);
     char cmd[256] = {0};
 
-    sprintf(cmd, "killall -SIGUSR2 %s", CLIENT_BIN);
+    snprintf(cmd, sizeof(cmd) - 1, "killall -SIGUSR2 %s", CLIENT_BIN);
     system(cmd);
 
     return ANSC_STATUS_SUCCESS;
@@ -1246,17 +1246,17 @@ WanMgr_DmlDhcpv6cSetSentOption
 
             if (!AnscEqualString(pEntry->Alias, p_old_entry->Alias, TRUE))
             {
-                sprintf(buf, "%s_alias", namespace);
+                snprintf(buf,sizeof(buf)-1, "%s_alias", namespace);
                 syscfg_set_string(buf, pEntry->Alias);
             }
 
             if (pEntry->bEnabled != p_old_entry->bEnabled)
             {
                 if (pEntry->bEnabled)
-                    sprintf(out, "1");
+                    snprintf(out,sizeof(out)-1,"1");
                 else
-                    sprintf(out, "0");
-                sprintf(buf, "%s_enabled", namespace);
+                    snprintf(out, sizeof(out)-1,"0");
+                snprintf(buf,sizeof(buf)-1, "%s_enabled", namespace);
                 syscfg_set_string(buf, out);
                 need_restart_service = 1;
             }
@@ -1264,7 +1264,7 @@ WanMgr_DmlDhcpv6cSetSentOption
 
             if (pEntry->Tag != p_old_entry->Tag)
             {
-                sprintf(buf, "%s_tag", namespace);
+                snprintf(buf, sizeof(buf)-1, "%s_tag", namespace);
                 snprintf(out, sizeof(out)-1, "%lu", pEntry->Tag);
                 syscfg_set_string(buf, out);
                 need_restart_service = 1;
@@ -1272,7 +1272,7 @@ WanMgr_DmlDhcpv6cSetSentOption
 
             if (!AnscEqualString(pEntry->Value, p_old_entry->Value, TRUE))
             {
-                sprintf(buf, "%s_value", namespace);
+                snprintf(buf, sizeof(buf)-1, "%s_value", namespace);
                 syscfg_set_string(buf, pEntry->Value);
                 need_restart_service = 1;
             }
@@ -1310,7 +1310,7 @@ WanMgr_DmlDhcpv6cGetReceivedOptionCfg
     )
 {
     UNREFERENCED_PARAMETER(hContext);
-    UNREFERENCED_PARAMETER(ulClientInstanceNumber); 
+    UNREFERENCED_PARAMETER(ulClientInstanceNumber);
     FILE *                          fp = fopen(CLIENT_RCVED_OPTIONS_FILE, "r+");
     SLIST_HEADER                    option_list;
     DML_DHCPCV6_RECV *         p_rcv = NULL;
@@ -1362,14 +1362,14 @@ WanMgr_DmlDhcpv6cGetReceivedOptionCfg
             }
 
             /*finally we are safe, copy string into Value*/
-            if (sscanf(buf, "%*d %*d %s", p_rcv->Value) != 1)
+            if (sscanf(buf, "%*d %*d %1023s", p_rcv->Value) != 1)
             {
                 AnscFreeMemory(p_rcv); /*RDKB-6780, CID-33399, free unused resource*/
                 p_rcv = NULL;
                 continue;
             }
             /*we only support one server, hardcode it*/
-            strcpy((char*)p_rcv->Server, "Device.DHCPv6.Client.1.Server.1");
+            strncpy((char*)p_rcv->Server, "Device.DHCPv6.Client.1.Server.1",sizeof(p_rcv->Server)-1);
             AnscSListPushEntryAtBack(&option_list, &p_rcv->Link);
 
             memset(buf, 0, sizeof(buf));
@@ -1503,7 +1503,7 @@ int dhcpv6_assign_global_ip(char * prefix, char * intfName, char * ipAddr)
 
 
     /* prepare second part */
-    _ansc_sprintf(cmd, "ifconfig %s | grep HWaddr\n", intfName );
+    snprintf(cmd, sizeof(cmd)-1, "ifconfig %s | grep HWaddr\n", intfName );
     _get_shell_output(cmd, out, sizeof(out));
     pMac =_ansc_strstr(out, "HWaddr");
     if ( pMac == NULL ){
@@ -1532,8 +1532,8 @@ int dhcpv6_assign_global_ip(char * prefix, char * intfName, char * ipAddr)
     //00:50:56: FF:FE:  92:00:22
     _ansc_strncpy(out, pMac, 9);
     out[9] = '\0';
-    _ansc_strcat(out, "FF:FE:");
-    _ansc_strcat(out, pMac+9);
+    strncat(out, "FF:FE:",sizeof(out)-1);
+    strncat(out, pMac+9,sizeof(out)-1);
 
     for(iteratorJ=0,iteratorI=0; out[iteratorI]; iteratorI++){
         if ( out[iteratorI] == ':' )
@@ -1549,7 +1549,7 @@ int dhcpv6_assign_global_ip(char * prefix, char * intfName, char * ipAddr)
 
     AnscTrace("the full part is:%s\n", globalIP);
 
-    _ansc_strcpy(ipAddr, globalIP);
+    _ansc_strncpy(ipAddr, globalIP, sizeof(globalIP) - 1);
 
     /* This IP should be unique. If not I have no idea. */
     return 0;
@@ -1576,7 +1576,7 @@ int CalcIPv6Prefix(char *GlobalPref, char *pref,int index)
             return 0;
     }
     printf("%s\n", str);
-    strcpy(pref,str);
+    strncpy(pref,str,sizeof(str));
     return 1;
 }
 
@@ -1600,13 +1600,13 @@ static int interface_num = 4; // Reserving first 4 /64s for dhcp configurations
     }
 
     len = strlen(GlobalPref);
-    strcpy(pref,GlobalPref);
+    strncpy(pref,GlobalPref, len + 1);
     if(index == 0)
     {
         if(CalcIPv6Prefix(GlobalPref,pref,interface_num)== 0)
         return 0;
         memset(cmd,0,sizeof(cmd));
-        _ansc_sprintf(cmd, "%s%s",ifName,"_ipv6_index");
+        snprintf(cmd, sizeof(cmd)-1, "%s%s",ifName,"_ipv6_index");
         _ansc_sprintf(out, "%d",interface_num);
         sysevent_set(sysevent_fd, sysevent_token, cmd, out , 0);
         interface_num++;
@@ -1616,7 +1616,7 @@ static int interface_num = 4; // Reserving first 4 /64s for dhcp configurations
         if(CalcIPv6Prefix(GlobalPref,pref,index)==0 )
         return 0;
     }
-    strcat(pref,"/64");
+    strncat(pref,"/64",sizeof("/64"));
         CcspTraceInfo(("%s: pref %s\n", __func__, pref));
 return 1;
 
@@ -1668,7 +1668,7 @@ static void *InterfaceEventHandler_thrd(void *data)
                 {
                                         sysevent_get(sysevent_fd, sysevent_token,"br106_ipaddr_v6", buf, sizeof(buf));
                                         memset(cmd,0,sizeof(cmd));
-                                        _ansc_sprintf(cmd, "ip -6 route add %s dev br106",buf);
+                                        snprintf(cmd, sizeof(cmd)-1, "ip -6 route add %s dev br106",buf);
                     system(cmd);
                     #ifdef _COSA_INTEL_XB3_ARM_
                                         memset(cmd,0,sizeof(cmd));
@@ -1676,7 +1676,7 @@ static void *InterfaceEventHandler_thrd(void *data)
                     system(cmd);
                     #endif
                                         memset(cmd,0,sizeof(cmd));
-                                        sprintf(cmd, "ip -6 rule add iif br106 lookup erouter");
+                                        snprintf(cmd,sizeof(cmd)-1, "ip -6 rule add iif br106 lookup erouter");
                                         system(cmd);
                 }
 
@@ -1693,23 +1693,23 @@ static void *InterfaceEventHandler_thrd(void *data)
                         char tbuff[100];
                                         memset(cmd,0,sizeof(cmd));
                         memset(tbuff,0,sizeof(tbuff));
-                        sprintf(cmd,"sysctl net.ipv6.conf.%s.autoconf",Inf_name);
+                        snprintf(cmd, sizeof(cmd)-1,"sysctl net.ipv6.conf.%s.autoconf",Inf_name);
                         _get_shell_output(cmd, tbuff, sizeof(tbuff));
                         if(tbuff[strlen(tbuff)-1] == '0')
                         {
                             memset(cmd,0,sizeof(cmd));
-                            sprintf(cmd,"sysctl -w net.ipv6.conf.%s.autoconf=1",Inf_name);
+                            snprintf(cmd, sizeof(cmd)-1, "sysctl -w net.ipv6.conf.%s.autoconf=1",Inf_name);
                             system(cmd);
                             memset(cmd,0,sizeof(cmd));
-                            sprintf(cmd,"ifconfig %s down;ifconfig %s up",Inf_name,Inf_name);
+                            snprintf(cmd, sizeof(cmd)-1,"ifconfig %s down;ifconfig %s up",Inf_name,Inf_name);
                             system(cmd);
                         }
 
                                         memset(cmd,0,sizeof(cmd));
-                                        _ansc_sprintf(cmd, "%s_ipaddr_v6",Inf_name);
+                                        snprintf(cmd,sizeof(cmd)-1, "%s_ipaddr_v6",Inf_name);
                                         sysevent_get(sysevent_fd, sysevent_token,cmd, buf, sizeof(buf));
                                         memset(cmd,0,sizeof(cmd));
-                                        _ansc_sprintf(cmd, "ip -6 route add %s dev %s",buf,Inf_name);
+                                        snprintf(cmd,sizeof(cmd)-1, "ip -6 route add %s dev %s",buf,Inf_name);
                         system(cmd);
                         #ifdef _COSA_INTEL_XB3_ARM_
                                         memset(cmd,0,sizeof(cmd));
@@ -1717,7 +1717,7 @@ static void *InterfaceEventHandler_thrd(void *data)
                         system(cmd);
                         #endif
                                         memset(cmd,0,sizeof(cmd));
-                                        sprintf(cmd, "ip -6 rule add iif %s lookup erouter",Inf_name);
+                                        snprintf(cmd,sizeof(cmd)-1, "ip -6 rule add iif %s lookup erouter",Inf_name);
                                         system(cmd);
                         ((CCSP_MESSAGE_BUS_INFO *)bus_handle)->freefunc(Inf_name);
                     }
@@ -1851,7 +1851,7 @@ dhcpv6c_dbg_thrd(void * in)
 
             fprintf(stderr, "%s -- %d !!! get event from v6 client: %s \n", __FUNCTION__, __LINE__,p);
 
-            if (sscanf(p, "%63s %63s %s %s %s %s %s %63s %d %s %s %s %s %s",
+            if (sscanf(p, "%63s %63s %31s %31s %31s %31s %31s %63s %d %31s %31s %31s %31s %31s",
                        action, v6addr,    iana_iaid, iana_t1, iana_t2, iana_pretm, iana_vldtm,
                        v6pref, &pref_len, iapd_iaid, iapd_t1, iapd_t2, iapd_pretm, iapd_vldtm ) == 14)
             {
@@ -1880,11 +1880,11 @@ dhcpv6c_dbg_thrd(void * in)
                     if (strncmp(v6addr, "::", 2) != 0)
                     {
                         if (strncmp(v6addr, "''", 2) == 0)
-			{
+                        {
                             sysevent_set(sysevent_fd, sysevent_token, COSA_DML_DHCPV6C_ADDR_SYSEVENT_NAME, "" , 0);
                         }
                         else
-			{
+                        {
                             sysevent_set(sysevent_fd, sysevent_token, COSA_DML_DHCPV6C_ADDR_SYSEVENT_NAME, v6addr , 0);
                         }
                         sysevent_set(sysevent_fd, sysevent_token, COSA_DML_DHCPV6C_ADDR_IAID_SYSEVENT_NAME,  iana_iaid , 0);
@@ -1924,7 +1924,7 @@ dhcpv6c_dbg_thrd(void * in)
                 memset(out,0,sizeof(out));
                 memset(cmd,0,sizeof(cmd));
                 memset(out1,0,sizeof(out1));
-                sprintf(cmd, "syscfg get IPv6subPrefix");
+                snprintf(cmd,sizeof(cmd)-1, "syscfg get IPv6subPrefix");
                       _get_shell_output(cmd, out, sizeof(out));
                 if(!strcmp(out,"true"))
                 {
@@ -1932,7 +1932,7 @@ dhcpv6c_dbg_thrd(void * in)
 
                 memset(out,0,sizeof(out));
                 memset(cmd,0,sizeof(cmd));
-                sprintf(cmd, "syscfg get IPv6_Interface");
+                snprintf(cmd,sizeof(cmd)-1, "syscfg get IPv6_Interface");
                       _get_shell_output(cmd, out, sizeof(out));
                 pt = out;
                 while((token = strtok_r(pt, ",", &pt)))
@@ -1951,7 +1951,7 @@ dhcpv6c_dbg_thrd(void * in)
                         if(tbuff[strlen(tbuff)-1] == '0')
                         {
                             memset(cmd,0,sizeof(cmd));
-                            sprintf(cmd,"sysctl -w net.ipv6.conf.%s.autoconf=1",token);
+                            snprintf(cmd, sizeof(cmd)-1, "sysctl -w net.ipv6.conf.%s.autoconf=1",token);
                             system(cmd);
                             memset(cmd,0,sizeof(cmd));
                             sprintf(cmd,"ifconfig %s down;ifconfig %s up",token,token);
@@ -2082,7 +2082,7 @@ dhcpv6c_dbg_thrd(void * in)
                         }
                         sysevent_get(sysevent_fd, sysevent_token,SYSEVENT_FIELD_IPV6_ULA_ADDRESS, ula_address, sizeof(ula_address));
                         if(ula_address[0] != '\0') {
-                            sprintf(cmd, "ip -6 addr add %s/64 dev %s", ula_address, COSA_DML_DHCPV6_SERVER_IFNAME);
+                            snprintf(cmd, sizeof(cmd)-1, "ip -6 addr add %s/64 dev %s", ula_address, COSA_DML_DHCPV6_SERVER_IFNAME);
                             system(cmd);
                         }
                         ret = dhcpv6_assign_global_ip(v6pref, COSA_DML_DHCPV6_SERVER_IFNAME, globalIP);
@@ -2091,7 +2091,7 @@ dhcpv6c_dbg_thrd(void * in)
                         }
                         else {
                             sysevent_set(sysevent_fd, sysevent_token,"lan_ipaddr_v6", globalIP, 0);
-                            sprintf(cmd, "ip -6 addr add %s/64 dev %s valid_lft %s preferred_lft %s",
+                            snprintf(cmd, sizeof(cmd) -1, "ip -6 addr add %s/64 dev %s valid_lft %s preferred_lft %s",
                                 globalIP, COSA_DML_DHCPV6_SERVER_IFNAME, iapd_vldtm, iapd_pretm);
                             CcspTraceInfo(("Going to execute: %s \n", cmd));
                             system(cmd);
@@ -2099,7 +2099,7 @@ dhcpv6c_dbg_thrd(void * in)
                         if(strlen(v6pref) > 0) {
                             strncpy(v6pref_addr, v6pref, (strlen(v6pref)-5));
                             CcspTraceInfo(("Going to set ::1 address on brlan0 interface \n"));
-                            sprintf(cmd, "ip -6 addr add %s::1/64 dev %s valid_lft %s preferred_lft %s",
+                            snprintf(cmd,sizeof(cmd) - 1,  "ip -6 addr add %s::1/64 dev %s valid_lft %s preferred_lft %s",
                                 v6pref_addr, COSA_DML_DHCPV6_SERVER_IFNAME, iapd_vldtm, iapd_pretm);
                             CcspTraceInfo(("Going to execute: %s \n", cmd));
                             system(cmd);
@@ -2449,7 +2449,7 @@ ANSC_STATUS wanmgr_handle_dchpv6_event_data(DML_WAN_IFACE* pIfaceData)
                 if (strcmp(pDhcp6cInfoCur->sitePrefix, pNewIpcMsg->sitePrefix) != 0)
                 {
                     CcspTraceInfo(("%s %d new prefix = %s, current prefix = %s \n", __FUNCTION__, __LINE__, pNewIpcMsg->sitePrefix, pDhcp6cInfoCur->sitePrefix));
-                    strcat(prefix, "/64");
+                    strncat(prefix, "/64",sizeof(prefix)-1);
                     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_PREFIX, prefix, 0);
                 }
             }
@@ -2463,7 +2463,7 @@ ANSC_STATUS wanmgr_handle_dchpv6_event_data(DML_WAN_IFACE* pIfaceData)
                 syscfg_set_string(SYSCFG_FIELD_IPV6_PREFIX, "");
                 syscfg_set_string(SYSCFG_FIELD_PREVIOUS_IPV6_PREFIX, "");
                 syscfg_set_string(SYSCFG_FIELD_IPV6_PREFIX_ADDRESS, "");
-		WanManager_UpdateInterfaceStatus(pIfaceData, WANMGR_IFACE_CONNECTION_IPV6_DOWN);
+                WanManager_UpdateInterfaceStatus(pIfaceData, WANMGR_IFACE_CONNECTION_IPV6_DOWN);
             }
         }
     }
@@ -2517,7 +2517,7 @@ ANSC_STATUS wanmgr_handle_dchpv6_event_data(DML_WAN_IFACE* pIfaceData)
 
         if (ANSC_STATUS_SUCCESS == r2)
         {
-            sprintf(guAddrPrefix, "%s/%d", guAddr, prefixLen);
+            snprintf(guAddrPrefix,sizeof(guAddrPrefix)-1, "%s/%d", guAddr, prefixLen);
             CcspTraceInfo(("Detected GloballyUnique Addr6 %s, mark connection up! \n", guAddrPrefix));
             connected = TRUE;
 

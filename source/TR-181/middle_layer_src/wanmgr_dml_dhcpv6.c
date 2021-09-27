@@ -1268,7 +1268,7 @@ Client3_Validate
                         continue;
                     }
 
-                    _ansc_strcpy(pReturnParamName, "Alias");
+                    strncpy(pReturnParamName, "Alias",sizeof("Alias"));
 
                     bFound = TRUE;
 
@@ -2666,7 +2666,7 @@ SentOption1_Validate
                         continue;
                     }
     
-                    _ansc_strcpy(pReturnParamName, "Alias");
+                    strncpy(pReturnParamName, "Alias",sizeof("Alias"));
                     *puLength = AnscSizeOfString("Alias");
     
                     bFound = TRUE;
@@ -2682,7 +2682,7 @@ SentOption1_Validate
                         continue;
                     }
     
-                    _ansc_strcpy(pReturnParamName, "Tag");
+                    strncpy(pReturnParamName, "Tag",sizeof("Tag"));
                     *puLength = AnscSizeOfString("Tag");
     
                     bFound = TRUE;

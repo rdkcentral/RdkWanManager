@@ -286,25 +286,25 @@ void* IPCPStateChangeHandler (void *arg)
                              token = strtok(acTmpReturnValue, ",");
                              if (token != NULL)
                              {
-                                 strcpy (pIfaceData->IP.pIpcIpv4Data->dnsServer, token );
+                                 strncpy (pIfaceData->IP.pIpcIpv4Data->dnsServer, token,sizeof(pIfaceData->IP.pIpcIpv4Data->dnsServer)-1);
                                  //Return first DNS Server
                                  token = strtok(NULL, ",");
                                  if (token != NULL)
                                  {
-                                     strcpy (pIfaceData->IP.pIpcIpv4Data->dnsServer1, token);
+                                     strncpy (pIfaceData->IP.pIpcIpv4Data->dnsServer1, token,sizeof(pIfaceData->IP.pIpcIpv4Data->dnsServer1)-1);
                                  }
                              }
                          }
 
-                          strncpy (pIfaceData->IP.pIpcIpv4Data->dhcpcInterface, dhcpcInterface, BUFLEN_64);
-                          strncpy (pIfaceData->IP.pIpcIpv4Data->mask, P2P_SUB_NET_MASK, BUFLEN_32);
+                          strncpy(pIfaceData->IP.pIpcIpv4Data->dhcpcInterface, dhcpcInterface, sizeof(pIfaceData->IP.pIpcIpv4Data->dhcpcInterface) - 1);
+                          strncpy(pIfaceData->IP.pIpcIpv4Data->mask, P2P_SUB_NET_MASK, sizeof(pIfaceData->IP.pIpcIpv4Data->mask)-1);
                           wanmgr_handle_dchpv4_event_data(pIfaceData);
                          break;
                      }
                      case WAN_IFACE_IPCP_STATUS_DOWN:
                      {
-                         strncpy (pIfaceData->IP.pIpcIpv4Data->dhcpcInterface, dhcpcInterface, BUFLEN_64);
-                         strncpy (pIfaceData->IP.pIpcIpv4Data->dhcpState, DHCP_STATE_DOWN, BUFLEN_64);
+                         strncpy (pIfaceData->IP.pIpcIpv4Data->dhcpcInterface, dhcpcInterface, sizeof(pIfaceData->IP.pIpcIpv4Data->dhcpcInterface) - 1);
+                         strncpy (pIfaceData->IP.pIpcIpv4Data->dhcpState, DHCP_STATE_DOWN, sizeof(pIfaceData->IP.pIpcIpv4Data->dhcpState)-1);
                          pIfaceData->IP.pIpcIpv4Data->addressAssigned = FALSE;
                          wanmgr_handle_dchpv4_event_data(pIfaceData);
                          break;
@@ -402,12 +402,12 @@ static ANSC_STATUS DhcpcDmlScan()
             }
             else if( !strcmp(str_key, "ip address    ") )
             {
-                sscanf(str_val, "%s", ip);
+                sscanf(str_val, "%31s", ip);
                 AnscWriteUlong(&pEntry->Info.IPAddress.Value, _ansc_inet_addr(ip));
             }
             else if( !strcmp(str_key, "subnet mask   ") )
             {
-                sscanf(str_val, "%s", subnet );
+                sscanf(str_val, "%31s", subnet );
                 AnscWriteUlong(&pEntry->Info.SubnetMask.Value, _ansc_inet_addr(subnet));
             }
             else if( !strcmp(str_key, "lease time    ") )
@@ -416,12 +416,12 @@ static ANSC_STATUS DhcpcDmlScan()
             }
             else if( !strcmp(str_key, "router        ") )
             {
-                sscanf(str_val, "%s", ip ); 
+                sscanf(str_val, "%31s", ip ); 
                 AnscWriteUlong(&pEntry->Info.IPRouters[0].Value, _ansc_inet_addr(ip) ); 
             }
             else if( !strcmp(str_key, "server id     ") )
             {
-                sscanf(str_val, "%s", ip ); 
+                sscanf(str_val, "%31s", ip ); 
                 AnscWriteUlong(&pEntry->Info.DHCPServer.Value, _ansc_inet_addr(ip));
             }
             else if( !strcmp(str_key, "dns server    ") )
@@ -652,7 +652,7 @@ WanMgr_DmlDhcpcGetCfg
 {
     UNREFERENCED_PARAMETER(hContext);
     ULONG       i = 0;
-    char ifname[32];
+    char ifname[32] = {0};
 
     if ( !pCfg )
     {
@@ -665,7 +665,7 @@ WanMgr_DmlDhcpcGetCfg
     if(dhcpv4c_get_ert_ifname(ifname))
         pCfg->Interface[0] = 0;
     else
-        sprintf(pCfg->Interface,"%s", ifname);
+        snprintf(pCfg->Interface, sizeof(pCfg->Interface)-1, "%s", ifname);
     pCfg->PassthroughEnable = TRUE;
     pCfg->PassthroughDHCPPool[0] = 0;
 

@@ -344,7 +344,7 @@ ANSC_STATUS WanManager_StopDhcpv6Client(BOOL boolDisconnect)
     char cmdLine[BUFLEN_128];
 
     CcspTraceInfo(("Enter WanManager_StopDhcpv6Client for  %s \n", DHCPV6_CLIENT_NAME));
-    sprintf(cmdLine, "killall %s", DHCPV6_CLIENT_NAME);
+    snprintf(cmdLine, sizeof(cmdLine)-1, "killall %s", DHCPV6_CLIENT_NAME);
     system(cmdLine);
 
     CcspTraceInfo(("Exit WanManager_StopDhcpv6Client\n"));
@@ -415,7 +415,7 @@ void WanUpdateDhcp6cProcessId(char *currentBaseIfName)
     char cmdLine[BUFLEN_128];
     char out[BUFLEN_128] = {0};
 
-    sprintf(cmdLine, "pidof %s", DHCPV6_CLIENT_NAME);
+    snprintf(cmdLine, sizeof(cmdLine)-1, "pidof %s", DHCPV6_CLIENT_NAME);
     _get_shell_output(cmdLine, out, sizeof(out));
     CcspTraceError(("%s Updating dibbler client pid %s\n", __func__, out));
     processId = atoi(out);
@@ -1027,7 +1027,7 @@ int WanManager_GetBCastFromIpSubnetMask(const char* inIpStr, const char* inSubne
    ip.s_addr = inet_addr(inIpStr);
    subnetMask.s_addr = inet_addr(inSubnetMaskStr);
    bCast.s_addr = ip.s_addr | ~subnetMask.s_addr;
-   strcpy(outBcastStr, inet_ntoa(bCast));
+   strncpy(outBcastStr, inet_ntoa(bCast),sizeof(inet_ntoa(bCast))-1);
 
    return ret;
 }
@@ -1068,7 +1068,7 @@ static BOOL IsValidIpv4Address(const char* input)
    }
 
    /* need to copy since strtok_r updates string */
-   strcpy(buf, input);
+   strncpy(buf, input, sizeof(buf)-1);
 
    /* IP address has the following format
       xxx.xxx.xxx.xxx where x is decimal number */
@@ -1180,7 +1180,8 @@ static int ParsePrefixAddress(const char *prefixAddr, char *address, uint32_t *p
    }
    else
    {
-      sprintf(tmpBuf, "%s", prefixAddr);
+      memset(tmpBuf, 0, len+1);
+      snprintf(tmpBuf,strlen(prefixAddr), "%s", prefixAddr);
       separator = strchr(tmpBuf, '/');
       if (separator != NULL)
       {
@@ -1198,7 +1199,7 @@ static int ParsePrefixAddress(const char *prefixAddr, char *address, uint32_t *p
 
       if (strlen(tmpBuf) < BUFLEN_40 && *plen <= 128)
       {
-         strcpy(address, tmpBuf);
+         strncpy(address, tmpBuf, strlen(tmpBuf) + 1);
       }
       else
       {
@@ -1479,7 +1480,7 @@ static void* DmlHandlePPPCreateRequestThread( void *arg )
         char  acTableName[ 128 ] = { 0 };
         INT   iNewTableInstance  = -1;
 
-        sprintf( acTableName, "%s", PPP_INTERFACE_TABLE );
+        snprintf( acTableName, sizeof(acTableName)-1, "%s", PPP_INTERFACE_TABLE );
         if ( CCSP_SUCCESS != CcspBaseIf_AddTblRow (
              bus_handle,
              PPPMGR_COMPONENT_NAME,
@@ -1578,7 +1579,7 @@ static void* DmlHandlePPPCreateRequestThread( void *arg )
 
     snprintf( acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s%d.", PPP_INTERFACE_TABLE, iPPPInstance);
     CcspTraceInfo(("%s %d Set ppp path to %s \n", __FUNCTION__,__LINE__ ,acSetParamValue ));
-    strcpy(pInterface->PPP.Path, acSetParamValue);
+    strncpy(pInterface->PPP.Path, acSetParamValue,sizeof(pInterface->PPP.Path)-1);
 
     CcspTraceInfo(("%s %d Successfully created PPP %s interface \n", __FUNCTION__,__LINE__, pInterface->Wan.Name ));
 
@@ -1727,6 +1728,7 @@ static void generate_client_duid_conf()
     char duid[256] = {0};
     char file_path[64] = {0};
     char wan_mac[64] = {0};
+    int ret = 0;
 
     FILE *fp_duid = NULL;
     FILE *fp_mac_addr_table = NULL;
@@ -1735,7 +1737,7 @@ static void generate_client_duid_conf()
 
     if( fp_duid == NULL )
     {
-        sprintf(file_path, "/sys/class/net/%s/address", PHY_WAN_IF_NAME);
+        snprintf(file_path, sizeof(file_path)-1, "/sys/class/net/%s/address", PHY_WAN_IF_NAME);
         fp_mac_addr_table = fopen(file_path, "r");
         if(fp_mac_addr_table == NULL)
         {
@@ -1743,7 +1745,7 @@ static void generate_client_duid_conf()
         }
         else
         {
-            fread(wan_mac, sizeof(wan_mac),1, fp_mac_addr_table);
+            ret = fread(wan_mac, sizeof(wan_mac),1, fp_mac_addr_table);
             fclose(fp_mac_addr_table);
         }
 
@@ -1774,8 +1776,9 @@ static void createDummyWanBridge()
     char wan_mac[64] = {'\0'};
     char file_path[64] = {0};
     FILE *fp_mac_addr_table = NULL;
+    int ret = 0;
 
-    sprintf(file_path, "/sys/class/net/%s/address", PHY_WAN_IF_NAME);
+    snprintf(file_path, sizeof(file_path)-1, "/sys/class/net/%s/address", PHY_WAN_IF_NAME);
     fp_mac_addr_table = fopen(file_path, "r");
     if(fp_mac_addr_table == NULL)
     {
@@ -1783,7 +1786,7 @@ static void createDummyWanBridge()
     }
     else
     {
-        fread(wan_mac, sizeof(wan_mac),1, fp_mac_addr_table);
+        ret = fread(wan_mac, sizeof(wan_mac),1, fp_mac_addr_table);
         fclose(fp_mac_addr_table);
     }
 

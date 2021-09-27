@@ -243,11 +243,11 @@ ANSC_STATUS wanmgr_sysevents_ipv4Info_init(const char *wanIfName)
     ipc_dhcpv4_data_t ipv4Data;
 
     memset(&ipv4Data, 0, sizeof(ipc_dhcpv4_data_t));
-    strncpy(ipv4Data.ip, "0.0.0.0", strlen("0.0.0.0"));
-    strncpy(ipv4Data.mask, "0.0.0.0", strlen("0.0.0.0"));
-    strncpy(ipv4Data.gateway, "0.0.0.0", strlen("0.0.0.0"));
-    strncpy(ipv4Data.dnsServer, "0.0.0.0", strlen("0.0.0.0"));
-    strncpy(ipv4Data.dnsServer1, "0.0.0.0", strlen("0.0.0.0"));
+    strncpy(ipv4Data.ip, "0.0.0.0", sizeof(ipv4Data.ip)-1);
+    strncpy(ipv4Data.mask, "0.0.0.0", sizeof(ipv4Data.mask)-1);
+    strncpy(ipv4Data.gateway, "0.0.0.0", sizeof(ipv4Data.gateway)-1);
+    strncpy(ipv4Data.dnsServer, "0.0.0.0", sizeof(ipv4Data.dnsServer)-1);
+    strncpy(ipv4Data.dnsServer1, "0.0.0.0", sizeof(ipv4Data.dnsServer1)-1);
     sysevent_set(sysevent_fd, sysevent_token,SYSEVENT_CURRENT_WAN_IPADDR, "0.0.0.0", 0);
     snprintf(name, sizeof(name), SYSEVENT_IPV4_START_TIME, wanIfName);
     sysevent_set(sysevent_fd, sysevent_token,name, "0", 0);
@@ -693,7 +693,7 @@ static void set_vendor_spec_conf()
     if(getVendorClassInfo(vendor_class, BUF_SIZE) == 0)
     {
         char vendor_spec_info[BUFLEN_512] = {0};
-        sprintf(vendor_spec_info, "%d-%d-\"%s\"", ENTERPRISE_ID, OPTION_16, vendor_class);
+        snprintf(vendor_spec_info, sizeof(vendor_spec_info)-1, "%d-%d-\"%s\"", ENTERPRISE_ID, OPTION_16, vendor_class);
         CcspTraceInfo(("vendor_spec information = %s \n", vendor_spec_info));
         sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_VENDOR_SPEC, vendor_spec_info, 0);
     }

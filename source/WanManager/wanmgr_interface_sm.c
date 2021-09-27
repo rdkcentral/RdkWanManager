@@ -422,14 +422,14 @@ static int wan_updateDNS(DML_WAN_IFACE* pInterface, BOOL addIPv4, BOOL addIPv6)
 
     if (addIPv4)
     {
-        strncpy(dnsData.dns_ipv4_1, pInterface->IP.Ipv4Data.dnsServer, sizeof(dnsData.dns_ipv4_1));
-        strncpy(dnsData.dns_ipv4_2, pInterface->IP.Ipv4Data.dnsServer1, sizeof(dnsData.dns_ipv4_2));
+        strncpy(dnsData.dns_ipv4_1, pInterface->IP.Ipv4Data.dnsServer, sizeof(dnsData.dns_ipv4_1)-1);
+        strncpy(dnsData.dns_ipv4_2, pInterface->IP.Ipv4Data.dnsServer1, sizeof(dnsData.dns_ipv4_2)-1);
     }
 
     if (addIPv6)
     {
-        strncpy(dnsData.dns_ipv6_1, pInterface->IP.Ipv6Data.nameserver, sizeof(dnsData.dns_ipv6_1));
-        strncpy(dnsData.dns_ipv6_2, pInterface->IP.Ipv6Data.nameserver1, sizeof(dnsData.dns_ipv6_2));
+        strncpy(dnsData.dns_ipv6_1, pInterface->IP.Ipv6Data.nameserver, sizeof(dnsData.dns_ipv6_1)-1);
+        strncpy(dnsData.dns_ipv6_2, pInterface->IP.Ipv6Data.nameserver1, sizeof(dnsData.dns_ipv6_2)-1);
     }
 
     if ((ret = WanManager_CreateResolvCfg(&dnsData)) != RETURN_OK)
@@ -636,7 +636,7 @@ static int setUpLanPrefixIPv6(DML_WAN_IFACE* pIfaceData)
             char previousPrefix[BUFLEN_48] = {0};
             char previousPrefix_vldtime[BUFLEN_48] = {0};
             char previousPrefix_prdtime[BUFLEN_48] = {0};
-            strcat(lanPrefix, "/64");
+            strncat(lanPrefix, "/64",sizeof(lanPrefix)-1);
             sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_PREFIX, previousPrefix, sizeof(previousPrefix));
             sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_PREFIXVLTIME, previousPrefix_vldtime, sizeof(previousPrefix_vldtime));
             sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_PREFIXPLTIME, previousPrefix_prdtime, sizeof(previousPrefix_prdtime));

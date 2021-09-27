@@ -127,7 +127,7 @@ static void checkComponentHealthStatus(char * compName, char * dbusPath, char *s
     if(ret == CCSP_SUCCESS)
     {
         CcspTraceDebug(("parameterval[0]->parameterName : %s parameterval[0]->parameterValue : %s\n",parameterval[0]->parameterName,parameterval[0]->parameterValue));
-        strcpy(status, parameterval[0]->parameterValue);
+        strncpy(status, parameterval[0]->parameterValue, strlen(parameterval[0]->parameterValue) + 1 );
         CcspTraceDebug(("status of component:%s\n", status));
     }
     free_parameterValStruct_t (bus_handle, val_size, parameterval);
@@ -194,7 +194,7 @@ ANSC_STATUS WanMgr_RdkBus_SetRequestIfComponent(char *pPhyPath, char *pInputpara
         return ANSC_STATUS_FAILURE;
     }
 
-    strncpy(param_name, pPhyPath, sizeof(param_name));
+    strncpy(param_name, pPhyPath, sizeof(param_name)-1);
     strncat(param_name,pInputparamName,sizeof(param_name));
 
     if(strstr(param_name, "CableModem") != NULL) { // CM wan interface
@@ -266,7 +266,7 @@ ANSC_STATUS WanMgr_RdkBus_updateInterfaceUpstreamFlag(char *phyPath, BOOL flag)
         return ANSC_STATUS_FAILURE;
     }
 
-    strncpy(param_name, phyPath, sizeof(param_name));
+    strncpy(param_name, phyPath, sizeof(param_name)-1);
 
     if(strstr(param_name, "DSL") != NULL) { // dsl wan interface
         strncat(param_name, DSL_UPSTREAM_NAME, sizeof(param_name) - strlen(param_name));
@@ -414,11 +414,11 @@ ANSC_STATUS WanMgr_RdkBus_SetParamValues( char *pComponent, char *pBus, char *pP
     int                    ret                   = 0;
 
     //Copy Name
-    sprintf( acParameterName, "%s", pParamName );
+    snprintf( acParameterName,sizeof(acParameterName)-1, "%s", pParamName );
     param_val[0].parameterName  = acParameterName;
 
     //Copy Value
-    sprintf( acParameterValue, "%s", pParamVal );
+    snprintf( acParameterValue,sizeof(acParameterValue)-1, "%s", pParamVal );
     param_val[0].parameterValue = acParameterValue;
 
     //Copy Type

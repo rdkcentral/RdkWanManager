@@ -1262,7 +1262,7 @@ Client_Validate
                     continue;
                 }
 
-                _ansc_strcpy(pReturnParamName, "Alias");
+                strncpy(pReturnParamName, "Alias",sizeof("Alias"));
 
                 bFound = TRUE;
 
@@ -2250,7 +2250,7 @@ SentOption_Validate
                     continue;
                 }
 
-                _ansc_strcpy(pReturnParamName, "Alias");
+                strncpy(pReturnParamName, "Alias",sizeof("Alias"));
 
                 bFound = TRUE;
                 
@@ -3229,7 +3229,7 @@ ReqOption_Validate
                     continue;
                 }
                 
-                _ansc_strcpy(pReturnParamName, "Alias");
+                strncpy(pReturnParamName, "Alias",sizeof("Alias"));
 
                 bFound = TRUE;
                 

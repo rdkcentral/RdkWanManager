@@ -417,7 +417,7 @@ ANSC_STATUS WanMgr_SendMsgToIHC (ipoe_msg_type_t msgType, char *ifName)
         strncpy(msgBody.ipv4Address, ipv4_wan_address, sizeof(ipv4_wan_address));
         CcspTraceInfo(("[%s-%d] Sending IPOE_MSG_WAN_CONNECTION_UP msg with addr :%s", __FUNCTION__, __LINE__, msgBody.ipv4Address));
     }
-    strncpy(msgBody.ifName, ifName, IFNAME_LENGTH);
+    strncpy(msgBody.ifName, ifName, IFNAME_LENGTH-1);
 
     CcspTraceInfo(("[%s-%d] Sending msg = %d for interface %s  \n", __FUNCTION__, __LINE__, msgType, ifName));
 

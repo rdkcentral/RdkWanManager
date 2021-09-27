@@ -303,7 +303,7 @@ int util_getNameByPid(int pid, char *nameBuf, int nameBufLen)
       int rc, p;
       memset(nameBuf, 0, nameBufLen);
       memset(processName, 0, sizeof(processName));
-      rc = fscanf(fp, "%d (%s", &p, processName);
+      rc = fscanf(fp, "%d (%255s", &p, processName);
       fclose(fp);
 
       if (rc >= 2)
@@ -356,7 +356,7 @@ int util_getPidByName(const char *name)
          else
          {
             memset(processName, 0, sizeof(processName));
-            rc = fscanf(fp, "%d (%s", &p, processName);
+            rc = fscanf(fp, "%d (%255s", &p, processName);
             fclose(fp);
 
             if (rc >= 2)
@@ -519,10 +519,10 @@ bool util_isFilePresent(char *filename)
 static int GetRunTimeRootDir(char *pathBuf, uint32_t pathBufLen)
 {
 
-	uint32_t rc;
+    uint32_t rc;
 
-	rc = snprintf(pathBuf, pathBufLen, "/");
-	if (rc >= pathBufLen)
+    rc = snprintf(pathBuf, pathBufLen, "/");
+    if (rc >= pathBufLen)
     {
       AnscTraceError((" %s - %d : pathBufLen %d is too small for buf %s \n", __FUNCTION__,__LINE__, pathBufLen, pathBuf));
       return RETURN_ERROR;
@@ -597,7 +597,10 @@ int WanManager_DoSystemActionWithStatus(const char *from, char *cmd)
 
 void WanManager_DoSystemAction(const char *from, char *cmd)
 {
-    WanManager_DoSystemActionWithStatus(from, cmd);
+    if (RETURN_OK != WanManager_DoSystemActionWithStatus(from, cmd))
+    {
+        CcspTraceInfo(("WanManager_DoSystemActionWithStatus Failed!!!\n"));
+    }
 }
 
 
@@ -700,7 +703,7 @@ void WanManager_DoStopApp(const char *appName)
     if (pid > 0)
     {
         CcspTraceInfo(("Stopping  %s \n", appName));
-	util_signalProcess(pid, SIGTERM);
+        util_signalProcess(pid, SIGTERM);
         CollectApp(pid);
     }
 }
@@ -793,7 +796,7 @@ static ANSC_STATUS readIAPDPrefixFromFile(char *prefix, int buflen, int *plen, i
     else
     {
         /* Read the IA_PD information in the variable */
-        fscanf(fp, "%s %d %d %d",prefixAddr, &prefixLen, &prefLifeTime, &validLifeTime);
+        (void)fscanf(fp, "%127s %d %d %d",prefixAddr, &prefixLen, &prefLifeTime, &validLifeTime);
         CcspTraceInfo(("prefixAddr:%s buflen:%d prefixLen:%d prefLifeTime:%d validLifeTime:%d",
             prefixAddr, buflen, prefixLen, prefLifeTime, validLifeTime));
         /* Copy the IA_PD prefix and delete the prefix file */
@@ -824,7 +827,7 @@ void WanManager_GetDateAndUptime( char *buffer, int *uptime )
     struct  timeval  tv;
     struct  tm       *tm;
     struct  sysinfo info;
-    char    fmt[ 64 ], buf [64];
+    char    fmt[ 64 ], buf [64] = {0};
 
     sysinfo( &info );
     gettimeofday( &tv, NULL );
@@ -835,7 +838,7 @@ void WanManager_GetDateAndUptime( char *buffer, int *uptime )
         snprintf( buf, sizeof( buf ), fmt, tv.tv_usec );
     }
 
-    sprintf( buffer, "%s", buf);
+    snprintf( buffer, sizeof(buf)-1, "%s", buf);
 
     *uptime= info.uptime;
 }
