@@ -98,7 +98,7 @@ static INT WanMgr_Policy_FM_SelectWANActive(void)
 /*********************************************************************************/
 static WcFmobPolicyState_t Transition_Start(WanMgr_Policy_Controller_t* pWanController)
 {
-    WanMgr_UpdatePlatformStatus(WANMGR_DISCONNECTED);
+    wanmgr_sysevents_setWanState(WAN_LINK_DOWN_STATE);
     CcspTraceInfo(("%s %d - State changed to STATE_FIXING_WAN_INTERFACE \n", __FUNCTION__, __LINE__));
     return STATE_FIXING_WAN_INTERFACE;
 }
@@ -120,8 +120,6 @@ static WcFmobPolicyState_t Transition_WanInterfaceFixed(WanMgr_Policy_Controller
     //ActiveLink
     pFixedInterface->Wan.ActiveLink = TRUE;
 
-    WanMgr_UpdatePlatformStatus(WANMGR_LINK_UP);
-
     CcspTraceInfo(("%s %d - State changed to STATE_FIXED_WAN_INTERFACE_DOWN \n", __FUNCTION__, __LINE__));
     return STATE_FIXED_WAN_INTERFACE_DOWN;
 }
@@ -129,7 +127,7 @@ static WcFmobPolicyState_t Transition_WanInterfaceFixed(WanMgr_Policy_Controller
 static WcFmobPolicyState_t Transition_FixedInterfaceDown(WanMgr_Policy_Controller_t* pWanController)
 {
     CcspTraceInfo(("%s %d - State changed to STATE_FIXED_WAN_INTERFACE_DOWN \n", __FUNCTION__, __LINE__));
-    WanMgr_UpdatePlatformStatus(WANMGR_DISCONNECTED);
+    wanmgr_sysevents_setWanState(WAN_LINK_DOWN_STATE);
     return STATE_FIXED_WAN_INTERFACE_DOWN;
 }
 
@@ -147,8 +145,6 @@ static WcFmobPolicyState_t Transition_FixedInterfaceUp(WanMgr_Policy_Controller_
     {
         return STATE_FIXING_WAN_INTERFACE;
     }
-
-    WanMgr_UpdatePlatformStatus(WANMGR_CONNECTING);
 
     /* Starts an instance of the WAN Interface State Machine on the interface to begin configuring the WAN link */
     WanMgr_IfaceSM_Init(&wanIfCtrl, pFixedInterface->uiIfaceIdx);

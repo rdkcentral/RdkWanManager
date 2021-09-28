@@ -170,7 +170,7 @@ static WcPpPolicyState_t Transition_Start(WanMgr_Policy_Controller_t* pWanContro
         return ANSC_STATUS_FAILURE;
     }
 
-    WanMgr_UpdatePlatformStatus(WANMGR_DISCONNECTED);
+    wanmgr_sysevents_setWanState(WAN_LINK_DOWN_STATE);
 
     CcspTraceInfo(("%s %d - State changed to STATE_INTERFACE_DOWN \n", __FUNCTION__, __LINE__));
     return STATE_INTERFACE_DOWN;
@@ -211,9 +211,6 @@ static WcPpPolicyState_t Transition_PrimaryInterfaceSelected(WanMgr_Policy_Contr
 
         WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
     }
-
-
-    WanMgr_UpdatePlatformStatus(WANMGR_CONNECTING);
 
     /* Starts an instance of the WAN Interface State Machine on
     the interface to begin configuring the WAN link */
@@ -263,7 +260,7 @@ static WcPpPolicyState_t Transition_PrimaryInterfaceDeSelected(WanMgr_Policy_Con
 
     pWanController->activeInterfaceIdx = -1;
 
-    WanMgr_UpdatePlatformStatus(WANMGR_DISCONNECTED);
+    wanmgr_sysevents_setWanState(WAN_LINK_DOWN_STATE);
 
     CcspTraceInfo(("%s %d - State changed to STATE_INTERFACE_DOWN \n", __FUNCTION__, __LINE__));
     return STATE_INTERFACE_DOWN;
@@ -294,7 +291,7 @@ static WcPpPolicyState_t Transition_PrimaryInterfaceChanged(WanMgr_Policy_Contro
 
     pWanController->activeInterfaceIdx = -1;
 
-    WanMgr_UpdatePlatformStatus(WANMGR_DISCONNECTED);
+    wanmgr_sysevents_setWanState(WAN_LINK_DOWN_STATE);
 
     WanMgr_Policy_FM_SelectWANActive(pWanController,&selectedPrimaryInterface, &selectedSecondaryInterface);
     if (selectedPrimaryInterface != -1)
@@ -313,9 +310,6 @@ static WcPpPolicyState_t Transition_PrimaryInterfaceChanged(WanMgr_Policy_Contro
 
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
         }
-
-
-        WanMgr_UpdatePlatformStatus(WANMGR_CONNECTING);
 
         /* Starts an instance of the WAN Interface State Machine on
         the interface to begin configuring the WAN link */
@@ -364,9 +358,6 @@ static WcPpPolicyState_t Transition_SecondaryInterfaceSelected(WanMgr_Policy_Con
 
     WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
 
-
-    WanMgr_UpdatePlatformStatus(WANMGR_CONNECTING);
-
     /* Starts an instance of the WAN Interface State Machine on
     the interface to begin configuring the WAN link */
     WanMgr_StartInterfaceStateMachine(&wanIfCtrl);
@@ -398,7 +389,7 @@ static WcPpPolicyState_t Transition_SecondaryInterfaceDeSelected(WanMgr_Policy_C
     pWanController->selSecondaryInterfaceIdx = -1;
 
 
-    WanMgr_UpdatePlatformStatus(WANMGR_DISCONNECTED);
+    wanmgr_sysevents_setWanState(WAN_LINK_DOWN_STATE);
 
     CcspTraceInfo(("%s %d - State changed to STATE_INTERFACE_DOWN \n", __FUNCTION__, __LINE__));
     return STATE_INTERFACE_DOWN;
@@ -441,9 +432,6 @@ static WcPpPolicyState_t Transition_SecondaryInterfaceUp(WanMgr_Policy_Controlle
         CcspTraceInfo(("%s %d - State changed to STATE_PRIMARY_WAN_ACTIVE \n", __FUNCTION__, __LINE__));
         return STATE_PRIMARY_WAN_ACTIVE;
     }
-
-
-    WanMgr_UpdatePlatformStatus(WANMGR_CONNECTING);
 
     /* Starts an instance of the WAN Interface State Machine on
     the interface to begin configuring the WAN link */

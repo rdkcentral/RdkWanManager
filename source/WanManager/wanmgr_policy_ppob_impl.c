@@ -127,7 +127,7 @@ static WcPpobPolicyState_t Transition_Start(WanMgr_Policy_Controller_t* pWanCont
         return ANSC_STATUS_FAILURE;
     }
 
-    WanMgr_UpdatePlatformStatus(WANMGR_DISCONNECTED);
+    wanmgr_sysevents_setWanState(WAN_LINK_DOWN_STATE);
 
     return SELECTING_WAN_INTERFACE;
 }
@@ -164,8 +164,6 @@ static WcPpobPolicyState_t Transition_WanInterfaceSelected(WanMgr_Policy_Control
     {
         return SELECTED_INTERFACE_DOWN;
     }
-
-    WanMgr_UpdatePlatformStatus(WANMGR_CONNECTING);
 
     /* Starts an instance of the WAN Interface State Machine on
     the interface to begin configuring the WAN link */
@@ -204,9 +202,6 @@ static WcPpobPolicyState_t Transition_SelectedInterfaceUp(WanMgr_Policy_Controll
         return ANSC_STATUS_FAILURE;
     }
 
-
-    WanMgr_UpdatePlatformStatus(WANMGR_CONNECTING);
-
     /* Starts an instance of the WAN Interface State Machine on
     the interface to begin configuring the WAN link */
     WanMgr_StartInterfaceStateMachine(&wanIfCtrl);
@@ -216,7 +211,7 @@ static WcPpobPolicyState_t Transition_SelectedInterfaceUp(WanMgr_Policy_Controll
 
 static WcPpobPolicyState_t Transition_SelectedInterfaceDown(WanMgr_Policy_Controller_t* pWanController)
 {
-    WanMgr_UpdatePlatformStatus(WANMGR_DISCONNECTED);
+    wanmgr_sysevents_setWanState(WAN_LINK_DOWN_STATE);
     return SELECTED_INTERFACE_DOWN;
 }
 

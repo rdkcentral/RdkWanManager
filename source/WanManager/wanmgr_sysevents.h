@@ -30,13 +30,14 @@
 // /* sysevent/syscfg configurations used/managed by wanmanager.
 
 //Led sysevent
-#define SYSEVENT_WAN_LED_STATE "wan_led_state"
+#define SYSEVENT_LED_STATE "led_event"
 
-#define LED_OFF_STR             "Off"
-#define LED_FLASHING_AMBER_STR  "Flashing Amber"
-#define LED_FLASHING_GREEN_STR  "Flashing Green"
-#define LED_SOLID_AMBER_STR     "Solid Amber"
-#define LED_SOLID_GREEN_STR     "Solid Green"
+#define WAN_LINK_DOWN_STATE            "rdkb_wan_link_down"
+#define WAN_LINK_UP_STATE              "rdkb_wan_link_up"
+#define WAN_IPV4_UP                    "rdkb_ipv4_up"
+#define WAN_IPV4_DOWN                  "rdkb_ipv4_down"
+#define WAN_IPV6_UP                    "rdkb_ipv6_up"
+#define WAN_IPV6_DOWN                  "rdkb_ipv6_down"
 
 // * The following defines are used for sysevent retrieval. */
 #define SYSEVENT_IPV4_CONNECTION_STATE "ipv4_connection_state"
@@ -191,7 +192,7 @@ ANSC_STATUS wanmgr_sysevents_ipv4Info_set(const ipc_dhcpv4_data_t* dhcp4Info, co
  * @param[in] const char* LedState - Indicates the led state value
  * @return Returns NONE.
 */
-void wanmgr_sysevents_setWanLedState(const char * LedState);
+void wanmgr_sysevents_setWanState(const char * LedState);
 
 
 ANSC_STATUS wanmgr_setwanstart();

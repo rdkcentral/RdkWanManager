@@ -1009,19 +1009,6 @@ static eWanState_t wan_transition_start(WanMgr_IfaceSM_Controller_t* pWanIfaceCt
         return WAN_STATE_EXIT;
     }
 
-    if(pInterface->Wan.ActiveLink == TRUE)
-    {
-        const char if_dsl_name[] = "dsl";
-        if (strncmp(pInterface->Name, if_dsl_name, strlen(if_dsl_name)) == 0)
-        {
-            WanMgr_UpdatePlatformStatus(WANMGR_LINK_UP);
-        }
-        else
-        {
-            WanMgr_UpdatePlatformStatus(WANMGR_CONNECTING);
-        }
-    }
-
     CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION START\n", __FUNCTION__, __LINE__, pInterface->Name));
 
     /* TODO: Need to handle crash recovery */
@@ -1088,7 +1075,7 @@ static eWanState_t wan_transition_wan_up(WanMgr_IfaceSM_Controller_t* pWanIfaceC
     to the state machine (i.e. not expressed in the data model */
     if(pInterface->Wan.ActiveLink == TRUE)
     {
-        WanMgr_UpdatePlatformStatus(WANMGR_CONNECTING);
+        wanmgr_sysevents_setWanState(WAN_LINK_UP_STATE);
     }
 
     CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION VALIDATING WAN\n", __FUNCTION__, __LINE__, pInterface->Name));
@@ -1256,6 +1243,7 @@ static eWanState_t wan_transition_ipv4_up(WanMgr_IfaceSM_Controller_t* pWanIface
             pWanIfaceCtrl->IhcV4Status = IHC_STARTED;
         }
 #endif
+        wanmgr_sysevents_setWanState(WAN_IPV4_UP);
     }
 
     /* Force reset ipv4 state global flag. */
@@ -1276,18 +1264,8 @@ static eWanState_t wan_transition_ipv4_up(WanMgr_IfaceSM_Controller_t* pWanIface
 
     if(pInterface->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_UP && !strcmp(buf, WAN_STATUS_UP))
     {
-        if(pInterface->Wan.ActiveLink == TRUE)
-        {
-            WanMgr_UpdatePlatformStatus(WANMGR_CONNECTED);
-        }
-
         CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION DUAL STACK ACTIVE\n", __FUNCTION__, __LINE__, pInterface->Name));
         return WAN_STATE_DUAL_STACK_ACTIVE;
-    }
-
-    if(pInterface->Wan.ActiveLink == TRUE)
-    {
-        WanMgr_UpdatePlatformStatus(WANMGR_LINK_V4UP_V6DOWN);
     }
 
     CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION IPV4 LEASED\n", __FUNCTION__, __LINE__, pInterface->Name));
@@ -1314,30 +1292,24 @@ static eWanState_t wan_transition_ipv4_down(WanMgr_IfaceSM_Controller_t* pWanIfa
     }
 
 
-#ifdef FEATURE_IPOE_HEALTH_CHECK
-    if((pInterface->Wan.EnableIPoE) && (pInterface->Wan.ActiveLink == TRUE) && (pInterface->PPP.Enable == FALSE) && (pWanIfaceCtrl->IhcPid > 0))
+    if (pInterface->Wan.ActiveLink == TRUE)
     {
-        WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_DOWN, pInterface->Wan.Name);
-        pWanIfaceCtrl->IhcV4Status = IHC_STOPPED;
-    }
+#ifdef FEATURE_IPOE_HEALTH_CHECK
+        if((pInterface->Wan.EnableIPoE) && (pInterface->PPP.Enable == FALSE) && (pWanIfaceCtrl->IhcPid > 0))
+        {
+            WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_DOWN, pInterface->Wan.Name);
+            pWanIfaceCtrl->IhcV4Status = IHC_STOPPED;
+        }
 #endif
+        wanmgr_sysevents_setWanState(WAN_IPV4_DOWN);
+    }
 
     sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_IPV6_CONNECTION_STATE, buf, sizeof(buf));
 
     if(pInterface->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_UP && !strcmp(buf, WAN_STATUS_UP))
     {
-        if(pInterface->Wan.ActiveLink == TRUE)
-        {
-            WanMgr_UpdatePlatformStatus(WANMGR_LINK_V6UP_V4DOWN);
-        }
-
         CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION IPV6 LEASED\n", __FUNCTION__, __LINE__, pInterface->Name));
         return WAN_STATE_IPV6_LEASED;
-    }
-
-    if(pInterface->Wan.ActiveLink == TRUE)
-    {
-        WanMgr_UpdatePlatformStatus(WANMGR_CONNECTING);
     }
 
     CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION OBTAINING IP ADDRESSES\n", __FUNCTION__, __LINE__, pInterface->Name));
@@ -1371,6 +1343,7 @@ static eWanState_t wan_transition_ipv6_up(WanMgr_IfaceSM_Controller_t* pWanIface
             pWanIfaceCtrl->IhcV6Status = IHC_STARTED;
         }
 #endif
+        wanmgr_sysevents_setWanState(WAN_IPV6_UP);
     }
 
     sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_WAN_SERVICE_STATUS, buf, sizeof(buf));
@@ -1385,18 +1358,8 @@ static eWanState_t wan_transition_ipv6_up(WanMgr_IfaceSM_Controller_t* pWanIface
 
     if( pInterface->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_UP && !strcmp(buf, WAN_STATUS_UP))
     {
-        if(pInterface->Wan.ActiveLink == TRUE)
-        {
-            WanMgr_UpdatePlatformStatus(WANMGR_CONNECTED);
-        }
-
         CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION DUAL STACK ACTIVE\n", __FUNCTION__, __LINE__, pInterface->Name));
         return WAN_STATE_DUAL_STACK_ACTIVE;
-    }
-
-    if(pInterface->Wan.ActiveLink == TRUE)
-    {
-        WanMgr_UpdatePlatformStatus(WANMGR_LINK_V6UP_V4DOWN);
     }
 
     CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION IPV6 LEASED\n", __FUNCTION__, __LINE__, pInterface->Name));
@@ -1421,32 +1384,24 @@ static eWanState_t wan_transition_ipv6_down(WanMgr_IfaceSM_Controller_t* pWanIfa
         CcspTraceError(("%s %d - Failed to tear down IPv6 for %s \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
     }
 
-
-
-#ifdef FEATURE_IPOE_HEALTH_CHECK
-    if ((pInterface->Wan.EnableIPoE) && (pInterface->Wan.ActiveLink == TRUE) && (pInterface->PPP.Enable == FALSE) && (pWanIfaceCtrl->IhcPid > 0))
+    if(pInterface->Wan.ActiveLink == TRUE)
     {
-        WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_IPV6_DOWN, pInterface->Wan.Name);
-        pWanIfaceCtrl->IhcV6Status = IHC_STOPPED;
-    }
+#ifdef FEATURE_IPOE_HEALTH_CHECK
+        if ((pInterface->Wan.EnableIPoE) && (pInterface->Wan.ActiveLink == TRUE) && (pInterface->PPP.Enable == FALSE) && (pWanIfaceCtrl->IhcPid > 0))
+        {
+            WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_IPV6_DOWN, pInterface->Wan.Name);
+            pWanIfaceCtrl->IhcV6Status = IHC_STOPPED;
+        }
 #endif
+        wanmgr_sysevents_setWanState(WAN_IPV6_DOWN);
+    }
 
     sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_IPV4_CONNECTION_STATE, buf, sizeof(buf));
 
     if(pInterface->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_UP && !strcmp(buf, WAN_STATUS_UP))
     {
-        if(pInterface->Wan.ActiveLink == TRUE)
-        {
-            WanMgr_UpdatePlatformStatus(WANMGR_LINK_V4UP_V6DOWN);
-        }
-
         CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION IPV4 LEASED\n", __FUNCTION__, __LINE__, pInterface->Name));
         return WAN_STATE_IPV4_LEASED;
-    }
-
-    if(pInterface->Wan.ActiveLink == TRUE)
-    {
-        WanMgr_UpdatePlatformStatus(WANMGR_CONNECTING);
     }
 
     CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION OBTAINING IP ADDRESSES\n", __FUNCTION__, __LINE__, pInterface->Name));
@@ -1495,7 +1450,7 @@ static eWanState_t wan_transition_exit(WanMgr_IfaceSM_Controller_t* pWanIfaceCtr
     pInterface->Wan.Refresh = FALSE;
     pInterface->Wan.ActiveLink = FALSE;
 
-    WanMgr_UpdatePlatformStatus(WANMGR_DISCONNECTED);
+    wanmgr_sysevents_setWanState(WAN_LINK_DOWN_STATE);
 
     CcspTraceInfo(("%s %d - Interface '%s' - EXITING STATE MACHINE\n", __FUNCTION__, __LINE__, pInterface->Name));
     return WAN_STATE_EXIT;

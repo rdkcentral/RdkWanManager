@@ -28,6 +28,7 @@
 #include <sys/time.h>
 #include <time.h>
 #include "wanmgr_rdkbus_common.h"
+#include "wanmgr_sysevents.h"
 
 #if defined(_HUB4_PRODUCT_REQ_) || defined(_COSA_BCM_ARM_)
 
@@ -48,24 +49,4 @@
 #define LOG_CONSOLE(fmt ...)
 
 #endif //_HUB4_PRODUCT_REQ_
-
-
-typedef enum
-{
-    WANMGR_DISCONNECTED = 1,
-    WANMGR_LINK_UP,
-    WANMGR_LINK_V6UP_V4DOWN,
-    WANMGR_LINK_V4UP_V6DOWN,
-    WANMGR_CONNECTING,
-    WANMGR_CONNECTED
-} eWanMgrPlatformStatus;
-
-
-/***************************************************************************
- * @brief Function used to inform the platform the status of WAN Manager
- * @param  platform_status Current WAN Manager status
- * @return ANSC_STATUS_SUCCESS upon success else returned error code.
- ***************************************************************************/
-ANSC_STATUS WanMgr_UpdatePlatformStatus(eWanMgrPlatformStatus platform_status);
-
 #endif /*_WANMGR_PLATFORM_EVENTS_H_*/

@@ -255,10 +255,11 @@ ANSC_STATUS wanmgr_sysevents_ipv4Info_init(const char *wanIfName)
 }
 
 
-void wanmgr_sysevents_setWanLedState(const char * LedState)
+void wanmgr_sysevents_setWanState(const char * LedState)
 {
     if (sysevent_fd == -1)      return;
-    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_WAN_LED_STATE, LedState, 0);
+    CcspTraceInfo(("Setting WAN state to %s\n", LedState));
+    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_LED_STATE, LedState, 0);
 }
 
 
