@@ -328,17 +328,6 @@ uint32_t WanManager_StartDhcpv6Client(const char *pcInterfaceName)
     pid = start_dhcpv6_client(&params);
 
     CcspTraceInfo(("Started Thread-Pid %d \n", pid ));
-    if (pid)
-    {
-        if(setDibblerClientEnable(&enableClient) == ANSC_STATUS_SUCCESS)
-        {
-            CcspTraceInfo(("setDibblerClientEnable is successful \n"));
-        }
-        else
-        {
-            CcspTraceInfo(("setDibblerClientEnable is failure \n"));
-        }
-    }
     return pid;
 }
 
