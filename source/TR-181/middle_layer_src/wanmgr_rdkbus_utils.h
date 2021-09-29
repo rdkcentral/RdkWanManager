@@ -93,7 +93,7 @@
 #define PARAM_NAME_REQUEST_OPERATIONAL_STATUS "RequestOperationalStatus"
 #define PARAM_NAME_CONFIGURE_WAN "ConfigureWan"
 #define PARAM_NAME_CUSTOM_CONFIG_WAN "CustomWanConfigUpdate"
-
+#define PARAM_NAME_POST_CFG_WAN_FINALIZE "PostCfgWanFinalize"
 
 ANSC_STATUS WanMgr_RdkBus_SetParamValues( char *pComponent, char *pBus, char *pParamName, char *pParamVal, enum dataType_e type, BOOLEAN bCommit );
 ANSC_STATUS WanMgr_RdkBus_GetParamValues( char *pComponent, char *pBus, char *pParamName, char *pReturnVal );

@@ -134,6 +134,50 @@ static DML_WAN_IFACE_TYPE WanMgr_GetWanInterfaceType(INT  iWanInterfaceIndex)
     return type;
 }
 
+static INT WanMgr_Policy_AutoWan_CfgPostWanSelection(WanMgr_AutoWan_SMInfo_t *pSmInfo)
+{
+    INT uiWanIdx = 0;
+    UINT uiTotalIfaces = -1;
+    if (!pSmInfo)
+        return -1;
+
+    //Get uiTotalIfaces
+    uiTotalIfaces = WanMgr_IfaceData_GetTotalWanIface();
+
+    if(uiTotalIfaces > 0)
+    {
+        // Check the policy to determine if any primary interface should be used for WAN
+        for(uiWanIdx = 0; uiWanIdx < uiTotalIfaces; ++uiWanIdx )
+        {
+            WanMgr_Iface_Data_t*   pWanDmlIfaceData = WanMgr_GetIfaceData_locked(uiWanIdx);
+            if(pWanDmlIfaceData != NULL)
+            {
+                DML_WAN_IFACE* pInterface = NULL;
+                char acIfName[256] = {0};
+
+                pInterface = &(pWanDmlIfaceData->data);
+
+                if(pInterface == NULL)
+                {
+                    WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+                    return -1;
+                }
+
+                snprintf(acIfName,sizeof(acIfName),"%s",pInterface->Wan.Name);
+                ANSC_STATUS ret = WanMgr_RdkBus_SetRequestIfComponent(pInterface->Phy.Path,PARAM_NAME_POST_CFG_WAN_FINALIZE,acIfName,ccsp_string);
+                if (ret == ANSC_STATUS_FAILURE)
+                {
+                    CcspTraceError(("%s WanMgr_RdkBus_SetRequestIfComponent failed for param %s.%s\n",__FUNCTION__,pInterface->Phy.Path,PARAM_NAME_POST_CFG_WAN_FINALIZE));
+                }
+
+                WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+            }
+        }
+    }
+
+    return 0;
+}
+
 static WcFmobPolicyState_t WanMgr_Policy_AutoWan_SelectAlternateInterface(WanMgr_AutoWan_SMInfo_t *pSmInfo)
 {
     WcFmobPolicyState_t retState = STATE_WAN_WAITING_FOR_INTERFACE;
@@ -1141,6 +1185,7 @@ static WcFmobPolicyState_t State_WanScanningInterface(WanMgr_AutoWan_SMInfo_t *p
     WcFmobPolicyState_t retState = STATE_WAN_SCANNING_INTERFACE;
     WanMgr_Policy_Controller_t    *pWanController = NULL;
     DML_WAN_IFACE* pFixedInterface = NULL;
+    bool wanActive = false;
     INT wanStatus = -1;
 
     if (!pSmInfo)
@@ -1164,7 +1209,7 @@ static WcFmobPolicyState_t State_WanScanningInterface(WanMgr_AutoWan_SMInfo_t *p
         {
             case WAN_OPERSTATUS_OPERATIONAL:
             {
-                retState = Transition_WanInterfaceActive(pSmInfo);
+                wanActive = true;
             }
             break;
             case WAN_OPERSTATUS_NOT_OPERATIONAL:
@@ -1181,7 +1226,7 @@ static WcFmobPolicyState_t State_WanScanningInterface(WanMgr_AutoWan_SMInfo_t *p
         if ((pFixedInterface->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_UP)
                 || (pFixedInterface->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_UP))
         {
-             retState = Transition_WanInterfaceActive(pSmInfo);
+             wanActive = true;
         }
         else if ((pFixedInterface->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_DOWN)
                     && (pFixedInterface->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_DOWN))
@@ -1190,7 +1235,11 @@ static WcFmobPolicyState_t State_WanScanningInterface(WanMgr_AutoWan_SMInfo_t *p
         }
     }
 
-
+    if (wanActive == true)
+    {
+        WanMgr_Policy_AutoWan_CfgPostWanSelection(pSmInfo);
+        retState = Transition_WanInterfaceActive(pSmInfo);
+    }
     return retState;
 }
 
