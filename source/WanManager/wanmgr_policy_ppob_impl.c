@@ -87,21 +87,20 @@ static UINT SelectionTimer()
     }
 }
 
-static void WanMgr_Policy_FM_SelectWANActive(WanMgr_Policy_Controller_t* pWanController, INT* pPrimaryInterface, INT* pSecondaryInterface)
+static void WanMgr_Policy_FM_SelectWANActive(WanMgr_Policy_Controller_t* pWanController, INT* pPrimaryInterface)
 {
     UINT uiLoopCount;
     UINT uiTotalIfaces = -1;
     INT iSelPrimaryInterface = -1;
     INT iSelSecondaryInterface = -1;
     INT iSelPrimaryPriority = DML_WAN_IFACE_PRIORITY_MAX;
-    INT iSelSecondaryPriority = DML_WAN_IFACE_PRIORITY_MAX;
     UINT validPrimaryCount = 0;
 
     //Get uiTotalIfaces
     uiTotalIfaces = WanMgr_IfaceData_GetTotalWanIface();
     if(uiTotalIfaces > 0)
     {
-        // Check the policy to determine if any primary interface should be used for WAN
+        // Check the policy to determine if any primary interface should be used for WAN based on Priority
         if(pWanController->WanEnable == TRUE)
         {
             //Selection Timer
@@ -114,31 +113,16 @@ static void WanMgr_Policy_FM_SelectWANActive(WanMgr_Policy_Controller_t* pWanCon
                 {
                     DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
 
-                    if (pWanIfaceData->Wan.Enable == TRUE &&
-                        pWanIfaceData->Wan.Status != WAN_IFACE_STATUS_INVALID)
+                    if ((pWanIfaceData->Wan.Enable == TRUE) && 
+                        (pWanIfaceData->Wan.Priority >= 0) &&
+                        (pWanIfaceData->Wan.Status != WAN_IFACE_STATUS_INVALID))
                     {
-                        if(pWanIfaceData->Wan.Type == WAN_IFACE_TYPE_PRIMARY)
+                        // pWanIfaceData - is Wan-Enabled & has valid Priority & Phy status
+                        if(pWanIfaceData->Wan.Priority < iSelPrimaryPriority)
                         {
-                            if(pWanIfaceData->Wan.Priority < iSelPrimaryPriority)
-                            {
-                                if(pWanIfaceData->Wan.Priority >= 0)
-                                {
-                                    iSelPrimaryInterface = uiLoopCount;
-                                    iSelPrimaryPriority = pWanIfaceData->Wan.Priority;
-                                }
-                            }
-                            validPrimaryCount++;
-                        }
-                        else
-                        {
-                            if(pWanIfaceData->Wan.Priority < iSelSecondaryPriority)
-                            {
-                                if(pWanIfaceData->Wan.Priority >= 0)
-                                {
-                                    iSelSecondaryInterface = uiLoopCount;
-                                    iSelSecondaryPriority = pWanIfaceData->Wan.Priority;
-                                }
-                            }
+                            // update Primary iface with high priority iface
+                            iSelPrimaryInterface = uiLoopCount;
+                            iSelPrimaryPriority = pWanIfaceData->Wan.Priority;
                         }
                     }
 
@@ -167,33 +151,7 @@ static void WanMgr_Policy_FM_SelectWANActive(WanMgr_Policy_Controller_t* pWanCon
         }
     }
 
-    if(iSelSecondaryInterface != -1 )
-    {
-        if(validPrimaryCount ==0)
-        {
-            WanMgr_Iface_Data_t*   pWanDmlIfaceData = WanMgr_GetIfaceData_locked(iSelSecondaryInterface);
-            if(pWanDmlIfaceData != NULL)
-            {
-                DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
-                if(pWanIfaceData->Phy.Status == WAN_IFACE_PHY_STATUS_UP ||
-                   pWanIfaceData->Phy.Status == WAN_IFACE_PHY_STATUS_INITIALIZING)
-                {
-                    *pSecondaryInterface = iSelSecondaryInterface;
-                }
-                 else
-                {
-                    iSelSecondaryInterface= -1;
-                }
-                WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
-            }
-         }else
-         {
-             iSelSecondaryInterface= -1;
-         }
-    }         
-
     *pPrimaryInterface = iSelPrimaryInterface;
-    *pSecondaryInterface = iSelSecondaryInterface;
     return ;
 }
 
@@ -306,7 +264,6 @@ static WcPpobPolicyState_t Transition_SelectedInterfaceDown(WanMgr_Policy_Contro
 static WcPpobPolicyState_t State_SelectingWanInterface(WanMgr_Policy_Controller_t* pWanController)
 {
     int selectedPrimaryInterface = -1;
-    int selectedSecondaryInterface = -1;
 
     if(pWanController == NULL)
     {
@@ -314,27 +271,12 @@ static WcPpobPolicyState_t State_SelectingWanInterface(WanMgr_Policy_Controller_
         return ANSC_STATUS_FAILURE;
     }
 
-    WanMgr_Policy_FM_SelectWANActive(pWanController, &selectedPrimaryInterface, &selectedSecondaryInterface);
+    WanMgr_Policy_FM_SelectWANActive(pWanController, &selectedPrimaryInterface);
 
 
-    if(selectedPrimaryInterface != -1 && selectedSecondaryInterface != -1)
-    {
-        /* multiple interfaces connected, so start selectiontimeout timer
-        if selectiontimeout timer > maximum selection timeout of the connected interfaces,
-        use the highest priority interface */
-        pWanController->activeInterfaceIdx = selectedPrimaryInterface;
-    }
-    else if(selectedPrimaryInterface != -1)
+    if(selectedPrimaryInterface != -1)
     {
         pWanController->activeInterfaceIdx = selectedPrimaryInterface;
-    }
-    else if(selectedSecondaryInterface != -1)
-    {
-        pWanController->activeInterfaceIdx = selectedSecondaryInterface;
-    }
-
-    if(pWanController->activeInterfaceIdx != -1)
-    {
         return Transition_WanInterfaceSelected(pWanController);
     }
 

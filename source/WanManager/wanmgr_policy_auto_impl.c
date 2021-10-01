@@ -185,30 +185,25 @@ static void WanMgr_Policy_Auto_SelectWANActive(WanMgr_Policy_Controller_t* pWanC
                 {
                     DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
                     //Check Iface Wan Enable and Wan Status InValid
-                    if ((pWanIfaceData->Wan.Enable == TRUE) &&
+                    if ((pWanIfaceData->Wan.Enable == TRUE) && 
+                        (pWanIfaceData->Wan.Priority >= 0) &&
                         (pWanIfaceData->Wan.Status != WAN_IFACE_STATUS_INVALID))
                     {
-                        if(pWanIfaceData->Wan.Type == WAN_IFACE_TYPE_PRIMARY)
+                        // pWanIfaceData - is Wan-Enabled & has valid Priority & Phy status
+                        if(pWanIfaceData->Wan.Priority < iSelPrimaryPriority)
                         {
-                            if(pWanIfaceData->Wan.Priority < iSelPrimaryPriority)
-                            {
-                                if(pWanIfaceData->Wan.Priority >= 0)
-                                {
-                                    iSelPrimaryInterface = uiLoopCount;
-                                    iSelPrimaryPriority = pWanIfaceData->Wan.Priority;
-                                }
-                            }
+                            // move Primary interface as Secondary
+                            iSelSecondaryInterface = iSelPrimaryInterface;
+                            iSelSecondaryPriority = iSelPrimaryPriority;
+                            // update Primary iface with high priority iface
+                            iSelPrimaryInterface = uiLoopCount;
+                            iSelPrimaryPriority = pWanIfaceData->Wan.Priority;
                         }
-                        else
+                        else if (pWanIfaceData->Wan.Priority < iSelSecondaryPriority)
                         {
-                            if(pWanIfaceData->Wan.Priority < iSelSecondaryPriority)
-                            {
-                                if(pWanIfaceData->Wan.Priority >= 0)
-                                {
-                                    iSelSecondaryInterface = uiLoopCount;
-                                    iSelSecondaryPriority = pWanIfaceData->Wan.Priority;
-                                }
-                            }
+                            // pWanIfaceData - has a priority greater the selected primary but lesser the secondar iface
+                            iSelSecondaryInterface = uiLoopCount;
+                            iSelSecondaryPriority = pWanIfaceData->Wan.Priority;
                         }
                     }
                     WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);

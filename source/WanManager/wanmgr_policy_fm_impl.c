@@ -74,15 +74,12 @@ static INT WanMgr_Policy_FM_SelectWANActive(void)
             if(pWanDmlIfaceData != NULL)
             {
                 DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
-                if ((pWanIfaceData->Wan.Enable == TRUE) && (pWanIfaceData->Wan.Type == WAN_IFACE_TYPE_PRIMARY))
+                if (pWanIfaceData->Wan.Enable == TRUE)
                 {
-                    if(pWanIfaceData->Wan.Priority < iActivePriority)
+                    if((pWanIfaceData->Wan.Priority >= 0) && (pWanIfaceData->Wan.Priority < iActivePriority))
                     {
-                        if(pWanIfaceData->Wan.Priority >= 0)
-                        {
-                            iActiveWanIdx = uiLoopCount;
-                            iActivePriority = pWanIfaceData->Wan.Priority;
-                        }
+                        iActiveWanIdx = uiLoopCount;
+                        iActivePriority = pWanIfaceData->Wan.Priority;
                     }
                 }
 
@@ -172,10 +169,12 @@ static WcFmPolicyState_t Transition_FixedInterfaceChanged(WanMgr_Policy_Controll
     /* Sets Wan.Status to DISABLED for the current active interface */
     pFixedInterface->Wan.Status = WAN_IFACE_STATUS_DISABLED;
 
-    //ActiveLink
+    /* Set ActiveLink to FALSE since Fixed Interface is changed */
     pFixedInterface->Wan.ActiveLink = FALSE;
     pFixedInterface->SelectionStatus = WAN_IFACE_NOT_SELECTED;
 
+    /* Set default value to active Interface to force controller pWanActiveIfaceData to be updated */
+    pWanController->activeInterfaceIdx = -1;
 
     return STATE_FIXING_WAN_INTERFACE;
 }
@@ -228,8 +227,7 @@ static WcFmPolicyState_t State_FixedWanInterfaceDown(WanMgr_Policy_Controller_t*
         return Transition_FixedInterfaceUp(pWanController);
     }
 
-    if( pFixedInterface->Wan.Enable != TRUE ||
-        pFixedInterface->Wan.Type   != WAN_IFACE_TYPE_PRIMARY)
+    if( pFixedInterface->Wan.Enable != TRUE)
     {
         return Transition_FixedInterfaceChanged(pWanController);
     }
@@ -265,7 +263,7 @@ static WcFmPolicyState_t State_FixedWanInterfaceUp(WanMgr_Policy_Controller_t* p
         return Transition_FixedInterfaceDown(pWanController);
     }
 
-    if( pFixedInterface->Wan.Enable == FALSE || pFixedInterface->Wan.Type != WAN_IFACE_TYPE_PRIMARY)
+    if( pFixedInterface->Wan.Enable == FALSE )
     {
         return Transition_FixedInterfaceChanged(pWanController);
     }

@@ -72,15 +72,12 @@ static INT WanMgr_Policy_FM_SelectWANActive(void)
             if(pWanDmlIfaceData != NULL)
             {
                 DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
-                if ((pWanIfaceData->Wan.Enable == TRUE) && (pWanIfaceData->Wan.Type == WAN_IFACE_TYPE_PRIMARY))
+                if (pWanIfaceData->Wan.Enable == TRUE)
                 {
-                    if(pWanIfaceData->Wan.Priority < iActivePriority)
+                    if((pWanIfaceData->Wan.Priority >= 0) && (pWanIfaceData->Wan.Priority < iActivePriority))
                     {
-                        if(pWanIfaceData->Wan.Priority >= 0)
-                        {
-                            iActiveWanIdx = uiLoopCount;
-                            iActivePriority = pWanIfaceData->Wan.Priority;
-                        }
+                        iActiveWanIdx = uiLoopCount;
+                        iActivePriority = pWanIfaceData->Wan.Priority;
                     }
                 }
 
