@@ -436,20 +436,6 @@ static int write_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFAC
 
     memset(param_value, 0, sizeof(param_value));
     memset(param_name, 0, sizeof(param_name));
-
-    if(p_Interface->Wan.ActiveLink)
-    {
-        _ansc_sprintf(param_value, PSM_ENABLE_STRING_TRUE);
-    }
-    else
-    {
-        _ansc_sprintf(param_value, PSM_ENABLE_STRING_FALSE);
-    }
-    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_ACTIVELINK, instancenum);
-    WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
-    
-    memset(param_value, 0, sizeof(param_value));
-    memset(param_name, 0, sizeof(param_name));
     _ansc_sprintf(param_value, "%d", p_Interface->Wan.Type );
     _ansc_sprintf(param_name, PSM_WANMANAGER_IF_TYPE, instancenum);
     WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
