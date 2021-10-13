@@ -403,7 +403,7 @@ ANSC_STATUS WanManager_StopDhcpv4Client(BOOL sendReleaseAndExit)
         if (WanManager_IsApplicationRunning(DHCPV4_CLIENT_NAME) == TRUE)
         {
             int pid = util_getPidByName(DHCPV4_CLIENT_NAME);
-            CcspTraceInfo(("sending SIGUSR2 to [%s][pid=%d], this will let the %s to send release packet out and exit \n", DHCPV4_CLIENT_NAME));
+            CcspTraceInfo(("sending SIGUSR2 to [%s][pid=%d], this will let the %s to send release packet out and exit \n", DHCPV4_CLIENT_NAME, pid, DHCPV4_CLIENT_NAME));
             if (util_signalProcess(pid, SIGUSR2) != RETURN_OK)
             {
                 WanManager_DoStopApp(DHCPV4_CLIENT_NAME);
