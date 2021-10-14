@@ -35,6 +35,7 @@
 #include "platform_hal.h"
 #include <sys/sysinfo.h>
 #include "syscfg.h"
+#include "dhcp_client_utils.h"
 
 #define RESOLV_CONF_FILE "/etc/resolv.conf"
 #define LOOPBACK "127.0.0.1"
@@ -311,25 +312,34 @@ int WanManager_Ipv6AddrUtil(char *ifname, Ipv6OperType opr, int preflft, int val
 
 
 
-ANSC_STATUS WanManager_StartDhcpv6Client(const char *pcInterfaceName, BOOL isPPP)
+uint32_t WanManager_StartDhcpv6Client(const char *pcInterfaceName)
 {
     char cmdLine[BUFLEN_128];
     BOOL enableClient = TRUE;
 
     CcspTraceInfo(("Enter WanManager_StartDhcpv6Client for  %s \n", DHCPV6_CLIENT_NAME));
-    sprintf(cmdLine, "%s start", DHCPV6_CLIENT_NAME);
-    system(cmdLine);
-    CcspTraceInfo(("Started %s \n", cmdLine ));
-    if(setDibblerClientEnable(&enableClient) == ANSC_STATUS_SUCCESS)
-    {
-        CcspTraceInfo(("setDibblerClientEnable is successful \n"));
-    }
-    else
-    {
-        CcspTraceInfo(("setDibblerClientEnable is failure \n"));
-    }
 
-    return ANSC_STATUS_SUCCESS;
+    uint32_t pid = 0;
+    dhcp_params params;
+
+    memset (&params, 0, sizeof(dhcp_params));
+    params.ifname = pcInterfaceName;
+
+    pid = start_dhcpv6_client(&params);
+
+    CcspTraceInfo(("Started Thread-Pid %d \n", pid ));
+    if (pid)
+    {
+        if(setDibblerClientEnable(&enableClient) == ANSC_STATUS_SUCCESS)
+        {
+            CcspTraceInfo(("setDibblerClientEnable is successful \n"));
+        }
+        else
+        {
+            CcspTraceInfo(("setDibblerClientEnable is failure \n"));
+        }
+    }
+    return pid;
 }
 
 /**
@@ -351,28 +361,23 @@ ANSC_STATUS WanManager_StopDhcpv6Client(BOOL boolDisconnect)
     return ret;
 }
 
-uint32_t WanManager_StartDhcpv4Client(const char *intf, BOOL discover)
+uint32_t WanManager_StartDhcpv4Client(const char *iface)
 {
+    if (iface == NULL)
+    {
+        CcspTraceError(("%s %d: Invalid args \n", __FUNCTION__, __LINE__));
+        return 0;
+    }
+
+    CcspTraceInfo(("Starting DHCP Client for iface: %s \n", iface));
+
     uint32_t pid = 0;
-    char cmdLine[BUFLEN_128];
-    char exeBuff[1024] = {0};
+    dhcp_params params;
 
-    /**
-     * In case of udhcpc, we are passing action handler program which will be invoked
-     * and fill the required dhcpv4 configuration. This handler will pass the data back
-     * to wanmanager. Get full path of the action handler executable and pass to udhcpc.
-    */
-    if (ANSC_STATUS_SUCCESS != GetPathToApp(DHCPV4_ACTION_HANDLER, exeBuff, sizeof(exeBuff) - 1))
-    {
-        CcspTraceError(("Could not find requested app [%s] in CPE , not passing -s option to udhcpc \n", DHCPV4_ACTION_HANDLER));
-        snprintf(cmdLine, sizeof(cmdLine), "-f -i %s -p %s", (intf != NULL ? intf : ""),DHCPV4C_PID_FILE);
-    }
-    else
-    {
-        snprintf(cmdLine, sizeof(cmdLine), "-f -i %s -p %s -s %s", (intf != NULL ? intf : ""),DHCPV4C_PID_FILE, exeBuff);
-    }
+    memset (&params, 0, sizeof(dhcp_params));
+    params.ifname = iface;
 
-    pid = WanManager_DoStartApp(DHCPV4_CLIENT_NAME, cmdLine);
+    pid = start_dhcpv4_client(&params);
 
     return pid;
 }
