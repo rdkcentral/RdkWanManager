@@ -36,6 +36,8 @@
 #include <sys/sysinfo.h>
 #include "syscfg.h"
 #include "dhcp_client_utils.h"
+#include "wanmgr_sysevents.h"
+#include <sysevent/sysevent.h>
 
 #define RESOLV_CONF_FILE "/etc/resolv.conf"
 #define LOOPBACK "127.0.0.1"
@@ -71,6 +73,9 @@
 #define AF_SELECT_IPV6       0x0002
 
 extern ANSC_HANDLE bus_handle;
+
+extern int sysevent_fd;
+extern token_t sysevent_token;
 
 #define DATAMODEL_PARAM_LENGTH 256
 
@@ -261,51 +266,63 @@ static void* Dhcpv6HandlingThread( void *arg )
 
 int WanManager_Ipv6AddrUtil(char *ifname, Ipv6OperType opr, int preflft, int vallft)
 {
-    struct ifaddrs *ifap, *ifa;
-    char addr[INET6_ADDRSTRLEN] = {0};
     char cmdLine[128] = {0};
+    char prefix[BUFLEN_48] = {0};
+    char prefixAddr[BUFLEN_48] = {0};
 
-    if (getifaddrs(&ifap) == -1)
-    {
-        return -1;
-    }
+    memset(prefix, 0, sizeof(prefix));
+    sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_PREFIX, prefix, sizeof(prefix));
 
-    for (ifa = ifap; ifa; ifa = ifa->ifa_next)
+    memset(prefixAddr, 0, sizeof(prefixAddr));
+    sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_GLOBAL_IPV6_PREFIX_SET, prefixAddr, sizeof(prefixAddr));
+
+    switch (opr)
     {
-        if (strncmp(ifa->ifa_name, ifname, strlen(ifname)))
-            continue;
-        if (ifa->ifa_addr->sa_family != AF_INET6)
-            continue;
-        getnameinfo(ifa->ifa_addr, sizeof(struct sockaddr_in6), addr,
-                    sizeof(addr), NULL, 0, NI_NUMERICHOST);
-        if ((strncmp(addr, "fe", 2) != 0) && (strncmp(addr, "fd", 2) != 0))
+        case DEL_ADDR:
         {
-            switch (opr)
-            {
-            case DEL_ADDR:
+            if (strlen(prefix) > 0)
             {
                 memset(cmdLine, 0, sizeof(cmdLine));
-                snprintf(cmdLine, sizeof(cmdLine), "ip -6 addr del %s/64 dev %s", addr, ifname);
+                snprintf(cmdLine, sizeof(cmdLine), "ip -6 addr del %s/64 dev %s", prefixAddr, ifname);
                 if (WanManager_DoSystemActionWithStatus("ip -6 addr del ADDR dev xxxx", cmdLine) != 0)
                     CcspTraceError(("failed to run cmd: %s", cmdLine));
+
                 memset(cmdLine, 0, sizeof(cmdLine));
-                snprintf(cmdLine, sizeof(cmdLine), "ip -6 route del %s/64 dev %s", addr, ifname);
-                if (WanManager_DoSystemActionWithStatus("ip -6 route del ADDR dev xxxx", cmdLine) != 0)
+                snprintf(cmdLine, sizeof(cmdLine), "ip -6 route flush %s ", prefix);
+                if (WanManager_DoSystemActionWithStatus("ip -6 route flush PREFIX ", cmdLine) != 0)
                     CcspTraceError(("failed to run cmd: %s", cmdLine));
-                break;
+
+                CcspTraceInfo(("%s-%d: Successfully del addr and route from Interface %s, prefix=%s, prefixAddr=%s \n",
+       	                               __FUNCTION__, __LINE__, ifname, prefix, prefixAddr));
             }
-            case SET_LFT:
+            else
+            {
+                CcspTraceError(("%s-%d: Failed to delete addr and route from Interface %s, prefix=%s, prefixAddr=%s \n",
+       	                                __FUNCTION__, __LINE__, ifname, prefix, prefixAddr));
+            }
+            break;
+        }
+        case SET_LFT:
+        {
+            if (strlen(prefixAddr) > 0)
             {
                 memset(cmdLine, 0, sizeof(cmdLine));
-                snprintf(cmdLine, sizeof(cmdLine), "ip -6 addr change %s dev brlan0 valid_lft %d preferred_lft %d ", addr, vallft, preflft);
+                snprintf(cmdLine, sizeof(cmdLine), "ip -6 addr change %s dev brlan0 valid_lft %d preferred_lft %d ", prefixAddr, vallft, preflft);
                 if (WanManager_DoSystemActionWithStatus("processDhcp6cStateChanged: ip -6 addr change L3IfName", (cmdLine)) != 0)
                     CcspTraceError(("failed to run cmd: %s", cmdLine));
-                break;
+
+                CcspTraceInfo(("%s-%d: Successfully updated addr from Interface %s, prefixAddr=%s, vallft=%d, preflft=%d \n",
+                                       __FUNCTION__, __LINE__, ifname, prefixAddr, vallft, preflft));
             }
+	    else
+            {
+                CcspTraceError(("%s-%d: Failed to update addr from Interface %s, prefixAddr=%s, vallft=%d, preflft=%d \n",
+                                        __FUNCTION__, __LINE__, ifname, prefixAddr, vallft, preflft));
             }
+            break;
         }
     }
-    freeifaddrs(ifap);
+
     return 0;
 }
 
