@@ -1142,16 +1142,16 @@ static eWanState_t wan_transition_wan_validated(WanMgr_IfaceSM_Controller_t* pWa
         }
 #endif // FEATURE_IPOE_HEALTH_CHECK
         /* Start DHCPv4 client */
-        CcspTraceInfo(("%s %d - Staring udhcpc on interface %s \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
-        uint32_t pid = WanManager_StartDhcpv4Client(pInterface->Wan.Name, FALSE);
+        CcspTraceInfo(("%s %d - Staring dhcpc on interface %s \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
+        uint32_t dhcpv4_pid = WanManager_StartDhcpv4Client(pInterface->Wan.Name);
+        CcspTraceInfo(("%s %d - Started dhcpc on interface %s, dhcpv4_pid %d \n", __FUNCTION__, __LINE__, pInterface->Wan.Name, dhcpv4_pid));
 
         /* Start DHCPv6 Client */
         CcspTraceInfo(("%s %d - Staring dibbler-client on interface %s \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
-        if (RETURN_OK != WanManager_StartDhcpv6Client(pInterface->Wan.Name, FALSE))
-        {
-            CcspTraceError(("%s %d - Failed to start DHCPv6 client on %s \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
-        }
-        CcspTraceInfo(("%s %d - Started dibbler-client on interface %s \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
+
+        uint32_t dhcpv6_pid = WanManager_StartDhcpv6Client(pInterface->Wan.Name);
+        CcspTraceInfo(("%s %d - Started dibbler-client on interface %s, dhcpv6_pid %d \n", __FUNCTION__, __LINE__, pInterface->Wan.Name, dhcpv6_pid));
+
     }
     else
     {
@@ -1226,14 +1226,13 @@ static eWanState_t wan_transition_wan_refreshed(WanMgr_IfaceSM_Controller_t* pWa
         /* Start dhcp clients */
         /* DHCPv4 client */
         CcspTraceInfo(("%s %d - Staring dhcpc on interface %s \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
-        uint32_t pid = WanManager_StartDhcpv4Client(pInterface->Wan.Name, FALSE);
-        CcspTraceInfo(("%s %d - Started dhcpc on interface %s, pid %d \n", __FUNCTION__, __LINE__, pInterface->Wan.Name, pid));
+        uint32_t dhcpv4_pid = WanManager_StartDhcpv4Client(pInterface->Wan.Name);
+        CcspTraceInfo(("%s %d - Started dhcpc on interface %s, dhcpv4_pid %d \n", __FUNCTION__, __LINE__, pInterface->Wan.Name, dhcpv4_pid));
 
         /* DHCPv6 Client */
-        if (RETURN_OK != WanManager_StartDhcpv6Client(pInterface->Wan.Name, FALSE))
-        {
-            CcspTraceError(("%s %d - Failed to start DHCPv6 client on %s \n", __FUNCTION__, __LINE__, pInterface->Wan.Name ));
-        }
+        uint32_t dhcpv6_pid = WanManager_StartDhcpv6Client(pInterface->Wan.Name);
+        CcspTraceInfo(("%s %d - Started dibbler-client on interface %s, dhcpv6_pid %d \n", __FUNCTION__, __LINE__, pInterface->Wan.Name, dhcpv6_pid));
+
     }
     else
     {

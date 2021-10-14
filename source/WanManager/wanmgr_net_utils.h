@@ -96,7 +96,7 @@ typedef enum
  * @param isPPP indicates PPP enabled or nor
  * @return ANSC_STATUS_SUCCESS upon success else returned error code.
  ***************************************************************************/
-ANSC_STATUS WanManager_StartDhcpv6Client(const char *pcInterfaceName, BOOL isPPP);
+uint32_t WanManager_StartDhcpv6Client(const char *pcInterfaceName);
 
 /***************************************************************************
  * @brief API used to stop Dhcpv6 client application.
@@ -109,10 +109,9 @@ ANSC_STATUS WanManager_StopDhcpv6Client(BOOL boolDisconnect);
 /***************************************************************************
  * @brief API used to start Dhcpv4 client application.
  * @param intf Interface name on which the dhcpv4 needs to start
- * @param discover flag indicates discover on interface forced.
  * @return ANSC_STATUS_SUCCESS upon success else returned error code.
  ***************************************************************************/
-uint32_t WanManager_StartDhcpv4Client(const char* intf, BOOL discover);
+uint32_t WanManager_StartDhcpv4Client(const char* intf);
 
 /***************************************************************************
  * @brief API used to stop Dhcpv4 client application.
