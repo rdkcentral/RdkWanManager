@@ -224,106 +224,6 @@ static int get_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFACE*
 
     _ansc_memset(param_name, 0, sizeof(param_name));
     _ansc_memset(param_value, 0, sizeof(param_value));
-    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_VALIDATION_DISCOVERY_OFFER, instancenum);
-    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
-    if (retPsmGet == CCSP_SUCCESS)
-    {
-        if(strcmp(param_value, PSM_ENABLE_STRING_TRUE) == 0)
-        {
-             p_Interface->Wan.Validation.DiscoverOffer = TRUE;
-        }
-        else
-        {
-             p_Interface->Wan.Validation.DiscoverOffer = FALSE;
-        }
-    }
-    else
-    {
-        p_Interface->Wan.Validation.DiscoverOffer = FALSE;
-    }
-
-    _ansc_memset(param_name, 0, sizeof(param_name));
-    _ansc_memset(param_value, 0, sizeof(param_value));
-    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_VALIDATION_SOLICIT_ADVERTISE, instancenum);
-    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
-    if (retPsmGet == CCSP_SUCCESS)
-    {
-        if(strcmp(param_value, PSM_ENABLE_STRING_TRUE) == 0)
-        {
-             p_Interface->Wan.Validation.SolicitAdvertise = TRUE;
-        }
-        else
-        {
-             p_Interface->Wan.Validation.SolicitAdvertise = FALSE;
-        }
-    }
-    else
-    {
-        p_Interface->Wan.Validation.SolicitAdvertise = FALSE;
-    }
-
-    _ansc_memset(param_name, 0, sizeof(param_name));
-    _ansc_memset(param_value, 0, sizeof(param_value));
-    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_VALIDATION_RS_RA, instancenum);
-    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
-    if (retPsmGet == CCSP_SUCCESS)
-    {
-        if(strcmp(param_value, PSM_ENABLE_STRING_TRUE) == 0)
-        {
-             p_Interface->Wan.Validation.RS_RA = TRUE;
-        }
-        else
-        {
-             p_Interface->Wan.Validation.RS_RA = FALSE;
-        }
-    }
-    else
-    {
-        p_Interface->Wan.Validation.RS_RA = FALSE;
-    }
-
-    _ansc_memset(param_name, 0, sizeof(param_name));
-    _ansc_memset(param_value, 0, sizeof(param_value));
-    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_VALIDATION_PADI_PADO, instancenum);
-    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
-    if (retPsmGet == CCSP_SUCCESS)
-    {
-        if(strcmp(param_value, PSM_ENABLE_STRING_TRUE) == 0)
-        {
-             p_Interface->Wan.Validation.PadiPado = TRUE;
-        }
-        else
-        {
-             p_Interface->Wan.Validation.PadiPado = FALSE;
-        }
-    }
-    else
-    {
-        p_Interface->Wan.Validation.PadiPado = FALSE;
-    }
-
-    _ansc_memset(param_name, 0, sizeof(param_name));
-    _ansc_memset(param_value, 0, sizeof(param_value));
-    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_DYNTRIGGERENABLE, instancenum);
-    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
-    if (retPsmGet == CCSP_SUCCESS)
-    {
-        if(strcmp(param_value, PSM_ENABLE_STRING_TRUE) == 0)
-        {
-             p_Interface->DynamicTrigger.Enable = TRUE;
-        }
-        else
-        {
-             p_Interface->DynamicTrigger.Enable = FALSE;
-        }
-    }
-    else
-    {
-        p_Interface->DynamicTrigger.Enable = FALSE;
-    }
-
-    _ansc_memset(param_name, 0, sizeof(param_name));
-    _ansc_memset(param_value, 0, sizeof(param_value));
     _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_PPP_ENABLE, instancenum);
     retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
     if (retPsmGet == CCSP_SUCCESS)
@@ -402,15 +302,6 @@ static int get_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFACE*
         p_Interface->PPP.LinkType = WAN_IFACE_PPP_LINK_TYPE_PPPoA;
     }
 
-    _ansc_memset(param_name, 0, sizeof(param_name));
-    _ansc_memset(param_value, 0, sizeof(param_value));
-    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_DYNTRIGGERDELAY, instancenum);
-    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
-    if (retPsmGet == CCSP_SUCCESS)
-    {
-        _ansc_sscanf(param_value, "%d", &(p_Interface->DynamicTrigger.Delay));
-    }
-
     return ANSC_STATUS_SUCCESS;
 }
 
@@ -460,16 +351,6 @@ static int write_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFAC
     _ansc_sprintf(param_name, PSM_WANMANAGER_IF_SELECTIONTIMEOUT, instancenum);
     WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
 
-    memset(param_value, 0, sizeof(param_value));
-    memset(param_name, 0, sizeof(param_name));
-    if(p_Interface->DynamicTrigger.Enable) {
-        _ansc_sprintf(param_value, "TRUE");
-    }
-    else {
-        _ansc_sprintf(param_value, "FALSE");
-    }
-    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_DYNTRIGGERENABLE, instancenum);
-    WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
 
     memset(param_value, 0, sizeof(param_value));
     memset(param_name, 0, sizeof(param_name));
@@ -523,14 +404,6 @@ static int write_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFAC
     _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_REBOOTONCONFIGURATION, instancenum);
     WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
 
-    if(p_Interface->Wan.Validation.DiscoverOffer)
-    {
-        _ansc_sprintf(param_value, "TRUE");
-    }
-    else
-    {
-        _ansc_sprintf(param_value, "FALSE");
-    }
 
     memset(param_value, 0, sizeof(param_value));
     memset(param_name, 0, sizeof(param_name));
@@ -590,82 +463,9 @@ static int write_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFAC
     _ansc_sprintf(param_name, PSM_WANMANAGER_IF_PRIORITY, instancenum);
     WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
 
-    memset(param_value, 0, sizeof(param_value));
-    memset(param_name, 0, sizeof(param_name));
-    _ansc_sprintf(param_value, "%d", p_Interface->DynamicTrigger.Delay );
-    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_DYNTRIGGERDELAY, instancenum);
-    WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
-
     return ANSC_STATUS_SUCCESS;
 }
 
-static int write_Wan_Interface_Validation_ParametersToPSM(ULONG instancenum, DML_WAN_IFACE* p_Interface)
-{
-    if (NULL == p_Interface)
-    {
-        AnscTraceFlow(("%s Invalid memory!!!\n", __FUNCTION__));
-        return ANSC_STATUS_INTERNAL_ERROR;
-    }
-
-    int retPsmSet = CCSP_SUCCESS;
-    char param_name[256] = {0};
-    char param_value[256] = {0};
-
-    memset(param_value, 0, sizeof(param_value));
-    memset(param_name, 0, sizeof(param_name));
-
-    if(p_Interface->Wan.Validation.DiscoverOffer)
-    {
-        _ansc_sprintf(param_value, "TRUE");
-    }
-    else
-    {
-        _ansc_sprintf(param_value, "FALSE");
-    }
-    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_VALIDATION_DISCOVERY_OFFER, instancenum);
-    WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
-
-    memset(param_value, 0, sizeof(param_value));
-    memset(param_name, 0, sizeof(param_name));
-    if(p_Interface->Wan.Validation.SolicitAdvertise)
-    {
-        _ansc_sprintf(param_value, "TRUE");
-    }
-    else
-    {
-        _ansc_sprintf(param_value, "FALSE");
-    }
-    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_VALIDATION_SOLICIT_ADVERTISE, instancenum);
-    WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
-
-    memset(param_value, 0, sizeof(param_value));
-    memset(param_name, 0, sizeof(param_name));
-    if(p_Interface->Wan.Validation.RS_RA)
-    {
-        _ansc_sprintf(param_value, "TRUE");
-    }
-    else
-    {
-        _ansc_sprintf(param_value, "FALSE");
-    }
-    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_VALIDATION_RS_RA, instancenum);
-    WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
-
-    memset(param_value, 0, sizeof(param_value));
-    memset(param_name, 0, sizeof(param_name));
-    if(p_Interface->Wan.Validation.PadiPado)
-    {
-        _ansc_sprintf(param_value, "TRUE");
-    }
-    else
-    {
-        _ansc_sprintf(param_value, "FALSE");
-    }
-    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_VALIDATION_PADI_PADO, instancenum);
-    WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
-
-    return ANSC_STATUS_SUCCESS;
-}
 
 
 
@@ -1385,23 +1185,6 @@ ANSC_STATUS DmlSetWanIfCfg( INT LineIndex, DML_WAN_IFACE* pstLineInfo )
     return ret_val;
 }
 
-/* DmlSetWanIfValidationCfg() */
-ANSC_STATUS DmlSetWanIfValidationCfg( INT WanIfIndex, DML_WAN_IFACE* pWanIfInfo)
-{
-    int ret_val = ANSC_STATUS_SUCCESS;
-
-    if (NULL == pWanIfInfo)
-    {
-        AnscTraceFlow(("%s Failed!! Invalid memory \n", __FUNCTION__));
-        return ANSC_STATUS_INTERNAL_ERROR;
-    }
-    ret_val = write_Wan_Interface_Validation_ParametersToPSM(WanIfIndex, pWanIfInfo);
-    if(ret_val != ANSC_STATUS_SUCCESS) {
-        AnscTraceFlow(("%s Failed!! Error code: %d", __FUNCTION__, ret_val));
-    }
-
-    return ret_val;
-}
 
 ANSC_STATUS WanMgr_WanIfaceConfInit(WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl)
 {
@@ -1471,17 +1254,6 @@ static ANSC_STATUS WanMgr_WanConfInit (DML_WANMGR_CONFIG* pWanConfig)
         ret_val = ANSC_STATUS_FAILURE;
 
     pWanConfig->Policy = wan_policy;
-
-    memset(param_name, 0, sizeof(param_name));
-    memset(param_value, 0, sizeof(param_value));
-    _ansc_sprintf(param_name, PSM_WANMANAGER_WANIDLETIMEOUT);
-    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
-    if (retPsmGet == CCSP_SUCCESS && param_value[0] != '\0')
-        wan_idle_timeout = atoi(param_value);
-    else
-        ret_val = ANSC_STATUS_FAILURE;
-
-    pWanConfig->IdleTimeout = wan_idle_timeout;
 
     return ret_val;
 }

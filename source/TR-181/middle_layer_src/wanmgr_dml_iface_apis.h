@@ -129,49 +129,6 @@ ULONG WanIfCfg_Rollback(ANSC_HANDLE hInsContext);
 
  APIs for Object:
 
-    X_RDK_WanManager.CPEInterface.{i}.Wan.Validation.
-
-    *  WanIfValidation_GetParamBoolValue
-    *  WanIfValidation_SetParamBoolValue
-    *  WanIfValidation_Validate
-    *  WanIfValidation_Commit
-    *  WanIfValidation_Rollback
-
-***********************************************************************/
-BOOL WanIfValidation_GetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL* bValue);
-BOOL WanIfValidation_SetParamBoolValue(ANSC_HANDLE hInsContext, char *ParamName, BOOL bValue);
-BOOL WanIfValidation_Validate(ANSC_HANDLE hInsContext, char* pReturnParamName, ULONG* puLength);
-ULONG WanIfValidation_Commit(ANSC_HANDLE hInsContext);
-ULONG WanIfValidation_Rollback(ANSC_HANDLE hInsContext);
-
-/***********************************************************************
-
- APIs for Object:
-
-    X_RDK_WanManager.CPEInterface.{i}.DynamicTrigger.
-
-    *  WanIfDynTrigger_GetParamUlongValue
-    *  WanIfDynTrigger_GetParamBoolValue
-    *  WanIfDynTrigger_SetParamUlongValue
-    *  WanIfDynTrigger_SetParamBoolValue
-    *  WanIfDynTrigger_Validate
-    *  WanIfDynTrigger_Commit
-    *  WanIfDynTrigger_Rollback
-
-***********************************************************************/
-
-BOOL WanIfDynTrigger_GetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG* puLong);
-BOOL WanIfDynTrigger_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG uValue);
-BOOL WanIfDynTrigger_GetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL* pBool);
-BOOL WanIfDynTrigger_SetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL bValue);
-BOOL WanIfDynTrigger_Validate(ANSC_HANDLE hInsContext, char* pReturnParamName, ULONG* puLength);
-ULONG WanIfDynTrigger_Commit(ANSC_HANDLE hInsContext);
-ULONG WanIfDynTrigger_Rollback(ANSC_HANDLE hInsContext);
-
-/***********************************************************************
-
- APIs for Object:
-
     X_RDK_WanManager.CPEInterface.{i}.IP.
 
     *  WanIfIpCfg_GetParamUlongValue

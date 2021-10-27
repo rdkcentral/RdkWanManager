@@ -1005,11 +1005,7 @@ static eWanState_t wan_transition_wan_up(WanMgr_IfaceSM_Controller_t* pWanIfaceC
     pInterface->Wan.Status = WAN_IFACE_STATUS_VALIDATING;
 
 
-    /* TODO: Runs WAN Validation processes based on the Wan.Validation flags,
-    e.g. if Wan.Validation.Discovery-Offer is set to TRUE, a threaded
-    process will be started to run the DHCPv4 Discovery-Offer validation.
-    The results of each validation process will be stored internally
-    to the state machine (i.e. not expressed in the data model */
+    /* TODO: Runs WAN Validation processes */
     if(pInterface->Wan.ActiveLink == TRUE)
     {
         wanmgr_sysevents_setWanState(WAN_LINK_UP_STATE);

@@ -219,14 +219,6 @@ typedef struct _DATAMODEL_PPP
     DML_WAN_IFACE_LINK_TYPE       LinkType;
 } DATAMODEL_PPP;
 
-typedef struct _DML_WANIFACE_WANCFG_VALID
-{
-    BOOL                        DiscoverOffer;
-    BOOL                        SolicitAdvertise;
-    BOOL                        RS_RA;
-    BOOL                        PadiPado;
-} DML_WANIFACE_WANCFG_VALID;
-
 typedef struct _DML_WANIFACE_INFO
 {
     CHAR                        Name[BUFLEN_64];
@@ -241,16 +233,9 @@ typedef struct _DML_WANIFACE_INFO
     DML_WAN_IFACE_STATUS        Status;
     DML_WAN_IFACE_LINKSTATUS    LinkStatus;
     BOOL                        Refresh;
-    DML_WANIFACE_WANCFG_VALID   Validation;
     DML_WAN_IFACE_OPER_STATUS   OperationalStatus;
     BOOL                        RebootOnConfiguration;
 } DML_WANIFACE_INFO;
-
-typedef struct _DML_WANIFACE_DYNTRIGGER
-{
-    BOOL                        Enable;
-    ULONG                       Delay;
-} DML_WANIFACE_DYNTRIGGER;
 
 
 typedef struct _WANMGR_IPV4_DATA
@@ -324,7 +309,6 @@ typedef struct _DML_WAN_INTERFACE
     CHAR                        CustomConfigPath[BUFLEN_128];
     DML_WANIFACE_PHY            Phy;
     DML_WANIFACE_INFO           Wan;
-    DML_WANIFACE_DYNTRIGGER     DynamicTrigger;
     DML_WANIFACE_IP             IP;
     DATAMODEL_PPP               PPP;
     DML_WANIFACE_MAP            MAP;
@@ -338,7 +322,6 @@ typedef struct _DML_WANMGR_CONFIG_
 {
     BOOLEAN Enable;
     DML_WAN_POLICY Policy;
-    UINT IdleTimeout;
     BOOLEAN ResetActiveInterface;
 } DML_WANMGR_CONFIG;
 
