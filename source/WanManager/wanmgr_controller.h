@@ -33,6 +33,7 @@ typedef  struct _WANMGR_POLICY_CONTROLLER_
     struct timespec         SelectionTimeOutStart;
     struct timespec         SelectionTimeOutEnd;
     UINT                    InterfaceSelectionTimeOut;
+    UINT                    TotalIfaces;
 } WanMgr_Policy_Controller_t;
 
 

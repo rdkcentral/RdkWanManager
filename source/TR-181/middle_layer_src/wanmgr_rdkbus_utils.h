@@ -65,6 +65,8 @@
 #include <syscfg.h>
 #include <syscfg/syscfg.h>
 
+#define UPSTREAM_DM_SUFFIX                  ".Upstream"
+
 //VLAN Agent
 #define VLAN_DBUS_PATH                     "/com/cisco/spvtg/ccsp/vlanmanager"
 #define VLAN_COMPONENT_NAME                "eRT.com.cisco.spvtg.ccsp.vlanmanager"
@@ -74,12 +76,12 @@
 //XDSL Manager
 #define DSL_COMPONENT_NAME "eRT.com.cisco.spvtg.ccsp.xdslmanager"
 #define DSL_COMPONENT_PATH "/com/cisco/spvtg/ccsp/xdslmanager"
-#define DSL_UPSTREAM_NAME ".Upstream"
+#define DSL_UPSTREAM_NAME  UPSTREAM_DM_SUFFIX
 //Eth Manager
 #define ETH_COMPONENT_NAME "eRT.com.cisco.spvtg.ccsp.ethagent"
 #define ETH_COMP_NAME_WITHOUTSUBSYSTEM "com.cisco.spvtg.ccsp.ethagent"
 #define ETH_COMPONENT_PATH "/com/cisco/spvtg/ccsp/ethagent"
-#define ETH_UPSTREAM_NAME ".Upstream"
+#define ETH_UPSTREAM_NAME  UPSTREAM_DM_SUFFIX
 #define ETH_X_RDK_REBOOTREQUIRED_PARAM_NAME     "Device.Ethernet.Interface.%d.X_RDK_RebootRequired"
 
 //CM Agent
@@ -97,6 +99,7 @@
 
 ANSC_STATUS WanMgr_RdkBus_SetParamValues( char *pComponent, char *pBus, char *pParamName, char *pParamVal, enum dataType_e type, BOOLEAN bCommit );
 ANSC_STATUS WanMgr_RdkBus_GetParamValues( char *pComponent, char *pBus, char *pParamName, char *pReturnVal );
+ANSC_STATUS WanMgr_RdkBus_GetParamValueFromAnyComp( char * pQuery, char *pValue);
 
 int WanMgr_RdkBus_GetParamValuesFromDB( char *pParamName, char *pReturnVal, int ReturnValLength );
 int WanMgr_RdkBus_SetParamValuesToDB( char *pParamName, char *pParamVal );

@@ -356,6 +356,55 @@ static ANSC_STATUS WanMgr_RdkBus_GetParamNames( char *pComponent, char *pBus, ch
     return ANSC_STATUS_FAILURE;
 }
 
+
+ANSC_STATUS WanMgr_RdkBus_GetParamValueFromAnyComp( char * pQuery, char *pValue)
+{
+    if ((pQuery == NULL) || (pValue == NULL))
+    {
+        CcspTraceError (("%s %d: invalid args..\n", __FUNCTION__, __LINE__));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    int ret ;
+    int size = 0;
+    char dst_pathname_cr[BUFLEN_256] = {0};
+    componentStruct_t ** ppComponents = NULL;
+
+    snprintf(dst_pathname_cr, sizeof(dst_pathname_cr) - 1, "eRT.%s", CCSP_DBUS_INTERFACE_CR);
+
+    // Get the component name and dbus path which has the data model 
+    ret = CcspBaseIf_discComponentSupportingNamespace
+        (
+         bus_handle,
+         dst_pathname_cr,
+         pQuery,
+         "",
+         &ppComponents,
+         &size
+        );
+
+    if ((ret != CCSP_SUCCESS) || (size <= 0))
+    {
+        CcspTraceError (("%s %d: CcspBaseIf_discComponentSupportingNamespace() call failed\n", __FUNCTION__, __LINE__));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    // query the data model from the component
+    CcspTraceInfo (("%s %d: quering dm:%s from component:%s of dbuspath:%s\n", 
+                __FUNCTION__, __LINE__, pQuery, ppComponents[0]->componentName, ppComponents[0]->dbusPath));
+    if (WanMgr_RdkBus_GetParamValues (ppComponents[0]->componentName, ppComponents[0]->dbusPath, pQuery, pValue) != ANSC_STATUS_SUCCESS)
+    {
+        CcspTraceError (("%s %d: CcspBaseIf_discComponentSupportingNamespace() call failed\n", __FUNCTION__, __LINE__));
+        free_componentStruct_t(bus_handle, size, ppComponents);
+        return ANSC_STATUS_FAILURE;
+    }
+
+    free_componentStruct_t(bus_handle, size, ppComponents);
+    CcspTraceInfo (("%s %d: dm:%s got value %s\n", __FUNCTION__, __LINE__, pQuery, pValue));
+
+    return ANSC_STATUS_SUCCESS;
+}
+
 ANSC_STATUS WanMgr_RdkBus_GetParamValues( char *pComponent, char *pBus, char *pParamName, char *pReturnVal )
 {
     CCSP_MESSAGE_BUS_INFO  *bus_info         = (CCSP_MESSAGE_BUS_INFO *)bus_handle;
