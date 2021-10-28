@@ -24,10 +24,7 @@
 #include "wanmgr_ipc.h"
 #include "wanmgr_data.h"
 #include "wanmgr_sysevents.h"
-#include "wanmgr_net_utils.h"
 #include "wanmgr_dhcpv4_apis.h"
-#include "wanmgr_interface_sm.h"
-
 
 #define WANMGR_MAX_IPC_PROCCESS_TRY             5
 #define WANMGR_IPC_PROCCESS_TRY_WAIT_TIME       30000 //us
@@ -151,6 +148,22 @@ static ANSC_STATUS WanMgr_IpcNewIpv6Msg(ipc_dhcpv6_data_t* pNewIpv6Msg)
     return retStatus;
 }
 
+ANSC_STATUS WanMgr_SetInterfaceStatus(char *ifName, wanmgr_iface_status_t state)
+{
+    WanMgr_Iface_Data_t* pWanDmlIfaceData = NULL;
+    DML_WAN_IFACE*          pIfaceData = NULL;
+
+    pWanDmlIfaceData = WanMgr_GetIfaceDataByName_locked(ifName);
+    if(pWanDmlIfaceData != NULL)
+    {
+        pIfaceData = &(pWanDmlIfaceData->data);
+        WanManager_UpdateInterfaceStatus(pIfaceData, state);
+        WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+        return ANSC_STATUS_SUCCESS;
+    }
+    return ANSC_STATUS_FAILURE;
+}
+
 #ifdef FEATURE_IPOE_HEALTH_CHECK
 
 static ANSC_STATUS WanMgr_IpcNewIhcMsg(ipc_ihc_data_t *pIhcMsg)
@@ -230,22 +243,6 @@ static ANSC_STATUS WanMgr_IpcNewIhcMsg(ipc_ihc_data_t *pIhcMsg)
     return ANSC_STATUS_SUCCESS;
 }
 
-static ANSC_STATUS WanMgr_IpoeSetWanIfData(char *ifName, wanmgr_iface_status_t state)
-{
-    WanMgr_Iface_Data_t* pWanDmlIfaceData = NULL;
-    DML_WAN_IFACE*          pIfaceData = NULL;
-
-    pWanDmlIfaceData = WanMgr_GetIfaceDataByName_locked(ifName);
-    if(pWanDmlIfaceData != NULL)
-    {
-        pIfaceData = &(pWanDmlIfaceData->data);
-        WanManager_UpdateInterfaceStatus(pIfaceData, state);
-        WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
-        return ANSC_STATUS_SUCCESS;
-    }
-    return ANSC_STATUS_FAILURE;
-}
-
 static ANSC_STATUS ProcessIpoeHealthCheckFailedIpv4Msg(char *ifName)
 {
 
@@ -255,7 +252,7 @@ static ANSC_STATUS ProcessIpoeHealthCheckFailedIpv4Msg(char *ifName)
         CcspTraceInfo(("Failed to kill DHCPv4 Client \n"));
     }
 
-    return WanMgr_IpoeSetWanIfData(ifName, WANMGR_IFACE_CONNECTION_DOWN);
+    return WanMgr_SetInterfaceStatus(ifName, WANMGR_IFACE_CONNECTION_DOWN);
 }
 
 static ANSC_STATUS ProcessIpoeHealthCheckFailedRenewIpv4Msg(char *ifName)
@@ -268,7 +265,7 @@ static ANSC_STATUS ProcessIpoeHealthCheckFailedRenewIpv4Msg(char *ifName)
         CcspTraceInfo(("sending SIGUSR1 to %s[pid=%d], this will let the %s to send renew packet out \n", DHCPV4_CLIENT_NAME, pid, DHCPV4_CLIENT_NAME));
         util_signalProcess(pid, SIGUSR1);
     }
-    return WanMgr_IpoeSetWanIfData(ifName, WANMGR_IFACE_CONNECTION_DOWN);
+    return WanMgr_SetInterfaceStatus(ifName, WANMGR_IFACE_CONNECTION_DOWN);
 }
 
 static ANSC_STATUS ProcessIpoeHealthCheckFailedIpv6Msg(char *ifName)
@@ -280,7 +277,7 @@ static ANSC_STATUS ProcessIpoeHealthCheckFailedIpv6Msg(char *ifName)
         CcspTraceInfo(("Failed to kill DHCPv6 Client \n"));
     }
 
-    return WanMgr_IpoeSetWanIfData(ifName, WANMGR_IFACE_CONNECTION_IPV6_DOWN);
+    return WanMgr_SetInterfaceStatus(ifName, WANMGR_IFACE_CONNECTION_IPV6_DOWN);
 }
 
 static ANSC_STATUS ProcessIpoeHealthCheckFailedRenewIpv6Msg(char *ifName)
@@ -294,7 +291,7 @@ static ANSC_STATUS ProcessIpoeHealthCheckFailedRenewIpv6Msg(char *ifName)
         util_signalProcess(pid, SIGUSR2);
     }
 
-    return  WanMgr_IpoeSetWanIfData(ifName, WANMGR_IFACE_CONNECTION_IPV6_DOWN);
+    return  WanMgr_SetInterfaceStatus(ifName, WANMGR_IFACE_CONNECTION_IPV6_DOWN);
 }
 
 #endif

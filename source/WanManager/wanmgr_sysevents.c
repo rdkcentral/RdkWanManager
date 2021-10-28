@@ -23,6 +23,7 @@
 
 #include "wanmgr_sysevents.h"
 #include "wanmgr_rdkbus_utils.h"
+#include "wanmgr_ipc.h"
 
 int sysevent_fd = -1;
 token_t sysevent_token;
@@ -614,8 +615,11 @@ static void *WanManagerSyseventHandler(void *args)
             }
             else if (strcmp(name, SYSEVENT_GLOBAL_IPV6_PREFIX_CLEAR) == 0)
             {
+                /*This is temporary changes because of Voice Issue,
+                 * For More Info, please Refer RDKB-38461.
+                 */
                 sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV6_CONNECTION_STATE, STATUS_DOWN_STRING, 0);
-                sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, NULL, 0);
+                WanMgr_SetInterfaceStatus(PHY_WAN_IF_NAME, WANMGR_IFACE_CONNECTION_DOWN);
             }
             else
             {
