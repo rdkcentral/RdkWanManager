@@ -38,14 +38,11 @@
 #include <sys/stat.h>
 #include <sys/file.h>
 #include <fcntl.h>
-
+#include <cjson/cJSON.h>
 
 #include "ccsp_psm_helper.h"
 #include "sysevent/sysevent.h"
 #include "dmsb_tr181_psm_definitions.h"
-
-#include "cJSON.h"
-
 
 extern int sysevent_fd;
 extern token_t sysevent_token;
