@@ -68,7 +68,10 @@ static WcAwPolicyState_t Transistion_WanInterfaceDown (WanMgr_Policy_Controller_
 static WcAwPolicyState_t Transistion_WanInterfaceUp (WanMgr_Policy_Controller_t * pWanController);
 static WcAwPolicyState_t Transition_ResetActiveInterface (WanMgr_Policy_Controller_t * pWanController);
 
-
+/*
+ * WanMgr_SetActiveLink()
+ * - sets the ActiveLink locallt and saves it to PSM
+ */
 static int WanMgr_SetActiveLink (WanMgr_Policy_Controller_t * pWanController, bool storeValue)
 {
     if ((pWanController == NULL) || (pWanController->activeInterfaceIdx == -1)
@@ -192,6 +195,12 @@ static void WanMgr_Policy_Auto_GetHighPriorityIface(WanMgr_Policy_Controller_t *
     return;
 }
 
+/*
+ * WanMgr_UpdateControllerData()
+ * - updates the controller data 
+ * - this function is called every time in the begining of the loop,
+         so that the states/transition can work with the current data
+ */
 static void WanMgr_UpdateControllerData (WanMgr_Policy_Controller_t* pWanController)
 {
     if (pWanController == NULL)
@@ -210,6 +219,42 @@ static void WanMgr_UpdateControllerData (WanMgr_Policy_Controller_t* pWanControl
         WanMgrDml_GetConfigData_release(pWanConfigData);
     }
 
+}
+
+/*
+ * WanMgr_ResetActiveLinkOnAllIface()
+ * - reset ActiveLink to false and saves it in PSM
+ * - this will prevent any newly connected high priority iface to become second ActiveLink, 
+        in case ResetActiveLinkflag is set
+ */
+static int WanMgr_ResetActiveLinkOnAllIface (WanMgr_Policy_Controller_t* pWanController)
+{
+    if ((pWanController == NULL) || (pWanController->TotalIfaces == 0))
+    {
+        CcspTraceError(("%s %d: Invalid args\n", __FUNCTION__, __LINE__));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    UINT uiLoopCount;
+    for (uiLoopCount = 0; uiLoopCount < pWanController->TotalIfaces; uiLoopCount++)
+    {
+        WanMgr_Iface_Data_t*   pWanDmlIfaceData = WanMgr_GetIfaceData_locked(uiLoopCount);
+        if(pWanDmlIfaceData != NULL)
+        {
+            DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
+            CcspTraceInfo(("%s %d: setting Interface index:%d, ActiveLink = FALSE and saving it in PSM \n", __FUNCTION__, __LINE__, uiLoopCount));
+            pWanIfaceData->Wan.ActiveLink = FALSE;
+            if (DmlSetWanActiveLinkInPSMDB(uiLoopCount, FALSE) != ANSC_STATUS_SUCCESS)
+            {
+                CcspTraceError(("%s %d: Failed to set ActiveLink in PSM, SelectedInterface %d \n",
+                            __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
+                WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+                return ANSC_STATUS_FAILURE;
+            }
+            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+        }
+    }
+    return ANSC_STATUS_SUCCESS;
 }
 
 /*
@@ -687,6 +732,13 @@ static WcAwPolicyState_t Transition_RestartSelectionInterface (WanMgr_Policy_Con
     // reset all interfaces for selection
     CcspTraceInfo(("%s %d: So resetting interface table\n", __FUNCTION__, __LINE__));
     WanMgr_ResetIfaceTable(pWanController);
+
+    // reset ActiveLink to false for all interfaces and save it in PSM
+    if (WanMgr_ResetActiveLinkOnAllIface(pWanController) != ANSC_STATUS_SUCCESS)
+    {   
+        CcspTraceError(("%s %d: Unable to reset ActiveLink in all interfaces\n", __FUNCTION__, __LINE__));
+        return STATE_AUTO_WAN_ERROR;
+    }
 
     // reset ResetActiveInterface to FALSE
     WanMgr_Config_Data_t*   pWanConfigData = WanMgr_GetConfigData_locked();
