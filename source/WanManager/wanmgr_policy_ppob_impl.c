@@ -155,6 +155,32 @@ static void WanMgr_Policy_FM_SelectWANActive(WanMgr_Policy_Controller_t* pWanCon
     return ;
 }
 
+static int WanMgr_StartIfaceStateMachine (WanMgr_Policy_Controller_t * pWanController)
+{
+    if ((pWanController == NULL) || (pWanController->pWanActiveIfaceData == NULL)
+        || (pWanController->activeInterfaceIdx != -1))
+    {
+        CcspTraceError(("%s %d: Invalid args \n", __FUNCTION__, __LINE__));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    // Set SelectionStatus = ACTIVE, ActiveLink = TRUE & start Interface State Machine
+    DML_WAN_IFACE * pActiveInterface = &(pWanController->pWanActiveIfaceData->data);
+    pActiveInterface->SelectionStatus = WAN_IFACE_ACTIVE;
+    pActiveInterface->Wan.ActiveLink = TRUE;
+
+    WanMgr_IfaceSM_Controller_t wanIfCtrl;
+    WanMgr_IfaceSM_Init(&wanIfCtrl, pWanController->activeInterfaceIdx);
+    if (WanMgr_StartInterfaceStateMachine(&wanIfCtrl) != 0)
+    {
+        CcspTraceError(("%s %d: Unable to start interface state machine \n", __FUNCTION__, __LINE__));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    return ANSC_STATUS_SUCCESS;
+
+}
+
 
 /*********************************************************************************/
 /************************** TRANSITIONS ******************************************/
@@ -177,7 +203,6 @@ static WcPpobPolicyState_t Transition_Start(WanMgr_Policy_Controller_t* pWanCont
 static WcPpobPolicyState_t Transition_WanInterfaceSelected(WanMgr_Policy_Controller_t* pWanController)
 {
     DML_WAN_IFACE* pActiveInterface = NULL;
-    bool bWanActive = false;
     WanMgr_IfaceSM_Controller_t wanIfCtrl;
 
     if(pWanController == NULL)
@@ -186,31 +211,12 @@ static WcPpobPolicyState_t Transition_WanInterfaceSelected(WanMgr_Policy_Control
         return ANSC_STATUS_FAILURE;
     }
 
-
-    /* Select WAN as Active */
-    WanMgr_Iface_Data_t*   pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pWanController->activeInterfaceIdx);
-    if(pWanDmlIfaceData != NULL)
+    // Set SelectionStatus = ACTIVE, ActiveLink = TRUE & start Interface State Machine
+    if (WanMgr_StartIfaceStateMachine (pWanController) != ANSC_STATUS_SUCCESS)
     {
-        DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
-
-        //Set ActiveLink to TRUE
-        pWanIfaceData->Wan.ActiveLink = TRUE;
-        pWanIfaceData->SelectionStatus = WAN_IFACE_ACTIVE;
-        bWanActive = true;
-
-        WanMgr_IfaceSM_Init(&wanIfCtrl, pWanIfaceData->uiIfaceIdx);
-
-        WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+        CcspTraceError(("%s %d: unable to start interface state machine\n", __FUNCTION__, __LINE__));
+        return ANSC_STATUS_FAILURE;
     }
-
-    if(bWanActive == false)
-    {
-        return SELECTED_INTERFACE_DOWN;
-    }
-
-    /* Starts an instance of the WAN Interface State Machine on
-    the interface to begin configuring the WAN link */
-    WanMgr_StartInterfaceStateMachine(&wanIfCtrl);
 
     return SELECTED_INTERFACE_UP;
 }
@@ -218,7 +224,6 @@ static WcPpobPolicyState_t Transition_WanInterfaceSelected(WanMgr_Policy_Control
 static WcPpobPolicyState_t Transition_SelectedInterfaceUp(WanMgr_Policy_Controller_t* pWanController)
 {
     DML_WAN_IFACE* pActiveInterface = NULL;
-    bool bWanActive = false;
     WanMgr_IfaceSM_Controller_t wanIfCtrl;
 
     if(pWanController == NULL)
@@ -227,27 +232,12 @@ static WcPpobPolicyState_t Transition_SelectedInterfaceUp(WanMgr_Policy_Controll
         return ANSC_STATUS_FAILURE;
     }
 
-    /* Cheack Active WAN is present */
-    WanMgr_Iface_Data_t*   pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pWanController->activeInterfaceIdx);
-    if(pWanDmlIfaceData != NULL)
+    // Set SelectionStatus = ACTIVE, ActiveLink = TRUE & start Interface State Machine
+    if (WanMgr_StartIfaceStateMachine (pWanController) != ANSC_STATUS_SUCCESS)
     {
-        DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
-
-        WanMgr_IfaceSM_Init(&wanIfCtrl, pWanIfaceData->uiIfaceIdx);
-
-        bWanActive = true;
-
-        WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
-    }
-
-    if(bWanActive == false)
-    {
+        CcspTraceError(("%s %d: unable to start interface state machine\n", __FUNCTION__, __LINE__));
         return ANSC_STATUS_FAILURE;
     }
-
-    /* Starts an instance of the WAN Interface State Machine on
-    the interface to begin configuring the WAN link */
-    WanMgr_StartInterfaceStateMachine(&wanIfCtrl);
 
     return SELECTED_INTERFACE_UP;
 }
