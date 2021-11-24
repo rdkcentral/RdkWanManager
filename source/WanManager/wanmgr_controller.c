@@ -32,6 +32,7 @@ ANSC_STATUS WanController_Policy_Change(void)
     int seconds = 30;
     int rebootCount = 1;
 
+    WanController_ClearWanConfigurationsInPSM();
     memset(value, 0, sizeof(value));
     fp = popen("syscfg get X_RDKCENTRAL-COM_LastRebootCounter", "r");
     if (fp == NULL) {
