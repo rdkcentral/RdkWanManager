@@ -383,13 +383,6 @@ int ANSC_EXPORT_API WanManagerDmlInit(ULONG uMaxVersionSupported, void* hCosaPlu
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "WanIfCfg_Commit", WanIfCfg_Commit);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "WanIfCfg_Rollback", WanIfCfg_Rollback);
 
-    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "WanIfDynTrigger_GetParamUlongValue", WanIfDynTrigger_GetParamUlongValue);
-    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "WanIfDynTrigger_SetParamUlongValue", WanIfDynTrigger_SetParamUlongValue);
-    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "WanIfDynTrigger_GetParamBoolValue", WanIfDynTrigger_GetParamBoolValue);
-    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "WanIfDynTrigger_SetParamBoolValue", WanIfDynTrigger_SetParamBoolValue);
-    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "WanIfDynTrigger_Validate", WanIfDynTrigger_Validate);
-    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "WanIfDynTrigger_Commit", WanIfDynTrigger_Commit);
-    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "WanIfDynTrigger_Rollback", WanIfDynTrigger_Rollback);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "WanIfIpCfg_GetParamUlongValue", WanIfIpCfg_GetParamUlongValue);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "WanIfIpCfg_SetParamUlongValue", WanIfIpCfg_SetParamUlongValue);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "WanIfIpCfg_GetParamStringValue", WanIfIpCfg_GetParamStringValue);
@@ -435,12 +428,6 @@ int ANSC_EXPORT_API WanManagerDmlInit(ULONG uMaxVersionSupported, void* hCosaPlu
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "Marking_Validate", Marking_Validate);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "Marking_Commit", Marking_Commit);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "Marking_Rollback", Marking_Rollback);
-
-    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "WanIfValidation_GetParamBoolValue", WanIfValidation_GetParamBoolValue);
-    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "WanIfValidation_SetParamBoolValue", WanIfValidation_SetParamBoolValue);
-    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "WanIfValidation_Validate", WanIfValidation_Validate);
-    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "WanIfValidation_Commit", WanIfValidation_Commit);
-    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "WanIfValidation_Rollback", WanIfValidation_Rollback);
 
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "DHCPv6_GetParamBoolValue", DHCPv6_GetParamBoolValue);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "DHCPv6_GetParamIntValue", DHCPv6_GetParamIntValue);

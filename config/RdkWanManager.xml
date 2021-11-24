@@ -57,12 +57,6 @@
                     <writable>true</writable>
                 </parameter>
                 <parameter>
-                    <name>IdleTimeout</name>
-                    <type>unsignedInt</type>
-                    <syntax>uint32</syntax>
-                    <writable>true</writable>
-	        </parameter>
-                <parameter>
                     <name>ResetActiveInterface</name>
                     <type>boolean</type>
                     <syntax>bool</syntax>
@@ -251,72 +245,6 @@
                                     <name>LinkStatus</name>
                                     <type>string: Down(1),Configuring(2),Up(3)</type>
                                     <syntax>uint32/mapped</syntax>
-                                    <writable>true</writable>
-                                </parameter>
-                            </parameters>
-                            <objects>
-                                <object>
-                                    <name>Validation</name>
-                                    <objectType>object</objectType>
-                                    <functions>
-                                        <func_GetParamBoolValue>WanIfValidation_GetParamBoolValue</func_GetParamBoolValue>
-                                        <func_SetParamBoolValue>WanIfValidation_SetParamBoolValue</func_SetParamBoolValue>
-                                        <func_Validate>WanIfValidation_Validate</func_Validate>
-                                        <func_Commit>WanIfValidation_Commit</func_Commit>
-                                        <func_Rollback>WanIfValidation_Rollback</func_Rollback>
-                                    </functions>
-                                    <parameters>
-                                        <parameter>
-                                            <name>Discovery-Offer</name>
-                                            <type>boolean</type>
-                                            <syntax>bool</syntax>
-                                            <writable>true</writable>
-                                        </parameter>
-                                        <parameter>
-                                            <name>Solicit-Advertise</name>
-                                            <type>boolean</type>
-                                            <syntax>bool</syntax>
-                                            <writable>true</writable>
-                                        </parameter>
-                                        <parameter>
-                                            <name>RS-RA</name>
-                                            <type>boolean</type>
-                                            <syntax>bool</syntax>
-                                            <writable>true</writable>
-                                        </parameter>
-                                        <parameter>
-                                            <name>PADI-PADO</name>
-                                            <type>boolean</type>
-                                            <syntax>bool</syntax>
-                                            <writable>true</writable>
-                                        </parameter>
-                                    </parameters>
-                                </object>
-                            </objects>
-                        </object>
-                        <object>
-                            <name>DynamicTrigger</name>
-                            <objectType>object</objectType>
-                            <functions>
-                                <func_GetParamUlongValue>WanIfDynTrigger_GetParamUlongValue</func_GetParamUlongValue>
-                                <func_SetParamUlongValue>WanIfDynTrigger_SetParamUlongValue</func_SetParamUlongValue>
-                                <func_GetParamBoolValue>WanIfDynTrigger_GetParamBoolValue</func_GetParamBoolValue>
-                                <func_SetParamBoolValue>WanIfDynTrigger_SetParamBoolValue</func_SetParamBoolValue>
-                                <func_Validate>WanIfDynTrigger_Validate</func_Validate>
-                                <func_Commit>WanIfDynTrigger_Commit</func_Commit>
-                                <func_Rollback>WanIfDynTrigger_Rollback</func_Rollback>
-                            </functions>
-                            <parameters>
-                                <parameter>
-                                    <name>Enable</name>
-                                    <type>boolean</type>
-                                    <syntax>bool</syntax>
-                                    <writable>true</writable>
-                                </parameter>
-                                <parameter>
-                                    <name>Delay</name>
-                                    <type>unsignedInt</type>
-                                    <syntax>uint32</syntax>
                                     <writable>true</writable>
                                 </parameter>
                             </parameters>
