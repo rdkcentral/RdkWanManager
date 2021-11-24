@@ -1006,7 +1006,7 @@ static eWanState_t wan_transition_wan_up(WanMgr_IfaceSM_Controller_t* pWanIfaceC
 
 
     /* TODO: Runs WAN Validation processes */
-    if(pInterface->Wan.ActiveLink == TRUE)
+    if(pInterface->SelectionStatus == WAN_IFACE_ACTIVE)
     {
         wanmgr_sysevents_setWanState(WAN_LINK_UP_STATE);
     }
