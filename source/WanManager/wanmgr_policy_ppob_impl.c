@@ -157,17 +157,24 @@ static void WanMgr_Policy_FM_SelectWANActive(WanMgr_Policy_Controller_t* pWanCon
 
 static int WanMgr_StartIfaceStateMachine (WanMgr_Policy_Controller_t * pWanController)
 {
-    if ((pWanController == NULL) || (pWanController->pWanActiveIfaceData == NULL)
-        || (pWanController->activeInterfaceIdx != -1))
+    if ((pWanController == NULL) || (pWanController->activeInterfaceIdx == -1))
     {
         CcspTraceError(("%s %d: Invalid args \n", __FUNCTION__, __LINE__));
         return ANSC_STATUS_FAILURE;
     }
 
     // Set SelectionStatus = ACTIVE, ActiveLink = TRUE & start Interface State Machine
-    DML_WAN_IFACE * pActiveInterface = &(pWanController->pWanActiveIfaceData->data);
-    pActiveInterface->SelectionStatus = WAN_IFACE_ACTIVE;
-    pActiveInterface->Wan.ActiveLink = TRUE;
+    WanMgr_Iface_Data_t*   pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pWanController->activeInterfaceIdx);
+    if(pWanDmlIfaceData != NULL)
+    {
+        DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
+
+        pWanIfaceData->SelectionStatus = WAN_IFACE_ACTIVE;
+        pWanIfaceData->Wan.ActiveLink = TRUE;
+
+        WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+    }
+
 
     WanMgr_IfaceSM_Controller_t wanIfCtrl;
     WanMgr_IfaceSM_Init(&wanIfCtrl, pWanController->activeInterfaceIdx);
