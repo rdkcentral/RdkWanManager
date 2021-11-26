@@ -59,7 +59,21 @@ typedef enum
     WANMGR_IFACE_STATUS_ERROR
 }wanmgr_iface_status_t;
 
-
+typedef enum
+{
+    WAN_STATE_EXIT = 0,
+    WAN_STATE_CONFIGURING_WAN,
+    WAN_STATE_VALIDATING_WAN,
+    WAN_STATE_OBTAINING_IP_ADDRESSES,
+    WAN_STATE_IPV4_LEASED,
+    WAN_STATE_IPV6_LEASED,
+    WAN_STATE_DUAL_STACK_ACTIVE,
+#ifdef FEATURE_MAPT
+    WAN_STATE_MAPT_ACTIVE,
+#endif //FEATURE_MAPT
+    WAN_STATE_REFRESHING_WAN,
+    WAN_STATE_DECONFIGURING_WAN
+} eWanState_t;
 
 typedef struct WanMgr_IfaceSM_Ctrl_st
 {
@@ -71,6 +85,7 @@ typedef struct WanMgr_IfaceSM_Ctrl_st
     wanmgr_ihc_status_t     IhcV6Status;
 #endif
     DML_WAN_IFACE*          pIfaceData;
+    eWanState_t            eCurrentState; 
 } WanMgr_IfaceSM_Controller_t;
 
 

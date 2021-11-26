@@ -36,6 +36,7 @@ static token_t sysevent_msg_token;
 #define WANMGR_SYSNAME_SND          "wanmgr"
 #define SYS_IP_ADDR                 "127.0.0.1"
 #define BUFLEN_42                   42
+#define SYSEVENT_IPV6_TOGGLE        "ipv6Toggle"
 #define SYSEVENT_VALUE_READY        "ready"
 #define SYSEVENT_VALUE_STARTED      "started"
 #define SYSEVENT_OPEN_MAX_RETRIES   6
@@ -162,6 +163,7 @@ ANSC_STATUS wanmgr_sysevents_ipv6Info_init()
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_DNS_PRIMARY, "", 0);
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_DNS_SECONDARY, "", 0);
     sysevent_set(sysevent_fd, sysevent_token,SYSEVENT_FIELD_IPV6_DOMAIN, "", 0);
+    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV6_CONNECTION_STATE, WAN_STATUS_DOWN, 0);
     syscfg_set_string(SYSCFG_FIELD_IPV6_PREFIX_ADDRESS, "");
     return ANSC_STATUS_SUCCESS;
 }
@@ -687,6 +689,7 @@ static void do_toggle_v6_status()
     isV6DefaultRoutePresent = CheckV6DefaultRule();
     if ( isV6DefaultRoutePresent != TRUE)
     {
+        CcspTraceInfo(("%s %d toggle initiated \n", __FUNCTION__, __LINE__));
         snprintf(cmdLine, sizeof(cmdLine), "echo 1 > /proc/sys/net/ipv6/conf/erouter0/disable_ipv6");
         system(cmdLine);
         snprintf(cmdLine, sizeof(cmdLine), "echo 0 > /proc/sys/net/ipv6/conf/erouter0/disable_ipv6");
@@ -695,6 +698,21 @@ static void do_toggle_v6_status()
     return;
 }
 
+void wanmgr_Ipv6Toggle()
+{
+    char v6Toggle[BUFLEN_128] = {0};
+
+    sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_IPV6_TOGGLE, v6Toggle, sizeof(v6Toggle));
+
+    if(strlen(v6Toggle) > 0 && !strcmp(v6Toggle,"TRUE"))
+    {
+        CcspTraceInfo(("%s %d SYSEVENT_IPV6_TOGGLE[TRUE] \n", __FUNCTION__, __LINE__));
+
+        sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV6_TOGGLE, "FALSE", 0);
+
+        do_toggle_v6_status();
+    }
+}
 static void set_vendor_spec_conf()
 {
     char vendor_class[BUF_SIZE] = {0};

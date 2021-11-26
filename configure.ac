@@ -87,5 +87,6 @@ AC_CONFIG_FILES([Makefile
 		source/Makefile
 		source/TR-181/Makefile
 		source/TR-181/middle_layer_src/Makefile
+		source/TR-181/netmonitor/Makefile
 		source/WanManager/Makefile])
 AC_OUTPUT

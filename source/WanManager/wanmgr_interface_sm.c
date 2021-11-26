@@ -33,21 +33,6 @@
 #include "wanmgr_dhcpv4_apis.h"
 #include "wanmgr_dhcpv6_apis.h"
 
-typedef enum
-{
-    WAN_STATE_EXIT = 0,
-    WAN_STATE_CONFIGURING_WAN,
-    WAN_STATE_VALIDATING_WAN,
-    WAN_STATE_OBTAINING_IP_ADDRESSES,
-    WAN_STATE_IPV4_LEASED,
-    WAN_STATE_IPV6_LEASED,
-    WAN_STATE_DUAL_STACK_ACTIVE,
-#ifdef FEATURE_MAPT
-    WAN_STATE_MAPT_ACTIVE,
-#endif //FEATURE_MAPT
-    WAN_STATE_REFRESHING_WAN,
-    WAN_STATE_DECONFIGURING_WAN
-} eWanState_t;
 
 #define LOOP_TIMEOUT 50000 // timeout in milliseconds. This is the state machine loop interval
 
@@ -260,6 +245,7 @@ static int wan_tearDownMapt()
 }
 #endif
 
+
 /*********************************************************************************/
 /**************************** ACTIONS ********************************************/
 /*********************************************************************************/
@@ -317,7 +303,7 @@ void WanManager_UpdateInterfaceStatus(DML_WAN_IFACE* pIfaceData, wanmgr_iface_st
             pIfaceData->MAP.MaptChanged = FALSE;                        // reset MAPT flag
             strncpy(pIfaceData->IP.Ipv6Data.address, "", sizeof(pIfaceData->IP.Ipv6Data.address));
             strncpy(pIfaceData->IP.Ipv6Data.pdIfAddress, "", sizeof(pIfaceData->IP.Ipv6Data.pdIfAddress));
-	    strncpy(pIfaceData->IP.Ipv6Data.sitePrefix, "", sizeof(pIfaceData->IP.Ipv6Data.sitePrefix));
+            strncpy(pIfaceData->IP.Ipv6Data.sitePrefix, "", sizeof(pIfaceData->IP.Ipv6Data.sitePrefix));
             strncpy(pIfaceData->IP.Ipv6Data.nameserver, "", sizeof(pIfaceData->IP.Ipv6Data.nameserver));
             strncpy(pIfaceData->IP.Ipv6Data.nameserver1, "", sizeof(pIfaceData->IP.Ipv6Data.nameserver1));
             wanmgr_sysevents_ipv6Info_init(); // reset the sysvent/syscfg fields
@@ -453,6 +439,7 @@ static int checkIpv6LanAddressIsReadyToUse()
     }//getifaddr close
 
     if(address_flag == 0) {
+        CcspTraceInfo(("%s %d address_flag Failed\n", __FUNCTION__, __LINE__));
         return -1;
     }
     /* Check Duplicate Address Detection (DAD) status. The way it works is that
@@ -498,6 +485,7 @@ static int checkIpv6LanAddressIsReadyToUse()
     }
 
     if(dad_flag == 0 || route_flag == 0) {
+        CcspTraceInfo(("%s %d dad_flag[%d] route_flag[%d] Failed \n", __FUNCTION__, __LINE__,dad_flag,route_flag));
         return -1;
     }
 
@@ -513,6 +501,7 @@ static int checkIpv6AddressAssignedToBridge()
 
     if(strlen(lanPrefix) > 0)
     {
+        CcspTraceInfo(("%s %d lanPrefix[%s] \n", __FUNCTION__, __LINE__,lanPrefix));
         if (checkIpv6LanAddressIsReadyToUse() == 0)
         {
             ret = RETURN_OK;
@@ -851,7 +840,7 @@ static ANSC_STATUS WanMgr_IfaceSM_IHC_Init(WanMgr_IfaceSM_Controller_t* pWanIfac
     pWanIfaceCtrl->IhcPid = 0;
     pWanIfaceCtrl->IhcV4Status = IHC_STOPPED;
     pWanIfaceCtrl->IhcV6Status = IHC_STOPPED;
-    return ANSC_STATUS_SUCCESS; 
+    return ANSC_STATUS_SUCCESS;
 }
 
 static ANSC_STATUS WanManager_StopIHC(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
@@ -1167,6 +1156,9 @@ static eWanState_t wan_transition_ipv4_up(WanMgr_IfaceSM_Controller_t* pWanIface
 
     DML_WAN_IFACE* pInterface = pWanIfaceCtrl->pIfaceData;
 
+    /* successfully got the v4 lease from the interface, so lets mark it validated */
+    pInterface->Wan.Status = WAN_IFACE_STATUS_UP;
+
     if(pInterface->Wan.ActiveLink == TRUE )
     {
         /* Configure IPv4. */
@@ -1247,6 +1239,11 @@ static eWanState_t wan_transition_ipv4_down(WanMgr_IfaceSM_Controller_t* pWanIfa
         CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION IPV6 LEASED\n", __FUNCTION__, __LINE__, pInterface->Name));
         return WAN_STATE_IPV6_LEASED;
     }
+    if(pWanIfaceCtrl->eCurrentState == WAN_STATE_DUAL_STACK_ACTIVE)
+    {
+        CcspTraceInfo(("%s %d - Interface '%s' - WAN_STATE_DUAL_STACK_ACTIVE->TRANSITION IPV6 LEASED\n", __FUNCTION__, __LINE__, pInterface->Name));
+        return WAN_STATE_IPV6_LEASED;
+    }
 
     CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION OBTAINING IP ADDRESSES\n", __FUNCTION__, __LINE__, pInterface->Name));
     return WAN_STATE_OBTAINING_IP_ADDRESSES;
@@ -1263,6 +1260,9 @@ static eWanState_t wan_transition_ipv6_up(WanMgr_IfaceSM_Controller_t* pWanIface
     }
 
     DML_WAN_IFACE* pInterface = pWanIfaceCtrl->pIfaceData;
+
+    /* successfully got the v6 lease from the interface, so lets mark it validated */
+    pInterface->Wan.Status = WAN_IFACE_STATUS_UP;
 
     if(pInterface->Wan.ActiveLink == TRUE )
     {
@@ -1339,7 +1339,11 @@ static eWanState_t wan_transition_ipv6_down(WanMgr_IfaceSM_Controller_t* pWanIfa
         CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION IPV4 LEASED\n", __FUNCTION__, __LINE__, pInterface->Name));
         return WAN_STATE_IPV4_LEASED;
     }
-
+    if(pWanIfaceCtrl->eCurrentState == WAN_STATE_DUAL_STACK_ACTIVE)
+    {
+        CcspTraceInfo(("%s %d - Interface '%s' - WAN_STATE_DUAL_STACK_ACTIVE->TRANSITION IPV4 LEASED\n", __FUNCTION__, __LINE__, pInterface->Name));
+        return WAN_STATE_IPV4_LEASED;
+    }
     CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION OBTAINING IP ADDRESSES\n", __FUNCTION__, __LINE__, pInterface->Name));
     return WAN_STATE_OBTAINING_IP_ADDRESSES;
 
@@ -1608,6 +1612,10 @@ static eWanState_t wan_state_obtaining_ip_addresses(WanMgr_IfaceSM_Controller_t*
         {
             return wan_transition_ipv6_up(pWanIfaceCtrl);
         }
+        else
+        {
+            wanmgr_Ipv6Toggle();
+        }
     }
 
     return WAN_STATE_OBTAINING_IP_ADDRESSES;
@@ -1685,7 +1693,8 @@ static eWanState_t wan_state_ipv4_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
                 }
 #endif
                 pInterface->IP.Ipv4Changed = FALSE;
-		CcspTraceInfo(("%s %d - Successfully updated IPv4 configure Changes for %s Interface \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
+                CcspTraceInfo(("%s %d - Successfully updated IPv4 configure Changes for %s Interface \n",
+                                __FUNCTION__, __LINE__, pInterface->Wan.Name));
             }
             else
             {
@@ -1717,6 +1726,10 @@ static eWanState_t wan_state_ipv4_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
         if (checkIpv6AddressAssignedToBridge() == RETURN_OK)
         {
             return wan_transition_ipv6_up(pWanIfaceCtrl);
+        }
+        else
+        {
+            wanmgr_Ipv6Toggle();
         }
     }
 
@@ -1770,7 +1783,7 @@ static eWanState_t wan_state_ipv6_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
         // IHC is diabled but is running, So Stopping IHC & clearing IntfSM IHC data
         WanManager_StopIHC(pWanIfaceCtrl);
     }
-#endif 
+#endif
 
     if (pWanIfaceCtrl->WanEnable == FALSE ||
         pInterface->SelectionStatus == WAN_IFACE_NOT_SELECTED ||
@@ -1796,7 +1809,8 @@ static eWanState_t wan_state_ipv6_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
                     }
 #endif
                     pInterface->IP.Ipv6Changed = FALSE;
-		    CcspTraceInfo(("%s %d - Successfully updated IPv6 configure Changes for %s Interface \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
+                    CcspTraceInfo(("%s %d - Successfully updated IPv6 configure Changes for %s Interface \n",
+                                    __FUNCTION__, __LINE__, pInterface->Wan.Name));
                 }
                 else
                 {
@@ -1829,7 +1843,7 @@ static eWanState_t wan_state_ipv6_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
         return wan_transition_mapt_up(pWanIfaceCtrl);
     }
 #endif //FEATURE_MAPT
-
+    wanmgr_Ipv6Toggle();
     return WAN_STATE_IPV6_LEASED;
 }
 
@@ -1841,6 +1855,7 @@ static eWanState_t wan_state_dual_stack_active(WanMgr_IfaceSM_Controller_t* pWan
     }
 
     DML_WAN_IFACE* pInterface = pWanIfaceCtrl->pIfaceData;
+
 
 #ifdef FEATURE_IPOE_HEALTH_CHECK
     if (pInterface->PPP.Enable == TRUE)
@@ -1919,17 +1934,18 @@ static eWanState_t wan_state_dual_stack_active(WanMgr_IfaceSM_Controller_t* pWan
                 }
 #endif
                 pInterface->IP.Ipv4Changed = FALSE;
-		CcspTraceInfo(("%s %d - Successfully updated IPv4 configure Changes for %s Interface \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
+                CcspTraceInfo(("%s %d - Successfully updated IPv4 configure Changes for %s Interface \n",
+                                __FUNCTION__, __LINE__, pInterface->Wan.Name));
             }
-	    else
-	    {
+            else
+            {
                 CcspTraceError(("%s %d - Failed to configure IPv4 for %s Interface \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
-	    }
+            }
         }
-	else
-	{
+        else
+        {
             CcspTraceError(("%s %d - Failed to tear down IPv4 for %s Interface \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
-	}
+        }
     }
     else if (pInterface->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_DOWN)
     {
@@ -1952,7 +1968,8 @@ static eWanState_t wan_state_dual_stack_active(WanMgr_IfaceSM_Controller_t* pWan
                     }
 #endif
                     pInterface->IP.Ipv6Changed = FALSE;
-                    CcspTraceInfo(("%s %d - Successfully updated IPv6 configure Changes for %s Interface \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
+                    CcspTraceInfo(("%s %d - Successfully updated IPv6 configure Changes for %s Interface \n",
+                                    __FUNCTION__, __LINE__, pInterface->Wan.Name));
                 }
                 else
                 {
@@ -1977,7 +1994,7 @@ static eWanState_t wan_state_dual_stack_active(WanMgr_IfaceSM_Controller_t* pWan
         return wan_transition_mapt_up(pWanIfaceCtrl);
     }
 #endif //FEATURE_MAPT
-
+    wanmgr_Ipv6Toggle();
     return WAN_STATE_DUAL_STACK_ACTIVE;
 }
 
@@ -2011,7 +2028,8 @@ static eWanState_t wan_state_mapt_active(WanMgr_IfaceSM_Controller_t* pWanIfaceC
                 if (wan_setUpIPv6(pInterface) == RETURN_OK)
                 {
                     pInterface->IP.Ipv6Changed = FALSE;
-                    CcspTraceInfo(("%s %d - Successfully updated IPv6 configure Changes for %s Interface \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
+                    CcspTraceInfo(("%s %d - Successfully updated IPv6 configure Changes for %s Interface \n",
+                                    __FUNCTION__, __LINE__, pInterface->Wan.Name));
 
                     if (pInterface->Wan.EnableMAPT == TRUE &&
                         pInterface->Wan.ActiveLink == TRUE &&
@@ -2066,7 +2084,7 @@ static eWanState_t wan_state_mapt_active(WanMgr_IfaceSM_Controller_t* pWanIfaceC
             CcspTraceError(("%s %d - Failed to tear down MAP-T for %s Interface \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
         }
     }
-
+    wanmgr_Ipv6Toggle();
     return WAN_STATE_MAPT_ACTIVE;
 }
 #endif //FEATURE_MAPT
@@ -2268,6 +2286,9 @@ static void* WanMgr_InterfaceSMThread( void *arg )
         //Handle IPC messages
         WanMgr_IfaceIpcMsg_handle(pWanIfaceCtrl);
 
+        // Store current state
+        pWanIfaceCtrl->eCurrentState = iface_sm_state;
+
         // process state
         switch (iface_sm_state)
         {
@@ -2339,14 +2360,13 @@ static void* WanMgr_InterfaceSMThread( void *arg )
 
 
     CcspTraceInfo(("%s %d - Interface state machine (TID %lu) exiting for iface idx %d\n", __FUNCTION__, __LINE__, pthread_self(), pWanIfaceCtrl->interfaceIdx));
-    
+
     //Free current private resource before exit
     if(NULL != pWanIfaceCtrl)
     {
         free(pWanIfaceCtrl);
         pWanIfaceCtrl = NULL;
     }
-
     pthread_exit(NULL);
 }
 

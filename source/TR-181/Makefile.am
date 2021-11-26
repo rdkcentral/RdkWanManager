@@ -17,4 +17,4 @@
 # limitations under the License.
 ##########################################################################
 
-SUBDIRS = middle_layer_src
+SUBDIRS = middle_layer_src netmonitor

@@ -56,7 +56,6 @@
 #include "ansc_platform.h"
 #include "ccsp_psm_helper.h"
 #include "wanmgr_data.h"
-#include "wanmgr_data.h"
 
 #define UPSTREAM_SET_MAX_RETRY_COUNT 10 // max. retry count for Upstream set requests
 
