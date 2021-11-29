@@ -1049,9 +1049,6 @@ static eWanState_t wan_transition_wan_validated(WanMgr_IfaceSM_Controller_t* pWa
 
     DML_WAN_IFACE* pInterface = pWanIfaceCtrl->pIfaceData;
 
-
-    pInterface->Wan.Status = WAN_IFACE_STATUS_UP;
-
     /* Clear DHCP data */
     WanManager_ClearDHCPData(pInterface);
 
@@ -1417,6 +1414,11 @@ static eWanState_t wan_transition_ipv6_down(WanMgr_IfaceSM_Controller_t* pWanIfa
 
 static eWanState_t wan_transition_dual_stack_down(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
 {
+
+    DML_WAN_IFACE* pInterface = pWanIfaceCtrl->pIfaceData;
+
+    pInterface->Wan.Status = WAN_IFACE_STATUS_VALIDATING;
+
     wan_transition_ipv4_down(pWanIfaceCtrl);
     wan_transition_ipv6_down(pWanIfaceCtrl);
 
