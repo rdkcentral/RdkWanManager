@@ -276,11 +276,6 @@ void WanManager_UpdateInterfaceStatus(DML_WAN_IFACE* pIfaceData, wanmgr_iface_st
         return;
     }
 
-#ifdef FEATURE_MAPT
-    CcspTraceInfo(("mapt: %s \n",
-                   ((iface_status == WANMGR_IFACE_MAPT_START) ? "UP" : (iface_status == WANMGR_IFACE_MAPT_STOP) ? "DOWN" : "N/A")));
-#endif
-
     switch (iface_status)
     {
         case WANMGR_IFACE_LINK_UP:
@@ -333,6 +328,8 @@ void WanManager_UpdateInterfaceStatus(DML_WAN_IFACE* pIfaceData, wanmgr_iface_st
         case WANMGR_IFACE_MAPT_START:
         {
             pIfaceData->MAP.MaptStatus = WAN_IFACE_MAPT_STATE_UP;
+            CcspTraceInfo(("mapt: %s \n",
+                   ((iface_status == WANMGR_IFACE_MAPT_START) ? "UP" : (iface_status == WANMGR_IFACE_MAPT_STOP) ? "DOWN" : "N/A")));
 
             break;
         }
@@ -340,6 +337,9 @@ void WanManager_UpdateInterfaceStatus(DML_WAN_IFACE* pIfaceData, wanmgr_iface_st
         {
             pIfaceData->MAP.MaptStatus = WAN_IFACE_MAPT_STATE_DOWN;     // reset MAPT flag
             pIfaceData->MAP.MaptChanged = FALSE;                        // reset MAPT flag
+            CcspTraceInfo(("mapt: %s \n",
+                   ((iface_status == WANMGR_IFACE_MAPT_START) ? "UP" : (iface_status == WANMGR_IFACE_MAPT_STOP) ? "DOWN" : "N/A")));
+
             break;
         }
 #endif
