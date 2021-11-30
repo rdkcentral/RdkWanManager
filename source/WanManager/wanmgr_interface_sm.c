@@ -1516,7 +1516,15 @@ static eWanState_t wan_state_ipv4_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
     DML_WAN_IFACE* pInterface = pWanIfaceCtrl->pIfaceData;
 
 #ifdef FEATURE_IPOE_HEALTH_CHECK
-    if (pInterface->Wan.EnableIPoE)
+    if (pInterface->PPP.Enable == TRUE)
+    {
+        if (pWanIfaceCtrl->IhcPid > 0)
+        {
+            // IHC is diabled but is running, So Stopping IHC & clearing IntfSM IHC data
+            WanManager_StopIHC(pWanIfaceCtrl);
+        }
+    }
+    else if (pInterface->Wan.EnableIPoE)
     {
         if ((pWanIfaceCtrl->IhcPid > 0) != TRUE)
         {
@@ -1533,7 +1541,8 @@ static eWanState_t wan_state_ipv4_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
                 CcspTraceError(("%s %d - Failed to start IPoE Health Check for interface %s \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
             }
         }
-        if ((pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV4Status == IHC_STOPPED))
+        if ((pInterface->Wan.EnableIPoE) && (pInterface->PPP.Enable == FALSE) &&
+            (pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV4Status == IHC_STOPPED))
         {
             // sending v4 UP event to IHC, IHC starts to send BFD v4 packts to BNG
             WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_UP, pInterface->Wan.Name);
@@ -1610,7 +1619,15 @@ static eWanState_t wan_state_ipv6_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
     DML_WAN_IFACE* pInterface = pWanIfaceCtrl->pIfaceData;
 
 #ifdef FEATURE_IPOE_HEALTH_CHECK
-    if (pInterface->Wan.EnableIPoE)
+    if (pInterface->PPP.Enable == TRUE)
+    {
+        if (pWanIfaceCtrl->IhcPid > 0)
+        {
+            // IHC is diabled but is running, So Stopping IHC & clearing IntfSM IHC data
+            WanManager_StopIHC(pWanIfaceCtrl);
+        }
+    }
+    else if (pInterface->Wan.EnableIPoE)
     {
         if ((pWanIfaceCtrl->IhcPid > 0) != TRUE)
         {
@@ -1709,7 +1726,15 @@ static eWanState_t wan_state_dual_stack_active(WanMgr_IfaceSM_Controller_t* pWan
     DML_WAN_IFACE* pInterface = pWanIfaceCtrl->pIfaceData;
 
 #ifdef FEATURE_IPOE_HEALTH_CHECK
-    if (pInterface->Wan.EnableIPoE)
+    if (pInterface->PPP.Enable == TRUE)
+    {
+        if (pWanIfaceCtrl->IhcPid > 0)
+        {
+            // IHC is diabled but is running, So Stopping IHC & clearing IntfSM IHC data
+            WanManager_StopIHC(pWanIfaceCtrl);
+        }
+    }
+    else if (pInterface->Wan.EnableIPoE)
     {
         if ((pWanIfaceCtrl->IhcPid > 0) != TRUE)
         {
@@ -1726,7 +1751,8 @@ static eWanState_t wan_state_dual_stack_active(WanMgr_IfaceSM_Controller_t* pWan
                 CcspTraceError(("%s %d - Failed to start IPoE Health Check for interface %s \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
             }
         }
-        if ((pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV4Status == IHC_STOPPED))
+        if ((pInterface->Wan.EnableIPoE) && (pInterface->PPP.Enable == FALSE) &&
+            (pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV4Status == IHC_STOPPED))
         {
             // sending v4 UP event to IHC, IHC starts to send BFD v4 packts to BNG
             WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_UP, pInterface->Wan.Name);
