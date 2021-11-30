@@ -578,6 +578,10 @@ int WanManager_ProcessMAPTConfiguration(ipc_mapt_data_t *dhcp6cMAPTMsgBody, cons
 
     MaptData_t maptInfo;
 
+    //The sharing ratio cannot be zero, a value of zero means the sharing ratio is 1
+    if (dhcp6cMAPTMsgBody->ratio == 0)
+        dhcp6cMAPTMsgBody->ratio = 1;
+
 #ifdef FEATURE_MAPT_DEBUG
     WanManager_UpdateMaptLogFile(dhcp6cMAPTMsgBody);
 #endif
@@ -674,9 +678,6 @@ int WanManager_ProcessMAPTConfiguration(ipc_mapt_data_t *dhcp6cMAPTMsgBody, cons
         return ret;
     }
 
-    //The sharing ratio cannot be zero, a value of zero means the sharing ratio is 1
-    if (dhcp6cMAPTMsgBody->ratio == 0)
-        dhcp6cMAPTMsgBody->ratio = 1;
 #endif  // (IVI_KERNEL_SUPPORT) || (NAT46_KERNEL_SUPPORT)
 
 #ifdef NAT46_KERNEL_SUPPORT
