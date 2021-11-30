@@ -216,7 +216,7 @@ ANSC_STATUS WanMgr_Controller_PolicyCtrlInit(WanMgr_Policy_Controller_t* pWanPol
         memset(&(pWanPolicyCtrl->SelectionTimeOutEnd), 0, sizeof(struct timespec));
         pWanPolicyCtrl->InterfaceSelectionTimeOut = 0;
         pWanPolicyCtrl->TotalIfaces = 0;
-
+        pWanPolicyCtrl->WanOperationalMode = -1;
         retStatus = ANSC_STATUS_SUCCESS;
     }
 

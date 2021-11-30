@@ -44,7 +44,9 @@ typedef enum {
     STATE_WAN_CONFIGURING_INTERFACE,
     STATE_WAN_DECONFIGURING_INTERFACE,
     STATE_WAN_SCANNING_INTERFACE,
-    STATE_WAN_INTERFACE_ACTIVE
+    STATE_WAN_INTERFACE_ACTIVE,
+    STATE_WAN_INTERFACE_TEARDOWN,
+    STATE_WAN_EXIT
 } WcFmobPolicyState_t;
 
 typedef enum WanMode
@@ -95,12 +97,14 @@ static WcFmobPolicyState_t Transition_FixedWanInterfaceDown(WanMgr_Policy_Contro
 
 /* STATES */
 static WcFmobPolicyState_t State_WaitingForInterface(WanMgr_AutoWan_SMInfo_t *pSmInfo);
+static WcFmobPolicyState_t State_WanInterfaceTearDown(WanMgr_Policy_Controller_t* pWanController);
 
 
 /* TRANSITIONS */
 static WcFmobPolicyState_t Transition_StartAuto(WanMgr_AutoWan_SMInfo_t *pSmInfo);
 static WcFmobPolicyState_t Transition_WanInterfaceActive(WanMgr_AutoWan_SMInfo_t *pSmInfo);
 static WcFmobPolicyState_t Transition_WaitingForInterface(WanMgr_Iface_Data_t *pWanActiveIfaceData);
+static WcFmobPolicyState_t Transition_WanInterfaceTearDown(WanMgr_Policy_Controller_t* pWanController);
 
 
 /* Auto Wan Detection Functions */
@@ -153,7 +157,7 @@ static INT WanMgr_Policy_AutoWan_CfgPostWanSelection(WanMgr_AutoWan_SMInfo_t *pS
             if(pWanDmlIfaceData != NULL)
             {
                 DML_WAN_IFACE* pInterface = NULL;
-                char acIfName[256] = {0};
+                char acInstanceNumber[256] = {0};
 
                 pInterface = &(pWanDmlIfaceData->data);
 
@@ -163,8 +167,8 @@ static INT WanMgr_Policy_AutoWan_CfgPostWanSelection(WanMgr_AutoWan_SMInfo_t *pS
                     return -1;
                 }
 
-                snprintf(acIfName,sizeof(acIfName),"%s",pInterface->Wan.Name);
-                ANSC_STATUS ret = WanMgr_RdkBus_SetRequestIfComponent(pInterface->Phy.Path,PARAM_NAME_POST_CFG_WAN_FINALIZE,acIfName,ccsp_string);
+                snprintf(acInstanceNumber,sizeof(acInstanceNumber),"%d",pInterface->uiInstanceNumber);
+                ANSC_STATUS ret = WanMgr_RdkBus_SetRequestIfComponent(pInterface->Phy.Path,PARAM_NAME_POST_CFG_WAN_FINALIZE,acInstanceNumber,ccsp_string);
                 if (ret == ANSC_STATUS_FAILURE)
                 {
                     CcspTraceError(("%s WanMgr_RdkBus_SetRequestIfComponent failed for param %s.%s\n",__FUNCTION__,pInterface->Phy.Path,PARAM_NAME_POST_CFG_WAN_FINALIZE));
@@ -316,7 +320,6 @@ static WcFmobPolicyState_t Transition_WanInterfaceSelected(WanMgr_Policy_Control
 
     //ActiveLink
     pFixedInterface->Wan.ActiveLink = TRUE;
-
     CcspTraceInfo(("%s %d - State changed to STATE_WAN_INTERFACE_DOWN \n", __FUNCTION__, __LINE__));
     return STATE_WAN_INTERFACE_DOWN;
 }
@@ -389,6 +392,11 @@ static WcFmobPolicyState_t State_FixedWanInterfaceDown(WanMgr_Policy_Controller_
         return STATE_WAN_SELECTING_INTERFACE;
     }
 
+    if (pWanController->WanEnable == FALSE)
+    {
+        return Transition_WanInterfaceTearDown(pWanController);
+    }
+
     if( pWanController->WanEnable == TRUE &&
         (pFixedInterface->Phy.Status == WAN_IFACE_PHY_STATUS_UP ||
          pFixedInterface->Phy.Status == WAN_IFACE_PHY_STATUS_INITIALIZING) &&
@@ -414,8 +422,12 @@ static WcFmobPolicyState_t State_FixedWanInterfaceUp(WanMgr_Policy_Controller_t*
         return STATE_WAN_INTERFACE_DOWN;
     }
 
-    if( pWanController->WanEnable == FALSE ||
-        pFixedInterface->Phy.Status == WAN_IFACE_PHY_STATUS_DOWN)
+    if (pWanController->WanEnable == FALSE)
+    {
+        return Transition_WanInterfaceTearDown(pWanController);
+    }
+
+    if(pFixedInterface->Phy.Status == WAN_IFACE_PHY_STATUS_DOWN)
     {
         return Transition_FixedWanInterfaceDown(pWanController);
     }
@@ -710,7 +722,66 @@ static WcFmobPolicyState_t Transition_WaitingForInterface(WanMgr_Iface_Data_t *p
     return STATE_WAN_WAITING_FOR_INTERFACE;
 }
 
+static WcFmobPolicyState_t Transition_WanInterfaceTearDown(WanMgr_Policy_Controller_t* pWanController)
+{
+    WcFmobPolicyState_t retState = STATE_WAN_INTERFACE_TEARDOWN;
+    wanmgr_setwanstop();
+    system("killall dibbler-client");
+    system("killall udhcpc");
+    CcspTraceInfo(("%s %d - State changed to STATE_WAN_INTERFACE_TEARDOWN \n", __FUNCTION__, __LINE__));
+    return retState;
+}
 
+static WcFmobPolicyState_t State_WanInterfaceTearDown(WanMgr_Policy_Controller_t* pWanController)
+{
+    WcFmobPolicyState_t retState = STATE_WAN_INTERFACE_TEARDOWN;
+    DML_WAN_IFACE* pFixedInterface = NULL;
+
+    if((pWanController != NULL) && (pWanController->pWanActiveIfaceData != NULL))
+    {
+        pFixedInterface = &(pWanController->pWanActiveIfaceData->data);
+    }
+
+    if(pFixedInterface == NULL)
+    {
+        return retState;
+    }
+   
+    if (pWanController->WanEnable == TRUE)
+    {
+        if (pWanController->WanOperationalMode != GetSelectedWanModeFromDb())
+        {
+            retState = STATE_WAN_EXIT;
+            CcspTraceInfo(("%s %d - State changed to STATE_WAN_EXIT \n", __FUNCTION__, __LINE__));
+        }
+        else
+        {
+            // if wan operational mode is not changed then move to interface down state and 
+            // wait for phy status of current active interface.
+            retState = STATE_WAN_INTERFACE_DOWN;
+            if (WAN_MODE_AUTO == GetSelectedWanMode())
+            {
+                // if wan is not yet detected in autowan mode yet
+                // then start the autowan state machine from begining.
+                if (WAN_MODE_UNKNOWN == GetCurrentWanMode()) 
+                {
+                    retState = STATE_WAN_SELECTING_INTERFACE;
+                    CcspTraceInfo(("%s %d - State changed to STATE_WAN_SELECTING_INTERFACE \n", __FUNCTION__, __LINE__));
+                }
+                else
+                {
+                    CcspTraceInfo(("%s %d - State changed to STATE_WAN_INTERFACE_DOWN \n", __FUNCTION__, __LINE__));
+                }
+            }
+            else
+            {
+                CcspTraceInfo(("%s %d - State changed to STATE_WAN_INTERFACE_DOWN \n", __FUNCTION__, __LINE__));
+            }
+        }
+    }
+
+    return retState;
+}
 
 static WcFmobPolicyState_t Transition_WanInterfaceConfigured(WanMgr_AutoWan_SMInfo_t *pSmInfo)
 {
@@ -788,13 +859,28 @@ static WcFmobPolicyState_t Transition_WanInterfaceActive(WanMgr_AutoWan_SMInfo_t
             {
                 SetLastKnownWanMode(WAN_MODE_SECONDARY);
                 SetCurrentWanMode(WAN_MODE_SECONDARY);
-
-                CcspTraceInfo(("%s - WanMode %s is Locked, Set Current operational mode, rebooting... \n",__FUNCTION__,WanModeStr(WAN_MODE_SECONDARY)));
-                AutoWan_BkupAndReboot();                
+                if (pFixedInterface->Wan.RebootOnConfiguration)
+                {
+                    CcspTraceInfo(("%s - WanMode %s is Locked, Set Current operational mode, rebooting... \n",__FUNCTION__,WanModeStr(WAN_MODE_SECONDARY)));
+                    AutoWan_BkupAndReboot();
+                }
+                else
+                {
+                    StartWanClients(pSmInfo);
+                    CcspTraceInfo(("%s - WanMode %s is Locked, Set Current operational mode, Lastknown mode and Current detected mode are different \n"
+                                ,__FUNCTION__,WanModeStr(WAN_MODE_SECONDARY)));
+                }
             }
             else
             {
-                CcspTraceInfo(("%s - WanMode %s is Locked, Set Current operational mode, reboot is not required\n",__FUNCTION__,WanModeStr(lastKnownMode)));
+                if (pFixedInterface->Wan.RebootOnConfiguration)
+                {
+                    CcspTraceInfo(("%s - WanMode %s is Locked, Set Current operational mode, reboot is not required\n",__FUNCTION__,WanModeStr(lastKnownMode)));
+                }
+                else
+                {
+                    CcspTraceInfo(("%s - WanMode %s is Locked, Set Current operational mode, Lastknown mode and Current detected mode are same \n",__FUNCTION__,WanModeStr(lastKnownMode)));
+                }
                 SetLastKnownWanMode(WAN_MODE_PRIMARY);
                 SetCurrentWanMode(WAN_MODE_PRIMARY);
             }
@@ -806,13 +892,29 @@ static WcFmobPolicyState_t Transition_WanInterfaceActive(WanMgr_AutoWan_SMInfo_t
             {
                 SetLastKnownWanMode(WAN_MODE_PRIMARY);
                 SetCurrentWanMode(WAN_MODE_PRIMARY);
+                if (pFixedInterface->Wan.RebootOnConfiguration)
+                {
+                    CcspTraceInfo(("%s - WanMode %s is Locked, Set Current operational mode, rebooting... \n",__FUNCTION__,WanModeStr(WAN_MODE_PRIMARY)));
+                    AutoWan_BkupAndReboot();
+                }
+                else
+                {
+                    StartWanClients(pSmInfo);
+                    CcspTraceInfo(("%s - WanMode %s is Locked, Set Current operational mode, Lastknown mode and Current detected mode are different \n",
+                                __FUNCTION__,WanModeStr(WAN_MODE_PRIMARY)));
+                }
 
-                CcspTraceInfo(("%s - WanMode %s is Locked, Set Current operational mode, rebooting... \n",__FUNCTION__,WanModeStr(WAN_MODE_PRIMARY)));
-                AutoWan_BkupAndReboot();
             }
             else
             {
-                CcspTraceInfo(("%s - WanMode %s is Locked, Set Current operational mode, reboot is not required\n",__FUNCTION__,WanModeStr(lastKnownMode)));
+                if (pFixedInterface->Wan.RebootOnConfiguration)
+                {
+                    CcspTraceInfo(("%s - WanMode %s is Locked, Set Current operational mode, reboot is not required\n",__FUNCTION__,WanModeStr(lastKnownMode)));
+                }
+                else
+                {
+                    CcspTraceInfo(("%s - WanMode %s is Locked, Set Current operational mode, Lastknown mode and Current detected mode are same \n",__FUNCTION__,WanModeStr(lastKnownMode)));
+                }
                 SetLastKnownWanMode(WAN_MODE_SECONDARY);
                 SetCurrentWanMode(WAN_MODE_SECONDARY);
             }
@@ -881,6 +983,17 @@ void SelectedWanMode(int mode)
         }
 
     }
+}
+
+int GetSelectedWanModeFromDb()
+{
+    char buf[8] = {0};
+    int wanMode = WAN_MODE_UNKNOWN;
+     if (syscfg_get(NULL, "selected_wan_mode", buf, sizeof(buf)) == 0)
+     {
+        wanMode = atoi(buf);
+     }
+    return wanMode;
 }
 
 int GetLastKnownWanModeFromDb()
@@ -980,8 +1093,6 @@ void IntializeAutoWanConfig()
 ANSC_STATUS Wanmgr_WanFixedMode_StartStateMachine(void)
 {
     CcspTraceInfo(("%s %d \n", __FUNCTION__, __LINE__));
-    //detach thread from caller stack
-    pthread_detach(pthread_self());
 
     //policy variables
     ANSC_STATUS retStatus = ANSC_STATUS_SUCCESS;
@@ -998,7 +1109,7 @@ ANSC_STATUS Wanmgr_WanFixedMode_StartStateMachine(void)
         CcspTraceError(("%s %d Policy Controller Error \n", __FUNCTION__, __LINE__));
         return ANSC_STATUS_FAILURE;
     }
-
+    WanPolicyCtrl.WanOperationalMode = GetSelectedWanMode();
     CcspTraceInfo(("%s %d  Fixed Mode On Bootup Policy Thread Starting \n", __FUNCTION__, __LINE__));
 
     // initialise state machine
@@ -1039,6 +1150,12 @@ ANSC_STATUS Wanmgr_WanFixedMode_StartStateMachine(void)
                 break;
             case STATE_WAN_INTERFACE_UP:
                 fmob_sm_state = State_FixedWanInterfaceUp(&WanPolicyCtrl);
+                break;
+            case STATE_WAN_INTERFACE_TEARDOWN:
+                fmob_sm_state = State_WanInterfaceTearDown(&WanPolicyCtrl);
+                break;
+            case STATE_WAN_EXIT:
+                bRunning = false;
                 break;
             default:
                 CcspTraceInfo(("%s %d - Case: default \n", __FUNCTION__, __LINE__));
@@ -1115,6 +1232,10 @@ static WcFmobPolicyState_t State_WanConfiguringInterface(WanMgr_AutoWan_SMInfo_t
         return STATE_WAN_WAITING_FOR_INTERFACE;
     }
 
+    if (pWanController->WanEnable == FALSE)
+    {
+        return Transition_WanInterfaceTearDown(pWanController);
+    }
     CcspTraceInfo(("%s %d - AUTOWAN ifname %s \n", __FUNCTION__, __LINE__,pFixedInterface->Wan.Name));
     if (pFixedInterface->WanConfigEnabled == TRUE)
     {
@@ -1161,6 +1282,10 @@ static WcFmobPolicyState_t State_WanDeConfiguringInterface(WanMgr_AutoWan_SMInfo
         return STATE_WAN_SELECTING_INTERFACE;
     }
 
+    if (pWanController->WanEnable == FALSE)
+    {
+        return Transition_WanInterfaceTearDown(pWanController);
+    }
     //Update ActiveLink
     pFixedInterface->Wan.ActiveLink = FALSE;
     CcspTraceInfo(("%s %d - AUTOWAN ifname %s \n", __FUNCTION__, __LINE__,pFixedInterface->Wan.Name));
@@ -1209,6 +1334,10 @@ static WcFmobPolicyState_t State_WanScanningInterface(WanMgr_AutoWan_SMInfo_t *p
         return retState;
     }
 
+    if (pWanController->WanEnable == FALSE)
+    {
+        return Transition_WanInterfaceTearDown(pWanController);
+    }
     if (pFixedInterface->MonitorOperStatus)
     {
         switch (pFixedInterface->Wan.OperationalStatus)
@@ -1270,8 +1399,11 @@ static WcFmobPolicyState_t State_WanInterfaceActive(WanMgr_AutoWan_SMInfo_t *pSm
         return retState;
     }
 
-    if ((pWanController->WanEnable == FALSE) ||
-            (pFixedInterface->Phy.Status == WAN_IFACE_PHY_STATUS_DOWN))
+    if (pWanController->WanEnable == FALSE)
+    {
+        return Transition_WanInterfaceTearDown(pWanController);
+    }
+    if ((pFixedInterface->Phy.Status == WAN_IFACE_PHY_STATUS_DOWN))
     {
         // wan stop
         wanmgr_setwanstop();
@@ -1303,6 +1435,10 @@ static WcFmobPolicyState_t State_WanInterfaceUp(WanMgr_AutoWan_SMInfo_t *pSmInfo
         return retState;
     }
 
+    if (pWanController->WanEnable == FALSE)
+    {
+        return Transition_WanInterfaceTearDown(pWanController);
+    }
     if(wanmgr_isWanStarted() == 1)
     {
         retState = Transition_WanInterfaceActive(pSmInfo);
@@ -1331,6 +1467,10 @@ static WcFmobPolicyState_t State_WanInterfaceDown(WanMgr_AutoWan_SMInfo_t *pSmIn
         return retState;
     }
 
+    if (pWanController->WanEnable == FALSE)
+    {
+        return Transition_WanInterfaceTearDown(pWanController);
+    }
 
     if((pWanController->WanEnable == TRUE) &&
             (pFixedInterface->Phy.Status == WAN_IFACE_PHY_STATUS_UP))
@@ -1367,6 +1507,10 @@ static WcFmobPolicyState_t State_WaitingForInterface(WanMgr_AutoWan_SMInfo_t *pS
         return STATE_WAN_WAITING_FOR_INTERFACE;
     }
 
+    if (pWanController->WanEnable == FALSE)
+    {
+        return Transition_WanInterfaceTearDown(pWanController);
+    }
     if(pWanController->WanEnable == TRUE)
     {
         switch (pFixedInterface->Phy.Status)        
@@ -1396,8 +1540,6 @@ static WcFmobPolicyState_t State_WaitingForInterface(WanMgr_AutoWan_SMInfo_t *pS
 ANSC_STATUS Wanmgr_WanAutoMode_StartStateMachine(void)
 {
     CcspTraceInfo(("%s %d \n", __FUNCTION__, __LINE__));
-    //detach thread from caller stack
-    pthread_detach(pthread_self());
 
     //policy variables
     ANSC_STATUS retStatus = ANSC_STATUS_SUCCESS;
@@ -1417,6 +1559,7 @@ ANSC_STATUS Wanmgr_WanAutoMode_StartStateMachine(void)
         return ANSC_STATUS_FAILURE;
     }
     pWanPolicyCtrl = &smInfo.wanPolicyCtrl;
+    pWanPolicyCtrl->WanOperationalMode = GetSelectedWanMode();
     pWanPolicyCtrl->activeInterfaceIdx = WanMgr_Policy_AutoWan_GetLastKnownModeInterfaceIndex();
     smInfo.previousActiveInterfaceIndex =  pWanPolicyCtrl->activeInterfaceIdx;
     CcspTraceInfo(("%s %d  Fixed Mode On Bootup Policy Thread Starting \n", __FUNCTION__, __LINE__));
@@ -1497,6 +1640,16 @@ ANSC_STATUS Wanmgr_WanAutoMode_StartStateMachine(void)
                 fmob_sm_state = State_WanInterfaceDown(&smInfo);
             }
             break;                
+            case STATE_WAN_INTERFACE_TEARDOWN:
+            {
+                fmob_sm_state = State_WanInterfaceTearDown(&smInfo.wanPolicyCtrl);
+            }
+            break;
+            case STATE_WAN_EXIT:
+            {
+                bRunning = false;
+            }
+            break;
             default:
             {
                 CcspTraceInfo(("%s %d - Case: default \n", __FUNCTION__, __LINE__));
@@ -1557,37 +1710,41 @@ ANSC_STATUS WanMgr_Policy_AutoWan(void)
 {
     int wanMode = -1;
     ANSC_STATUS retStatus = ANSC_STATUS_SUCCESS;
+    bool bRunning = true;
 
     CcspTraceInfo(("%s %d \n", __FUNCTION__, __LINE__));
-    IntializeAutoWanConfig();
-
-    wanMode = GetSelectedWanMode();
-    CcspTraceInfo(("%s %d - SelWanMode %d  \n", __FUNCTION__, __LINE__,wanMode));
-
-    switch (wanMode)
+    while (bRunning)
     {
-        case WAN_MODE_PRIMARY:
-        {
-            Wanmgr_StartPrimaryWan();
-        }
-        break;
+        IntializeAutoWanConfig();
 
-        case WAN_MODE_SECONDARY:
-        {
-            Wanmgr_StartSecondaryWan();
-        }
-        break;
+        wanMode = GetSelectedWanMode();
+        CcspTraceInfo(("%s %d - SelWanMode %d  \n", __FUNCTION__, __LINE__,wanMode));
 
-        case WAN_MODE_AUTO:
-        default:
+        switch (wanMode)
         {
-            if (wanMode != WAN_MODE_AUTO)
+            case WAN_MODE_PRIMARY:
             {
-                SelectedWanMode(WAN_MODE_AUTO);
+                Wanmgr_StartPrimaryWan();
             }
-            Wanmgr_StartAutoMode();
-        }
-        break;
+            break;
+
+            case WAN_MODE_SECONDARY:
+            {
+                Wanmgr_StartSecondaryWan();
+            }
+            break;
+
+            case WAN_MODE_AUTO:
+            default:
+            {
+                if (wanMode != WAN_MODE_AUTO)
+                {
+                    SelectedWanMode(WAN_MODE_AUTO);
+                }
+                Wanmgr_StartAutoMode();
+            }
+            break;
+        }        
     }
     CcspTraceInfo(("%s %d - Exit from Auto wan policy\n", __FUNCTION__, __LINE__));
     return retStatus;
