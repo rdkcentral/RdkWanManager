@@ -81,8 +81,14 @@ extern token_t sysevent_token;
 
 #define SYSCFG_WAN_INTERFACE_NAME "wan_physical_ifname"
 #define DUID_CLIENT "/tmp/dibbler/client-duid"
+
+#if defined (DUID_UUID_ENABLE)
+#define DUID_TYPE "0004"  /* duid-type duid-uuid 4 */
+#else
 #define DUID_TYPE "00:03:"  /* duid-type duid-ll 3 */
 #define HW_TYPE "00:01:"    /* hw type is always 1 */
+#endif
+
 #define DIBBLER_IPV6_CLIENT_ENABLE      "Device.DHCPv6.Client.%d.Enable"
 
 #define IPMONITOR_WAIT_MAX_TIMEOUT 240
@@ -1745,6 +1751,10 @@ static void generate_client_duid_conf()
     char duid[256] = {0};
     char file_path[64] = {0};
     char wan_mac[64] = {0};
+#if defined (DUID_UUID_ENABLE)
+    char uuid[128] = {0};
+    FILE *fp_uuid_proc = NULL;
+#endif
     int ret = 0;
 
     FILE *fp_duid = NULL;
@@ -1754,6 +1764,22 @@ static void generate_client_duid_conf()
 
     if( fp_duid == NULL )
     {
+#if defined (DUID_UUID_ENABLE)
+        if (syscfg_get(NULL, "UUID", uuid, sizeof(uuid)) != ANSC_STATUS_SUCCESS)
+        {
+            snprintf(file_path, sizeof(file_path), "cat /proc/sys/kernel/random/uuid | tr -d -");
+            fp_uuid_proc = popen(file_path, "r");
+            if(fp_uuid_proc == NULL){
+                 CcspTraceError(("Failed to open proc entry"));
+            }
+            else{
+                fgets(uuid, sizeof(uuid), fp_uuid_proc);
+                pclose(fp_uuid_proc);
+            }
+            syscfg_set(NULL, "UUID", uuid);
+            syscfg_commit();
+        }
+#endif
         snprintf(file_path, sizeof(file_path)-1, "/sys/class/net/%s/address", PHY_WAN_IF_NAME);
         fp_mac_addr_table = fopen(file_path, "r");
         if(fp_mac_addr_table == NULL)
@@ -1771,9 +1797,12 @@ static void generate_client_duid_conf()
         if(fp_duid)
         {
             sprintf(duid, DUID_TYPE);
+#if defined (DUID_UUID_ENABLE)
+            sprintf(duid+4, uuid);
+#else
             sprintf(duid+6, HW_TYPE);
             sprintf(duid+12, wan_mac);
-
+#endif
             fprintf(fp_duid, "%s", duid);
             fclose(fp_duid);
         }
