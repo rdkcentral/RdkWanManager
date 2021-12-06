@@ -505,7 +505,8 @@
                     </objects>
                 </object>
             </objects>
-        </object>
+    </object>
+<?ifndef FEATURE_RDKB_DHCP_MANAGER?>
        <object>
 
       <name>DHCPv4</name>
@@ -1281,6 +1282,7 @@
           </objects>
         </object>
         </objects>
-    </object>
+	</object>
+<?endif?>
     </objects>
 </dataModelInfo>
