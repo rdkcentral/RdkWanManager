@@ -1252,6 +1252,14 @@
                 <syntax>string</syntax>
                 <writable>false</writable>
               </parameter>
+<?ifdef FEATURE_SUPPORT_MAPT_NAT46?>
+              <parameter>
+                <name>MapRatio</name>
+                <type>unsignedInt</type>
+                <syntax>uint32</syntax>
+                <writable>false</writable>
+              </parameter>
+<?endif?>
               </parameters>
             </object>
           </objects>
