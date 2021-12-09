@@ -331,6 +331,7 @@ typedef struct _DML_WANMGR_CONFIG_
     BOOLEAN Enable;
     DML_WAN_POLICY Policy;
     BOOLEAN ResetActiveInterface;
+    BOOLEAN PolicyChanged;
 } DML_WANMGR_CONFIG;
 
 #endif //_WANMGR_DML_H_

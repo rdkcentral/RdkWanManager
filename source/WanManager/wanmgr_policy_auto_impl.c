@@ -40,7 +40,9 @@ typedef enum {
     STATE_AUTO_WAN_REBOOT_PLATFORM,
     STATE_AUTO_WAN_INTERFACE_ACTIVE,
     STATE_AUTO_WAN_INTERFACE_DOWN,
-    STATE_AUTO_WAN_ERROR
+    STATE_AUTO_WAN_ERROR,
+    STATE_AUTO_WAN_TEARING_DOWN,
+    STATE_AUTO_WAN_SM_EXIT
 } WcAwPolicyState_t;
 
 /* STATES */
@@ -52,6 +54,7 @@ static WcAwPolicyState_t State_InterfaceReconfiguration (WanMgr_Policy_Controlle
 static WcAwPolicyState_t State_RebootingPlatform (WanMgr_Policy_Controller_t * pWanController);
 static WcAwPolicyState_t State_WanInterfaceActive (WanMgr_Policy_Controller_t * pWanController);
 static WcAwPolicyState_t State_WanInterfaceDown (WanMgr_Policy_Controller_t * pWanController);
+static WcAwPolicyState_t State_WaitingForInterfaceSMExit(WanMgr_Policy_Controller_t* pWanController);
 
 /* TRANSITIONS */
 static WcAwPolicyState_t Transition_Start (WanMgr_Policy_Controller_t* pWanController);
@@ -214,6 +217,7 @@ static void WanMgr_UpdateControllerData (WanMgr_Policy_Controller_t* pWanControl
     if(pWanConfigData != NULL)
     {
         pWanController->WanEnable = pWanConfigData->data.Enable;
+        pWanController->PolicyChanged = pWanConfigData->data.PolicyChanged;
         pWanController->TotalIfaces = WanMgr_IfaceData_GetTotalWanIface();
 
         WanMgrDml_GetConfigData_release(pWanConfigData);
@@ -857,6 +861,11 @@ static WcAwPolicyState_t State_SelectingInterface (WanMgr_Policy_Controller_t * 
         return STATE_AUTO_WAN_ERROR;
     }
 
+    if(pWanController->WanEnable == FALSE || pWanController->PolicyChanged == TRUE)
+    {
+        return STATE_AUTO_WAN_SM_EXIT;
+    }
+
     if (pWanController->activeInterfaceIdx != -1)
     {
         CcspTraceInfo (("%s %d: Selected interface index:%d\n", __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
@@ -878,6 +887,11 @@ static WcAwPolicyState_t State_WaitForInterface (WanMgr_Policy_Controller_t * pW
     {
         CcspTraceError(("%s %d: Invalid args\n", __FUNCTION__, __LINE__));
         return STATE_AUTO_WAN_ERROR;
+    }
+
+    if(pWanController->WanEnable == FALSE || pWanController->PolicyChanged == TRUE)
+    {
+        return STATE_AUTO_WAN_INTERFACE_DOWN;
     }
 
     // check if Phy is UP
@@ -917,6 +931,11 @@ static WcAwPolicyState_t State_ScanningInterface (WanMgr_Policy_Controller_t * p
     {
         CcspTraceError(("%s %d: Invalid args\n", __FUNCTION__, __LINE__));
         return STATE_AUTO_WAN_ERROR;
+    }
+
+    if(pWanController->WanEnable == FALSE || pWanController->PolicyChanged == TRUE)
+    {
+        return STATE_AUTO_WAN_INTERFACE_DOWN;
     }
 
     // If Phy is not UP, move to interface deselect transition
@@ -967,6 +986,11 @@ static WcAwPolicyState_t State_WaitingForIfaceTearDown (WanMgr_Policy_Controller
     {
         CcspTraceError(("%s %d: Invalid args\n", __FUNCTION__, __LINE__));
         return STATE_AUTO_WAN_ERROR;
+    }
+
+    if(pWanController->WanEnable == FALSE || pWanController->PolicyChanged == TRUE)
+    {
+        return STATE_AUTO_WAN_INTERFACE_DOWN;
     }
 
     // check if iface sm is running
@@ -1052,6 +1076,11 @@ static WcAwPolicyState_t State_WanInterfaceActive (WanMgr_Policy_Controller_t * 
         return STATE_AUTO_WAN_ERROR;
     }
 
+    if(pWanController->WanEnable == FALSE || pWanController->PolicyChanged == TRUE)
+    {
+        return STATE_AUTO_WAN_INTERFACE_DOWN;
+    }
+
     // check ResetActiveInterface
     if (WanMgr_GetResetActiveInterfaceFlag() == TRUE)
     {
@@ -1083,6 +1112,11 @@ static WcAwPolicyState_t State_WanInterfaceDown (WanMgr_Policy_Controller_t * pW
         return STATE_AUTO_WAN_ERROR;
     }
 
+    if(pWanController->WanEnable == FALSE || pWanController->PolicyChanged == TRUE)
+    {
+        return STATE_AUTO_WAN_TEARING_DOWN;
+    }
+
     // check ResetActiveInterface
     if (WanMgr_GetResetActiveInterfaceFlag() == TRUE)
     {
@@ -1099,6 +1133,38 @@ static WcAwPolicyState_t State_WanInterfaceDown (WanMgr_Policy_Controller_t * pW
     
     return STATE_AUTO_WAN_INTERFACE_DOWN;
 }
+
+static WcAwPolicyState_t State_WaitingForInterfaceSMExit(WanMgr_Policy_Controller_t* pWanController)
+{
+    DML_WAN_IFACE* pFixedInterface = NULL;
+
+    if((pWanController != NULL) && (pWanController->pWanActiveIfaceData != NULL))
+    {
+        pFixedInterface = &(pWanController->pWanActiveIfaceData->data);
+    }
+
+    if(pFixedInterface == NULL)
+    {
+        return STATE_AUTO_WAN_TEARING_DOWN;
+    }
+
+    pFixedInterface->SelectionStatus = WAN_IFACE_NOT_SELECTED;
+
+    if(WanMgr_CheckIfIntfStateMachineRunning(pWanController) == TRUE)
+    {
+        return STATE_AUTO_WAN_TEARING_DOWN;
+    }
+
+    WanMgr_ResetIfaceTable(pWanController);
+
+    if(pWanController->PolicyChanged == TRUE)
+    {
+        WanMgr_ResetActiveLinkOnAllIface(pWanController);
+    }
+    return STATE_AUTO_WAN_SM_EXIT;
+
+}
+
 
 ANSC_STATUS WanMgr_Policy_AutoWanPolicy (void)
 {
@@ -1178,6 +1244,12 @@ ANSC_STATUS WanMgr_Policy_AutoWanPolicy (void)
                 break;
             case STATE_AUTO_WAN_INTERFACE_DOWN:
                 aw_sm_state = State_WanInterfaceDown(&WanController);
+                break;
+            case STATE_AUTO_WAN_TEARING_DOWN:
+                aw_sm_state = State_WaitingForInterfaceSMExit(&WanController);
+                break;
+            case STATE_AUTO_WAN_SM_EXIT:
+                bRunning = false;
                 break;
             case STATE_AUTO_WAN_ERROR:
             default:
