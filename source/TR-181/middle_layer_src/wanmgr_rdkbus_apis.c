@@ -165,6 +165,19 @@ static int get_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFACE*
         p_Interface->Wan.EnableMAPT = FALSE;
     }
 
+    // Device.X_RDK_WanManager.CPEInterface.%d.Wan.EnableDHCP
+    _ansc_memset(param_name, 0, sizeof(param_name));
+    _ansc_memset(param_value, 0, sizeof(param_value));
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_ENABLE_DHCP, instancenum);
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
+    if (retPsmGet == CCSP_SUCCESS)
+    {
+        if(strcmp(param_value, PSM_ENABLE_STRING_FALSE) == 0)
+        {
+             p_Interface->Wan.EnableDHCP = FALSE;
+        }
+    }
+
     _ansc_memset(param_name, 0, sizeof(param_name));
     _ansc_memset(param_value, 0, sizeof(param_value));
     _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_ENABLE_DSLITE, instancenum);

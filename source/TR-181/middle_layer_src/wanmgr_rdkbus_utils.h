@@ -89,6 +89,11 @@
 #define CMAGENT_COMP_NAME_WITHOUTSUBSYSTEM "com.cisco.spvtg.ccsp.cm"
 #define CMAGENT_COMPONENT_PATH "/com/cisco/spvtg/ccsp/cm"
 
+//Cellular Manager
+#define CELLULAR_COMPONENT_NAME "eRT.com.cisco.spvtg.ccsp.cellularmanager"
+#define CELLULAR_COMP_NAME_WITHOUTSUBSYSTEM "com.cisco.spvtg.ccsp.cellularmanager"
+#define CELLULAR_COMPONENT_PATH "/com/cisco/spvtg/ccsp/cellularmanager"
+#define CELLULAR_UPSTREAM_NAME ".Upstream"
 
 //General Param for interfaces
 #define PARAM_NAME_REQUEST_PHY_STATUS "RequestPhyStatus"

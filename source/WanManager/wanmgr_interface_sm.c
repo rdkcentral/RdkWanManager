@@ -966,7 +966,15 @@ static eWanState_t wan_transition_physical_interface_down(WanMgr_IfaceSM_Control
 
     DML_WAN_IFACE* pInterface = pWanIfaceCtrl->pIfaceData;
 
-    if(pInterface->PPP.Enable == FALSE)
+    if (pInterface->PPP.Enable == TRUE)
+    {
+        /* Stops DHCPv6 client */
+        WanManager_StopDhcpv6Client(TRUE); // release dhcp lease
+
+        /* Delete PPP session */
+        WanManager_DeletePPPSession(pInterface);
+    }
+    else if(pInterface->Wan.EnableDHCP == TRUE)
     {
         /* Stops DHCPv4 client */
         WanManager_StopDhcpv4Client(TRUE); // release dhcp lease
@@ -980,14 +988,6 @@ static eWanState_t wan_transition_physical_interface_down(WanMgr_IfaceSM_Control
             WanManager_StopIHC(pWanIfaceCtrl);
         }
 #endif  // FEATURE_IPOE_HEALTH_CHECK
-    }
-    else
-    {
-        /* Stops DHCPv6 client */
-        WanManager_StopDhcpv6Client(TRUE); // release dhcp lease
-
-        /* Delete PPP session */
-        WanManager_DeletePPPSession(pInterface);
     }
 
     WanMgr_RdkBus_updateInterfaceUpstreamFlag(pInterface->Phy.Path, FALSE);
@@ -1042,11 +1042,18 @@ static eWanState_t wan_transition_wan_validated(WanMgr_IfaceSM_Controller_t* pWa
     wanmgr_sysevents_setWanState(WAN_IPV4_DOWN);
     wanmgr_sysevents_setWanState(WAN_IPV6_DOWN);
 
-    if( pInterface->PPP.Enable == FALSE )
+    if( pInterface->PPP.Enable == TRUE )
     {
+        // PPP is Enabled
+        WanManager_CreatePPPSession(pInterface);
+    }
+    else if (pInterface->Wan.EnableDHCP == TRUE)
+    {
+        // DHCPv4v6 is enabled
 #ifdef FEATURE_IPOE_HEALTH_CHECK
-        if ((pInterface->Wan.EnableIPoE) && (pInterface->Wan.ActiveLink == TRUE))
+        if ( pInterface->Wan.EnableIPoE == TRUE )
         {
+            // IHC is enabled, So Starting IHC
             UINT IhcPid = 0;
             IhcPid = WanManager_StartIpoeHealthCheckService(pInterface->Wan.Name);
             if (IhcPid > 0)
@@ -1060,6 +1067,7 @@ static eWanState_t wan_transition_wan_validated(WanMgr_IfaceSM_Controller_t* pWa
             }
         }
 #endif // FEATURE_IPOE_HEALTH_CHECK
+
         /* Start DHCPv4 client */
         CcspTraceInfo(("%s %d - Staring dhcpc on interface %s \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
         uint32_t dhcpv4_pid = WanManager_StartDhcpv4Client(pInterface->Wan.Name);
@@ -1067,14 +1075,9 @@ static eWanState_t wan_transition_wan_validated(WanMgr_IfaceSM_Controller_t* pWa
 
         /* Start DHCPv6 Client */
         CcspTraceInfo(("%s %d - Staring dibbler-client on interface %s \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
-
         uint32_t dhcpv6_pid = WanManager_StartDhcpv6Client(pInterface->Wan.Name);
         CcspTraceInfo(("%s %d - Started dibbler-client on interface %s, dhcpv6_pid %d \n", __FUNCTION__, __LINE__, pInterface->Wan.Name, dhcpv6_pid));
 
-    }
-    else
-    {
-        WanManager_CreatePPPSession(pInterface);
     }
 
     CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION OBTAINING IP ADDRESSES\n", __FUNCTION__, __LINE__, pInterface->Name));
@@ -1091,21 +1094,21 @@ static eWanState_t wan_transition_refreshing_wan(WanMgr_IfaceSM_Controller_t* pW
 
     DML_WAN_IFACE* pInterface = pWanIfaceCtrl->pIfaceData;
 
-    if(pInterface->PPP.Enable == FALSE)
-    {
-        /* Stops DHCPv4 client */
-        WanManager_StopDhcpv4Client(TRUE); // release dhcp lease
-
-        /* Stops DHCPv6 client */
-        WanManager_StopDhcpv6Client(TRUE); // release dhcp lease
-    }
-    else
+    if(pInterface->PPP.Enable == TRUE)
     {
         /* Stops DHCPv6 client */
         WanManager_StopDhcpv6Client(TRUE); // release dhcp lease
 
         /* Delete PPP session */
         WanManager_DeletePPPSession(pInterface);
+    }
+    else if (pInterface->Wan.EnableDHCP == TRUE)
+    {
+        /* Stops DHCPv4 client */
+        WanManager_StopDhcpv4Client(TRUE); // release dhcp lease
+
+        /* Stops DHCPv6 client */
+        WanManager_StopDhcpv6Client(TRUE); // release dhcp lease
     }
 
     /* Sets Ethernet.Link.{i}.X_RDK_Refresh to TRUE in VLAN & Bridging Manager
@@ -1140,7 +1143,11 @@ static eWanState_t wan_transition_wan_refreshed(WanMgr_IfaceSM_Controller_t* pWa
     wanmgr_sysevents_setWanState(WAN_IPV4_DOWN);
     wanmgr_sysevents_setWanState(WAN_IPV6_DOWN);
 
-    if( pInterface->PPP.Enable == FALSE )
+    if( pInterface->PPP.Enable == TRUE )
+    {
+        WanManager_CreatePPPSession(pInterface);
+    }
+    else if ( pInterface->Wan.EnableDHCP == TRUE )
     {
         /* Start dhcp clients */
         /* DHCPv4 client */
@@ -1152,10 +1159,6 @@ static eWanState_t wan_transition_wan_refreshed(WanMgr_IfaceSM_Controller_t* pWa
         uint32_t dhcpv6_pid = WanManager_StartDhcpv6Client(pInterface->Wan.Name);
         CcspTraceInfo(("%s %d - Started dibbler-client on interface %s, dhcpv6_pid %d \n", __FUNCTION__, __LINE__, pInterface->Wan.Name, dhcpv6_pid));
 
-    }
-    else
-    {
-        WanManager_CreatePPPSession(pInterface);
     }
 
     CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION OBTAINING IP ADDRESSES\n", __FUNCTION__, __LINE__, pInterface->Name));
@@ -1188,10 +1191,13 @@ static eWanState_t wan_transition_ipv4_up(WanMgr_IfaceSM_Controller_t* pWanIface
         }
 
 #ifdef FEATURE_IPOE_HEALTH_CHECK
-        if ((pInterface->Wan.EnableIPoE) && (pInterface->PPP.Enable == FALSE) && (pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV4Status == IHC_STOPPED))
+        if (pInterface->PPP.Enable == FALSE)
         {
-            WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_UP, pInterface->Wan.Name);
-            pWanIfaceCtrl->IhcV4Status = IHC_STARTED;
+            if ((pInterface->Wan.EnableIPoE == TRUE) && (pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV4Status == IHC_STOPPED))
+            {
+                WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_UP, pInterface->Wan.Name);
+                pWanIfaceCtrl->IhcV4Status = IHC_STARTED;
+            }
         }
 #endif
         wanmgr_sysevents_setWanState(WAN_IPV4_UP);
@@ -1245,10 +1251,13 @@ static eWanState_t wan_transition_ipv4_down(WanMgr_IfaceSM_Controller_t* pWanIfa
     if (pInterface->Wan.ActiveLink == TRUE)
     {
 #ifdef FEATURE_IPOE_HEALTH_CHECK
-        if((pInterface->Wan.EnableIPoE) && (pInterface->PPP.Enable == FALSE) && (pWanIfaceCtrl->IhcPid > 0))
+        if (pInterface->PPP.Enable == FALSE)
         {
-            WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_DOWN, pInterface->Wan.Name);
-            pWanIfaceCtrl->IhcV4Status = IHC_STOPPED;
+           if((pInterface->Wan.EnableIPoE) && (pWanIfaceCtrl->IhcPid > 0))
+           {
+               WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_DOWN, pInterface->Wan.Name);
+               pWanIfaceCtrl->IhcV4Status = IHC_STOPPED;
+           }
         }
 #endif
         wanmgr_sysevents_setWanState(WAN_IPV4_DOWN);
@@ -1295,10 +1304,13 @@ static eWanState_t wan_transition_ipv6_up(WanMgr_IfaceSM_Controller_t* pWanIface
             CcspTraceError(("%s %d - Failed to configure IPv6 successfully \n", __FUNCTION__, __LINE__));
         }
 #ifdef FEATURE_IPOE_HEALTH_CHECK
-        if ((pInterface->Wan.EnableIPoE) && (pInterface->PPP.Enable == FALSE) && (pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV6Status == IHC_STOPPED))
+        if (pInterface->PPP.Enable == FALSE)
         {
-            WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_IPV6_UP, pInterface->Wan.Name);
-            pWanIfaceCtrl->IhcV6Status = IHC_STARTED;
+           if ((pInterface->Wan.EnableIPoE) && (pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV6Status == IHC_STOPPED))
+           {
+               WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_IPV6_UP, pInterface->Wan.Name);
+               pWanIfaceCtrl->IhcV6Status = IHC_STARTED;
+           }
         }
 #endif
         wanmgr_sysevents_setWanState(WAN_IPV6_UP);
@@ -1345,10 +1357,13 @@ static eWanState_t wan_transition_ipv6_down(WanMgr_IfaceSM_Controller_t* pWanIfa
     if(pInterface->Wan.ActiveLink == TRUE)
     {
 #ifdef FEATURE_IPOE_HEALTH_CHECK
-        if ((pInterface->Wan.EnableIPoE) && (pInterface->Wan.ActiveLink == TRUE) && (pInterface->PPP.Enable == FALSE) && (pWanIfaceCtrl->IhcPid > 0))
+        if ( pInterface->PPP.Enable == FALSE )
         {
-            WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_IPV6_DOWN, pInterface->Wan.Name);
-            pWanIfaceCtrl->IhcV6Status = IHC_STOPPED;
+           if ((pInterface->Wan.EnableIPoE) && (pWanIfaceCtrl->IhcPid > 0))
+           {
+               WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_IPV6_DOWN, pInterface->Wan.Name);
+               pWanIfaceCtrl->IhcV6Status = IHC_STOPPED;
+           }
         }
 #endif
         wanmgr_sysevents_setWanState(WAN_IPV6_DOWN);
@@ -1653,17 +1668,22 @@ static eWanState_t wan_state_ipv4_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
     DML_WAN_IFACE* pInterface = pWanIfaceCtrl->pIfaceData;
 
 #ifdef FEATURE_IPOE_HEALTH_CHECK
-    if (pInterface->PPP.Enable == TRUE)
+    if ( pInterface->PPP.Enable == TRUE )
     {
+        // PPP is Enabled
         if (pWanIfaceCtrl->IhcPid > 0)
         {
-            // IHC is diabled but is running, So Stopping IHC & clearing IntfSM IHC data
+            // IHC is running when PPP is Enabled, So Stopping IHC & clearing IntfSM IHC data
             WanManager_StopIHC(pWanIfaceCtrl);
         }
     }
-    else if (pInterface->Wan.EnableIPoE)
+    else if ( pInterface->Wan.EnableDHCP == TRUE )
     {
-        if ((pWanIfaceCtrl->IhcPid > 0) != TRUE)
+        // DHCPv4v6 is enabled
+        if ( pInterface->Wan.EnableIPoE == TRUE )
+    {
+            // IHC is enabled
+            if ( pWanIfaceCtrl->IhcPid <= 0 )
         {
             // IHC Enabled but not running, So Starting IHC
             UINT IhcPid = 0;
@@ -1678,18 +1698,27 @@ static eWanState_t wan_state_ipv4_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
                 CcspTraceError(("%s %d - Failed to start IPoE Health Check for interface %s \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
             }
         }
-        if ((pInterface->Wan.EnableIPoE) && (pInterface->PPP.Enable == FALSE) &&
-            (pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV4Status == IHC_STOPPED))
+            if ( (pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV4Status == IHC_STOPPED) )
         {
-            // sending v4 UP event to IHC, IHC starts to send BFD v4 packts to BNG
+                // sending v4 UP event to IHC, IHC will starts to send BFD v4 packets to BNG
             WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_UP, pInterface->Wan.Name);
             pWanIfaceCtrl->IhcV4Status = IHC_STARTED;
         }
     }
-    else if ((pInterface->Wan.EnableIPoE == FALSE) && (pWanIfaceCtrl->IhcPid > 0))
+        else if (pWanIfaceCtrl->IhcPid > 0)
+        {
+            // IHC is disabled, but is still running, so stop it
+            WanManager_StopIHC(pWanIfaceCtrl);
+        }
+    }
+    else 
     {
-        // IHC is diabled but is running, So Stopping IHC & clearing IntfSM IHC data
+        // PPP and DHCP are disabled: Modem + Ext
+        if ( (pInterface->Wan.EnableIPoE == FALSE) && (pWanIfaceCtrl->IhcPid > 0) )
+    {
+            // IHC is disabled, but is still running, so stop it
         WanManager_StopIHC(pWanIfaceCtrl);
+    }
     }
 #endif // FEATURE_IPOE_HEALTH_CHECK
 
@@ -1783,15 +1812,20 @@ static eWanState_t wan_state_ipv6_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
 #ifdef FEATURE_IPOE_HEALTH_CHECK
     if (pInterface->PPP.Enable == TRUE)
     {
+        // PPP is Enabled
         if (pWanIfaceCtrl->IhcPid > 0)
         {
-            // IHC is diabled but is running, So Stopping IHC & clearing IntfSM IHC data
+            // IHC is running when PPP is Enabled, So Stopping IHC & clearing IntfSM IHC data
             WanManager_StopIHC(pWanIfaceCtrl);
         }
     }
-    else if (pInterface->Wan.EnableIPoE)
+    else if ( pInterface->Wan.EnableDHCP == TRUE )
     {
-        if ((pWanIfaceCtrl->IhcPid > 0) != TRUE)
+        // DHCPv4v6 is enabled
+        if (pInterface->Wan.EnableIPoE == TRUE)
+    {
+            // IHC is enabled
+            if ( pWanIfaceCtrl->IhcPid <= 0 )
         {
             // IHC Enabled but not running, So Starting IHC
             UINT IhcPid = 0;
@@ -1813,12 +1847,22 @@ static eWanState_t wan_state_ipv6_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
             pWanIfaceCtrl->IhcV6Status = IHC_STARTED;
         }
     }
-    else if ((pInterface->Wan.EnableIPoE == FALSE) && (pWanIfaceCtrl->IhcPid > 0))
-    {
-        // IHC is diabled but is running, So Stopping IHC & clearing IntfSM IHC data
-        WanManager_StopIHC(pWanIfaceCtrl);
+        else if (pWanIfaceCtrl->IhcPid > 0)
+        {
+            // IHC is disabled, but is still running, so stop it
+            WanManager_StopIHC(pWanIfaceCtrl);
+        }
     }
-#endif
+    else     
+    {
+        // PPP and DHCP are disabled: Modem + Ext
+        if ((pInterface->Wan.EnableIPoE == FALSE) && (pWanIfaceCtrl->IhcPid > 0))
+        {
+            // IHC is disabled but is running, So Stopping IHC & clearing IntfSM IHC data
+            WanManager_StopIHC(pWanIfaceCtrl);
+        }
+    }
+#endif 
 
     if (pWanIfaceCtrl->WanEnable == FALSE ||
         pInterface->SelectionStatus == WAN_IFACE_NOT_SELECTED ||
@@ -1908,15 +1952,20 @@ static eWanState_t wan_state_dual_stack_active(WanMgr_IfaceSM_Controller_t* pWan
 #ifdef FEATURE_IPOE_HEALTH_CHECK
     if (pInterface->PPP.Enable == TRUE)
     {
+        // PPP is Enabled
         if (pWanIfaceCtrl->IhcPid > 0)
         {
-            // IHC is diabled but is running, So Stopping IHC & clearing IntfSM IHC data
+            // IHC is running when PPP is Enabled, So Stopping IHC & clearing IntfSM IHC data
             WanManager_StopIHC(pWanIfaceCtrl);
         }
     }
-    else if (pInterface->Wan.EnableIPoE)
+    else if ( pInterface->Wan.EnableDHCP == TRUE )
     {
-        if ((pWanIfaceCtrl->IhcPid > 0) != TRUE)
+        // DHCPv4v6 is enabled
+        if (pInterface->Wan.EnableIPoE == TRUE)
+    {
+            // IHC is enabled
+            if (pWanIfaceCtrl->IhcPid <= 0)
         {
             // IHC Enabled but not running, So Starting IHC
             UINT IhcPid = 0;
@@ -1931,8 +1980,7 @@ static eWanState_t wan_state_dual_stack_active(WanMgr_IfaceSM_Controller_t* pWan
                 CcspTraceError(("%s %d - Failed to start IPoE Health Check for interface %s \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
             }
         }
-        if ((pInterface->Wan.EnableIPoE) && (pInterface->PPP.Enable == FALSE) &&
-            (pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV4Status == IHC_STOPPED))
+            if ((pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV4Status == IHC_STOPPED))
         {
             // sending v4 UP event to IHC, IHC starts to send BFD v4 packts to BNG
             WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_UP, pInterface->Wan.Name);
@@ -1945,10 +1993,15 @@ static eWanState_t wan_state_dual_stack_active(WanMgr_IfaceSM_Controller_t* pWan
             pWanIfaceCtrl->IhcV6Status = IHC_STARTED;
         }
     }
-    else if ((pInterface->Wan.EnableIPoE == FALSE) && (pWanIfaceCtrl->IhcPid > 0))
+    }
+    else 
     {
-        // IHC is diabled but is running, So Stopping IHC & clearing IntfSM IHC data
+        // PPP and DHCP are disabled: Modem + Ext
+        if ((pInterface->Wan.EnableIPoE == FALSE) && (pWanIfaceCtrl->IhcPid > 0))
+    {
+            // IHC is disabled but is running, So Stopping IHC & clearing IntfSM IHC data
         WanManager_StopIHC(pWanIfaceCtrl);
+    }
     }
 #endif
 
@@ -2234,7 +2287,6 @@ static eWanState_t wan_state_exit(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
 
     /* Clear DHCP data */
     WanManager_ClearDHCPData(pWanIfaceCtrl->pIfaceData);
-
 
     return WAN_STATE_EXIT;
 }

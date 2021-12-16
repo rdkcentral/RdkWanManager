@@ -837,6 +837,11 @@ BOOL WanIfCfg_GetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL* 
                 *pBool = pWanDmlIface->Wan.RebootOnConfiguration;
                 ret = TRUE;
             }
+            if( AnscEqualString(ParamName, "EnableDHCP", TRUE))
+            {
+                *pBool = pWanDmlIface->Wan.EnableDHCP;
+                ret = TRUE;
+            }
 
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
         }
@@ -915,6 +920,11 @@ BOOL WanIfCfg_SetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL b
             if( AnscEqualString(ParamName, "RebootOnConfiguration", TRUE))
             {
                 pWanDmlIface->Wan.RebootOnConfiguration = bValue;
+                ret = TRUE;
+            }
+            if( AnscEqualString(ParamName, "EnableDHCP", TRUE))
+            {
+                pWanDmlIface->Wan.EnableDHCP = bValue;
                 ret = TRUE;
             }
 

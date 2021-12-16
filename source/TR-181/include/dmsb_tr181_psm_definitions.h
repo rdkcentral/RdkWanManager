@@ -42,6 +42,7 @@
 #define PSM_WANMANAGER_IF_WAN_PPP_LINKTYPE                  "dmsb.wanmanager.if.%d.PPPLinkType"
 #define PSM_WANMANAGER_IF_WAN_PPP_IPCP_ENABLE               "dmsb.wanmanager.if.%d.PPPIPCPEnable"
 #define PSM_WANMANAGER_IF_WAN_PPP_IPV6CP_ENABLE             "dmsb.wanmanager.if.%d.PPPIPV6CPEnable"
+#define PSM_WANMANAGER_IF_WAN_ENABLE_DHCP                   "dmsb.wanmanager.if.%d.EnableDHCP"
 #define PSM_SELFHEAL_REBOOT_STATUS                          "dmsb.selfheal.rebootstatus"
 
 /**********************************************************************

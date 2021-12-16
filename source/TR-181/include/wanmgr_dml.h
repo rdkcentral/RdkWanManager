@@ -242,6 +242,7 @@ typedef struct _DML_WANIFACE_INFO
     BOOL                        Refresh;
     DML_WAN_IFACE_OPER_STATUS   OperationalStatus;
     BOOL                        RebootOnConfiguration;
+    BOOL                        EnableDHCP;
 } DML_WANIFACE_INFO;
 
 

@@ -204,6 +204,12 @@
                                     <writable>true</writable>
                                 </parameter>
                                 <parameter>
+                                    <name>EnableDHCP</name>
+                                    <type>boolean</type>
+                                    <syntax>bool</syntax>
+                                    <writable>true</writable>
+                                </parameter>
+                                <parameter>
                                     <name>Type</name>
                                     <type>string: Unconfigured(1),Primary(2),Secondary(3)</type>
                                     <syntax>uint32/mapped</syntax>

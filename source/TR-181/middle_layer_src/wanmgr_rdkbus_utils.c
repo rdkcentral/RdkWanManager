@@ -179,6 +179,11 @@ ANSC_STATUS WaitForInterfaceComponentReady(char *pPhyPath)
         strncpy(pCompName, ETH_COMP_NAME_WITHOUTSUBSYSTEM, sizeof(pCompName));
         strncpy(pCompPath, ETH_COMPONENT_PATH, sizeof(pCompPath));
     }
+    else if(strstr(pPhyPath, "Cellular") != NULL) { // cellular wan interface
+        strncpy(pCompName, CELLULAR_COMP_NAME_WITHOUTSUBSYSTEM, sizeof(pCompName));
+        strncpy(pCompPath, CELLULAR_COMPONENT_PATH, sizeof(pCompPath));
+    }
+
     while(1)
     {
         checkComponentHealthStatus(pCompName, pCompPath, status,&ret);
@@ -227,6 +232,11 @@ ANSC_STATUS WanMgr_RdkBus_SetRequestIfComponent(char *pPhyPath, char *pInputpara
         strncpy(pCompName, ETH_COMPONENT_NAME, sizeof(pCompName));
         strncpy(pCompPath, ETH_COMPONENT_PATH, sizeof(pCompPath));
     }
+    else if(strstr(param_name, "Cellular") != NULL) { // cellular wan interface
+        strncpy(pCompName, CELLULAR_COMPONENT_NAME, sizeof(pCompName));
+        strncpy(pCompPath, CELLULAR_COMPONENT_PATH, sizeof(pCompPath));
+    }
+
      CcspTraceInfo(("%s: Param Name %s value %s\n", __FUNCTION__,param_name,pInputParamValue));
     param_info[0].parameterName = param_name;
     param_info[0].parameterValue = pInputParamValue;
@@ -300,6 +310,12 @@ ANSC_STATUS WanMgr_RdkBus_updateInterfaceUpstreamFlag(char *phyPath, BOOL flag)
         strncpy(pCompName, ETH_COMPONENT_NAME, sizeof(pCompName));
         strncpy(pCompPath, ETH_COMPONENT_PATH, sizeof(pCompPath));
     }
+    else if(strstr(param_name, "Cellular") != NULL) { // cellular wan interface
+        strncat(param_name, CELLULAR_UPSTREAM_NAME, sizeof(param_name) - strlen(param_name));
+        strncpy(pCompName, CELLULAR_COMPONENT_NAME, sizeof(pCompName));
+        strncpy(pCompPath, CELLULAR_COMPONENT_PATH, sizeof(pCompPath));
+    }
+
     if(flag)
         strncpy(param_value, "true", sizeof(param_value));
     else
