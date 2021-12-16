@@ -1391,7 +1391,6 @@ static eWanState_t wan_transition_exit(WanMgr_IfaceSM_Controller_t* pWanIfaceCtr
 
     pInterface->Wan.Status = WAN_IFACE_STATUS_DISABLED;
     pInterface->Wan.Refresh = FALSE;
-    pInterface->SelectionStatus = WAN_IFACE_NOT_SELECTED;
 
     wanmgr_sysevents_setWanState(WAN_LINK_DOWN_STATE);
 
