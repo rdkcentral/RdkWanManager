@@ -444,8 +444,12 @@ static INT StartWanClients(WanMgr_AutoWan_SMInfo_t *pSmInfo)
     DML_WAN_IFACE* pFixedInterface = NULL;
     char out_value[64] = {0};
     char wanPhyName[64] = {0};
-    char command[64] = {0};
+    char command[256] = {0};
     INT eRouterMode = ERT_MODE_IPV4;
+#if defined(INTEL_PUMA7)
+    char udhcpcEnable[20] = {0};
+    char dibblerClientEnable[20] = {0};
+#endif
 
     if (!pSmInfo)
         return status;
@@ -478,89 +482,173 @@ static INT StartWanClients(WanMgr_AutoWan_SMInfo_t *pSmInfo)
         eRouterMode = atoi(out_value);
     }
 
+#if defined(INTEL_PUMA7)
+    memset(out_value, 0, sizeof(out_value));
+    if (!syscfg_get(NULL, "UDHCPEnable", out_value, sizeof(out_value)))
+    {
+       snprintf(udhcpcEnable, sizeof(udhcpcEnable), "%s", out_value);
+    }
+
+    memset(out_value, 0, sizeof(out_value));
+    if (!syscfg_get(NULL, "dibbler_client_enable", out_value, sizeof(out_value)))
+    {
+       snprintf(dibblerClientEnable, sizeof(dibblerClientEnable), "%s", out_value);
+    }
+
+#endif
+
     CcspTraceInfo(("%s %d - last known mode %d Current index %d If_name %s \n", __FUNCTION__, __LINE__,lastKnownMode,pFixedInterface->uiIfaceIdx,pFixedInterface->Wan.Name));
     switch (lastKnownMode)
     {
         case WAN_MODE_PRIMARY:
-        {
-           if (pFixedInterface->Wan.Type == WAN_IFACE_TYPE_PRIMARY)
             {
-                if (WanMgr_GetWanInterfaceType(pSmInfo->previousActiveInterfaceIndex) != WAN_IFACE_TYPE_PRIMARY)
+                if (pFixedInterface->Wan.Type == WAN_IFACE_TYPE_PRIMARY)
                 {
-                    wanmgr_setwanstop();
-                    system("killall dibbler-client");
-                    system("killall udhcpc");
+                    if (WanMgr_GetWanInterfaceType(pSmInfo->previousActiveInterfaceIndex) != WAN_IFACE_TYPE_PRIMARY)
+                    {
+                        wanmgr_setwanstop();
+                        system("killall udhcpc");
+#if defined(INTEL_PUMA7)
+                        if(0 == strncmp(dibblerClientEnable, "yes", sizeof(dibblerClientEnable)))
+                        {
+#endif
+                            system("killall dibbler-client");
+#if defined(INTEL_PUMA7)
+                        }
+                        else
+                        {
+                            system("killall ti_dhcpv6c");
+                        }
+#endif
+#if defined(INTEL_PUMA7)
+                        if(0 == strncmp(udhcpcEnable, "yes", sizeof(udhcpcEnable)))
+                        {
+#endif
+                            system("killall udhcpc");
+#if defined(INTEL_PUMA7)
+                        }
+                        else
+                        {
+                            system("killall ti_udhcpc");
+                        }
+#endif
+                    }
+
+                    // start wan
+                    wanmgr_setwanstart();
+                    wanmgr_sshd_restart();
+
                 }
+                else
+                {
+                    // need to start DHCPv6 client when eRouterMode == ERT_MODE_DUAL
+                    if (eRouterMode == ERT_MODE_IPV6)
+                    {
+#if defined(INTEL_PUMA7)
+                        if(0 == strncmp(dibblerClientEnable, "yes", sizeof(dibblerClientEnable)))
+                        {
+#endif
+                            system("killall dibbler-client");
+                            memset(command, 0, sizeof(command));
+                            snprintf(command,sizeof(command), "sh /etc/dibbler/dibbler-init.sh");
+                            system(command);
+                            memset(command, 0, sizeof(command));
+                            snprintf(command,sizeof(command), "/usr/sbin/dibbler-client start");
+                            system(command);
+                            CcspTraceInfo(("%s %d - dibbler client start\n", __FUNCTION__, __LINE__));
 
-               // start wan
-                wanmgr_setwanstart();
-                wanmgr_sshd_restart();
+#if defined(INTEL_PUMA7)
+                        }
+                        else
+                        {
+                            system("killall ti_dhcpv6c");
+                            memset(command, 0, sizeof(command));
+                            snprintf(command,sizeof(command), "ti_dhcp6c -plugin /lib/libgw_dhcp6plg.so -i %s -p /var/run/erouter_dhcp6c.pid &",pFixedInterface->Wan.Name);
+                            system(command);	
+                        }
+#endif
 
+                    } // (eRouterMode == ERT_MODE_IPV6)
+                    else if(eRouterMode == ERT_MODE_IPV4 || eRouterMode == ERT_MODE_DUAL)
+                    {
+                        memset(command, 0, sizeof(command));
+                        snprintf(command,sizeof(command),"sysctl -w net.ipv6.conf.%s.accept_ra=2",pFixedInterface->Wan.Name);
+                        system(command);
+                        //system("sysctl -w net.ipv6.conf.eth3.accept_ra=2");
+                        system("killall udhcpc");
+                        memset(command, 0, sizeof(command));
+                        snprintf(command,sizeof(command), "udhcpc -i %s &", pFixedInterface->Wan.Name);
+                        system(command);
+                        CcspTraceInfo(("%s %d - udhcpc start inf %s \n", __FUNCTION__, __LINE__,pFixedInterface->Wan.Name));
+                    } // (eRouterMode == ERT_MODE_IPV4 || eRouterMode == ERT_MODE_DUAL)
+
+                }
             }
-            else
+            break;
+        case WAN_MODE_SECONDARY:
             {
-                // need to start DHCPv6 client when eRouterMode == ERT_MODE_DUAL
-                if (eRouterMode == ERT_MODE_IPV6)
+                if (pFixedInterface->Wan.Type == WAN_IFACE_TYPE_SECONDARY)
                 {
-                    system("killall dibbler-client");
-                    memset(command, 0, sizeof(command));
-                    snprintf(command,sizeof(command), "sh /etc/dibbler/dibbler-init.sh");
-                    system(command);
-                    memset(command, 0, sizeof(command));
-                    snprintf(command,sizeof(command), "/usr/sbin/dibbler-client start");
-                    system(command);
-                    CcspTraceInfo(("%s %d - dibbler client start\n", __FUNCTION__, __LINE__));
-                } // (eRouterMode == ERT_MODE_IPV6)
-                else if(eRouterMode == ERT_MODE_IPV4 || eRouterMode == ERT_MODE_DUAL)
+                    if (WanMgr_GetWanInterfaceType(pSmInfo->previousActiveInterfaceIndex) != WAN_IFACE_TYPE_SECONDARY)
+                    {
+                        wanmgr_setwanstop();
+                        system("killall udhcpc");
+#if defined(INTEL_PUMA7)
+                        if(0 == strncmp(udhcpcEnable, "yes", sizeof(udhcpcEnable)))
+                        {
+                            system("killall udhcpc");
+                        }
+                        if(0 == strncmp(dibblerClientEnable, "yes", sizeof(dibblerClientEnable)))
+                        {
+                            system("killall dibbler-client");
+                        }
+
+                        system("killall ti_udhcpc");
+                        system("killall ti_dhcpv6c");
+#else
+                        system("killall udhcpc");
+                        system("killall dibbler-client");
+#endif
+                    }
+
+                    // start wan
+                    wanmgr_setwanstart();
+                    wanmgr_sshd_restart();
+                }
+                else
                 {
-                    memset(command, 0, sizeof(command));
-                    snprintf(command,sizeof(command), "udhcpc -i %s &", pFixedInterface->Wan.Name);
-                    system(command);
+                    system("killall udhcpc");
                     memset(command,0,sizeof(command));
                     snprintf(command,sizeof(command),"sysctl -w net.ipv6.conf.%s.accept_ra=2",pFixedInterface->Wan.Name);
                     system(command);
-                    //system("sysctl -w net.ipv6.conf.eth3.accept_ra=2");
-                    system("killall udhcpc");
-                    memset(command, 0, sizeof(command));
-                    snprintf(command,sizeof(command), "udhcpc -i %s &", pFixedInterface->Wan.Name);
-                    system(command);
+#if defined(INTEL_PUMA7)
+                    if(0 == strncmp(udhcpcEnable, "yes", sizeof(udhcpcEnable)))
+                    {
+                        system("killall udhcpc");
+                        memset(command, 0, sizeof(command));
+                        snprintf(command,sizeof(command), "/sbin/udhcpc -i %s -p /tmp/udhcpc.erouter0.pid -s /etc/udhcpc.script &",pFixedInterface->Wan.Name);
+                        system(command);
+                    }
+                    else
+                    {
+                        system("killall ti_udhcpc");
+                        memset(command, 0, sizeof(command));
+                        snprintf(command,sizeof(command), "ti_udhcpc -plugin /lib/libert_dhcpv4_plugin.so -i %s -H DocsisGateway -p /var/run/eRT_ti_udhcpc.pid -B -b 4 &",
+                                pFixedInterface->Wan.Name);
+                        system(command);
+                    }
+#else
+
+                    CcspTraceInfo(("%s - mode= %s wanPhyName= %s\n",__FUNCTION__,WanModeStr(WAN_MODE_PRIMARY),wanPhyName));
+
+                    memset(command,0,sizeof(command));
+                    snprintf(command,sizeof(command),"udhcpc -i %s &",pFixedInterface->Wan.Name);
+                    system(command);    
                     CcspTraceInfo(("%s %d - udhcpc start inf %s \n", __FUNCTION__, __LINE__,pFixedInterface->Wan.Name));
-                } // (eRouterMode == ERT_MODE_IPV4 || eRouterMode == ERT_MODE_DUAL)
-
-            }
-        }
-        break;
-        case WAN_MODE_SECONDARY:
-        {
-            if (pFixedInterface->Wan.Type == WAN_IFACE_TYPE_SECONDARY)
-            {
-                if (WanMgr_GetWanInterfaceType(pSmInfo->previousActiveInterfaceIndex) != WAN_IFACE_TYPE_SECONDARY)
-                {
-                    wanmgr_setwanstop();
-                    system("killall udhcpc");
-                    system("killall dibbler-client");
+#endif
                 }
-
-               // start wan
-                wanmgr_setwanstart();
-                wanmgr_sshd_restart();
             }
-            else
-            {
-                system("killall udhcpc");
-                CcspTraceInfo(("%s - mode= %s wanPhyName= %s\n",__FUNCTION__,WanModeStr(WAN_MODE_PRIMARY),wanPhyName));
-
-                memset(command,0,sizeof(command));
-                snprintf(command,sizeof(command),"sysctl -w net.ipv6.conf.%s.accept_ra=2",pFixedInterface->Wan.Name);
-                system(command);
-
-                memset(command,0,sizeof(command));
-                snprintf(command,sizeof(command),"udhcpc -i %s &",pFixedInterface->Wan.Name);
-                system(command);    
-                CcspTraceInfo(("%s %d - udhcpc start inf %s \n", __FUNCTION__, __LINE__,pFixedInterface->Wan.Name));
-            }
-        }
-        break;
+            break;
         default:
             break;
     }

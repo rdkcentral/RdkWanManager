@@ -57,6 +57,12 @@ extern char g_Subsystem[32];
 
 #define CLIENT_BIN     "dibbler-client"
 
+#if defined (INTEL_PUMA7)
+#define NO_OF_RETRY 90
+#if defined(MULTILAN_FEATURE)
+#define IPV6_PREF_MAXLEN 128
+#endif
+#endif
 
 static struct {
     pthread_t          dhcpv6c_thread;
