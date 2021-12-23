@@ -79,6 +79,44 @@ cap_user appcaps;
 extern char*                                pComponentName;
 char                                        g_Subsystem[32]         = {0};
 
+#if defined (FEATURE_RDKB_WAN_MANAGER)
+#if !defined(AUTOWAN_ENABLE) && !defined(_PLATFORM_RASPBERRYPI_)// This is not needed when auto wan is enabled for TCXBX platforms
+extern ANSC_HANDLE bus_handle;
+
+static int checkIfSystemReady(void);
+static void waitUntilSystemReady(void);
+
+static int checkIfSystemReady()
+{
+    char str[256] = {0};
+    int val, ret;
+    snprintf(str, sizeof(str), "eRT.%s", CCSP_DBUS_INTERFACE_CR);
+    // Query CR for system ready
+    ret = CcspBaseIf_isSystemReady(bus_handle, str, (dbus_bool *)&val);
+    CcspTraceError(("checkIfSystemReady(): ret %d, val %d\n", ret, val));
+    return val;
+}
+
+static void waitUntilSystemReady()
+{
+    int wait_time = 0;
+
+    /* Check CR is ready in every 5 seconds. This needs
+    to be continued upto 3 mins (36 * 5 = 180s) */
+    while(wait_time <= 180)
+    {
+        if(checkIfSystemReady()) {
+            break;
+        }
+
+        wait_time++;
+        sleep(1);
+    }
+}
+
+#endif
+#endif //#if defined (FEATURE_RDKB_WAN_MANAGER)
+
 int  cmd_dispatch(int  command)
 {
     switch ( command )
@@ -363,6 +401,11 @@ int main(int argc, char* argv[])
     //CORE INT
     WanMgr_Core_Init();
 
+#if defined (FEATURE_RDKB_WAN_MANAGER)
+#if !defined(AUTOWAN_ENABLE) && !defined(_PLATFORM_RASPBERRYPI_)// This is not needed when auto wan is enabled for TCXBX platforms
+    waitUntilSystemReady();
+#endif
+#endif //#if defined (FEATURE_RDKB_WAN_MANAGER)
     if ( bRunAsDaemon )
     {
         //MAIN THREAD
