@@ -25,6 +25,9 @@
 #include "ansc_string_util.h"
 #include "wanmgr_dml.h"
 
+//Minimum SelectionTimeOut Value
+#define SELECTION_TIMEOUT_DEFAULT_MIN 20
+
 //WAN CONFIG
 typedef struct _WANMGR_CONFIG_DATA_
 {

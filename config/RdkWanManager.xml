@@ -181,7 +181,7 @@
                                 </parameter>
                                 <parameter>
                                     <name>SelectionTimeout</name>
-                                    <type>unsignedInt</type>
+                                    <type>unsignedInt[20:65535]</type>
                                     <syntax>uint32</syntax>
                                     <writable>true</writable>
                                 </parameter>

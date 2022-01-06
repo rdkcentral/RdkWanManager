@@ -141,7 +141,10 @@ static int get_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFACE*
     {
         _ansc_sscanf(param_value, "%d", &(p_Interface->Wan.SelectionTimeout));
     }
-
+    if (p_Interface->Wan.SelectionTimeout < SELECTION_TIMEOUT_DEFAULT_MIN)
+    {
+        p_Interface->Wan.SelectionTimeout = SELECTION_TIMEOUT_DEFAULT_MIN;
+    }
     _ansc_memset(param_name, 0, sizeof(param_name));
     _ansc_memset(param_value, 0, sizeof(param_value));
     _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_ENABLE_MAPT, instancenum);
