@@ -615,11 +615,13 @@ static void *WanManagerSyseventHandler(void *args)
             }
             else if (strcmp(name, SYSEVENT_GLOBAL_IPV6_PREFIX_CLEAR) == 0)
             {
-                /*This is temporary changes because of Voice Issue,
+		/*ToDo
+                 *This is temporary changes because of Voice Issue,
                  * For More Info, please Refer RDKB-38461.
                  */
                 sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV6_CONNECTION_STATE, STATUS_DOWN_STRING, 0);
-                WanMgr_SetInterfaceStatus(PHY_WAN_IF_NAME, WANMGR_IFACE_CONNECTION_DOWN);
+		Wan_ForceRenewDhcpIPv6(PHY_WAN_IF_NAME);
+		sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, NULL, 0);
             }
             else
             {

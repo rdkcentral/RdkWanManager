@@ -33,6 +33,6 @@ ANSC_STATUS WanMgr_SendMsgToIHC (ipoe_msg_type_t msgType, char *ifName);
 
 ANSC_STATUS WanMgr_StartIpcServer(); /*IPC server to handle WAN Manager clients*/
 ANSC_STATUS WanMgr_CloseIpcServer(void);
-ANSC_STATUS WanMgr_SetInterfaceStatus(char *ifName, wanmgr_iface_status_t state);
+ANSC_STATUS Wan_ForceRenewDhcpIPv6(char * ifName);
 
 #endif /*_WANMGR_IPC_H_*/

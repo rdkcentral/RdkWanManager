@@ -43,10 +43,9 @@ extern token_t sysevent_token;
 
 /* ---- Private Functions ------------------------------------ */
 #ifdef FEATURE_IPOE_HEALTH_CHECK
-static ANSC_STATUS ProcessIpoeHealthCheckFailedIpv4Msg(char * ifName);
-static ANSC_STATUS ProcessIpoeHealthCheckFailedRenewIpv4Msg(char * ifName);
-static ANSC_STATUS ProcessIpoeHealthCheckFailedIpv6Msg(char * ifName);
-static ANSC_STATUS ProcessIpoeHealthCheckFailedRenewIpv6Msg(char * ifName);
+static ANSC_STATUS Wan_StopDhcpIPv4(char * ifName);
+static ANSC_STATUS Wan_ForceRenewDhcpIPv4(char * ifName);
+static ANSC_STATUS Wan_StopDhcpIPv6(char * ifName);
 #endif /*FEATURE_IPOE_HEALTH_CHECK*/
 
 
@@ -180,7 +179,7 @@ static ANSC_STATUS WanMgr_IpcNewIhcMsg(ipc_ihc_data_t *pIhcMsg)
     {
         case IPOE_MSG_IHC_ECHO_RENEW_IPV6:
             CcspTraceInfo(("[%s-%d] Received IPOE_MSG_IHC_ECHO_RENEW_IPV6 from IHC for intf: %s \n", __FUNCTION__, __LINE__, pIhcMsg->ifName));
-            if (ProcessIpoeHealthCheckFailedRenewIpv6Msg(pIhcMsg->ifName) != ANSC_STATUS_SUCCESS)
+            if (Wan_ForceRenewDhcpIPv6(pIhcMsg->ifName) != ANSC_STATUS_SUCCESS)
             {
                 CcspTraceError(("[%s-%d] Failed to process IPoE v6 Echo Renew Event \n", __FUNCTION__, __LINE__));
                 return ANSC_STATUS_FAILURE;
@@ -188,7 +187,7 @@ static ANSC_STATUS WanMgr_IpcNewIhcMsg(ipc_ihc_data_t *pIhcMsg)
             break;
         case IPOE_MSG_IHC_ECHO_RENEW_IPV4:
             CcspTraceInfo(("[%s-%d] Received IPOE_MSG_IHC_ECHO_RENEW_IPV4 from IHC for intf: %s \n", __FUNCTION__, __LINE__, pIhcMsg->ifName));
-            if (ProcessIpoeHealthCheckFailedRenewIpv4Msg(pIhcMsg->ifName) != ANSC_STATUS_SUCCESS)
+            if (Wan_ForceRenewDhcpIPv4(pIhcMsg->ifName) != ANSC_STATUS_SUCCESS)
             {
                 CcspTraceError(("[%s-%d] Failed to process IPoE v6 Echo Renew Event \n", __FUNCTION__, __LINE__));
                 return ANSC_STATUS_FAILURE;
@@ -222,7 +221,7 @@ static ANSC_STATUS WanMgr_IpcNewIhcMsg(ipc_ihc_data_t *pIhcMsg)
             break;
         case IPOE_MSG_IHC_ECHO_FAIL_IPV4:
             CcspTraceInfo(("[%s-%d] Received IPOE_MSG_IHC_ECHO_FAIL_IPV4 from IHC for intf: %s \n", __FUNCTION__, __LINE__, pIhcMsg->ifName));
-            if(ProcessIpoeHealthCheckFailedIpv4Msg(pIhcMsg->ifName) != ANSC_STATUS_SUCCESS)
+            if(Wan_StopDhcpIPv4(pIhcMsg->ifName) != ANSC_STATUS_SUCCESS)
             {
                 CcspTraceError(("[%s-%d] Failed to process IPoE v4 Echo Fail Event \n", __FUNCTION__, __LINE__));
                 return ANSC_STATUS_FAILURE;
@@ -230,7 +229,7 @@ static ANSC_STATUS WanMgr_IpcNewIhcMsg(ipc_ihc_data_t *pIhcMsg)
             break;
         case IPOE_MSG_IHC_ECHO_FAIL_IPV6:
             CcspTraceInfo(("[%s-%d] Received IPOE_MSG_IHC_ECHO_FAIL_IPV6 from IHC for intf: %s \n", __FUNCTION__, __LINE__, pIhcMsg->ifName));
-            if(ProcessIpoeHealthCheckFailedIpv6Msg(pIhcMsg->ifName) != ANSC_STATUS_SUCCESS)
+            if(Wan_StopDhcpIPv6(pIhcMsg->ifName) != ANSC_STATUS_SUCCESS)
             {
                 CcspTraceError(("[%s-%d] Failed to process IPoE v6 Echo Fail Event \n", __FUNCTION__, __LINE__));
                 return ANSC_STATUS_FAILURE;
@@ -243,7 +242,7 @@ static ANSC_STATUS WanMgr_IpcNewIhcMsg(ipc_ihc_data_t *pIhcMsg)
     return ANSC_STATUS_SUCCESS;
 }
 
-static ANSC_STATUS ProcessIpoeHealthCheckFailedIpv4Msg(char *ifName)
+static ANSC_STATUS Wan_StopDhcpIPv4(char *ifName)
 {
 
     /* Kill DHCPv4 client */
@@ -255,7 +254,7 @@ static ANSC_STATUS ProcessIpoeHealthCheckFailedIpv4Msg(char *ifName)
     return WanMgr_SetInterfaceStatus(ifName, WANMGR_IFACE_CONNECTION_DOWN);
 }
 
-static ANSC_STATUS ProcessIpoeHealthCheckFailedRenewIpv4Msg(char *ifName)
+static ANSC_STATUS Wan_ForceRenewDhcpIPv4(char *ifName)
 {
 
     /*send triggered renew request to DHCPC*/
@@ -268,7 +267,7 @@ static ANSC_STATUS ProcessIpoeHealthCheckFailedRenewIpv4Msg(char *ifName)
     return WanMgr_SetInterfaceStatus(ifName, WANMGR_IFACE_CONNECTION_DOWN);
 }
 
-static ANSC_STATUS ProcessIpoeHealthCheckFailedIpv6Msg(char *ifName)
+static ANSC_STATUS Wan_StopDhcpIPv6(char *ifName)
 {
 
     /* Kill DHCPv6 client */
@@ -279,8 +278,9 @@ static ANSC_STATUS ProcessIpoeHealthCheckFailedIpv6Msg(char *ifName)
 
     return WanMgr_SetInterfaceStatus(ifName, WANMGR_IFACE_CONNECTION_IPV6_DOWN);
 }
+#endif
 
-static ANSC_STATUS ProcessIpoeHealthCheckFailedRenewIpv6Msg(char *ifName)
+ANSC_STATUS Wan_ForceRenewDhcpIPv6(char *ifName)
 {
 
     /*send triggered renew request to DHCPv6C*/
@@ -293,9 +293,6 @@ static ANSC_STATUS ProcessIpoeHealthCheckFailedRenewIpv6Msg(char *ifName)
 
     return  WanMgr_SetInterfaceStatus(ifName, WANMGR_IFACE_CONNECTION_IPV6_DOWN);
 }
-
-#endif
-
 
 static void* IpcServerThread( void *arg )
 {
