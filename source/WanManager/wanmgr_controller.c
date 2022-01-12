@@ -61,56 +61,113 @@ ANSC_STATUS WanController_Policy_Change(void)
     return ANSC_STATUS_SUCCESS;
 }
 
+static int WanController_ResetActiveLinkOnAllIface ()
+{
+    int TotalIfaces = WanMgr_IfaceData_GetTotalWanIface();
+    int uiLoopCount;
+    for (uiLoopCount = 0; uiLoopCount < TotalIfaces; uiLoopCount++)
+    {
+        WanMgr_Iface_Data_t*   pWanDmlIfaceData = WanMgr_GetIfaceData_locked(uiLoopCount);
+        if(pWanDmlIfaceData != NULL)
+        {
+            DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
+            CcspTraceInfo(("%s %d: setting Interface index:%d, ActiveLink = FALSE and saving it in PSM \n", __FUNCTION__, __LINE__, uiLoopCount));
+            pWanIfaceData->Wan.ActiveLink = FALSE;
+            if (DmlSetWanActiveLinkInPSMDB(uiLoopCount, FALSE) != ANSC_STATUS_SUCCESS)
+            {
+                WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+                return ANSC_STATUS_FAILURE;
+            }
+            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+        }
+    }
+    return ANSC_STATUS_SUCCESS;
+}
+
 /* WanController_Start_StateMachine() */
 ANSC_STATUS WanController_Start_StateMachine(DML_WAN_POLICY swan_policy)
 {
     ANSC_STATUS retStatus = ANSC_STATUS_FAILURE;
     DML_WAN_POLICY wan_policy = FIXED_MODE;
     int iErrorCode = 0;
+    BOOLEAN WanEnable = TRUE;
+    BOOLEAN WanPolicyChanged = FALSE;
 
     CcspTraceInfo(("%s %d \n", __FUNCTION__, __LINE__ ));
 
-    //Get Policy
-    WanMgr_Config_Data_t* pWanConfigData = WanMgr_GetConfigData_locked();
-    if(pWanConfigData != NULL)
+    // event handler
+    int n = 0;
+    struct timeval tv;
+
+    while(1)
     {
-        DML_WANMGR_CONFIG* pWanConfig = &(pWanConfigData->data);
+        /* Wait up to 500 milliseconds */
+        tv.tv_sec = 0;
+        tv.tv_usec = 500000;
+        n = select(0, NULL, NULL, NULL, &tv);
+        if (n < 0)
+        {
+            /* interrupted by signal or something, continue */
+            continue;
+        }
 
-        wan_policy = pWanConfig->Policy;
+        //Get Policy
+        WanMgr_Config_Data_t* pWanConfigData = WanMgr_GetConfigData_locked();
+        if(pWanConfigData != NULL)
+        {
+            DML_WANMGR_CONFIG* pWanConfig = &(pWanConfigData->data);
 
-        WanMgrDml_GetConfigData_release(pWanConfigData);
-    }
+            WanEnable = pWanConfig->Enable;
+            wan_policy = pWanConfig->Policy;
+            WanPolicyChanged = pWanConfig->PolicyChanged;
+            if(pWanConfig->PolicyChanged)
+            {
+                pWanConfig->PolicyChanged = FALSE;
+            }           
 
-    //Starts wan controller threads
-    switch (wan_policy) {
-        case FIXED_MODE:
-            retStatus = WanMgr_Policy_FixedModePolicy();
-            break;
+            WanMgrDml_GetConfigData_release(pWanConfigData);
+        }
 
-        case FIXED_MODE_ON_BOOTUP:
-            retStatus = WanMgr_Policy_FixedModeOnBootupPolicy();
-            break;
+        if(WanEnable == FALSE)
+        {
+            continue;
+        }
 
-        case PRIMARY_PRIORITY:
-            retStatus = WanMgr_Policy_PrimaryPriorityPolicy();
-            break;
+        if(WanPolicyChanged)
+        {
+            WanController_ResetActiveLinkOnAllIface();
+        }
 
-        case PRIMARY_PRIORITY_ON_BOOTUP:
-            retStatus = WanMgr_Policy_PrimaryPriorityOnBootupPolicy();
-            break;
+        //Starts wan controller threads
+        switch (wan_policy) {
+            case FIXED_MODE:
+                retStatus = WanMgr_Policy_FixedModePolicy();
+                break;
 
-        case MULTIWAN_MODE:
-            break;
+            case FIXED_MODE_ON_BOOTUP:
+                retStatus = WanMgr_Policy_FixedModeOnBootupPolicy();
+                break;
 
-        case AUTOWAN_MODE: 
+            case PRIMARY_PRIORITY:
+                retStatus = WanMgr_Policy_PrimaryPriorityPolicy();
+                break;
+
+            case PRIMARY_PRIORITY_ON_BOOTUP:
+                retStatus = WanMgr_Policy_PrimaryPriorityOnBootupPolicy();
+                break;
+
+            case MULTIWAN_MODE:
+                break;
+
+            case AUTOWAN_MODE: 
 #if defined (_XB6_PRODUCT_REQ_)
-            retStatus = WanMgr_Policy_AutoWan();
+                retStatus = WanMgr_Policy_AutoWan();
 #else
-            retStatus = WanMgr_Policy_AutoWanPolicy();
+                retStatus = WanMgr_Policy_AutoWanPolicy();
 #endif
-            break;
+                break;
+        }
     }
-
     if( ANSC_STATUS_SUCCESS != retStatus )
     {
         CcspTraceInfo(("%s %d Error: Failed to start State Machine Thread error code: %d \n", __FUNCTION__, __LINE__, retStatus ));

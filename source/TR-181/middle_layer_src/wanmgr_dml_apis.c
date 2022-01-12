@@ -79,8 +79,11 @@ WanManager_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG uV
             retStatus = WanMgr_RdkBus_setWanPolicy((DML_WAN_POLICY)uValue);
             if(retStatus == ANSC_STATUS_SUCCESS)
             {
-                pWanDmlData->Policy = uValue;
-                WanController_Policy_Change();
+                if(pWanDmlData->Policy != uValue)
+                {
+                    pWanDmlData->Policy = uValue;
+                    pWanDmlData->PolicyChanged = TRUE;
+                }
                 ret = TRUE;
             }
         }
@@ -179,6 +182,7 @@ BOOL WanManager_SetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL
 
         if(AnscEqualString(ParamName, "Enable", TRUE))
         {
+            WanMgr_RdkBus_setWanEnableToPsm(bValue);
             pWanDmlData->Enable = bValue;
             ret = TRUE;
         }

@@ -35,7 +35,9 @@
 typedef enum {
     STATE_FIXING_WAN_INTERFACE = 0,
     STATE_FIXED_WAN_INTERFACE_DOWN,
-    STATE_FIXED_WAN_INTERFACE_UP
+    STATE_FIXED_WAN_INTERFACE_UP,
+    STATE_FIXED_WAN_TEARING_DOWN,
+    STATE_FIXED_WAN_SM_EXIT
 } WcFmPolicyState_t;
 
 
@@ -43,6 +45,7 @@ typedef enum {
 static WcFmPolicyState_t State_FixingWanInterface(WanMgr_Policy_Controller_t* pWanController);
 static WcFmPolicyState_t State_FixedWanInterfaceDown(WanMgr_Policy_Controller_t* pWanController);
 static WcFmPolicyState_t State_FixedWanInterfaceUp(WanMgr_Policy_Controller_t* pWanController);
+static WcFmPolicyState_t State_WaitingForInterfaceSMExit(WanMgr_Policy_Controller_t* pWanController);
 
 /* TRANSITIONS */
 static WcFmPolicyState_t Transition_Start(WanMgr_Policy_Controller_t* pWanController);
@@ -190,6 +193,11 @@ static WcFmPolicyState_t State_FixingWanInterface(WanMgr_Policy_Controller_t* pW
         return ANSC_STATUS_FAILURE;
     }
 
+    if(pWanController->WanEnable == FALSE || pWanController->PolicyChanged == TRUE)
+    {
+        return STATE_FIXED_WAN_SM_EXIT;
+    }
+
     pWanController->activeInterfaceIdx = WanMgr_Policy_FM_SelectWANActive();
 
 
@@ -217,6 +225,10 @@ static WcFmPolicyState_t State_FixedWanInterfaceDown(WanMgr_Policy_Controller_t*
         return STATE_FIXING_WAN_INTERFACE;
     }
 
+    if(pWanController->WanEnable == FALSE || pWanController->PolicyChanged == TRUE)
+    {
+        return STATE_FIXED_WAN_TEARING_DOWN;
+    }
 
     if((pFixedInterface->Phy.Status == WAN_IFACE_PHY_STATUS_UP ||
         pFixedInterface->Phy.Status == WAN_IFACE_PHY_STATUS_INITIALIZING) &&
@@ -258,7 +270,7 @@ static WcFmPolicyState_t State_FixedWanInterfaceUp(WanMgr_Policy_Controller_t* p
         return STATE_FIXED_WAN_INTERFACE_DOWN;
     }
 
-    if( pFixedInterface->Phy.Status  == WAN_IFACE_PHY_STATUS_DOWN || pWanController->WanEnable == FALSE)
+    if( pFixedInterface->Phy.Status  == WAN_IFACE_PHY_STATUS_DOWN || pWanController->WanEnable == FALSE || pWanController->PolicyChanged == TRUE)
     {
         return Transition_FixedInterfaceDown(pWanController);
     }
@@ -279,6 +291,30 @@ static WcFmPolicyState_t State_FixedWanInterfaceUp(WanMgr_Policy_Controller_t* p
     return STATE_FIXED_WAN_INTERFACE_UP;
 }
 
+static WcFmPolicyState_t State_WaitingForInterfaceSMExit(WanMgr_Policy_Controller_t* pWanController)
+{
+    DML_WAN_IFACE* pFixedInterface = NULL;
+
+    if((pWanController != NULL) && (pWanController->pWanActiveIfaceData != NULL))
+    {
+        pFixedInterface = &(pWanController->pWanActiveIfaceData->data);
+    }
+
+    if(pFixedInterface == NULL)
+    {
+        return STATE_FIXED_WAN_TEARING_DOWN;
+    }
+
+    pFixedInterface->Wan.ActiveLink = FALSE;
+    pFixedInterface->SelectionStatus = WAN_IFACE_NOT_SELECTED;
+
+    if(pFixedInterface->Wan.Status != WAN_IFACE_STATUS_DISABLED)
+    {
+        return STATE_FIXED_WAN_TEARING_DOWN;
+    }
+
+    return STATE_FIXED_WAN_SM_EXIT;
+}
 
 /*********************************************************************************/
 /*********************************************************************************/
@@ -331,6 +367,7 @@ ANSC_STATUS WanMgr_Policy_FixedModePolicy(void)
         if(pWanConfigData != NULL)
         {
             WanPolicyCtrl.WanEnable = pWanConfigData->data.Enable;
+            WanPolicyCtrl.PolicyChanged = pWanConfigData->data.PolicyChanged;
 
             WanMgrDml_GetConfigData_release(pWanConfigData);
         }
@@ -349,6 +386,12 @@ ANSC_STATUS WanMgr_Policy_FixedModePolicy(void)
                 break;
             case STATE_FIXED_WAN_INTERFACE_DOWN:
                 fm_sm_state = State_FixedWanInterfaceDown(&WanPolicyCtrl);
+                break;
+            case STATE_FIXED_WAN_TEARING_DOWN:
+                fm_sm_state = State_WaitingForInterfaceSMExit(&WanPolicyCtrl);
+                break;
+            case STATE_FIXED_WAN_SM_EXIT:
+                bRunning = false;
                 break;
             default:
                 CcspTraceInfo(("%s %d - Case: default \n", __FUNCTION__, __LINE__));

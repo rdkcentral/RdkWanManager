@@ -37,7 +37,9 @@ typedef enum {
     STATE_INTERFACE_DOWN = 0,
     STATE_PRIMARY_WAN_ACTIVE,
     STATE_SECONDARY_WAN_ACTIVE,
-    STATE_PRIMARY_WAN_ACTIVE_SECONDARY_WAN_UP
+    STATE_PRIMARY_WAN_ACTIVE_SECONDARY_WAN_UP,
+    STATE_TEARING_DOWN,
+    STATE_SM_EXIT
 } WcPpPolicyState_t;
 
 
@@ -46,6 +48,7 @@ static WcPpPolicyState_t State_WanDown(WanMgr_Policy_Controller_t* pWanControlle
 static WcPpPolicyState_t State_PrimaryWanActive(WanMgr_Policy_Controller_t* pWanController);
 static WcPpPolicyState_t State_SecondaryWanActive(WanMgr_Policy_Controller_t* pWanController);
 static WcPpPolicyState_t State_PrimaryWanActiveSecondaryWanUp(WanMgr_Policy_Controller_t* pWanController);
+static WcPpPolicyState_t State_WaitingForInterfaceSMExit(WanMgr_Policy_Controller_t* pWanController);
 
 /* TRANSITIONS */
 static WcPpPolicyState_t Transition_Start(WanMgr_Policy_Controller_t* pWanController);
@@ -464,6 +467,17 @@ static WcPpPolicyState_t State_WanDown(WanMgr_Policy_Controller_t* pWanControlle
         return ANSC_STATUS_FAILURE;
     }
 
+    if(pWanController->WanEnable == FALSE || pWanController->PolicyChanged == TRUE)
+    {
+        if(pWanController->activeInterfaceIdx > -1)
+        {
+            return STATE_TEARING_DOWN;
+        }else
+        {
+            return STATE_SM_EXIT;
+        }
+    }
+
 #ifndef WAN_ENABLE_STANDBY
     /* Waiting to tear down all in active wan connection */
     if(WanMgr_CheckAllIfacesDown() == FALSE)
@@ -510,6 +524,10 @@ static WcPpPolicyState_t State_PrimaryWanActive(WanMgr_Policy_Controller_t* pWan
 
     pActiveInterface = &(pWanController->pWanActiveIfaceData->data);
 
+   if(pWanController->WanEnable == FALSE || pWanController->PolicyChanged == TRUE)
+    {
+        return STATE_INTERFACE_DOWN;
+    }
 
     if( pWanController->WanEnable == FALSE ||
         pActiveInterface->Phy.Status == WAN_IFACE_PHY_STATUS_DOWN ||
@@ -557,6 +575,10 @@ static WcPpPolicyState_t State_SecondaryWanActive(WanMgr_Policy_Controller_t* pW
 
     pActiveInterface = &(pWanController->pWanActiveIfaceData->data);
 
+    if(pWanController->WanEnable == FALSE || pWanController->PolicyChanged == TRUE)
+    {
+        return STATE_INTERFACE_DOWN;
+    }
 
     if( pWanController->WanEnable == FALSE ||
         pActiveInterface->Phy.Status == WAN_IFACE_PHY_STATUS_DOWN ||
@@ -606,6 +628,11 @@ static WcPpPolicyState_t State_PrimaryWanActiveSecondaryWanUp(WanMgr_Policy_Cont
 
     pActiveInterface = &(pWanController->pWanActiveIfaceData->data);
 
+    if(pWanController->WanEnable == FALSE || pWanController->PolicyChanged == TRUE)
+    {
+        return STATE_INTERFACE_DOWN;
+    }
+
     /* Phy.Status of the Active Primary Interface is DOWN, or Wan.Enable of the Active Primary Interface
     is FALSE, or Global Enable is FALSE */
     if (pWanController->WanEnable != TRUE ||
@@ -640,6 +667,31 @@ static WcPpPolicyState_t State_PrimaryWanActiveSecondaryWanUp(WanMgr_Policy_Cont
     return STATE_PRIMARY_WAN_ACTIVE_SECONDARY_WAN_UP;
 }
 
+static WcPpPolicyState_t State_WaitingForInterfaceSMExit(WanMgr_Policy_Controller_t* pWanController)
+{
+    DML_WAN_IFACE* pFixedInterface = NULL;
+
+    if((pWanController != NULL) && (pWanController->pWanActiveIfaceData != NULL))
+    {
+        pFixedInterface = &(pWanController->pWanActiveIfaceData->data);
+    }
+
+    if(pFixedInterface == NULL)
+    {
+        return STATE_TEARING_DOWN;
+    }
+
+    /* Set ActiveLink to FALSE since Fixed Interface is changed */
+    pFixedInterface->Wan.ActiveLink = FALSE;
+    pFixedInterface->SelectionStatus = WAN_IFACE_NOT_SELECTED;
+
+    if(pFixedInterface->Wan.Status != WAN_IFACE_STATUS_DISABLED)
+    {
+        return STATE_TEARING_DOWN;
+    }
+
+    return STATE_SM_EXIT;
+}
 
 /*********************************************************************************/
 /*********************************************************************************/
@@ -691,6 +743,7 @@ ANSC_STATUS WanMgr_Policy_PrimaryPriorityPolicy(void)
         if(pWanConfigData != NULL)
         {
             WanPolicyCtrl.WanEnable = pWanConfigData->data.Enable;
+            WanPolicyCtrl.PolicyChanged = pWanConfigData->data.PolicyChanged;
 
             WanMgrDml_GetConfigData_release(pWanConfigData);
         }
@@ -712,6 +765,12 @@ ANSC_STATUS WanMgr_Policy_PrimaryPriorityPolicy(void)
                 break;
             case STATE_PRIMARY_WAN_ACTIVE_SECONDARY_WAN_UP:
                 pp_sm_state = State_PrimaryWanActiveSecondaryWanUp(&WanPolicyCtrl);
+                break;
+            case STATE_TEARING_DOWN:
+                pp_sm_state = State_WaitingForInterfaceSMExit(&WanPolicyCtrl);
+                break;
+            case STATE_SM_EXIT:
+                bRunning = false;
                 break;
             default:
                 CcspTraceInfo(("%s %d - Case: default \n", __FUNCTION__, __LINE__));

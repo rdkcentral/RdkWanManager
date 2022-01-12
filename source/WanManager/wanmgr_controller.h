@@ -34,6 +34,8 @@ typedef  struct _WANMGR_POLICY_CONTROLLER_
     struct timespec         SelectionTimeOutEnd;
     UINT                    InterfaceSelectionTimeOut;
     UINT                    TotalIfaces;
+    INT                     WanOperationalMode;
+    BOOL                    PolicyChanged;
 } WanMgr_Policy_Controller_t;
 
 

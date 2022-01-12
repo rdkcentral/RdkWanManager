@@ -36,7 +36,9 @@ struct timespec PPoB_SelectionTimer;
 typedef enum {
     SELECTING_WAN_INTERFACE = 0,
     SELECTED_INTERFACE_DOWN,
-    SELECTED_INTERFACE_UP
+    SELECTED_INTERFACE_UP,
+    STATE_TEARING_DOWN,
+    STATE_SM_EXIT
 } WcPpobPolicyState_t;
 
 
@@ -44,6 +46,7 @@ typedef enum {
 static WcPpobPolicyState_t State_SelectingWanInterface(WanMgr_Policy_Controller_t* pWanController);
 static WcPpobPolicyState_t State_SelectedInterfaceDown(WanMgr_Policy_Controller_t* pWanController);
 static WcPpobPolicyState_t State_SelectedInterfaceUp(WanMgr_Policy_Controller_t* pWanController);
+static WcPpobPolicyState_t State_WaitingForInterfaceSMExit(WanMgr_Policy_Controller_t* pWanController);
 
 /* TRANSITIONS */
 static WcPpobPolicyState_t Transition_Start(WanMgr_Policy_Controller_t* pWanController);
@@ -188,6 +191,36 @@ static int WanMgr_StartIfaceStateMachine (WanMgr_Policy_Controller_t * pWanContr
 
 }
 
+/*
+ * WanMgr_ResetIfaceTable()
+ * - iterates thorugh the interface table and sets INVALID interfaces as DISABLED
+ */
+static void WanMgr_ResetIfaceTable (WanMgr_Policy_Controller_t* pWanController)
+{
+    if ((pWanController == NULL) || (pWanController->TotalIfaces == 0))
+    {
+        return;
+    }
+
+    UINT uiLoopCount;
+    for( uiLoopCount = 0; uiLoopCount < pWanController->TotalIfaces; uiLoopCount++ )
+    {
+        WanMgr_Iface_Data_t*   pWanDmlIfaceData = WanMgr_GetIfaceData_locked(uiLoopCount);
+        if(pWanDmlIfaceData != NULL)
+        {
+            DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
+
+            if (pWanIfaceData->Wan.Status == WAN_IFACE_STATUS_INVALID)
+            {
+                pWanIfaceData->Wan.Status = WAN_IFACE_STATUS_DISABLED;
+                CcspTraceInfo(("%s-%d: Wan.Status=Disabled, Interface-Idx=%d, Interface-Name=%s\n",
+                            __FUNCTION__, __LINE__, uiLoopCount, pWanIfaceData->DisplayName));
+            }
+
+            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+        }
+    }
+}
 
 /*********************************************************************************/
 /************************** TRANSITIONS ******************************************/
@@ -268,6 +301,11 @@ static WcPpobPolicyState_t State_SelectingWanInterface(WanMgr_Policy_Controller_
         return ANSC_STATUS_FAILURE;
     }
 
+    if(pWanController->WanEnable == FALSE || pWanController->PolicyChanged == TRUE)
+    {
+        return STATE_SM_EXIT;
+    }
+
     WanMgr_Policy_FM_SelectWANActive(pWanController, &selectedPrimaryInterface);
 
 
@@ -299,6 +337,7 @@ static WcPpobPolicyState_t State_SelectedInterfaceUp(WanMgr_Policy_Controller_t*
 
 
     if( pWanController->WanEnable == FALSE ||
+        pWanController->PolicyChanged == TRUE ||
         pActiveInterface->Phy.Status == WAN_IFACE_PHY_STATUS_DOWN ||
         pActiveInterface->Wan.Enable == FALSE)
     {
@@ -329,6 +368,11 @@ static WcPpobPolicyState_t State_SelectedInterfaceDown(WanMgr_Policy_Controller_
 
     pActiveInterface = &(pWanController->pWanActiveIfaceData->data);
 
+    if(pWanController->WanEnable == FALSE || pWanController->PolicyChanged == TRUE)
+    {
+        return STATE_TEARING_DOWN;
+    }
+
     if(pWanController->WanEnable == TRUE &&
        (pActiveInterface->Phy.Status == WAN_IFACE_PHY_STATUS_UP ||
        pActiveInterface->Phy.Status == WAN_IFACE_PHY_STATUS_INITIALIZING) &&
@@ -341,6 +385,32 @@ static WcPpobPolicyState_t State_SelectedInterfaceDown(WanMgr_Policy_Controller_
     return SELECTED_INTERFACE_DOWN;
 }
 
+static WcPpobPolicyState_t State_WaitingForInterfaceSMExit(WanMgr_Policy_Controller_t* pWanController)
+{
+    DML_WAN_IFACE* pFixedInterface = NULL;
+
+    if((pWanController != NULL) && (pWanController->pWanActiveIfaceData != NULL))
+    {
+        pFixedInterface = &(pWanController->pWanActiveIfaceData->data);
+    }
+
+    if(pFixedInterface == NULL)
+    {
+        return STATE_TEARING_DOWN;
+    }
+
+    /* Set ActiveLink to FALSE since Fixed Interface is changed */
+    pFixedInterface->Wan.ActiveLink = FALSE;
+    pFixedInterface->SelectionStatus = WAN_IFACE_NOT_SELECTED;
+    if(pFixedInterface->Wan.Status != WAN_IFACE_STATUS_DISABLED)
+    {
+        return STATE_TEARING_DOWN;
+    }
+
+    WanMgr_ResetIfaceTable(pWanController);
+
+    return STATE_SM_EXIT;
+}
 
 /*********************************************************************************/
 /*********************************************************************************/
@@ -393,6 +463,8 @@ ANSC_STATUS WanMgr_Policy_PrimaryPriorityOnBootupPolicy(void)
         if(pWanConfigData != NULL)
         {
             WanPolicyCtrl.WanEnable = pWanConfigData->data.Enable;
+            WanPolicyCtrl.PolicyChanged = pWanConfigData->data.PolicyChanged;
+            WanPolicyCtrl.TotalIfaces = WanMgr_IfaceData_GetTotalWanIface();
 
             WanMgrDml_GetConfigData_release(pWanConfigData);
         }
@@ -411,6 +483,12 @@ ANSC_STATUS WanMgr_Policy_PrimaryPriorityOnBootupPolicy(void)
                 break;
             case SELECTED_INTERFACE_UP:
                 ppob_sm_state = State_SelectedInterfaceUp(&WanPolicyCtrl);
+                break;
+            case STATE_TEARING_DOWN:
+                ppob_sm_state = State_WaitingForInterfaceSMExit(&WanPolicyCtrl);
+                break;
+            case STATE_SM_EXIT:
+                bRunning = false;
                 break;
             default:
                 CcspTraceInfo(("%s %d - Case: default \n", __FUNCTION__, __LINE__));
