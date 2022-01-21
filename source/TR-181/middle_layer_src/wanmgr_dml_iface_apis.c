@@ -3438,6 +3438,7 @@ WanIfPPPCfg_SetParamBoolValue
                 pWanDmlIface->PPP.IPV6CPEnable = bValue;
                 ret = TRUE;
             }
+            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
         }
     }
 
