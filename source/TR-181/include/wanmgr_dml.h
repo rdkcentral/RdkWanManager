@@ -213,6 +213,13 @@ typedef enum _PPP_CONNECTION_EVENTS
     PPP_IPV6CP_STATE_CHANGED
 } DML_PPP_STATE_CHANGED_EVENTS;
 
+typedef enum _IFACE_TYPE 
+{
+    LOCAL_IFACE = 1,
+    REMOTE_IFACE
+} IFACE_TYPE;
+
+
 typedef struct _DATAMODEL_PPP
 {
     BOOL                          Enable;
@@ -243,6 +250,7 @@ typedef struct _DML_WANIFACE_INFO
     DML_WAN_IFACE_OPER_STATUS   OperationalStatus;
     BOOL                        RebootOnConfiguration;
     BOOL                        EnableDHCP;
+    IFACE_TYPE                  IfaceType;
 } DML_WANIFACE_INFO;
 
 

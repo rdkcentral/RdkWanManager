@@ -2401,7 +2401,7 @@ ANSC_STATUS wanmgr_handle_dchpv6_event_data(DML_WAN_IFACE* pIfaceData)
     {
         if (!IS_EMPTY_STRING(pNewIpcMsg->nameserver))
         {
-            CcspTraceInfo(("assigned nameserver=%s", pNewIpcMsg->nameserver));
+            CcspTraceInfo(("assigned nameserver=%s\n", pNewIpcMsg->nameserver));
 
             if (strcmp(pDhcp6cInfoCur->nameserver, pNewIpcMsg->nameserver))
             {
@@ -2411,7 +2411,7 @@ ANSC_STATUS wanmgr_handle_dchpv6_event_data(DML_WAN_IFACE* pIfaceData)
 
         if (!IS_EMPTY_STRING(pNewIpcMsg->nameserver1))
         {
-            CcspTraceInfo(("assigned nameserver=%s", pNewIpcMsg->nameserver1));
+            CcspTraceInfo(("assigned nameserver=%s\n", pNewIpcMsg->nameserver1));
 
             if (strcmp(pDhcp6cInfoCur->nameserver1, pNewIpcMsg->nameserver1))
             {

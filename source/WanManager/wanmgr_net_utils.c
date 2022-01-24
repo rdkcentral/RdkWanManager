@@ -382,25 +382,29 @@ int WanManager_Ipv6AddrUtil(char *ifname, Ipv6OperType opr, int preflft, int val
     return 0;
 }
 
-
-
-
-uint32_t WanManager_StartDhcpv6Client(const char *pcInterfaceName)
+uint32_t WanManager_StartDhcpv6Client(const char * iface_name)
 {
-    char cmdLine[BUFLEN_128];
-    BOOL enableClient = TRUE;
-
-    CcspTraceInfo(("Enter WanManager_StartDhcpv6Client for  %s \n", DHCPV6_CLIENT_NAME));
+    if (iface_name == NULL)
+    {
+        CcspTraceError(("%s %d: Invalid args \n", __FUNCTION__, __LINE__));
+        return 0;
+    }
 
     uint32_t pid = 0;
-    dhcp_params params;
+    WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceDataByName_locked(iface_name);
 
-    memset (&params, 0, sizeof(dhcp_params));
-    params.ifname = pcInterfaceName;
+    if(pWanDmlIfaceData != NULL)
+    {
+        dhcp_params params;
+        memset (&params, 0, sizeof(dhcp_params));
+        params.ifname = pWanDmlIfaceData->data.Wan.Name;
+        params.ifType = pWanDmlIfaceData->data.Wan.IfaceType;
 
-    pid = start_dhcpv6_client(&params);
+        CcspTraceInfo(("Enter WanManager_StartDhcpv6Client for  %s \n", pWanDmlIfaceData->data.Name));
+        pid = start_dhcpv6_client(&params);
+        WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+    }
 
-    CcspTraceInfo(("Started Thread-Pid %d \n", pid ));
     return pid;
 }
 
@@ -423,23 +427,28 @@ ANSC_STATUS WanManager_StopDhcpv6Client(BOOL boolDisconnect)
     return ret;
 }
 
-uint32_t WanManager_StartDhcpv4Client(const char *iface)
+uint32_t WanManager_StartDhcpv4Client(const char * iface_name)
 {
-    if (iface == NULL)
+    if (iface_name == NULL)
     {
         CcspTraceError(("%s %d: Invalid args \n", __FUNCTION__, __LINE__));
         return 0;
     }
 
-    CcspTraceInfo(("Starting DHCP Client for iface: %s \n", iface));
-
     uint32_t pid = 0;
-    dhcp_params params;
+    WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceDataByName_locked(iface_name);
+    if(pWanDmlIfaceData != NULL)
+    {
+        dhcp_params params;
 
-    memset (&params, 0, sizeof(dhcp_params));
-    params.ifname = iface;
+        memset (&params, 0, sizeof(dhcp_params));
+        params.ifname = pWanDmlIfaceData->data.Wan.Name;
+        params.ifType = pWanDmlIfaceData->data.Wan.IfaceType;
 
-    pid = start_dhcpv4_client(&params);
+        CcspTraceInfo(("Starting DHCP Client for iface: %s \n", params.ifname));
+        pid = start_dhcpv4_client(&params);
+        WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+    }
 
     return pid;
 }

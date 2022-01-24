@@ -532,7 +532,7 @@ static void *WanManagerSyseventHandler(void *args)
             }
             else if (strcmp(name, SYSEVENT_WAN_SERVICE_STATUS) == 0)
             {
-                CcspTraceError(("%s %d - received notification event %s:%s\n", __FUNCTION__, __LINE__, name, val ));
+                CcspTraceInfo(("%s %d - received notification event %s:%s\n", __FUNCTION__, __LINE__, name, val ));
                 if (strcmp(val, SYSEVENT_VALUE_STARTED) == 0) {
                     do_toggle_v6_status();
                 }

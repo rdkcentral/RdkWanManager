@@ -627,7 +627,7 @@ static int LaunchApp(const char *appName, const char *cmdLineArgs)
         return -1;
     }
 
-    CcspTraceInfo(("spawning %s args %s", appName, cmdLineArgs));
+    CcspTraceInfo(("spawning %s args %s\n", appName, cmdLineArgs));
     ret = util_spawnProcess(&exeBuf, cmdLineArgs, &pid);
     if (ret != RETURN_OK)
     {
@@ -635,7 +635,7 @@ static int LaunchApp(const char *appName, const char *cmdLineArgs)
     }
     else
     {
-        CcspTraceError(("%s launched, pid %d", appName, pid));
+        CcspTraceError(("%s launched, pid %d\n", appName, pid));
     }
     return pid;
 }
