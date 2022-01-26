@@ -2559,7 +2559,6 @@ ANSC_STATUS wanmgr_handle_dchpv6_event_data(DML_WAN_IFACE* pIfaceData)
             {
                 CcspTraceError(("Life Time Setting Failed"));
             }
-            sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_GLOBAL_IPV6_PREFIX_SET, "", 0);
             sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_RADVD_RESTART, NULL, 0);
         }
         // update current IPv6 Data
