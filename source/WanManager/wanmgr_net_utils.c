@@ -1644,6 +1644,12 @@ ANSC_STATUS WanManager_DeletePPPSession(DML_WAN_IFACE* pInterface)
 
     sleep(2);
 
+    //clear PPP data
+    pInterface->PPP.IPCPStatus = WAN_IFACE_IPCP_STATUS_DOWN;
+    pInterface->PPP.IPV6CPStatus = WAN_IFACE_IPV6CP_STATUS_DOWN;
+    pInterface->PPP.LCPStatus = WAN_IFACE_LCP_STATUS_DOWN;
+    pInterface->PPP.LinkStatus = WAN_IFACE_PPP_LINK_STATUS_DOWN;
+
     /* Create a dummy wan bridge */
     if (syscfg_set(NULL, SYSCFG_WAN_INTERFACE_NAME, DEFAULT_IFNAME) != 0)
     {
