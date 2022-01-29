@@ -69,19 +69,8 @@
 #define  _WANMGR_PLUGIN_MAIN_H_
 
 
-#if (defined _ANSC_WINDOWSNT) || (defined _ANSC_WINDOWS9X)
 
-#ifdef _ALMIB_EXPORTS
-#define ANSC_EXPORT_API                                __declspec(dllexport)
-#else
-#define ANSC_EXPORT_API                                __declspec(dllimport)
-#endif
-
-#endif
-
-#ifdef _ANSC_LINUX
 #define ANSC_EXPORT_API
-#endif
 
 #ifdef __cplusplus
 extern "C"{
