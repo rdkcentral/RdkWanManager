@@ -2500,7 +2500,7 @@ ANSC_STATUS wanmgr_handle_dchpv6_event_data(DML_WAN_IFACE* pIfaceData)
     if (pNewIpcMsg->maptAssigned)
     {
 #ifdef FEATURE_MAPT_DEBUG
-        LOG_PRINT_MAPT("Got an event in Wanmanager for MAPT - CONFIG");
+        MaptInfo("--------- Got a new event in Wanmanager for MAPT_CONFIG ---------");
 #endif
         //get MAP-T previous data
         memcpy(&dhcp6cMAPTMsgBodyPrvs, &(pIfaceData->MAP.dhcp6cMAPTparameters), sizeof(ipc_mapt_data_t));
@@ -2520,7 +2520,7 @@ ANSC_STATUS wanmgr_handle_dchpv6_event_data(DML_WAN_IFACE* pIfaceData)
     else
     {
 #ifdef FEATURE_MAPT_DEBUG
-        LOG_PRINT_MAPT("Got an event in Wanmanager for MAPT - STOP");
+        MaptInfo("--------- Got an event in Wanmanager for MAPT_STOP ---------");
 #endif
         // reset MAP-T parameters
         memset(&(pIfaceData->MAP.dhcp6cMAPTparameters), 0, sizeof(ipc_mapt_data_t));

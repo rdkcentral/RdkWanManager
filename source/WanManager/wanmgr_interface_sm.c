@@ -313,6 +313,7 @@ void WanManager_UpdateInterfaceStatus(DML_WAN_IFACE* pIfaceData, wanmgr_iface_st
         case WANMGR_IFACE_MAPT_START:
         {
             pIfaceData->MAP.MaptStatus = WAN_IFACE_MAPT_STATE_UP;
+
             break;
         }
         case WANMGR_IFACE_MAPT_STOP:
@@ -1405,7 +1406,7 @@ static eWanState_t wan_transition_mapt_up(WanMgr_IfaceSM_Controller_t* pWanIface
         snprintf(cmdEnableIpv4Traffic, sizeof(cmdEnableIpv4Traffic), "ip ro rep default dev %s mtu %d", MAP_INTERFACE, MTU_DEFAULT_SIZE);
 #endif
 #ifdef FEATURE_MAPT_DEBUG
-        LOG_PRINT_MAPT("default route after v4 teardown:%s",cmdEnableIpv4Traffic);
+        MaptInfo("mapt: default route after v4 teardown:%s",cmdEnableIpv4Traffic);
 #endif
         if (WanManager_DoSystemActionWithStatus("mapt:", cmdEnableIpv4Traffic) < RETURN_OK)
         {

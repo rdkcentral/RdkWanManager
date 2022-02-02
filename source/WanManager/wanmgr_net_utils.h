@@ -29,7 +29,7 @@
 #include "wanmgr_utils.h"
 //
 //
-///* ---- Global Constants -------------------------- */
+/* ---- Global Constants -------------------------- */
 
 #define DHCPV6_CLIENT_NAME "dibbler-client"
 //
@@ -59,8 +59,12 @@ typedef  struct _CONTEXT_MARKING_LINK_OBJECT
 
 
 #ifdef FEATURE_MAPT_DEBUG
-void logPrintMapt(char *fmt,...);
-#define LOG_PRINT_MAPT(...) logPrintMapt(__VA_ARGS__ )
+#define MaptError(fmt, arg...) \
+        RDK_LOG(RDK_LOG_ERROR, "LOG.RDK.log_mapt", fmt "\n", ##arg);
+#define MaptNotice(fmt, arg...) \
+        RDK_LOG(RDK_LOG_NOTICE, "LOG.RDK.log_mapt", fmt "\n", ##arg);
+#define MaptInfo(fmt, arg...) \
+        RDK_LOG(RDK_LOG_INFO, "LOG.RDK.log_mapt", fmt "\n", ##arg);
 #endif /*FEATURE_MAPT_DEBUG*/
 
 typedef struct
