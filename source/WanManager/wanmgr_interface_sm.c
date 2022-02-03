@@ -1571,6 +1571,13 @@ static eWanState_t wan_state_ipv4_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
         {
             if (wan_setUpIPv4(pInterface) == RETURN_OK)
             {
+#ifdef FEATURE_IPOE_HEALTH_CHECK
+                if ((pInterface->PPP.Enable == FALSE) && (pInterface->Wan.EnableIPoE == TRUE) &&
+                    (pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV4Status == IHC_STARTED))
+                {
+                    WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_UP, pInterface->Wan.Name);
+                }
+#endif
                 pInterface->IP.Ipv4Changed = FALSE;
 		CcspTraceInfo(("%s %d - Successfully updated IPv4 configure Changes for %s Interface \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
             }
@@ -1675,6 +1682,13 @@ static eWanState_t wan_state_ipv6_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
             {
                 if (wan_setUpIPv6(pInterface) == RETURN_OK)
                 {
+#ifdef FEATURE_IPOE_HEALTH_CHECK
+                    if ((pInterface->PPP.Enable == FALSE) && (pInterface->Wan.EnableIPoE == TRUE) && 
+                        (pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV6Status == IHC_STARTED))
+                    {
+                        WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_IPV6_UP, pInterface->Wan.Name);
+                    }
+#endif
                     pInterface->IP.Ipv6Changed = FALSE;
 		    CcspTraceInfo(("%s %d - Successfully updated IPv6 configure Changes for %s Interface \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
                 }
@@ -1795,6 +1809,13 @@ static eWanState_t wan_state_dual_stack_active(WanMgr_IfaceSM_Controller_t* pWan
         {
             if (wan_setUpIPv4(pInterface) == RETURN_OK)
             {
+#ifdef FEATURE_IPOE_HEALTH_CHECK
+                if ((pInterface->PPP.Enable == FALSE) && (pInterface->Wan.EnableIPoE == TRUE) &&
+                    (pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV4Status == IHC_STARTED))
+                {
+                    WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_UP, pInterface->Wan.Name);
+                }
+#endif
                 pInterface->IP.Ipv4Changed = FALSE;
 		CcspTraceInfo(("%s %d - Successfully updated IPv4 configure Changes for %s Interface \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
             }
@@ -1821,6 +1842,13 @@ static eWanState_t wan_state_dual_stack_active(WanMgr_IfaceSM_Controller_t* pWan
             {
                 if (wan_setUpIPv6(pInterface) == RETURN_OK)
                 {
+#ifdef FEATURE_IPOE_HEALTH_CHECK
+                    if ((pInterface->PPP.Enable == FALSE) && (pInterface->Wan.EnableIPoE == TRUE) &&
+                        (pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV6Status == IHC_STARTED))
+                    {
+                        WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_IPV6_UP, pInterface->Wan.Name);
+                    }
+#endif
                     pInterface->IP.Ipv6Changed = FALSE;
 		    CcspTraceInfo(("%s %d - Successfully updated IPv6 configure Changes for %s Interface \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
                 }
