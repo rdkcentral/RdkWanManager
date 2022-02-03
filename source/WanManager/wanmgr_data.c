@@ -209,6 +209,10 @@ void WanMgr_IfaceData_Init(WanMgr_Iface_Data_t* pIfaceData, UINT iface_index)
         pWanDmlIface->IP.Ipv6Status = WAN_IFACE_IPV6_STATE_DOWN;
         pWanDmlIface->IP.Ipv4Changed = FALSE;
         pWanDmlIface->IP.Ipv6Changed = FALSE;
+#ifdef FEATURE_IPOE_HEALTH_CHECK
+        pWanDmlIface->IP.Ipv4Renewed = FALSE;
+        pWanDmlIface->IP.Ipv6Renewed = FALSE;
+#endif
         memset(&(pWanDmlIface->IP.Ipv4Data), 0, sizeof(WANMGR_IPV4_DATA));
         memset(&(pWanDmlIface->IP.Ipv6Data), 0, sizeof(WANMGR_IPV6_DATA));
         pWanDmlIface->IP.pIpcIpv4Data = NULL;

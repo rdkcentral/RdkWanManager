@@ -278,6 +278,10 @@ typedef struct _DML_WANIFACE_IP
     DML_WAN_IFACE_IPV6_STATUS   Ipv6Status;
     BOOL                        Ipv4Changed;
     BOOL                        Ipv6Changed;
+#ifdef FEATURE_IPOE_HEALTH_CHECK
+    BOOL                        Ipv4Renewed;
+    BOOL                        Ipv6Renewed;
+#endif
     WANMGR_IPV4_DATA            Ipv4Data;
     WANMGR_IPV6_DATA            Ipv6Data;
     ipc_dhcpv4_data_t*          pIpcIpv4Data;

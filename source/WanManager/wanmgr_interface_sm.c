@@ -36,6 +36,12 @@
 
 #define LOOP_TIMEOUT 50000 // timeout in milliseconds. This is the state machine loop interval
 
+#ifdef FEATURE_IPOE_HEALTH_CHECK
+#define IPOE_HEALTH_CHECK_V4_STATUS "ipoe_health_check_ipv4_status"
+#define IPOE_HEALTH_CHECK_V6_STATUS "ipoe_health_check_ipv6_status"
+#define IPOE_STATUS_FAILED "failed"
+#endif
+
 /*WAN Manager States*/
 static eWanState_t wan_state_configuring_wan(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
 static eWanState_t wan_state_validating_wan(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
@@ -286,6 +292,9 @@ void WanManager_UpdateInterfaceStatus(DML_WAN_IFACE* pIfaceData, wanmgr_iface_st
         {
             pIfaceData->IP.Ipv4Status = WAN_IFACE_IPV4_STATE_DOWN;
             pIfaceData->IP.Ipv4Changed = FALSE;
+#ifdef FEATURE_IPOE_HEALTH_CHECK
+            pIfaceData->IP.Ipv4Renewed = FALSE;
+#endif
             strncpy(pIfaceData->IP.Ipv4Data.ip, "", sizeof(pIfaceData->IP.Ipv4Data.ip));
             wanmgr_sysevents_ipv4Info_init(pIfaceData->Wan.Name); // reset the sysvent/syscfg fields
             break;
@@ -299,6 +308,9 @@ void WanManager_UpdateInterfaceStatus(DML_WAN_IFACE* pIfaceData, wanmgr_iface_st
         {
             pIfaceData->IP.Ipv6Status = WAN_IFACE_IPV6_STATE_DOWN;
             pIfaceData->IP.Ipv6Changed = FALSE;
+#ifdef FEATURE_IPOE_HEALTH_CHECK
+            pIfaceData->IP.Ipv6Renewed = FALSE;
+#endif
             pIfaceData->MAP.MaptStatus = WAN_IFACE_MAPT_STATE_DOWN;     // reset MAPT flag
             pIfaceData->MAP.MaptChanged = FALSE;                        // reset MAPT flag
             strncpy(pIfaceData->IP.Ipv6Data.address, "", sizeof(pIfaceData->IP.Ipv6Data.address));
@@ -877,6 +889,9 @@ static ANSC_STATUS WanManager_ClearDHCPData(DML_WAN_IFACE* pInterface)
     /* DHCPv4 client */
     pInterface->IP.Ipv4Status = WAN_IFACE_IPV4_STATE_DOWN;
     pInterface->IP.Ipv4Changed = FALSE;
+#ifdef FEATURE_IPOE_HEALTH_CHECK
+    pInterface->IP.Ipv4Renewed = FALSE;
+#endif
     memset(&(pInterface->IP.Ipv4Data), 0, sizeof(WANMGR_IPV4_DATA));
     pInterface->IP.Dhcp4cPid = 0;
     if(pInterface->IP.pIpcIpv4Data != NULL)
@@ -888,6 +903,9 @@ static ANSC_STATUS WanManager_ClearDHCPData(DML_WAN_IFACE* pInterface)
     /* DHCPv6 client */
     pInterface->IP.Ipv6Status = WAN_IFACE_IPV6_STATE_DOWN;
     pInterface->IP.Ipv6Changed = FALSE;
+#ifdef FEATURE_IPOE_HEALTH_CHECK
+    pInterface->IP.Ipv6Renewed = FALSE;
+#endif
     memset(&(pInterface->IP.Ipv6Data), 0, sizeof(WANMGR_IPV6_DATA));
     pInterface->IP.Dhcp6cPid = 0;
     if(pInterface->IP.pIpcIpv6Data != NULL)
@@ -1181,6 +1199,9 @@ static eWanState_t wan_transition_ipv4_up(WanMgr_IfaceSM_Controller_t* pWanIface
 
     /* Force reset ipv4 state global flag. */
     pInterface->IP.Ipv4Changed = FALSE;
+#ifdef FEATURE_IPOE_HEALTH_CHECK
+    pInterface->IP.Ipv4Renewed = FALSE;
+#endif
 
     sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_WAN_SERVICE_STATUS, buf, sizeof(buf));
     if (strcmp(buf, WAN_STATUS_STARTED))
@@ -1733,6 +1754,19 @@ static eWanState_t wan_state_ipv4_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
             wanmgr_Ipv6Toggle();
         }
     }
+#ifdef FEATURE_IPOE_HEALTH_CHECK
+    else if (pInterface->IP.Ipv4Renewed == TRUE)
+    {
+        char IHC_V4_status[BUFLEN_16] = {0};
+        sysevent_get(sysevent_fd, sysevent_token, IPOE_HEALTH_CHECK_V4_STATUS, IHC_V4_status, sizeof(IHC_V4_status));
+        if((strcmp(IHC_V4_status, IPOE_STATUS_FAILED) == 0) && (pInterface->PPP.Enable == FALSE) && (pInterface->Wan.EnableIPoE == TRUE) &&
+           (pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV4Status == IHC_STARTED))
+        {
+            WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_UP, pInterface->Wan.Name);
+        }
+        pInterface->IP.Ipv4Renewed = FALSE;
+    }
+#endif
 
     return WAN_STATE_IPV4_LEASED;
 }
@@ -1844,6 +1878,19 @@ static eWanState_t wan_state_ipv6_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
         return wan_transition_mapt_up(pWanIfaceCtrl);
     }
 #endif //FEATURE_MAPT
+#ifdef FEATURE_IPOE_HEALTH_CHECK
+    else if (pInterface->IP.Ipv6Renewed == TRUE)
+    {
+        char IHC_V6_status[BUFLEN_16] = {0};
+        sysevent_get(sysevent_fd, sysevent_token, IPOE_HEALTH_CHECK_V6_STATUS, IHC_V6_status, sizeof(IHC_V6_status));
+        if((strcmp(IHC_V6_status, IPOE_STATUS_FAILED) == 0) && (pInterface->PPP.Enable == FALSE) && (pInterface->Wan.EnableIPoE == TRUE) &&
+           (pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV6Status == IHC_STARTED))
+        {
+            WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_IPV6_UP, pInterface->Wan.Name);
+        }
+        pInterface->IP.Ipv6Renewed = FALSE;
+    }
+#endif
     wanmgr_Ipv6Toggle();
     return WAN_STATE_IPV6_LEASED;
 }
@@ -1995,6 +2042,30 @@ static eWanState_t wan_state_dual_stack_active(WanMgr_IfaceSM_Controller_t* pWan
         return wan_transition_mapt_up(pWanIfaceCtrl);
     }
 #endif //FEATURE_MAPT
+#ifdef FEATURE_IPOE_HEALTH_CHECK
+    else if (pInterface->IP.Ipv4Renewed == TRUE)
+    {
+        char IHC_V4_status[BUFLEN_16] = {0};
+        sysevent_get(sysevent_fd, sysevent_token, IPOE_HEALTH_CHECK_V4_STATUS, IHC_V4_status, sizeof(IHC_V4_status));
+        if((strcmp(IHC_V4_status, IPOE_STATUS_FAILED) == 0) && (pInterface->PPP.Enable == FALSE) && (pInterface->Wan.EnableIPoE == TRUE) &&
+           (pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV4Status == IHC_STARTED))
+        {
+            WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_UP, pInterface->Wan.Name);
+        }
+        pInterface->IP.Ipv4Renewed = FALSE;
+    }
+    else if (pInterface->IP.Ipv6Renewed == TRUE)
+    {
+        char IHC_V6_status[BUFLEN_16] = {0};
+        sysevent_get(sysevent_fd, sysevent_token, IPOE_HEALTH_CHECK_V6_STATUS, IHC_V6_status, sizeof(IHC_V6_status));
+        if((strcmp(IHC_V6_status, IPOE_STATUS_FAILED) == 0) && (pInterface->PPP.Enable == FALSE) && (pInterface->Wan.EnableIPoE == TRUE) &&
+           (pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV6Status == IHC_STARTED))
+        {
+            WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_IPV6_UP, pInterface->Wan.Name);
+        }
+        pInterface->IP.Ipv6Renewed = FALSE;
+    }
+#endif
     wanmgr_Ipv6Toggle();
     return WAN_STATE_DUAL_STACK_ACTIVE;
 }
@@ -2085,6 +2156,19 @@ static eWanState_t wan_state_mapt_active(WanMgr_IfaceSM_Controller_t* pWanIfaceC
             CcspTraceError(("%s %d - Failed to tear down MAP-T for %s Interface \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
         }
     }
+#ifdef FEATURE_IPOE_HEALTH_CHECK
+    else if (pInterface->IP.Ipv6Renewed == TRUE)
+    {
+        char IHC_V6_status[BUFLEN_16] = {0};
+        sysevent_get(sysevent_fd, sysevent_token, IPOE_HEALTH_CHECK_V6_STATUS, IHC_V6_status, sizeof(IHC_V6_status));
+        if((strcmp(IHC_V6_status, IPOE_STATUS_FAILED) == 0) && (pInterface->PPP.Enable == FALSE) && (pInterface->Wan.EnableIPoE == TRUE) &&
+           (pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV6Status == IHC_STARTED))
+        {
+            WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_IPV6_UP, pInterface->Wan.Name);
+        }
+        pInterface->IP.Ipv6Renewed = FALSE;
+    }
+#endif
     wanmgr_Ipv6Toggle();
     return WAN_STATE_MAPT_ACTIVE;
 }

@@ -167,6 +167,9 @@ ANSC_STATUS wanmgr_handle_dchpv4_event_data(DML_WAN_IFACE* pIfaceData)
             }
 
             sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV4_TIME_ZONE, pDhcpcInfo->timeZone, 0);
+#ifdef FEATURE_IPOE_HEALTH_CHECK
+            pIfaceData->IP.Ipv4Renewed = TRUE;
+#endif
         }
 
         // update current IPv4 data
