@@ -585,6 +585,7 @@ static int wan_setUpIPv4(DML_WAN_IFACE* pInterface)
     char cmdStr[BUFLEN_128 + IP_ADDR_LENGTH] = {0};
     char bCastStr[IP_ADDR_LENGTH] = {0};
     char line[BUFLEN_64] = {0};
+    char buf[BUFLEN_32] = {0};
     char *cp = NULL;
     FILE *fp = NULL;
 
@@ -658,7 +659,8 @@ static int wan_setUpIPv4(DML_WAN_IFACE* pInterface)
     {
         sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_ETHWAN_INITIALIZED, "1", 0);
     }
-    if (pInterface->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_DOWN)
+    sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_WAN_STATUS, buf, sizeof(buf));
+    if (strcmp(buf, WAN_STATUS_STARTED))
     {
         int  uptime = 0;
         char buffer[64] = {0};
@@ -685,6 +687,7 @@ static int wan_tearDownIPv4(DML_WAN_IFACE* pInterface)
 {
     int ret = RETURN_OK;
     char cmdStr[BUFLEN_64] = {0};
+    char buf[BUFLEN_32] = {0};
 
     if (pInterface == NULL)
     {
@@ -729,7 +732,8 @@ static int wan_tearDownIPv4(DML_WAN_IFACE* pInterface)
         sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_ETHWAN_INITIALIZED, "0", 0);
     }
 
-    if (pInterface->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_DOWN)
+    sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_WAN_STATUS, buf, sizeof(buf));
+    if (strcmp(buf, WAN_STATUS_STOPPED))
     {
         sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_WAN_STATUS, WAN_STATUS_STOPPED, 0);
         CcspTraceInfo(("%s %d - wan-status event set to stopped \n", __FUNCTION__, __LINE__));
@@ -742,6 +746,7 @@ static int wan_tearDownIPv4(DML_WAN_IFACE* pInterface)
 static int wan_setUpIPv6(DML_WAN_IFACE* pInterface)
 {
     int ret = RETURN_OK;
+    char buf[BUFLEN_32] = {0};
 
     if (pInterface == NULL)
     {
@@ -767,7 +772,8 @@ static int wan_setUpIPv6(DML_WAN_IFACE* pInterface)
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_DHCP_SERVER_RESTART, NULL, 0);
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, NULL, 0);
 
-    if (pInterface->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_DOWN)
+    sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_WAN_STATUS, buf, sizeof(buf));
+    if (strcmp(buf, WAN_STATUS_STARTED))
     {
         sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_WAN_START, "", 0);
         sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_WAN_STATUS, WAN_STATUS_STARTED, 0);
@@ -790,6 +796,7 @@ static int wan_setUpIPv6(DML_WAN_IFACE* pInterface)
 static int wan_tearDownIPv6(DML_WAN_IFACE* pInterface)
 {
     int ret = RETURN_OK;
+    char buf[BUFLEN_32] = {0};
 
     if (pInterface == NULL)
     {
@@ -835,7 +842,8 @@ static int wan_tearDownIPv6(DML_WAN_IFACE* pInterface)
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_GLOBAL_IPV6_PREFIX_SET, "", 0);
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, NULL, 0);
 
-    if (pInterface->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_DOWN)
+    sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_WAN_STATUS, buf, sizeof(buf));
+    if (strcmp(buf, WAN_STATUS_STOPPED))
     {
         sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_WAN_STATUS, WAN_STATUS_STOPPED, 0);
         CcspTraceInfo(("%s %d - wan-status event set to stopped \n", __FUNCTION__, __LINE__));
