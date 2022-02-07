@@ -25,9 +25,111 @@ static bool g_toggle_flag = TRUE;
 #define NETMONITOR_SYSNAME          "netmonitor"
 #define SYS_IP_ADDR                 "127.0.0.1"
 
+#if defined(FEATURE_MAPT) && defined(NAT46_KERNEL_SUPPORT)
+#define SYSEVENT_MAP_BR_IPV6_PREFIX "map_br_ipv6_prefix"
+#define SYSEVENT_MAPT_CONFIG_FLAG "mapt_config_flag"
+#define SET "set"
+
+#define MTU_DEFAULT_SIZE (1500)
+#define MAPT_MTU_SIZE (1520)
+#define MAP_WAN_IFACE "wan_ifname"
+#define BUFLEN_64 64
+#define BUFLEN_128 128
+#define BUFLEN_256 256
+#define BUFLEN_1024 1024
+#endif
 /* ---- Private Function Prototypes -------------------------- */
 static void parse_rtattr(struct rtattr *tb[], int max, struct rtattr *rta, int len); // Parse the route entries
 static ANSC_STATUS isDefaultGatewaypresent(struct nlmsghdr* nlmsgHdr); // check for default gateway
+
+#if defined(FEATURE_MAPT) && defined(NAT46_KERNEL_SUPPORT)
+static int get_v6_default_gw_wan(char *defGateway, size_t length)
+{
+    int ret = ANSC_STATUS_SUCCESS;
+    char command[BUFLEN_128] = {0};
+    char line[BUFLEN_1024] = {0};
+    struct in6_addr in6Addr;
+    FILE *fp;
+
+    snprintf(command, sizeof(command), "ip -6 route show default | grep default | awk '{print $3}'");
+
+    fp = popen(command, "r");
+
+    if (fp)
+    {
+        if (fgets(line, sizeof(line), fp) != NULL)
+        {
+            char *token = strtok(line, "\n");
+            if (token)
+            {
+                if (inet_pton (AF_INET6, token, &in6Addr) <= 0)
+                {
+                    DBG_MONITOR_PRINT("Invalid ipv6 address=%s \n", token);
+                    ret = ANSC_STATUS_FAILURE;
+                    return ret;
+                }
+                strncpy(defGateway, token, length);
+                DBG_MONITOR_PRINT("IPv6 Default GW address  = %s \n", defGateway);
+            }
+            else
+            {
+                DBG_MONITOR_PRINT("Could not parse ipv6 gw addr\n");
+                ret = ANSC_STATUS_FAILURE;
+            }
+        }
+        else
+        {
+            DBG_MONITOR_PRINT("Could not read ipv6 gw addr \n");
+            ret = ANSC_STATUS_FAILURE;
+        }
+        pclose(fp);
+    }
+    else
+    {
+        DBG_MONITOR_PRINT("Failed to get the default gw address \n");
+        ret = ANSC_STATUS_FAILURE;
+    }
+
+    return ret;
+}
+
+static int WanManager_MaptRouteSetting()
+{
+    DBG_MONITOR_PRINT("%s Enter \n", __FUNCTION__);
+
+    char cmd[BUFLEN_128] = {0};
+    char brIPv6Prefix[BUFLEN_256] = {0};
+    char vlanIf[BUFLEN_64] = {0};
+    char defaultGatewayV6[BUFLEN_128] = {0};
+
+    sysevent_get(sysevent_fd, sysevent_token, MAP_WAN_IFACE, vlanIf, sizeof(vlanIf));
+    if (!strcmp(vlanIf, "\0"))
+    {
+        DBG_MONITOR_PRINT("%s Failed to get sysevent (%s) \n", __FUNCTION__, MAP_WAN_IFACE);
+        return ANSC_STATUS_FAILURE;
+    }
+
+    sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_MAP_BR_IPV6_PREFIX, brIPv6Prefix, sizeof(brIPv6Prefix));
+    if (!strcmp(brIPv6Prefix, "\0"))
+    {
+        DBG_MONITOR_PRINT("%s Failed to get sysevent (%s) \n", __FUNCTION__, SYSEVENT_MAP_BR_IPV6_PREFIX);
+        return ANSC_STATUS_FAILURE;
+    }
+
+    if(get_v6_default_gw_wan(defaultGatewayV6, sizeof(defaultGatewayV6)) == ANSC_STATUS_FAILURE)
+    {
+        return ANSC_STATUS_FAILURE;
+    }
+
+    snprintf(cmd, sizeof(cmd), "ip -6 route change default via %s dev %s mtu %d", defaultGatewayV6, vlanIf, MTU_DEFAULT_SIZE);
+    system(cmd);
+
+    memset(cmd, 0, sizeof(cmd));
+
+    snprintf(cmd, sizeof(cmd), "ip -6 route replace %s via %s dev %s mtu %d", brIPv6Prefix, defaultGatewayV6, vlanIf, MAPT_MTU_SIZE);
+    system(cmd);
+}
+#endif // FEATURE_MAPT && NAT46_KERNEL_SUPPORT
 
 static void parse_rtattr(struct rtattr *tb[], int max, struct rtattr *rta, int len)
 {
@@ -47,8 +149,6 @@ static ANSC_STATUS isDefaultGatewaypresent(struct nlmsghdr* nlmsgHdr)
     struct rtmsg* route_entry = NLMSG_DATA(nlmsgHdr);
     struct rtattr* tb[RTA_MAX+1];
     ANSC_STATUS ret = ANSC_STATUS_FAILURE;
-
-    //DBG_MONITOR_PRINT("%s-%d: Enter \n", __FUNCTION__, __LINE__);
 
     int len = nlmsgHdr->nlmsg_len - NLMSG_LENGTH(sizeof(*route_entry));
 
@@ -117,7 +217,6 @@ static void NetMonitor_DoToggleV6Status(bool flag)
     }
 }
 
-
 static void netMonitor_SyseventInit()
 {
     int try = 0;
@@ -145,6 +244,9 @@ static void NetMonitor_ProcessNetlinkRouteMonitorFd()
     iov.iov_len = sizeof(buf);  // set size
     struct nlmsghdr *nl_msgHdr;
     static bool gw_v6_flag = FALSE;
+#if defined(FEATURE_MAPT) && defined(NAT46_KERNEL_SUPPORT)
+    char maptConfigFlag[BUFLEN_128] = {0};
+#endif
 
     // initialize protocol message header
     struct msghdr msg;
@@ -177,7 +279,6 @@ static void NetMonitor_ProcessNetlinkRouteMonitorFd()
             return;
         }
 
-        DBG_MONITOR_PRINT("%s-%d: msg type %d , gw_v6=%d \n", __FUNCTION__, __LINE__, nl_msgHdr->nlmsg_type, gw_v6_flag);
         switch(nl_msgHdr->nlmsg_type)
         {
 
@@ -187,6 +288,13 @@ static void NetMonitor_ProcessNetlinkRouteMonitorFd()
                          if(gw_v6_flag == FALSE){
                              DBG_MONITOR_PRINT(" %s  IPv6 Default route update - ADD \n", __FUNCTION__);
                              NetMonitor_DoToggleV6Status(FALSE);
+#if defined(FEATURE_MAPT) && defined(NAT46_KERNEL_SUPPORT)
+                             sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_MAPT_CONFIG_FLAG, maptConfigFlag, sizeof(maptConfigFlag));
+                             if (!strcmp(maptConfigFlag, SET))
+                             {
+                                 WanManager_MaptRouteSetting();
+                             }
+#endif
                              gw_v6_flag = TRUE;
                          }
                      }
@@ -259,7 +367,6 @@ int main(int argc, char* argv[])
         }
         if ((netlinkRouteMonitorFd != -1) && FD_ISSET(netlinkRouteMonitorFd, &readFds))
         {
-            DBG_MONITOR_PRINT("%s-%d: Process NetLink Route Monitor \n", __FUNCTION__, __LINE__);
             NetMonitor_ProcessNetlinkRouteMonitorFd();
         }
     }
