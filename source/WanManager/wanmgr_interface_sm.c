@@ -785,6 +785,9 @@ static int wan_setUpIPv6(DML_WAN_IFACE* pInterface)
 
         system("print_uptime \"Waninit_complete\"");
         system("print_uptime \"boot_to_wan_uptime\"");
+
+        /* Set the current WAN Interface name */
+        sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_CURRENT_WAN_IFNAME, pInterface->IP.Ipv6Data.ifname, 0);
     }
 
     return ret;
@@ -844,6 +847,8 @@ static int wan_tearDownIPv6(DML_WAN_IFACE* pInterface)
     {
         sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_WAN_STATUS, WAN_STATUS_STOPPED, 0);
         CcspTraceInfo(("%s %d - wan-status event set to stopped \n", __FUNCTION__, __LINE__));
+        /* Remove the current wan interface name, if IPV4 state is already down */
+        sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_CURRENT_WAN_IFNAME, "", 0);
     }
 
     return ret;

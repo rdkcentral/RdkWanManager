@@ -177,9 +177,14 @@ ANSC_STATUS wanmgr_sysevents_ipv4Info_set(const ipc_dhcpv4_data_t* dhcp4Info, co
 {
     char name[BUFLEN_64] = {0};
     char value[BUFLEN_64] = {0};
+    char ipv6_status[BUFLEN_16] = {0};
 
-    snprintf(name, sizeof(name), SYSEVENT_CURRENT_WAN_IFNAME);
-    sysevent_set(sysevent_fd, sysevent_token,name, dhcp4Info->dhcpcInterface, 0);
+    sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_IPV6_CONNECTION_STATE, ipv6_status, sizeof(ipv6_status));
+    if (!(!strcmp(ipv6_status, STATUS_UP_STRING) && (dhcp4Info->dhcpcInterface[0] == '\0')))
+    {
+        snprintf(name, sizeof(name), SYSEVENT_CURRENT_WAN_IFNAME);
+        sysevent_set(sysevent_fd, sysevent_token,name, dhcp4Info->dhcpcInterface, 0);
+    }
 
     snprintf(name, sizeof(name), SYSEVENT_IPV4_IP_ADDRESS, wanIfName);
     sysevent_set(sysevent_fd, sysevent_token,name, dhcp4Info->ip, 0);
