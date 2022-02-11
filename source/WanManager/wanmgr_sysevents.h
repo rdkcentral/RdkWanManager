@@ -162,6 +162,8 @@
 #define SYSEVENT_MAP_TRANSPORT_MODE "map_transport_mode"
 #define SYSEVENT_MAP_IS_FMR "map_is_fmr"
 #define SYSEVENT_MAPT_V4LENGTH "map_v4len"
+#define SYSCFG_MAPT_FEATURE_ENABLE   "MAPT_Enable"
+#define SYSEVENT_MAPT_FEATURE_ENABLE   "MAPT_Enable"
 
 /* Lan specific syscfg field names. */
 #define SYSCFG_LAN_IP_ADDRESS "lan_ipaddr"
@@ -220,6 +222,13 @@ ANSC_STATUS wanmgr_sysevents_ipv4Info_set(const ipc_dhcpv4_data_t* dhcp4Info, co
 */
 void wanmgr_sysevents_setWanState(const char * LedState);
 
+#ifdef FEATURE_MAPT
+/*
+ * @brief Utility function used to check mapt_feature enable status.
+ * @return Returns TRUE if Enabled, FALSE if Disabled.
+*/
+int wanmanager_mapt_feature();
+#endif
 
 ANSC_STATUS wanmgr_setwanstart();
 ANSC_STATUS wanmgr_setwanstop();
@@ -231,7 +240,7 @@ INT wanmgr_isWanStarted();
 // * @brief Utility function used to store MAPT specific values in sysevent/
 // * @param[in] MaptData_t *maptInfo
 // * @return Returns ANSC_STATUS_SUCCESS if data properly update in sysevent.
-//*/
+//
 //ANSC_STATUS maptInfo_set(const MaptData_t *maptInfo);
 //ANSC_STATUS maptInfo_reset();
 //#endif // FEATURE_MAPT

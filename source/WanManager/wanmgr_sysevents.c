@@ -37,6 +37,8 @@ static token_t sysevent_msg_token;
 #define SYS_IP_ADDR                 "127.0.0.1"
 #define BUFLEN_42                   42
 #define SYSEVENT_IPV6_TOGGLE        "ipv6Toggle"
+#define SYSEVENT_VALUE_TRUE        "true"
+#define SYSEVENT_VALUE_FALSE        "false"
 #define SYSEVENT_VALUE_READY        "ready"
 #define SYSEVENT_VALUE_STARTED      "started"
 #define SYSEVENT_OPEN_MAX_RETRIES   6
@@ -59,6 +61,9 @@ static void lan_start();
 static void set_vendor_spec_conf();
 static int getVendorClassInfo(char *buffer, int length);
 static int set_default_conf_entry();
+#ifdef FEATURE_MAPT
+int mapt_feature_enable_changed = FALSE;
+#endif
 
 static ANSC_STATUS WanMgr_SyseventInit()
 {
@@ -262,6 +267,26 @@ void wanmgr_sysevents_setWanState(const char * LedState)
 
 
 #ifdef FEATURE_MAPT
+int wanmanager_mapt_feature()
+{
+    int ret = FALSE;
+    char mapt_feature_enable[BUFLEN_16] = {0};
+
+    if (syscfg_get(NULL, SYSCFG_MAPT_FEATURE_ENABLE, mapt_feature_enable, sizeof(mapt_feature_enable)) != ANSC_STATUS_SUCCESS)
+    {
+        CcspTraceError(("Failed to get MAPT_Enable \n"));
+    }
+    else
+    {
+        if (strcmp(mapt_feature_enable, "true") == 0)
+            ret = TRUE;
+        else
+            ret = FALSE;
+    }
+
+    return ret;
+}
+
 ANSC_STATUS maptInfo_set(const MaptData_t *maptInfo)
 {
     if (NULL == maptInfo)
@@ -439,6 +464,12 @@ static void *WanManagerSyseventHandler(void *args)
 
     sysevent_set_options(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_GLOBAL_IPV6_PREFIX_CLEAR, TUPLE_FLAG_EVENT);
     sysevent_setnotification(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_GLOBAL_IPV6_PREFIX_CLEAR, &ipv6_down_asyncid);
+
+#ifdef FEATURE_MAPT
+    sysevent_set_options(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_MAPT_FEATURE_ENABLE, TUPLE_FLAG_EVENT);
+    sysevent_setnotification(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_MAPT_FEATURE_ENABLE, &ipv6_down_asyncid);
+#endif
+
     for(;;)
     {
         char name[BUFLEN_42] = {0};
@@ -625,6 +656,15 @@ static void *WanManagerSyseventHandler(void *args)
 		Wan_ForceRenewDhcpIPv6(PHY_WAN_IF_NAME);
 		sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, NULL, 0);
             }
+#ifdef FEATURE_MAPT
+            else if (strcmp(name, SYSEVENT_MAPT_FEATURE_ENABLE) == 0)
+            {
+                if (!strcmp(val, SYSEVENT_VALUE_TRUE) || !strcmp(val, SYSEVENT_VALUE_FALSE))
+                {
+                    mapt_feature_enable_changed = TRUE;
+                }
+            }
+#endif
             else
             {
                 CcspTraceError(("%s %d undefined event %s:%s \n", __FUNCTION__, __LINE__, name, val));

@@ -75,8 +75,10 @@ static eWanState_t wan_transition_ipv6_up(WanMgr_IfaceSM_Controller_t* pWanIface
 static eWanState_t wan_transition_ipv6_down(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
 static eWanState_t wan_transition_dual_stack_down(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
 #ifdef FEATURE_MAPT
+static eWanState_t wan_transition_mapt_feature_refresh(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
 static eWanState_t wan_transition_mapt_up(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
 static eWanState_t wan_transition_mapt_down(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
+extern int mapt_feature_enable_changed;
 #endif //FEATURE_MAPT
 static eWanState_t wan_transition_exit(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
 
@@ -1402,6 +1404,65 @@ static eWanState_t wan_transition_dual_stack_down(WanMgr_IfaceSM_Controller_t* p
 }
 
 #ifdef FEATURE_MAPT
+static eWanState_t wan_transition_mapt_feature_refresh(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
+{
+    DML_WAN_IFACE* pInterface = pWanIfaceCtrl->pIfaceData;
+
+    wan_transition_ipv6_down(pWanIfaceCtrl);
+
+    /* DHCPv6 client */
+    pInterface->IP.Ipv6Status = WAN_IFACE_IPV6_STATE_DOWN;
+    pInterface->IP.Ipv6Changed = FALSE;
+#ifdef FEATURE_IPOE_HEALTH_CHECK
+    pInterface->IP.Ipv6Renewed = FALSE;
+#endif
+    memset(&(pInterface->IP.Ipv6Data), 0, sizeof(WANMGR_IPV6_DATA));
+    pInterface->IP.Dhcp6cPid = 0;
+    if(pInterface->IP.pIpcIpv6Data != NULL)
+    {
+        free(pInterface->IP.pIpcIpv6Data);
+        pInterface->IP.pIpcIpv6Data = NULL;
+    }
+
+    wanmgr_sysevents_setWanState(WAN_IPV6_DOWN);
+
+    if(pInterface->PPP.Enable == TRUE)
+    {
+        /* Delete PPP session */
+        WanManager_DeletePPPSession(pInterface);
+
+        /* Create PPP session */
+        WanManager_CreatePPPSession(pInterface);
+    }
+    else if (pInterface->Wan.EnableDHCP == TRUE)
+    {
+        int i = 0;
+        /* Release and Stops DHCPv6 client */
+        WanManager_StopDhcpv6Client(TRUE);
+
+        for(i= 0; i < 10; i++)
+        {
+            if (WanManager_IsApplicationRunning(DHCPV6_CLIENT_NAME) == TRUE)
+            {
+                // Before starting a V6 client, it may take some time to get the REPLAY for RELEASE from Previous V6 client.
+                // So wait for 1 to 10 secs for the process of Release & Kill the existing client
+                sleep(1);
+            }
+            else
+            {
+                /* Start DHCPv6 Client */
+                CcspTraceInfo(("%s %d - Staring dibbler-client on interface %s \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
+                uint32_t dhcpv6_pid = WanManager_StartDhcpv6Client(pInterface->Wan.Name);
+                CcspTraceInfo(("%s %d - Started dibbler-client on interface %s, dhcpv6_pid %d \n", __FUNCTION__, __LINE__, pInterface->Wan.Name, dhcpv6_pid));
+            }
+        }
+    }
+
+    CcspTraceInfo(("%s %d - TRANSITION OBTAINING IP ADDRESSES\n", __FUNCTION__, __LINE__));
+
+    return WAN_STATE_OBTAINING_IP_ADDRESSES;
+}
+
 static eWanState_t wan_transition_mapt_up(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
 {
     ANSC_STATUS ret;
@@ -1660,6 +1721,19 @@ static eWanState_t wan_state_obtaining_ip_addresses(WanMgr_IfaceSM_Controller_t*
             wanmgr_Ipv6Toggle();
         }
     }
+#ifdef FEATURE_MAPT
+    else if (pInterface->Wan.EnableMAPT == TRUE &&
+             pInterface->Wan.ActiveLink == TRUE &&
+             mapt_feature_enable_changed == TRUE &&
+             pInterface->MAP.MaptStatus == WAN_IFACE_MAPT_STATE_DOWN)
+    {
+        if (TRUE == wanmanager_mapt_feature())
+        {
+            mapt_feature_enable_changed = FALSE;
+            return wan_transition_mapt_feature_refresh(pWanIfaceCtrl);
+        }
+    }
+#endif
 
     return WAN_STATE_OBTAINING_IP_ADDRESSES;
 }
@@ -1802,6 +1876,19 @@ static eWanState_t wan_state_ipv4_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
         pInterface->IP.Ipv4Renewed = FALSE;
     }
 #endif
+#ifdef FEATURE_MAPT
+    else if (pInterface->Wan.EnableMAPT == TRUE &&
+             pInterface->Wan.ActiveLink == TRUE &&
+             mapt_feature_enable_changed == TRUE &&
+             pInterface->MAP.MaptStatus == WAN_IFACE_MAPT_STATE_DOWN)
+    {
+        if (TRUE == wanmanager_mapt_feature())
+        {
+            mapt_feature_enable_changed = FALSE;
+            return wan_transition_mapt_feature_refresh(pWanIfaceCtrl);
+        }
+    }
+#endif
 
     return WAN_STATE_IPV4_LEASED;
 }
@@ -1926,6 +2013,17 @@ static eWanState_t wan_state_ipv6_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
              pInterface->MAP.MaptStatus == WAN_IFACE_MAPT_STATE_UP)
     {
         return wan_transition_mapt_up(pWanIfaceCtrl);
+    }
+    else if (pInterface->Wan.EnableMAPT == TRUE &&
+             pInterface->Wan.ActiveLink == TRUE &&
+             mapt_feature_enable_changed == TRUE &&
+             pInterface->MAP.MaptStatus == WAN_IFACE_MAPT_STATE_DOWN)
+    {
+        if (TRUE == wanmanager_mapt_feature())
+        {
+            mapt_feature_enable_changed = FALSE;
+            return wan_transition_mapt_feature_refresh(pWanIfaceCtrl);
+        }
     }
 #endif //FEATURE_MAPT
 #ifdef FEATURE_IPOE_HEALTH_CHECK
@@ -2100,6 +2198,17 @@ static eWanState_t wan_state_dual_stack_active(WanMgr_IfaceSM_Controller_t* pWan
     {
         return wan_transition_mapt_up(pWanIfaceCtrl);
     }
+    else if (pInterface->Wan.EnableMAPT == TRUE &&
+             pInterface->Wan.ActiveLink == TRUE &&
+             mapt_feature_enable_changed == TRUE &&
+             pInterface->MAP.MaptStatus == WAN_IFACE_MAPT_STATE_DOWN)
+    {
+        if (TRUE == wanmanager_mapt_feature())
+        {
+            mapt_feature_enable_changed = FALSE;
+            return wan_transition_mapt_feature_refresh(pWanIfaceCtrl);
+        }
+    }
 #endif //FEATURE_MAPT
 #ifdef FEATURE_IPOE_HEALTH_CHECK
     else if (pInterface->IP.Ipv4Renewed == TRUE)
@@ -2149,6 +2258,15 @@ static eWanState_t wan_state_mapt_active(WanMgr_IfaceSM_Controller_t* pWanIfaceC
         pInterface->Wan.Refresh == TRUE )
     {
         return wan_transition_mapt_down(pWanIfaceCtrl);
+    }
+    else if (mapt_feature_enable_changed == TRUE)
+    {
+        if (FALSE == wanmanager_mapt_feature())
+        {
+            mapt_feature_enable_changed = FALSE;
+            wan_transition_mapt_down(pWanIfaceCtrl);
+            return wan_transition_mapt_feature_refresh(pWanIfaceCtrl);
+        }
     }
     else if (pInterface->IP.Ipv6Changed == TRUE)
     {
