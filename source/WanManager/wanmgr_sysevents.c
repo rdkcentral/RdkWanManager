@@ -540,7 +540,7 @@ static void *WanManagerSyseventHandler(void *args)
  *  Hence below part of code is not needed for
  *  comcast platforms where wan manager is enabled.
  */
-#if !defined (_XB6_PRODUCT_REQ_)
+#if !defined (_XB6_PRODUCT_REQ_) && !defined(_PLATFORM_RASPBERRYPI_) && !defined(_PLATFORM_TURRIS_)
             else if (strcmp(name, SYSEVENT_PNM_STATUS) == 0)
             {
                 if (strcmp(val, STATUS_UP_STRING)==0)
