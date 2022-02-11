@@ -219,77 +219,44 @@ WanMgr_DmlDhcpv6cGetEntry
     )
 {
     UNREFERENCED_PARAMETER(hContext);
-    char buf[256] = {0};
-    char out[256] = {0};
+    char out[16];
 
     if (ulIndex)
         return ANSC_STATUS_FAILURE;
 
     pEntry->Cfg.InstanceNumber = 1;
 
-
     /*Cfg members*/
-    strncpy(buf, SYSCFG_FORMAT_DHCP6C"_alias",sizeof(buf)-1);
-    memset(pEntry->Cfg.Alias, 0, sizeof(pEntry->Cfg.Alias));
-    if( syscfg_get( NULL, buf, out, sizeof(out)) == 0 )
-    {
-        strncpy(pEntry->Cfg.Alias, out, sizeof(pEntry->Cfg.Alias));
-    }
+    syscfg_get(NULL, SYSCFG_FORMAT_DHCP6C "_alias", pEntry->Cfg.Alias, sizeof(pEntry->Cfg.Alias));
 
     pEntry->Cfg.SuggestedT1 = pEntry->Cfg.SuggestedT2 = 0;
 
-    strncpy(buf, SYSCFG_FORMAT_DHCP6C"_t1",sizeof(buf)-1);
-    memset(out, 0, sizeof(out));
-    if( syscfg_get( NULL, buf, out, sizeof(out)) == 0 )
+    if (syscfg_get(NULL, SYSCFG_FORMAT_DHCP6C "_t1", out, sizeof(out)) == 0)
     {
-    sscanf(out, "%lu", &pEntry->Cfg.SuggestedT1);
+        sscanf(out, "%lu", &pEntry->Cfg.SuggestedT1);
     }
 
-    strncpy(buf, SYSCFG_FORMAT_DHCP6C"_t2",sizeof(buf)-1);
-    memset(out, 0, sizeof(out));
-    if( syscfg_get( NULL, buf, out, sizeof(out)) == 0 )
+    if (syscfg_get(NULL, SYSCFG_FORMAT_DHCP6C "_t2", out, sizeof(out)) == 0)
     {
-    sscanf(out, "%lu", &pEntry->Cfg.SuggestedT2);
+        sscanf(out, "%lu", &pEntry->Cfg.SuggestedT2);
     }
 
     /*pEntry->Cfg.Interface stores interface name, dml will calculate the full path name*/
-    strncpy(pEntry->Cfg.Interface, DML_DHCP_CLIENT_IFNAME,sizeof(pEntry->Cfg.Interface)-1);
+    snprintf(pEntry->Cfg.Interface, sizeof(pEntry->Cfg.Interface), "%s", DML_DHCP_CLIENT_IFNAME);
 
-    strncpy(buf, SYSCFG_FORMAT_DHCP6C"_requested_options",sizeof(buf)-1);
-    memset(out, 0, sizeof(out));
-    memset(pEntry->Cfg.RequestedOptions, 0, sizeof(pEntry->Cfg.RequestedOptions));
-    if( syscfg_get( NULL, buf, out, sizeof(out)) == 0 )
-    {
-        strncpy(pEntry->Cfg.RequestedOptions, out, sizeof(out));
-    }
+    syscfg_get(NULL, SYSCFG_FORMAT_DHCP6C "_requested_options", pEntry->Cfg.RequestedOptions, sizeof(pEntry->Cfg.RequestedOptions));
 
-    strncpy(buf, SYSCFG_FORMAT_DHCP6C"_enabled",sizeof(buf)-1);
-    memset(out, 0, sizeof(out));
-    if( syscfg_get( NULL, buf, out, sizeof(out)) == 0 )
-    {
-    pEntry->Cfg.bEnabled = (out[0] == '1') ? TRUE:FALSE;
-    }
+    syscfg_get(NULL, SYSCFG_FORMAT_DHCP6C "_enabled", out, sizeof(out));
+    pEntry->Cfg.bEnabled = (out[0] == '1') ? TRUE : FALSE;
 
-    strncpy(buf, SYSCFG_FORMAT_DHCP6C"_iana_enabled",sizeof(buf)-1);
-    memset(out, 0, sizeof(out));
-    if( syscfg_get( NULL, buf, out, sizeof(out)) == 0 )
-    {
-    pEntry->Cfg.RequestAddresses = (out[0] == '1') ? TRUE:FALSE;
-    }
+    syscfg_get(NULL, SYSCFG_FORMAT_DHCP6C "_iana_enabled", out, sizeof(out));
+    pEntry->Cfg.RequestAddresses = (out[0] == '1') ? TRUE : FALSE;
 
-    strncpy(buf, SYSCFG_FORMAT_DHCP6C"_iapd_enabled",sizeof(buf)-1);
-    memset(out, 0, sizeof(out));
-    if( syscfg_get( NULL, buf, out, sizeof(out)) == 0 )
-    {
-    pEntry->Cfg.RequestPrefixes = (out[0] == '1') ? TRUE:FALSE;
-    }
+    syscfg_get(NULL, SYSCFG_FORMAT_DHCP6C "_iapd_enabled", out, sizeof(out));
+    pEntry->Cfg.RequestPrefixes = (out[0] == '1') ? TRUE : FALSE;
 
-    strncpy(buf, SYSCFG_FORMAT_DHCP6C"_rapidcommit_enabled",sizeof(buf)-1);
-    memset(out, 0, sizeof(out));
-    if( syscfg_get( NULL, buf, out, sizeof(out)) == 0 )
-    {
-    pEntry->Cfg.RapidCommit = (out[0] == '1') ? TRUE:FALSE;
-    }
+    syscfg_get(NULL, SYSCFG_FORMAT_DHCP6C "_rapidcommit_enabled", out, sizeof(out));
+    pEntry->Cfg.RapidCommit = (out[0] == '1') ? TRUE : FALSE;
 
     /*Info members*/
     if (pEntry->Cfg.bEnabled)
