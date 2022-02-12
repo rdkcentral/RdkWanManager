@@ -42,6 +42,12 @@
 #define IPOE_STATUS_FAILED "failed"
 #endif
 
+#ifdef FEATURE_IPOE_HEALTH_CHECK
+#define IPOE_HEALTH_CHECK_V4_STATUS "ipoe_health_check_ipv4_status"
+#define IPOE_HEALTH_CHECK_V6_STATUS "ipoe_health_check_ipv6_status"
+#define IPOE_STATUS_FAILED "failed"
+#endif
+
 /*WAN Manager States*/
 static eWanState_t wan_state_configuring_wan(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
 static eWanState_t wan_state_validating_wan(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
