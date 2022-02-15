@@ -578,6 +578,7 @@ int WanManager_ProcessMAPTConfiguration(ipc_mapt_data_t *dhcp6cMAPTMsgBody, cons
     char cmdConfigureMTUSize[BUFLEN_64] = "";
     char cmdEnableIpv4Traffic[BUFLEN_64] = "";
     char cmdEnableDefaultIpv4Route[BUFLEN_64] = "";
+    char layer2_iface[BUFLEN_32] = {0};
 
     if (dhcp6cMAPTMsgBody == NULL)
     {
@@ -661,9 +662,14 @@ int WanManager_ProcessMAPTConfiguration(ipc_mapt_data_t *dhcp6cMAPTMsgBody, cons
        Configure eth3 MTU size to 1520.
     */
     if(!strcmp(DSL_INTERFACE, baseIf))
-        strcpy(baseIf, PTM_INTERFACE);
-
-    snprintf(cmdConfigureMTUSize, sizeof(cmdConfigureMTUSize), "ip link set dev %s mtu %d ", baseIf, MTU_SIZE);
+    {
+        strcpy(layer2_iface, PTM_INTERFACE);
+        snprintf(cmdConfigureMTUSize, sizeof(cmdConfigureMTUSize), "ip link set dev %s mtu %d ", layer2_iface, MTU_SIZE);
+    }
+    else
+    {
+        snprintf(cmdConfigureMTUSize, sizeof(cmdConfigureMTUSize), "ip link set dev %s mtu %d ", baseIf, MTU_SIZE);
+    }
 
 #ifdef FEATURE_MAPT_DEBUG
     MaptInfo("mapt: cmdConfigureMTUSize:%s", cmdConfigureMTUSize);
