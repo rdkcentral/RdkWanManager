@@ -367,6 +367,7 @@ typedef struct _DML_WANMGR_CONFIG_
     BOOLEAN Enable;
     DML_WAN_POLICY Policy;
     BOOLEAN ResetActiveInterface;
+    BOOLEAN AllowRemoteInterfaces;
     BOOLEAN PolicyChanged;
 } DML_WANMGR_CONFIG;
 

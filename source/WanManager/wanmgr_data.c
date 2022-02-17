@@ -55,6 +55,7 @@ void WanMgr_SetConfigData_Default(DML_WANMGR_CONFIG* pWanDmlConfig)
         pWanDmlConfig->Enable = TRUE;
         pWanDmlConfig->Policy = FIXED_MODE;
         pWanDmlConfig->ResetActiveInterface = FALSE;
+        pWanDmlConfig->AllowRemoteInterfaces = FALSE;
         pWanDmlConfig->PolicyChanged = FALSE;
     }
 }

@@ -115,6 +115,12 @@ WanManager_GetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL* pBo
             ret = TRUE;
         }
 
+        if(AnscEqualString(ParamName, "AllowRemoteInterfaces", TRUE))
+        {
+            *pBool= pWanDmlData->AllowRemoteInterfaces;
+            ret = TRUE;
+        }
+
         WanMgrDml_GetConfigData_release(pWanConfigData);
     }
 
@@ -190,6 +196,12 @@ BOOL WanManager_SetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL
         if(AnscEqualString(ParamName, "ResetActiveInterface", TRUE))
         {
             pWanDmlData->ResetActiveInterface = bValue;
+            ret = TRUE;
+        }
+
+        if(AnscEqualString(ParamName, "AllowRemoteInterfaces", TRUE))
+        {
+            pWanDmlData->AllowRemoteInterfaces = bValue;
             ret = TRUE;
         }
 
