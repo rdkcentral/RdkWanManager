@@ -165,10 +165,6 @@ ANSC_STATUS wanmgr_handle_dchpv4_event_data(DML_WAN_IFACE* pIfaceData)
                 sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV4_TIME_OFFSET, value, 0);
                 sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_DHCPV4_TIME_OFFSET, SET, 0);
             }
-            else
-            {
-                sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_DHCPV4_TIME_OFFSET, UNSET, 0);
-            }
 
             sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV4_TIME_ZONE, pDhcpcInfo->timeZone, 0);
         }

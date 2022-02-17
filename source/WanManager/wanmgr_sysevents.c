@@ -215,10 +215,6 @@ ANSC_STATUS wanmgr_sysevents_ipv4Info_set(const ipc_dhcpv4_data_t* dhcp4Info, co
         sysevent_set(sysevent_fd, sysevent_token,SYSEVENT_IPV4_TIME_OFFSET, value, 0);
         sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_DHCPV4_TIME_OFFSET, SET, 0);
     }
-    else
-    {
-        sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_DHCPV4_TIME_OFFSET, UNSET, 0);
-    }
 
     sysevent_set(sysevent_fd, sysevent_token,SYSEVENT_IPV4_TIME_ZONE, dhcp4Info->timeZone, 0);
 
