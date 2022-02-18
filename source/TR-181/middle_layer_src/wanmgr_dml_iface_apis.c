@@ -924,6 +924,11 @@ BOOL WanIfCfg_SetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL b
             }
             if( AnscEqualString(ParamName, "EnableDHCP", TRUE))
             {
+                if (bValue != pWanDmlIface->Wan.EnableDHCP)
+                {
+                    // setting RefreshDHCP so interface state machine can apply changes
+                    pWanDmlIface->Wan.RefreshDHCP = TRUE;
+                }
                 pWanDmlIface->Wan.EnableDHCP = bValue;
                 ret = TRUE;
             }

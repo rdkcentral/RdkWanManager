@@ -382,7 +382,7 @@ int WanManager_Ipv6AddrUtil(char *ifname, Ipv6OperType opr, int preflft, int val
     return 0;
 }
 
-uint32_t WanManager_StartDhcpv6Client(const char * iface_name)
+uint32_t WanManager_StartDhcpv6Client(char * iface_name)
 {
     if (iface_name == NULL)
     {
@@ -400,7 +400,7 @@ uint32_t WanManager_StartDhcpv6Client(const char * iface_name)
         params.ifname = pWanDmlIfaceData->data.Wan.Name;
         params.ifType = pWanDmlIfaceData->data.Wan.IfaceType;
 
-        CcspTraceInfo(("Enter WanManager_StartDhcpv6Client for  %s \n", pWanDmlIfaceData->data.Name));
+        CcspTraceInfo(("Enter WanManager_StartDhcpv6Client for  %s \n", pWanDmlIfaceData->data.Wan.Name));
         pid = start_dhcpv6_client(&params);
         WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
     }
@@ -414,20 +414,28 @@ uint32_t WanManager_StartDhcpv6Client(const char * iface_name)
  * @param boolDisconnect : This indicates whether this function called from disconnect context or not.
  *              TRUE (disconnect context) / FALSE (Non disconnect context)
  */
-ANSC_STATUS WanManager_StopDhcpv6Client(BOOL boolDisconnect)
+ANSC_STATUS WanManager_StopDhcpv6Client(char * iface_name)
 {
-    ANSC_STATUS ret = ANSC_STATUS_SUCCESS;
-    char cmdLine[BUFLEN_128];
+    if (iface_name == NULL)
+    {
+        CcspTraceError(("%s %d: Invalid args \n", __FUNCTION__, __LINE__));
+        return 0;
+    }
 
-    CcspTraceInfo(("Enter WanManager_StopDhcpv6Client for  %s \n", DHCPV6_CLIENT_NAME));
-    snprintf(cmdLine, sizeof(cmdLine)-1, "killall %s", DHCPV6_CLIENT_NAME);
-    system(cmdLine);
+    CcspTraceInfo (("%s %d: Stopping dhcpv6 client for %s\n", __FUNCTION__, __LINE__, iface_name));
 
-    CcspTraceInfo(("Exit WanManager_StopDhcpv6Client\n"));
+    int ret;
+    dhcp_params params;
+
+    memset (&params, 0, sizeof(dhcp_params));
+    params.ifname = iface_name;
+
+    ret = stop_dhcpv6_client(&params);
+
     return ret;
 }
 
-uint32_t WanManager_StartDhcpv4Client(const char * iface_name)
+uint32_t WanManager_StartDhcpv4Client(char * iface_name)
 {
     if (iface_name == NULL)
     {
@@ -445,7 +453,7 @@ uint32_t WanManager_StartDhcpv4Client(const char * iface_name)
         params.ifname = pWanDmlIfaceData->data.Wan.Name;
         params.ifType = pWanDmlIfaceData->data.Wan.IfaceType;
 
-        CcspTraceInfo(("Starting DHCP Client for iface: %s \n", params.ifname));
+        CcspTraceInfo(("Starting DHCPv4 Client for iface: %s \n", params.ifname));
         pid = start_dhcpv4_client(&params);
         WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
     }
@@ -453,34 +461,23 @@ uint32_t WanManager_StartDhcpv4Client(const char * iface_name)
     return pid;
 }
 
-ANSC_STATUS WanManager_StopDhcpv4Client(BOOL sendReleaseAndExit)
+ANSC_STATUS WanManager_StopDhcpv4Client(char * iface_name)
 {
-    CcspTraceInfo(("Enter WanManager_StopDhcpv4Client for  %s \n", DHCPV4_CLIENT_NAME));
-    ANSC_STATUS ret = ANSC_STATUS_SUCCESS;
+    if (iface_name == NULL)
+    {
+        CcspTraceError(("%s %d: Invalid args \n", __FUNCTION__, __LINE__));
+        return 0;
+    }
 
-    if (!sendReleaseAndExit)
-    {
-        WanManager_DoStopApp(DHCPV4_CLIENT_NAME);
-    }
-    else
-    {
-        CcspTraceInfo(("Sending release and exit  msg to %s \n", DHCPV4_CLIENT_NAME));
-        if (WanManager_IsApplicationRunning(DHCPV4_CLIENT_NAME) == TRUE)
-        {
-            int pid = util_getPidByName(DHCPV4_CLIENT_NAME);
-            CcspTraceInfo(("sending SIGUSR2 to [%s][pid=%d], this will let the %s to send release packet out and exit \n", DHCPV4_CLIENT_NAME, pid, DHCPV4_CLIENT_NAME));
-            if (util_signalProcess(pid, SIGUSR2) != RETURN_OK)
-            {
-                WanManager_DoStopApp(DHCPV4_CLIENT_NAME);
-            }
-            else
-            {
-                /* Collect if any zombie process. */
-                CcspTraceInfo(("%s %d:Sent SIGUSR2 to dhcpv4 client, so collect it\n", __FUNCTION__, __LINE__));
-                WanManager_DoCollectApp(DHCPV4_CLIENT_NAME);
-            }
-        }
-    }
+    CcspTraceInfo (("%s %d: Stopping dhcpv4 client for %s\n", __FUNCTION__, __LINE__, iface_name));
+
+    dhcp_params params;
+    ANSC_STATUS ret;
+
+    memset (&params, 0, sizeof(dhcp_params));
+    params.ifname = iface_name;
+
+    ret = stop_dhcpv4_client(&params);
 
     return ret;
 }

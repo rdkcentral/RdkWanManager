@@ -465,6 +465,19 @@ static int write_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFAC
     _ansc_sprintf(param_name, PSM_WANMANAGER_IF_PRIORITY, instancenum);
     WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
 
+    memset(param_value, 0, sizeof(param_value));
+    memset(param_name, 0, sizeof(param_name));
+    if(p_Interface->Wan.EnableDHCP)
+    {
+        _ansc_sprintf(param_value, "TRUE");
+    }
+    else
+    {
+        _ansc_sprintf(param_value, "FALSE");
+    }
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_ENABLE_DHCP, instancenum);
+    WanMgr_RdkBus_SetParamValuesToDB(param_name, param_value);
+
     return ANSC_STATUS_SUCCESS;
 }
 

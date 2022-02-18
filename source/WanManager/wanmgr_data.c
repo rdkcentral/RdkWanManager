@@ -199,6 +199,7 @@ void WanMgr_IfaceData_Init(WanMgr_Iface_Data_t* pIfaceData, UINT iface_index)
         pWanDmlIface->Wan.EnableDSLite = FALSE;
         pWanDmlIface->Wan.EnableIPoE = FALSE;
         pWanDmlIface->Wan.EnableDHCP = TRUE;    // DHCP is enabled by default
+        pWanDmlIface->Wan.RefreshDHCP = FALSE;        // RefreshDHCP is set when there is a change in EnableDHCP
         pWanDmlIface->Wan.IfaceType = LOCAL_IFACE;    // InterfaceType is Local by default
         pWanDmlIface->Wan.ActiveLink = FALSE;
 	pWanDmlIface->SelectionStatus = WAN_IFACE_NOT_SELECTED;

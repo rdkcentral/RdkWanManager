@@ -100,30 +100,28 @@ typedef enum
  * @param isPPP indicates PPP enabled or nor
  * @return ANSC_STATUS_SUCCESS upon success else returned error code.
  ***************************************************************************/
-uint32_t WanManager_StartDhcpv6Client(const char *pcInterfaceName);
+uint32_t WanManager_StartDhcpv6Client(char *pcInterfaceName);
 
 /***************************************************************************
  * @brief API used to stop Dhcpv6 client application.
- * @param boolDisconnect This indicates whether this function called from
- * disconnect context or not
+ * @param intf Interface name on which the dhcpv4 needs to start
  * @return ANSC_STATUS_SUCCESS upon success else returned error code.
  ***************************************************************************/
-ANSC_STATUS WanManager_StopDhcpv6Client(BOOL boolDisconnect);
+ANSC_STATUS WanManager_StopDhcpv6Client(char * iface_name);
 
 /***************************************************************************
  * @brief API used to start Dhcpv4 client application.
  * @param intf Interface name on which the dhcpv4 needs to start
  * @return ANSC_STATUS_SUCCESS upon success else returned error code.
  ***************************************************************************/
-uint32_t WanManager_StartDhcpv4Client(const char* intf);
+uint32_t WanManager_StartDhcpv4Client(char* intf);
 
 /***************************************************************************
  * @brief API used to stop Dhcpv4 client application.
- * @param sendReleaseAndExit flag indicates needs to send release packet before
- *                           exit.
+ * @param pcInterfaceName Interface name for which dhcp v4 app needs to be stopped
  * @return ANSC_STATUS_SUCCESS upon success else returned error code.
  ***************************************************************************/
-ANSC_STATUS WanManager_StopDhcpv4Client(BOOL sendReleaseAndExit);
+ANSC_STATUS WanManager_StopDhcpv4Client(char * iface_name);
 
 /***************************************************************************
  * @brief API used to restart Dhcpv6 client application.

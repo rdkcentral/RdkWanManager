@@ -250,6 +250,7 @@ typedef struct _DML_WANIFACE_INFO
     DML_WAN_IFACE_OPER_STATUS   OperationalStatus;
     BOOL                        RebootOnConfiguration;
     BOOL                        EnableDHCP;
+    BOOL                        RefreshDHCP;
     IFACE_TYPE                  IfaceType;
 } DML_WANIFACE_INFO;
 

@@ -2563,7 +2563,7 @@ void* IPV6CPStateChangeHandler (void *arg)
                 CcspTraceInfo(("%s %d - Started dibbler-client on interface %s, pid %d \n", __FUNCTION__, __LINE__, dhcpcInterface, dhcpv6_pid));
                 break;
             case WAN_IFACE_IPV6CP_STATUS_DOWN:
-                WanManager_StopDhcpv6Client(TRUE);
+                WanManager_StopDhcpv6Client(dhcpcInterface);
                 break;
         }
 
