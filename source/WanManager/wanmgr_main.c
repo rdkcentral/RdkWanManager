@@ -80,7 +80,7 @@ extern char*                                pComponentName;
 char                                        g_Subsystem[32]         = {0};
 
 #if defined (FEATURE_RDKB_WAN_MANAGER)
-#if !defined(AUTOWAN_ENABLE) && !defined(_PLATFORM_RASPBERRYPI_)// This is not needed when auto wan is enabled for TCXBX platforms
+#if !defined(AUTOWAN_ENABLE) && !defined(_PLATFORM_RASPBERRYPI_) && !defined(INTEL_PUMA7)// This is not needed when auto wan is enabled for TCXBX platforms
 extern ANSC_HANDLE bus_handle;
 
 static int checkIfSystemReady(void);
@@ -385,7 +385,7 @@ int main(int argc, char* argv[])
     WanMgr_Core_Init();
 
 #if defined (FEATURE_RDKB_WAN_MANAGER)
-#if !defined(AUTOWAN_ENABLE) && !defined(_PLATFORM_RASPBERRYPI_)// This is not needed when auto wan is enabled for TCXBX platforms
+#if !defined(AUTOWAN_ENABLE) && !defined(_PLATFORM_RASPBERRYPI_) && !defined(INTEL_PUMA7)// This is not needed when auto wan is enabled for TCXBX platforms
     waitUntilSystemReady();
 #endif
 #endif //#if defined (FEATURE_RDKB_WAN_MANAGER)
