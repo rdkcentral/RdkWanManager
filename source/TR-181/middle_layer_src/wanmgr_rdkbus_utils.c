@@ -256,6 +256,45 @@ ANSC_STATUS WanMgr_RdkBus_SetRequestIfComponent(char *pPhyPath, char *pInputpara
     return ANSC_STATUS_SUCCESS;
 }
 
+#ifdef FEATURE_RDKB_AUTO_PORT_SWITCH
+void WanMgr_SetPortCapabilityForEthIntf (DML_WAN_POLICY eWanPolicy)
+{
+    ANSC_STATUS result = ANSC_STATUS_FAILURE;
+    char dmQuery[BUFLEN_256] = {0};
+    char dmValue[BUFLEN_32]  = {0};
+    int foundPhyPath = 0;
+    int uiLoopCount;
+    int TotalIfaces = WanMgr_IfaceData_GetTotalWanIface();
+
+    if(eWanPolicy == PRIMARY_PRIORITY)
+        strcpy(dmValue,"WAN");
+    else
+        strcpy(dmValue,"WAN_LAN");
+
+    CcspTraceInfo(("%s %d: TotalIfaces:%d \n", __FUNCTION__, __LINE__, TotalIfaces));
+    for (uiLoopCount = 0; uiLoopCount < TotalIfaces; uiLoopCount++)
+    {
+        WanMgr_Iface_Data_t*   pWanDmlIfaceData = WanMgr_GetIfaceData_locked(uiLoopCount);
+        if(pWanDmlIfaceData != NULL)
+        {
+            DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
+            if (strstr(pWanIfaceData->Phy.Path,"Ethernet") != NULL)
+            {
+                foundPhyPath = 1;
+                snprintf(dmQuery, sizeof(dmQuery)-1, "%s%s", pWanIfaceData->Phy.Path, ETH_INTERFACE_PORTCAPABILITY);
+            }
+            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+        }
+    }
+    if(foundPhyPath)
+    {
+        CcspTraceInfo(("%s: dmQuery[%s] dmValue[%s]\n", __FUNCTION__, dmQuery,dmValue));
+        result = WanMgr_RdkBus_SetParamValues(ETH_COMPONENT_NAME, ETH_COMPONENT_PATH, dmQuery, dmValue, ccsp_string, TRUE );
+    }
+    CcspTraceInfo(("%s: result[%s]\n", __FUNCTION__, (result != ANSC_STATUS_SUCCESS)?"FAILED":"SUCCESS"));
+}
+#endif  //FEATURE_RDKB_AUTO_PORT_SWITCH
+
 ANSC_STATUS WanMgr_RdkBus_Get_InterfaceRebootRequired(UINT IfaceIndex, BOOL *RebootRequired)
 {
     char acTmpReturnValue[BUFLEN_256] = { 0 };

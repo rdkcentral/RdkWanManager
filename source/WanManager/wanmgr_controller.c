@@ -138,6 +138,10 @@ ANSC_STATUS WanController_Start_StateMachine(DML_WAN_POLICY swan_policy)
             WanController_ResetActiveLinkOnAllIface();
         }
 
+#ifdef FEATURE_RDKB_AUTO_PORT_SWITCH
+        WanMgr_SetPortCapabilityForEthIntf(wan_policy);
+#endif  //FEATURE_RDKB_AUTO_PORT_SWITCH
+
         //Starts wan controller threads
         switch (wan_policy) {
             case FIXED_MODE:
