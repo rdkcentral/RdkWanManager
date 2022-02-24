@@ -60,11 +60,11 @@ typedef  struct _CONTEXT_MARKING_LINK_OBJECT
 
 #ifdef FEATURE_MAPT_DEBUG
 #define MaptError(fmt, arg...) \
-        RDK_LOG(RDK_LOG_ERROR, "LOG.RDK.log_mapt", fmt "\n", ##arg);
+        RDK_LOG(RDK_LOG_ERROR, "LOG.RDK.MAPTLOG", fmt "\n", ##arg);
 #define MaptNotice(fmt, arg...) \
-        RDK_LOG(RDK_LOG_NOTICE, "LOG.RDK.log_mapt", fmt "\n", ##arg);
+        RDK_LOG(RDK_LOG_NOTICE, "LOG.RDK.MAPTLOG", fmt "\n", ##arg);
 #define MaptInfo(fmt, arg...) \
-        RDK_LOG(RDK_LOG_INFO, "LOG.RDK.log_mapt", fmt "\n", ##arg);
+        RDK_LOG(RDK_LOG_INFO, "LOG.RDK.MAPTLOG", fmt "\n", ##arg);
 #endif /*FEATURE_MAPT_DEBUG*/
 
 typedef struct
