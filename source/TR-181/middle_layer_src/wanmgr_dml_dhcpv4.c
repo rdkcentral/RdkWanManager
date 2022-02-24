@@ -879,7 +879,7 @@ Client_GetParamStringValue
     {
         /* collect value */
         WanMgr_DmlDhcpcGetInfo(NULL, pCxtLink->InstanceNumber, &pDhcpc->Info);
-        if ( pDhcpc->Info.DHCPStatus != DML_DHCPC_STATUS_Bound )
+        if ( pDhcpc->Info.DHCPStatus != DML_DHCPC_STATUS_Bound && (strlen(_ansc_inet_ntoa(*((struct in_addr *)(&pDhcpc->Info.IPRouters[0])))) == 0))
         {
             *pValue    = '\0';
             return 0;
