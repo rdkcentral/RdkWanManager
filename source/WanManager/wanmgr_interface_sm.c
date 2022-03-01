@@ -1408,6 +1408,15 @@ static eWanState_t wan_transition_mapt_up(WanMgr_IfaceSM_Controller_t* pWanIface
             CcspTraceError(("%s %d - Failed to run: %s \n", __FUNCTION__, __LINE__, cmdEnableIpv4Traffic));
         }
     }
+    else
+    {
+        if (pInterface->IP.Dhcp4cPid > 0)
+        {
+            /* Stops DHCPv4 client on this interface */
+            WanManager_StopDhcpv4Client(pInterface->Wan.Name);
+            pInterface->IP.Dhcp4cPid = 0;
+        }
+    }
 
     if( pInterface->PPP.Enable == FALSE )
     {
