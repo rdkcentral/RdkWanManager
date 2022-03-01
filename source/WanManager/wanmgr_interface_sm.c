@@ -1715,7 +1715,7 @@ static eWanState_t wan_state_obtaining_ip_addresses(WanMgr_IfaceSM_Controller_t*
         return wan_state_refreshing_wan(pWanIfaceCtrl);
     }
 
-    if (pInterface->Wan.RefreshDHCP == TRUE)
+    if ((pInterface->PPP.Enable == FALSE) && (pInterface->Wan.RefreshDHCP == TRUE))
     {
         if (pInterface->Wan.EnableDHCP == TRUE)
         {
@@ -1854,7 +1854,8 @@ static eWanState_t wan_state_ipv4_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
     {
         return wan_transition_ipv4_down(pWanIfaceCtrl);
     }
-    else if ((pInterface->Wan.EnableDHCP == TRUE) && (pInterface->IP.Dhcp6cPid <= 0))
+    else if ((pInterface->PPP.Enable == FALSE) && 
+            (pInterface->Wan.EnableDHCP == TRUE) && (pInterface->IP.Dhcp6cPid <= 0))
     {
         pInterface->IP.Dhcp6cPid = WanManager_StartDhcpv6Client(pInterface->Wan.Name);
         CcspTraceInfo(("%s %d - Started dhcpv6 client on interface %s, dhcpv6_pid %d \n", __FUNCTION__, __LINE__, pInterface->Wan.Name, pInterface->IP.Dhcp6cPid));
@@ -1994,7 +1995,8 @@ static eWanState_t wan_state_ipv6_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
     {
         return wan_transition_ipv6_down(pWanIfaceCtrl);
     }
-    else if ((pInterface->Wan.EnableDHCP == TRUE) && (pInterface->IP.Dhcp4cPid <= 0))
+    else if ((pInterface->PPP.Enable == FALSE) && 
+            (pInterface->Wan.EnableDHCP == TRUE) && (pInterface->IP.Dhcp4cPid <= 0))
     {
         pInterface->IP.Dhcp4cPid = WanManager_StartDhcpv4Client(pInterface->Wan.Name);
         CcspTraceInfo(("%s %d - Started dhcpc on interface %s, dhcpv4_pid %d \n", __FUNCTION__, __LINE__, pInterface->Wan.Name, pInterface->IP.Dhcp4cPid));

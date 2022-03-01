@@ -85,7 +85,6 @@ extern token_t sysevent_token;
 #define DATAMODEL_PARAM_LENGTH 256
 
 #define SYSCFG_WAN_INTERFACE_NAME "wan_physical_ifname"
-#define DUID_CLIENT "/tmp/dibbler/client-duid"
 
 #if defined (DUID_UUID_ENABLE)
 #define DUID_TYPE "0004"  /* duid-type duid-uuid 4 */
@@ -210,9 +209,8 @@ int isModuleLoaded(char *moduleName)
 static void* Dhcpv6HandlingThread( void *arg );
 static int get_index_from_path(const char *path);
 static void* DmlHandlePPPCreateRequestThread( void *arg );
-static void generate_client_duid_conf();
-static void createDummyWanBridge();
-static void deleteDummyWanBridgeIfExist();
+static void createDummyWanBridge(char * iface_name);
+static void deleteDummyWanBridgeIfExist(char * iface_name);
 static INT IsIPObtained(char *pInterfaceName);
 
 static ANSC_STATUS SetDataModelParamValues( char *pComponent, char *pBus, char *pParamName, char *pParamVal, enum dataType_e type, BOOLEAN bCommit )
@@ -1752,11 +1750,9 @@ ANSC_STATUS WanManager_CreatePPPSession(DML_WAN_IFACE* pInterface)
     char wan_iface_name[10] = {0};
 
     syscfg_init();
-    /* Generate client-duid file for dibbler */
-    generate_client_duid_conf();
 
     /* Remove erouter0 dummy wan bridge if exists */
-    deleteDummyWanBridgeIfExist();
+    deleteDummyWanBridgeIfExist(pInterface->Wan.Name);
     if (pInterface->PPP.LinkType == WAN_IFACE_PPP_LINK_TYPE_PPPoA)
     {
         strncpy(wan_iface_name, BASE_IFNAME_PPPoA, strlen(BASE_IFNAME_PPPoA));
@@ -1976,7 +1972,7 @@ ANSC_STATUS WanManager_DeletePPPSession(DML_WAN_IFACE* pInterface)
         CcspTraceInfo(("%s %d - syscfg_set successfully to set Interafce=%s \n", __FUNCTION__, __LINE__, DEFAULT_IFNAME ));
     }
     syscfg_commit();    
-    createDummyWanBridge();
+    createDummyWanBridge(pInterface->Wan.Name);
 
     return ANSC_STATUS_SUCCESS;
 }
@@ -2058,77 +2054,7 @@ static ANSC_STATUS GetAdslUsernameAndPassword(char *Username, char *Password)
 }
 #endif
 
-static void generate_client_duid_conf()
-{
-    char duid[256] = {0};
-    char file_path[64] = {0};
-    char wan_mac[64] = {0};
-#if defined (DUID_UUID_ENABLE)
-    char uuid[128] = {0};
-    FILE *fp_uuid_proc = NULL;
-#endif
-    int ret = 0;
-
-    FILE *fp_duid = NULL;
-    FILE *fp_mac_addr_table = NULL;
-
-    fp_duid = fopen(DUID_CLIENT, "r");
-
-    if( fp_duid == NULL )
-    {
-#if defined (DUID_UUID_ENABLE)
-        if (syscfg_get(NULL, "UUID", uuid, sizeof(uuid)) != ANSC_STATUS_SUCCESS)
-        {
-            snprintf(file_path, sizeof(file_path), "cat /proc/sys/kernel/random/uuid | tr -d -");
-            fp_uuid_proc = popen(file_path, "r");
-            if(fp_uuid_proc == NULL){
-                 CcspTraceError(("Failed to open proc entry"));
-            }
-            else{
-                fgets(uuid, sizeof(uuid), fp_uuid_proc);
-                pclose(fp_uuid_proc);
-            }
-            syscfg_set(NULL, "UUID", uuid);
-            syscfg_commit();
-        }
-#endif
-        snprintf(file_path, sizeof(file_path)-1, "/sys/class/net/%s/address", PHY_WAN_IF_NAME);
-        fp_mac_addr_table = fopen(file_path, "r");
-        if(fp_mac_addr_table == NULL)
-        {
-             CcspTraceError(("Failed to open mac address table"));
-        }
-        else
-        {
-            ret = fread(wan_mac, sizeof(wan_mac),1, fp_mac_addr_table);
-            fclose(fp_mac_addr_table);
-        }
-
-        fp_duid = fopen(DUID_CLIENT, "w");
-
-        if(fp_duid)
-        {
-            sprintf(duid, DUID_TYPE);
-#if defined (DUID_UUID_ENABLE)
-            sprintf(duid+4, uuid);
-#else
-            sprintf(duid+6, HW_TYPE);
-            sprintf(duid+12, wan_mac);
-#endif
-            fprintf(fp_duid, "%s", duid);
-            fclose(fp_duid);
-        }
-    }
-    else
-    {
-        fclose(fp_duid);
-        CcspTraceError(("dibbler client-duid file exist"));
-    }
-
-    return;
-}
-
-static void createDummyWanBridge()
+static void createDummyWanBridge(char * iface_name)
 {
     char syscmd[256] = {'\0'};
     char wan_mac[64] = {'\0'};
@@ -2136,7 +2062,7 @@ static void createDummyWanBridge()
     FILE *fp_mac_addr_table = NULL;
     int ret = 0;
 
-    snprintf(file_path, sizeof(file_path)-1, "/sys/class/net/%s/address", PHY_WAN_IF_NAME);
+    snprintf(file_path, sizeof(file_path)-1, "/sys/class/net/%s/address", iface_name);
     fp_mac_addr_table = fopen(file_path, "r");
     if(fp_mac_addr_table == NULL)
     {
@@ -2149,17 +2075,17 @@ static void createDummyWanBridge()
     }
 
     memset(syscmd, '\0', sizeof(syscmd));
-    snprintf(syscmd, sizeof(syscmd), "brctl addbr %s", PHY_WAN_IF_NAME);
+    snprintf(syscmd, sizeof(syscmd), "brctl addbr %s", iface_name);
     system(syscmd);
 
     memset(syscmd, '\0', sizeof(syscmd));
-    snprintf(syscmd, sizeof(syscmd), "ip link set dev %s address %s", PHY_WAN_IF_NAME, wan_mac);
+    snprintf(syscmd, sizeof(syscmd), "ip link set dev %s address %s", iface_name, wan_mac);
     system(syscmd);
 
     return;
 }
 
-static void deleteDummyWanBridgeIfExist()
+static void deleteDummyWanBridgeIfExist(char * iface_name)
 {
     char syscmd[256] = {'\0'};
     char resultBuff[256] = {'\0'};
@@ -2169,7 +2095,7 @@ static void deleteDummyWanBridgeIfExist()
     memset(resultBuff, '\0', sizeof(resultBuff));
     memset(cmd, '\0', sizeof(cmd));
     memset(syscmd, '\0', sizeof(syscmd));
-    snprintf(cmd, sizeof(cmd), "ip -d link show %s | tail -n +2 | grep bridge", PHY_WAN_IF_NAME);
+    snprintf(cmd, sizeof(cmd), "ip -d link show %s | tail -n +2 | grep bridge", iface_name);
     fp = popen(cmd, "r");
     if (fp != NULL)
     {
@@ -2177,16 +2103,16 @@ static void deleteDummyWanBridgeIfExist()
         if (resultBuff[0] == '\0')
         {
             // Empty result. No bridge found.
-            CcspTraceInfo(("%s bridge interface is not exists in the system \n", PHY_WAN_IF_NAME));
+            CcspTraceInfo(("%s bridge interface is not exists in the system \n", iface_name));
         }
         else
         {
-            CcspTraceInfo(("%s bridge interface is found in the system, so delete it \n", PHY_WAN_IF_NAME));
+            CcspTraceInfo(("%s bridge interface is found in the system, so delete it \n", iface_name));
             /* Down the interface before we delete it. */
-            snprintf(syscmd, sizeof(syscmd), "ifconfig %s down", PHY_WAN_IF_NAME);
+            snprintf(syscmd, sizeof(syscmd), "ifconfig %s down", iface_name);
             system(syscmd);
             memset(syscmd, '\0', sizeof(syscmd));
-            snprintf(syscmd, sizeof(syscmd), "brctl delbr %s", PHY_WAN_IF_NAME);
+            snprintf(syscmd, sizeof(syscmd), "brctl delbr %s", iface_name);
             system(syscmd);
         }
         pclose(fp);

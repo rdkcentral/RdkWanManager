@@ -2544,7 +2544,6 @@ ANSC_STATUS wanmgr_handle_dchpv6_event_data(DML_WAN_IFACE* pIfaceData)
 
 void* IPV6CPStateChangeHandler (void *arg)
 {
-    uint32_t dhcpv6_pid = 0;
     const char *dhcpcInterface = (char *) arg;
     if(NULL == dhcpcInterface)
     {
@@ -2559,8 +2558,8 @@ void* IPV6CPStateChangeHandler (void *arg)
         switch (pIfaceData->PPP.IPV6CPStatus)
         {
             case WAN_IFACE_IPV6CP_STATUS_UP:
-                dhcpv6_pid = WanManager_StartDhcpv6Client(dhcpcInterface);
-                CcspTraceInfo(("%s %d - Started dibbler-client on interface %s, pid %d \n", __FUNCTION__, __LINE__, dhcpcInterface, dhcpv6_pid));
+                pIfaceData->IP.Dhcp6cPid = WanManager_StartDhcpv6Client(dhcpcInterface);
+                CcspTraceInfo(("%s %d - Started dibbler-client on interface %s, pid %d \n", __FUNCTION__, __LINE__, dhcpcInterface, pIfaceData->IP.Dhcp6cPid));
                 break;
             case WAN_IFACE_IPV6CP_STATUS_DOWN:
                 WanManager_StopDhcpv6Client(dhcpcInterface);
