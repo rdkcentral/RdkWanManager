@@ -724,7 +724,22 @@ static WcFmobPolicyState_t Transition_WaitingForInterface(WanMgr_Iface_Data_t *p
 
 static WcFmobPolicyState_t Transition_WanInterfaceTearDown(WanMgr_Policy_Controller_t* pWanController)
 {
+    DML_WAN_IFACE* pFixedInterface = NULL;
     WcFmobPolicyState_t retState = STATE_WAN_INTERFACE_TEARDOWN;
+
+    if((pWanController != NULL) && (pWanController->pWanActiveIfaceData != NULL))
+    {
+        pFixedInterface = &(pWanController->pWanActiveIfaceData->data);
+    }
+
+    if(pFixedInterface == NULL)
+    {
+        return retState;
+    }
+
+    // Reset Physical link status when state machine is teardown
+    pFixedInterface->Phy.Status = WAN_IFACE_PHY_STATUS_UNKNOWN;
+
     wanmgr_setwanstop();
     system("killall dibbler-client");
     system("killall udhcpc");
@@ -851,6 +866,10 @@ static WcFmobPolicyState_t Transition_WanInterfaceActive(WanMgr_AutoWan_SMInfo_t
 
     CcspTraceInfo(("%s %d - State changed to STATE_WAN_INTERFACE_ACTIVE if_name %s\n", __FUNCTION__, __LINE__,pFixedInterface->Wan.Name));
     CcspTraceInfo(("%s %d - LastKnownMode %d  Active index %d\n", __FUNCTION__, __LINE__,lastKnownMode,pWanController->activeInterfaceIdx));
+#ifndef ENABLE_WANMODECHANGE_NOREBOOT
+    // Do reboot during wan mode change if NOREBOOT feature is not enabled.
+    pFixedInterface->Wan.RebootOnConfiguration = TRUE;
+#endif
     switch (lastKnownMode)
     {
         case WAN_MODE_PRIMARY:
