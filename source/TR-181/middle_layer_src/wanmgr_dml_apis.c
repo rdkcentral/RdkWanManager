@@ -179,10 +179,10 @@ LONG WanManager_GetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, ch
         {
             /* Data value should be empty for all get */
             snprintf(pValue, pulSize, "%s", "");
-            return 0;
+            ret = 0;
         }
 
-        if( AnscEqualString(ParamName, "InterfaceAvailableStatus", TRUE) )
+	if( AnscEqualString(ParamName, "InterfaceAvailableStatus", TRUE) )
         {
             if (( sizeof(pWanDmlData->InterfaceAvailableStatus ) - 1 ) < *pulSize )
             {
