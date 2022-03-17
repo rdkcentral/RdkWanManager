@@ -1243,6 +1243,8 @@ static WcFmobPolicyState_t State_WanConfiguringInterface(WanMgr_AutoWan_SMInfo_t
         if (ret == ANSC_STATUS_FAILURE)
         {
             CcspTraceError(("%s WanMgr_RdkBus_SetRequestIfComponent failed for param %s%s\n",__FUNCTION__,pFixedInterface->Phy.Path,PARAM_NAME_CONFIGURE_WAN));
+            // Deconfigure current selected interface if configure is failed.
+            return STATE_WAN_DECONFIGURING_INTERFACE;
         }
 
     }
@@ -1252,6 +1254,8 @@ static WcFmobPolicyState_t State_WanConfiguringInterface(WanMgr_AutoWan_SMInfo_t
         if (ret == ANSC_STATUS_FAILURE)
         {
             CcspTraceError(("%s WanMgr_RdkBus_SetRequestIfComponent failed for param %s%s\n",__FUNCTION__,pFixedInterface->CustomConfigPath,PARAM_NAME_CUSTOM_CONFIG_WAN));
+            // Deconfigure current selected interface if configure is failed.
+            return STATE_WAN_DECONFIGURING_INTERFACE;
         }
 
     }
