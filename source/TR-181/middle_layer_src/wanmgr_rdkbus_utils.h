@@ -66,6 +66,7 @@
 #include <syscfg/syscfg.h>
 
 #define UPSTREAM_DM_SUFFIX                  ".Upstream"
+#define WAN_CONFIG_PORT_DM_SUFFIX           ".WanConfigPort"
 
 //VLAN Agent
 #define VLAN_DBUS_PATH                     "/com/cisco/spvtg/ccsp/vlanmanager"

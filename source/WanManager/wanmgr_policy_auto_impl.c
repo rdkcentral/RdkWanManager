@@ -394,7 +394,33 @@ static bool WanMgr_CheckIfPlatformReconfiguringRequired (WanMgr_Policy_Controlle
                     return TRUE;
                 }
             }
+#ifdef FEATURE_RDKB_AUTO_PORT_SWITCH
+            if(strncmp(pWanIfaceData->DisplayName, "WANOE", 6)==0)
+            {
+                memset(&dmValue, 0, sizeof(dmValue));
+                memset(&dmQuery, 0, sizeof(dmQuery));
+                snprintf(dmQuery, sizeof(dmQuery)-1, "%s%s", pWanIfaceData->Phy.Path,WAN_CONFIG_PORT_DM_SUFFIX);
+                if ( ANSC_STATUS_FAILURE == WanMgr_RdkBus_GetParamValueFromAnyComp (dmQuery, dmValue))
+                {
+                    CcspTraceError(("%s-%d: %s, Failed to get param value\n", __FUNCTION__, __LINE__, dmQuery));
+                    WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+                    return FALSE;
+                }
 
+                if((uiLoopCount == pWanController->activeInterfaceIdx) && (strncasecmp(dmValue, "true", 5) != 0))
+                {
+                    CcspTraceInfo(("%s %d:WANOE is selected but eth WAN HW configuration set to LAN, so platform reconf required\n", __FUNCTION__, __LINE__));
+                    WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+                    return TRUE;
+                }else if((uiLoopCount != pWanController->activeInterfaceIdx) && (strncasecmp(dmValue, "true", 5) == 0))
+                {
+
+                    CcspTraceInfo(("%s %d:WANOE is not selected but eth WAN HW configuration set to WAN, so platform reconf required\n", __FUNCTION__, __LINE__));
+                    WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+                    return TRUE;
+                }
+            }
+#endif
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
         }
     }
