@@ -683,33 +683,30 @@ static WcFmobPolicyState_t Transition_StartAuto(WanMgr_AutoWan_SMInfo_t *pSmInfo
 
                 if (strlen(pFixedInterface->Phy.Path) > 0)
                 {
-                    if (pFixedInterface->Phy.Status != WAN_IFACE_PHY_STATUS_UP)
-                    {
-                        pFixedInterface->Phy.Status = WAN_IFACE_PHY_STATUS_UNKNOWN;
-                        memset(buf,0,sizeof(buf));
-                        memset(path,0,sizeof(path));
-                        snprintf(buf, sizeof(buf),"%d",pFixedInterface->uiInstanceNumber);
-                        snprintf(path, sizeof(path),"%s",pFixedInterface->Phy.Path);
-                        // Release lock before goes for wait for interface component ready
-                        WanMgrDml_GetIfaceData_release(pWanActiveIfaceData);
-                        if (ANSC_STATUS_SUCCESS == WaitForInterfaceComponentReady(path))
-                        {    
-                            char *mode = "WAN_SECONDARY";
-                            if (pFixedInterface->Wan.Type == WAN_IFACE_TYPE_PRIMARY)
-                            {
-                                mode = "WAN_PRIMARY";
-                            }
-
-                             CcspTraceInfo(("%s %d - AUTOWAN Selected Interface %s Type:%s\n", __FUNCTION__, __LINE__,pFixedInterface->Wan.Name,mode));
-                            ANSC_STATUS ret = WanMgr_RdkBus_SetRequestIfComponent(path,PARAM_NAME_REQUEST_PHY_STATUS,buf,ccsp_string);
-                            if (ret == ANSC_STATUS_FAILURE)
-                            {
-                                 CcspTraceError(("%s WanMgr_RdkBus_SetRequestIfComponent failed for param %s%s\n",__FUNCTION__,path,PARAM_NAME_REQUEST_PHY_STATUS));
-                            }
+                    pFixedInterface->Phy.Status = WAN_IFACE_PHY_STATUS_UNKNOWN;
+                    memset(buf,0,sizeof(buf));
+                    memset(path,0,sizeof(path));
+                    snprintf(buf, sizeof(buf),"%d",pFixedInterface->uiInstanceNumber);
+                    snprintf(path, sizeof(path),"%s",pFixedInterface->Phy.Path);
+                    // Release lock before goes for wait for interface component ready
+                    WanMgrDml_GetIfaceData_release(pWanActiveIfaceData);
+                    if (ANSC_STATUS_SUCCESS == WaitForInterfaceComponentReady(path))
+                    {    
+                        char *mode = "WAN_SECONDARY";
+                        if (pFixedInterface->Wan.Type == WAN_IFACE_TYPE_PRIMARY)
+                        {
+                            mode = "WAN_PRIMARY";
                         }
-                        CcspTraceInfo(("%s: Released Path Name %s\n", __FUNCTION__,path));
-                        break;
+
+                        CcspTraceInfo(("%s %d - AUTOWAN Selected Interface %s Type:%s\n", __FUNCTION__, __LINE__,pFixedInterface->Wan.Name,mode));
+                        ANSC_STATUS ret = WanMgr_RdkBus_SetRequestIfComponent(path,PARAM_NAME_REQUEST_PHY_STATUS,buf,ccsp_string);
+                        if (ret == ANSC_STATUS_FAILURE)
+                        {
+                            CcspTraceError(("%s WanMgr_RdkBus_SetRequestIfComponent failed for param %s%s\n",__FUNCTION__,path,PARAM_NAME_REQUEST_PHY_STATUS));
+                        }
                     }
+                    CcspTraceInfo(("%s: Released Path Name %s\n", __FUNCTION__,path));
+                    break;
                 }
             }
             WanMgrDml_GetIfaceData_release(pWanActiveIfaceData);
