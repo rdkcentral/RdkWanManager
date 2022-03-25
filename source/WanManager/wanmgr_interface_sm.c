@@ -1110,6 +1110,11 @@ static eWanState_t wan_transition_refreshing_wan(WanMgr_IfaceSM_Controller_t* pW
 
     if(pInterface->PPP.Enable == TRUE)
     {
+        if(!(pInterface->PPP.IPCPStatus == WAN_IFACE_IPCP_STATUS_UP &&
+                    pInterface->PPP.IPV6CPStatus == WAN_IFACE_IPV6CP_STATUS_UP ))
+        {
+            return WAN_STATE_REFRESHING_WAN;
+        }
         /* Stops DHCPv6 client */
         WanManager_StopDhcpv6Client(pInterface->Wan.Name); // release dhcp lease
         pInterface->IP.Dhcp6cPid = 0;
@@ -1126,16 +1131,16 @@ static eWanState_t wan_transition_refreshing_wan(WanMgr_IfaceSM_Controller_t* pW
         /* Stops DHCPv6 client */
         WanManager_StopDhcpv6Client(pInterface->Wan.Name); // release dhcp lease
         pInterface->IP.Dhcp6cPid = 0;
-    }
 
-    /* Sets Ethernet.Link.{i}.X_RDK_Refresh to TRUE in VLAN & Bridging Manager
-       in order to refresh the WAN link */
-    if(WanMgr_Send_InterfaceRefresh(pInterface) != ANSC_STATUS_SUCCESS)
-    {
-        CcspTraceError(("%s %d - Interface '%s' - Sending Refresh message failed\n", __FUNCTION__, __LINE__, pInterface->Name));
-    }
+        /* Sets Ethernet.Link.{i}.X_RDK_Refresh to TRUE in VLAN & Bridging Manager
+           in order to refresh the WAN link */
+        if(WanMgr_Send_InterfaceRefresh(pInterface) != ANSC_STATUS_SUCCESS)
+        {
+            CcspTraceError(("%s %d - Interface '%s' - Sending Refresh message failed\n", __FUNCTION__, __LINE__, pInterface->Name));
+        }
 
-    pInterface->Wan.LinkStatus = WAN_IFACE_LINKSTATUS_CONFIGURING;
+        pInterface->Wan.LinkStatus = WAN_IFACE_LINKSTATUS_CONFIGURING;
+    }
     pInterface->Wan.Refresh = FALSE;
 
     CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION REFRESHING WAN\n", __FUNCTION__, __LINE__, pInterface->Name));
