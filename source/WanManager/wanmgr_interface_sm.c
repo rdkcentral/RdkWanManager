@@ -1277,6 +1277,16 @@ static eWanState_t wan_transition_ipv4_down(WanMgr_IfaceSM_Controller_t* pWanIfa
         WanManager_StopDhcpv4Client(pInterface->Wan.Name);
         pInterface->IP.Dhcp4cPid = 0;
     }
+    else
+    {
+        /* Collect if any zombie process. */
+        WanManager_DoCollectApp(DHCPV4_CLIENT_NAME);
+        if (WanManager_IsApplicationRunning(DHCPV4_CLIENT_NAME) != TRUE)
+        {
+            pInterface->IP.Dhcp4cPid = WanManager_StartDhcpv4Client(pInterface->Wan.Name);
+            CcspTraceInfo(("%s %d - Started dhcpc on interface %s, dhcpv4_pid %d \n", __FUNCTION__, __LINE__, pInterface->Wan.Name, pInterface->IP.Dhcp4cPid));
+        }
+    }
     WanManager_UpdateInterfaceStatus (pInterface, WANMGR_IFACE_CONNECTION_DOWN);
 
     if (wan_tearDownIPv4(pInterface) != RETURN_OK)
@@ -1387,6 +1397,18 @@ static eWanState_t wan_transition_ipv6_down(WanMgr_IfaceSM_Controller_t* pWanIfa
         CcspTraceInfo(("%s %d: Stopping DHCP v6\n", __FUNCTION__, __LINE__));
         WanManager_StopDhcpv6Client(pInterface->Wan.Name);
         pInterface->IP.Dhcp6cPid = 0;
+    }
+    else
+    {
+        /* Collect if any zombie process. */
+        WanManager_DoCollectApp(DHCPV6_CLIENT_NAME);
+        if (WanManager_IsApplicationRunning(DHCPV6_CLIENT_NAME) != TRUE)
+        {
+            /* Start DHCPv6 Client */
+            CcspTraceInfo(("%s %d - Starting dibbler-client on interface %s \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
+            pInterface->IP.Dhcp6cPid = WanManager_StartDhcpv6Client(pInterface->Wan.Name);
+            CcspTraceInfo(("%s %d - Started dibbler-client on interface %s, dhcpv6_pid %d \n", __FUNCTION__, __LINE__, pInterface->Wan.Name, pInterface->IP.Dhcp6cPid));
+        }
     }
 
     WanManager_UpdateInterfaceStatus (pInterface, WANMGR_IFACE_CONNECTION_IPV6_DOWN);
