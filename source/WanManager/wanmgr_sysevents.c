@@ -165,8 +165,6 @@ ANSC_STATUS syscfg_set_bool(const char* name, int value)
 
 ANSC_STATUS wanmgr_sysevents_ipv6Info_init()
 {
-    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_DNS_PRIMARY, "", 0);
-    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_DNS_SECONDARY, "", 0);
     sysevent_set(sysevent_fd, sysevent_token,SYSEVENT_FIELD_IPV6_DOMAIN, "", 0);
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV6_CONNECTION_STATE, WAN_STATUS_DOWN, 0);
     syscfg_set_string(SYSCFG_FIELD_IPV6_PREFIX_ADDRESS, "");
@@ -205,14 +203,7 @@ ANSC_STATUS wanmgr_sysevents_ipv4Info_set(const ipc_dhcpv4_data_t* dhcp4Info, co
     sysevent_set(sysevent_fd, sysevent_token,name, dhcp4Info->gateway, 0);
     sysevent_set(sysevent_fd, sysevent_token,SYSEVENT_IPV4_DEFAULT_ROUTER, dhcp4Info->gateway, 0);
 
-    snprintf(name, sizeof(name), SYSEVENT_IPV4_DNS_NUMBER, wanIfName);
-    sysevent_set(sysevent_fd, sysevent_token,name, "2", 0);
 
-    snprintf(name, sizeof(name), SYSEVENT_IPV4_DNS_PRIMARY, wanIfName);
-    sysevent_set(sysevent_fd, sysevent_token,name, dhcp4Info->dnsServer, 0);
-
-    snprintf(name, sizeof(name), SYSEVENT_IPV4_DNS_SECONDARY, wanIfName);
-    sysevent_set(sysevent_fd, sysevent_token,name, dhcp4Info->dnsServer1, 0);
 
     snprintf(name, sizeof(name), SYSEVENT_IPV4_DS_CURRENT_RATE, wanIfName);
     snprintf(value, sizeof(value), "%d", dhcp4Info->downstreamCurrRate);

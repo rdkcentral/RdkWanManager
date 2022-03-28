@@ -67,15 +67,6 @@ typedef  struct _CONTEXT_MARKING_LINK_OBJECT
         RDK_LOG(RDK_LOG_INFO, "LOG.RDK.MAPTLOG", fmt "\n", ##arg);
 #endif /*FEATURE_MAPT_DEBUG*/
 
-typedef struct
-{
-   char dns_ipv4_1[BUFLEN_64];
-   char dns_ipv4_2[BUFLEN_64];
-   char dns_ipv6_1[BUFLEN_128];
-   char dns_ipv6_2[BUFLEN_128];
-} DnsData_t;
-
-
 typedef enum
 {
     DEL_ADDR = 0,
@@ -180,13 +171,6 @@ int WanManager_ProcessMAPTConfiguration(ipc_mapt_data_t *dhcp6cMAPTMsgBody, cons
  * @return RETURN_OK in case of success else error code returned.
  ************************************************************************************/
 int WanManager_ResetMAPTConfiguration(const char *baseIf, const char *vlanIf);
-
-/***************************************************************************
- * @brief API used to update /etc/resolv.conf file with dns configuration
- * @param dnsInfo pointer to DnsData_t contains the dns info
- * @return RETURN_OK upon success else returned error code.
- ****************************************************************************/
-int WanManager_CreateResolvCfg(const DnsData_t *dnsInfo);
 
 /***************************************************************************
  * @brief API used to update default ipv4 gateway

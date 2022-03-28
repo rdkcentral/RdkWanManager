@@ -26,6 +26,7 @@
 #define PSM_WANMANAGER_WANENABLE                            "dmsb.wanmanager.wanenable"
 #define PSM_WANMANAGER_WANMODE                              "dmsb.wanmanager.wanmode"
 #define PSM_WANMANAGER_WANPOLICY                            "dmsb.wanmanager.wanpolicy"
+#define PSM_WANMANAGER_DEVICEMODE                           "dmsb.wanmanager.devicemode"    // Gateway/Modem
 #define PSM_WANMANAGER_WANIFCOUNT                           "dmsb.wanmanager.wanifcount"
 #define PSM_WANMANAGER_IF_ENABLE                            "dmsb.wanmanager.if.%d.Enable"
 #define PSM_WANMANAGER_IF_ACTIVELINK                        "dmsb.wanmanager.if.%d.ActiveLink"

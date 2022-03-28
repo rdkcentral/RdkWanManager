@@ -2396,30 +2396,6 @@ ANSC_STATUS wanmgr_handle_dchpv6_event_data(DML_WAN_IFACE* pIfaceData)
         }
     }
 
-    /* dhcp6c receives dns information */
-    if (pNewIpcMsg->dnsAssigned)
-    {
-        if (!IS_EMPTY_STRING(pNewIpcMsg->nameserver))
-        {
-            CcspTraceInfo(("assigned nameserver=%s\n", pNewIpcMsg->nameserver));
-
-            if (strcmp(pDhcp6cInfoCur->nameserver, pNewIpcMsg->nameserver))
-            {
-                sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_DNS_PRIMARY, pNewIpcMsg->nameserver, 0);
-            }
-        }
-
-        if (!IS_EMPTY_STRING(pNewIpcMsg->nameserver1))
-        {
-            CcspTraceInfo(("assigned nameserver=%s\n", pNewIpcMsg->nameserver1));
-
-            if (strcmp(pDhcp6cInfoCur->nameserver1, pNewIpcMsg->nameserver1))
-            {
-                sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_DNS_SECONDARY, pNewIpcMsg->nameserver1, 0);
-            }
-        }
-    }
-
     /* dhcp6c receives domain name information */
     if (pNewIpcMsg->domainNameAssigned && !IS_EMPTY_STRING(pNewIpcMsg->domainName))
     {
