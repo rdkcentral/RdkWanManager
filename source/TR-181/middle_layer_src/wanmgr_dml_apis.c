@@ -190,6 +190,7 @@ LONG WanManager_GetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, ch
 
 	if( AnscEqualString(ParamName, "InterfaceAvailableStatus", TRUE) )
         {
+            Update_Iface_Status();
             if (( sizeof(pWanDmlData->InterfaceAvailableStatus ) - 1 ) < *pulSize )
             {
                 AnscCopyString( pValue, pWanDmlData->InterfaceAvailableStatus );
@@ -199,6 +200,7 @@ LONG WanManager_GetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, ch
 
         else if( AnscEqualString(ParamName, "InterfaceActiveStatus", TRUE) )
         {
+            Update_Iface_Status();
             if ( ( sizeof(pWanDmlData->InterfaceActiveStatus) - 1 ) < *pulSize )
             {
                 AnscCopyString( pValue, pWanDmlData->InterfaceActiveStatus );

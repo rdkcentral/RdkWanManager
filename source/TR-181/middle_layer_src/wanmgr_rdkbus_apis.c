@@ -1420,3 +1420,90 @@ ANSC_STATUS WanController_ClearWanConfigurationsInPSM()
     }
     return ANSC_STATUS_SUCCESS;
 }
+
+void SortedInsert( struct IFACE_INFO** head_ref,  struct IFACE_INFO *new_node)
+{
+    struct IFACE_INFO* current;
+    if (*head_ref == NULL
+            || (*head_ref)->Priority
+            >= new_node->Priority) {
+        new_node->next = *head_ref;
+        *head_ref = new_node;
+    }else
+    {
+        current = *head_ref;
+        while (current->next != NULL
+                && current->next->Priority < new_node->Priority) {
+            current = current->next;
+        }
+        new_node->next = current->next;
+        current->next = new_node;
+    }
+}
+
+void deleteList( struct IFACE_INFO* head)
+{
+    struct IFACE_INFO* next;
+    while(head  != NULL)
+    {
+        next = head->next;
+        free(head);
+        head = next;
+    }
+}
+
+
+ANSC_STATUS Update_Iface_Status()
+{
+    struct IFACE_INFO *head = NULL;
+    int uiLoopCount;
+
+    int TotalIfaces = WanMgr_IfaceData_GetTotalWanIface();
+    for (uiLoopCount = 0; uiLoopCount < TotalIfaces; uiLoopCount++)
+    {
+        WanMgr_Iface_Data_t*   pWanDmlIfaceData = WanMgr_GetIfaceData_locked(uiLoopCount);
+        if(pWanDmlIfaceData != NULL)
+        {
+            DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
+            if(pWanIfaceData->Wan.Enable == TRUE)
+            {
+                struct IFACE_INFO *newIface = malloc(sizeof( struct IFACE_INFO));
+                newIface->next = NULL;
+                newIface->Priority = pWanIfaceData->Wan.Priority;
+                if(pWanIfaceData->Phy.Status == WAN_IFACE_PHY_STATUS_UP)
+                {
+                    snprintf(newIface->AvailableStatus, sizeof(newIface->AvailableStatus), "%s,1|", pWanIfaceData->DisplayName);
+                }else
+                    snprintf(newIface->AvailableStatus, sizeof(newIface->AvailableStatus), "%s,0|", pWanIfaceData->DisplayName);
+
+                if((pWanIfaceData->Wan.ActiveLink == TRUE) && (pWanIfaceData->Wan.Status == WAN_IFACE_STATUS_UP))
+                {
+                    snprintf(newIface->ActiveStatus, sizeof(newIface->ActiveStatus), "%s,1|", pWanIfaceData->DisplayName);
+                }else
+                    snprintf(newIface->ActiveStatus, sizeof(newIface->ActiveStatus), "%s,0|", pWanIfaceData->DisplayName);
+                SortedInsert(&head, newIface);
+
+            }
+            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+        }
+    }
+
+    WanMgr_Config_Data_t*   pWanConfigData = WanMgr_GetConfigData_locked();
+    if (pWanConfigData != NULL)
+    {
+        DML_WANMGR_CONFIG* pWanDmlData = &(pWanConfigData->data);
+        memset(pWanDmlData->InterfaceAvailableStatus,0, sizeof(pWanDmlData->InterfaceAvailableStatus));
+        memset(pWanDmlData->InterfaceActiveStatus,0, sizeof(pWanDmlData->InterfaceActiveStatus));
+        struct IFACE_INFO* current = head;
+        while(current!= NULL)
+        {
+            strcat(pWanDmlData->InterfaceAvailableStatus,current->AvailableStatus);
+            strcat(pWanDmlData->InterfaceActiveStatus,current->ActiveStatus);
+
+            current = current->next;
+        }
+        WanMgrDml_GetConfigData_release(pWanConfigData);
+        deleteList(head);
+    }
+    return ANSC_STATUS_SUCCESS;
+}
