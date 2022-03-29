@@ -40,6 +40,7 @@
 #define WAN_IPV6_DOWN                  "rdkb_ipv6_down"
 #define WAN_MAPT_UP                   "rdkb_mapt_up"
 #define WAN_MAPT_DOWN                 "rdkb_mapt_down"
+#define WAN_ESTABLISH                 "rdkb_wan_establish"
 
 /* The following defines are used for sysevent retrieval. */
 #define SYSEVENT_IPV4_CONNECTION_STATE "ipv4_connection_state"

@@ -1059,9 +1059,11 @@ static eWanState_t wan_transition_wan_validated(WanMgr_IfaceSM_Controller_t* pWa
 
     /* WAN link is just up and validated.
     This is just a link establishment/re-establishment phase and trying to acquire IP from dhcp
-    Untill ip is acquired, show green strobing*/
+    Untill ip is acquired, show white strobing*/
     wanmgr_sysevents_setWanState(WAN_IPV4_DOWN);
     wanmgr_sysevents_setWanState(WAN_IPV6_DOWN);
+    //additional event for wan establishment as this is the first time
+    wanmgr_sysevents_setWanState(WAN_ESTABLISH);
 
     if( pInterface->PPP.Enable == TRUE )
     {
