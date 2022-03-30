@@ -473,6 +473,12 @@ ANSC_STATUS WanManager_StopDhcpv4Client(BOOL sendReleaseAndExit)
             {
                 WanManager_DoStopApp(DHCPV4_CLIENT_NAME);
             }
+            else
+            {
+                /* Collect if any zombie process. */
+                CcspTraceInfo(("%s %d:Sent SIGUSR2 to dhcpv4 client, so collect it\n", __FUNCTION__, __LINE__));
+                WanManager_DoCollectApp(DHCPV4_CLIENT_NAME);
+            }
         }
     }
 
