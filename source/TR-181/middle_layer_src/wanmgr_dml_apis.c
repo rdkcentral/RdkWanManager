@@ -132,32 +132,34 @@ BOOL WanManager_SetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, ch
     BOOL ret = FALSE;
     WanMgr_Config_Data_t*   pWanConfigData = WanMgr_GetConfigData_locked();
 
-    if(!pWanConfigData)
+    if(pWanConfigData =! NULL)
     {
-        CcspTraceError(("%s: Failed to get wan config structure..\n",__FUNCTION__));
-    }
-    else if( AnscEqualString(ParamName, "Data", TRUE) )
-    {
-        char *webConf = NULL;
-        int webSize = 0;
+        DML_WANMGR_CONFIG* pWanDmlData = &(pWanConfigData->data);
 
-        webConf = AnscBase64Decode(pString, &webSize);
-        if(!webConf)
+        if( AnscEqualString(ParamName, "Data", TRUE) )
         {
-            CcspTraceError(("%s: Failed to decode webconfig blob..\n",__FUNCTION__));
-            WanMgrDml_GetConfigData_release(pWanConfigData);
-            return ret;
+            char *webConf = NULL;
+            int webSize = 0;
+
+            webConf = AnscBase64Decode(pString, &webSize);
+            if(!webConf)
+            {
+                CcspTraceError(("%s: Failed to decode webconfig blob..\n",__FUNCTION__));
+                WanMgrDml_GetConfigData_release(pWanConfigData);
+                return ret;
+            }
+            if ( ANSC_STATUS_SUCCESS == WanMgrDmlWanDataSet(webConf,webSize) )
+            {
+                CcspTraceInfo(("%s Success in parsing web config blob..\n",__FUNCTION__));
+                ret = TRUE;
+            }
+            else
+            {
+                CcspTraceError(("%s Failed to parse webconfig blob..\n",__FUNCTION__));
+            }
+            AnscFreeMemory(webConf);
         }
-        if ( ANSC_STATUS_SUCCESS == WanMgrDmlWanDataSet(webConf,webSize) )
-        {
-            CcspTraceInfo(("%s Success in parsing web config blob..\n",__FUNCTION__));
-            ret = TRUE;
-        }
-        else
-        {
-            CcspTraceError(("%s Failed to parse webconfig blob..\n",__FUNCTION__));
-        }
-        AnscFreeMemory(webConf);
+
         WanMgrDml_GetConfigData_release(pWanConfigData);
     }
 
@@ -166,14 +168,42 @@ BOOL WanManager_SetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, ch
 
 LONG WanManager_GetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, char* pValue, ULONG* pulSize)
 {
-    if( AnscEqualString(ParamName, "Data", TRUE) )
-    {
-        /* Data value should be empty for all get */
-        snprintf(pValue, pulSize, "%s", "");
-        return 0;
-    }
+     LONG ret = -1;
+     WanMgr_Config_Data_t*   pWanConfigData = WanMgr_GetConfigData_locked();
 
-    return -1;
+     if (pWanConfigData != NULL)
+     {
+        DML_WANMGR_CONFIG* pWanDmlData = &(pWanConfigData->data);
+
+        if( AnscEqualString(ParamName, "Data", TRUE) )
+        {
+            /* Data value should be empty for all get */
+            snprintf(pValue, pulSize, "%s", "");
+            return 0;
+        }
+
+        if( AnscEqualString(ParamName, "InterfaceAvailableStatus", TRUE) )
+        {
+            if (( sizeof(pWanDmlData->InterfaceAvailableStatus ) - 1 ) < *pulSize )
+            {
+                AnscCopyString( pValue, pWanDmlData->InterfaceAvailableStatus );
+                ret = 0;
+            }
+        }
+
+        else if( AnscEqualString(ParamName, "InterfaceActiveStatus", TRUE) )
+        {
+            if ( ( sizeof(pWanDmlData->InterfaceActiveStatus) - 1 ) < *pulSize )
+            {
+                AnscCopyString( pValue, pWanDmlData->InterfaceActiveStatus );
+                ret = 0;
+            }
+        }
+
+        WanMgrDml_GetConfigData_release(pWanConfigData);
+     }
+
+     return ret;
 }
 
 BOOL WanManager_SetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL bValue)
