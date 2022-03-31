@@ -150,6 +150,26 @@ ANSC_STATUS WanMgr_RdkBus_setWanEnableToPsm(BOOL WanEnable)
     return result;
 }
 
+ANSC_STATUS WanMgr_RdkBus_setAllowRemoteIfaceToPsm(BOOL Enable)
+{
+    int result = ANSC_STATUS_SUCCESS;
+    int retPsmSet = CCSP_SUCCESS;
+    char param_name[BUFLEN_256] = {0};
+    char param_value[BUFLEN_256] = {0};
+
+    /* Update the AllowRemoteIface information in PSM */
+    snprintf(param_value, sizeof(param_value), "%d", Enable);
+    _ansc_sprintf(param_name, PSM_WANMANAGER_ALLOW_REMOTE_IFACE);
+
+    retPsmSet = WanMgr_RdkBus_SetParamValuesToDB(param_name, param_value);
+    if (retPsmSet != CCSP_SUCCESS) {
+        AnscTraceError(("%s Error %d writing %s %s\n", __FUNCTION__, retPsmSet, param_name, param_value));
+        result = ANSC_STATUS_FAILURE;
+    }
+
+    return result;
+}
+
 static void checkComponentHealthStatus(char * compName, char * dbusPath, char *status, int *retStatus)
 {
     int ret = 0, val_size = 0;

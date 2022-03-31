@@ -58,7 +58,7 @@ static WcFmPolicyState_t Transition_FixedInterfaceChanged(WanMgr_Policy_Controll
 /*********************************************************************************/
 /**************************** ACTIONS ********************************************/
 /*********************************************************************************/
-static INT WanMgr_Policy_FM_SelectWANActive(void)
+static INT WanMgr_Policy_FM_SelectWANActive(WanMgr_Policy_Controller_t* pWanController)
 {
     UINT uiLoopCount;
     INT iActiveWanIdx = -1;
@@ -79,6 +79,11 @@ static INT WanMgr_Policy_FM_SelectWANActive(void)
                 DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
                 if (pWanIfaceData->Wan.Enable == TRUE)
                 {
+                        if((pWanController->AllowRemoteInterfaces == FALSE) && (pWanIfaceData->Wan.IfaceType == REMOTE_IFACE))
+                        {
+                            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+                            continue;
+                        }
                     if((pWanIfaceData->Wan.Priority >= 0) && (pWanIfaceData->Wan.Priority < iActivePriority))
                     {
                         iActiveWanIdx = uiLoopCount;
@@ -198,7 +203,7 @@ static WcFmPolicyState_t State_FixingWanInterface(WanMgr_Policy_Controller_t* pW
         return STATE_FIXED_WAN_SM_EXIT;
     }
 
-    pWanController->activeInterfaceIdx = WanMgr_Policy_FM_SelectWANActive();
+    pWanController->activeInterfaceIdx = WanMgr_Policy_FM_SelectWANActive(pWanController);
 
 
     if(pWanController->activeInterfaceIdx != -1)
@@ -245,7 +250,7 @@ static WcFmPolicyState_t State_FixedWanInterfaceDown(WanMgr_Policy_Controller_t*
     }
 
     /* Wan.Priority of the Fixed Interface is no longer the highest of all Primary interfaces */
-    iSelectWanIdx = WanMgr_Policy_FM_SelectWANActive();
+    iSelectWanIdx = WanMgr_Policy_FM_SelectWANActive(pWanController);
 
     if(iSelectWanIdx != pWanController->activeInterfaceIdx)
     {
@@ -281,7 +286,7 @@ static WcFmPolicyState_t State_FixedWanInterfaceUp(WanMgr_Policy_Controller_t* p
     }
 
     /* Wan.Priority of the Fixed Interface is no longer the highest of all Primary interfaces */
-    iSelectWanIdx = WanMgr_Policy_FM_SelectWANActive();
+    iSelectWanIdx = WanMgr_Policy_FM_SelectWANActive(pWanController);
 
     if(iSelectWanIdx != pWanController->activeInterfaceIdx)
     {
@@ -368,6 +373,7 @@ ANSC_STATUS WanMgr_Policy_FixedModePolicy(void)
         {
             WanPolicyCtrl.WanEnable = pWanConfigData->data.Enable;
             WanPolicyCtrl.PolicyChanged = pWanConfigData->data.PolicyChanged;
+            WanPolicyCtrl.AllowRemoteInterfaces = pWanConfigData->data.AllowRemoteInterfaces;
 
             WanMgrDml_GetConfigData_release(pWanConfigData);
         }

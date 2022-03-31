@@ -92,6 +92,11 @@ static void WanMgr_Policy_FM_SelectWANActive(WanMgr_Policy_Controller_t* pWanCon
                         (pWanIfaceData->Phy.Status == WAN_IFACE_PHY_STATUS_UP ||
                         pWanIfaceData->Phy.Status == WAN_IFACE_PHY_STATUS_INITIALIZING))
                     {
+                        if((pWanController->AllowRemoteInterfaces == FALSE) && (pWanIfaceData->Wan.IfaceType == REMOTE_IFACE))
+                        {
+                            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+                            continue;
+                        }
                         // pWanIfaceData - is Wan-Enabled & has valid Priority & Phy status
                         if(pWanIfaceData->Wan.Priority < iSelPrimaryPriority) 
                         {
@@ -744,6 +749,7 @@ ANSC_STATUS WanMgr_Policy_PrimaryPriorityPolicy(void)
         {
             WanPolicyCtrl.WanEnable = pWanConfigData->data.Enable;
             WanPolicyCtrl.PolicyChanged = pWanConfigData->data.PolicyChanged;
+            WanPolicyCtrl.AllowRemoteInterfaces = pWanConfigData->data.AllowRemoteInterfaces;
 
             WanMgrDml_GetConfigData_release(pWanConfigData);
         }

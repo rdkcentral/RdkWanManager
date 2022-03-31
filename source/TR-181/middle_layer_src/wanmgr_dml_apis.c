@@ -258,6 +258,7 @@ BOOL WanManager_SetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL
         if(AnscEqualString(ParamName, "AllowRemoteInterfaces", TRUE))
         {
             pWanDmlData->AllowRemoteInterfaces = bValue;
+            WanMgr_RdkBus_setAllowRemoteIfaceToPsm(bValue);
             ret = TRUE;
         }
 

@@ -177,6 +177,11 @@ static void WanMgr_Policy_Auto_GetHighPriorityIface(WanMgr_Policy_Controller_t *
                     (pWanIfaceData->Wan.Priority >= 0) &&
                     (pWanIfaceData->Wan.Status == WAN_IFACE_STATUS_DISABLED))
             {
+                if((pWanController->AllowRemoteInterfaces == FALSE) && (pWanIfaceData->Wan.IfaceType == REMOTE_IFACE))
+                {
+                    WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+                    continue;
+                }
                 // pWanIfaceData - is Wan-Enabled & has valid Priority
                 if(pWanIfaceData->Wan.Priority < iSelPriority)
                 {
@@ -218,6 +223,7 @@ static void WanMgr_UpdateControllerData (WanMgr_Policy_Controller_t* pWanControl
     {
         pWanController->WanEnable = pWanConfigData->data.Enable;
         pWanController->PolicyChanged = pWanConfigData->data.PolicyChanged;
+        pWanController->AllowRemoteInterfaces = pWanConfigData->data.AllowRemoteInterfaces;
 
         WanMgrDml_GetConfigData_release(pWanConfigData);
     }

@@ -57,7 +57,7 @@ static WcFmobPolicyState_t Transition_FixedInterfaceDown(WanMgr_Policy_Controlle
 /*********************************************************************************/
 /**************************** ACTIONS ********************************************/
 /*********************************************************************************/
-static INT WanMgr_Policy_FM_SelectWANActive(void)
+static INT WanMgr_Policy_FM_SelectWANActive(WanMgr_Policy_Controller_t* pWanController)
 {
     UINT uiLoopCount;
     INT iActiveWanIdx = -1;
@@ -77,6 +77,11 @@ static INT WanMgr_Policy_FM_SelectWANActive(void)
                 DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
                 if (pWanIfaceData->Wan.Enable == TRUE)
                 {
+                    if((pWanController->AllowRemoteInterfaces == FALSE) && (pWanIfaceData->Wan.IfaceType == REMOTE_IFACE))
+                        {
+                            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+                            continue;
+                        }
                     if((pWanIfaceData->Wan.Priority >= 0) && (pWanIfaceData->Wan.Priority < iActivePriority))
                     {
                         iActiveWanIdx = uiLoopCount;
@@ -170,7 +175,7 @@ static WcFmobPolicyState_t State_FixingWanInterface(WanMgr_Policy_Controller_t* 
         return STATE_FIXED_WAN_SM_EXIT;
     }
 
-    pWanController->activeInterfaceIdx = WanMgr_Policy_FM_SelectWANActive();
+    pWanController->activeInterfaceIdx = WanMgr_Policy_FM_SelectWANActive(pWanController);
     if(pWanController->activeInterfaceIdx != -1)
     {
         return Transition_WanInterfaceFixed(pWanController);
@@ -313,6 +318,7 @@ ANSC_STATUS WanMgr_Policy_FixedModeOnBootupPolicy(void)
         {
             WanPolicyCtrl.WanEnable = pWanConfigData->data.Enable;
             WanPolicyCtrl.PolicyChanged = pWanConfigData->data.PolicyChanged;
+            WanPolicyCtrl.AllowRemoteInterfaces = pWanConfigData->data.AllowRemoteInterfaces;
             WanMgrDml_GetConfigData_release(pWanConfigData);
         }
 

@@ -115,6 +115,7 @@ int WanMgr_RdkBus_SetParamValuesToDB( char *pParamName, char *pParamVal );
 ANSC_STATUS WanMgr_RdkBus_getWanPolicy(DML_WAN_POLICY *wan_policy);
 ANSC_STATUS WanMgr_RdkBus_setWanPolicy(DML_WAN_POLICY wan_policy);
 ANSC_STATUS WanMgr_RdkBus_setWanEnableToPsm(BOOL WanEnable);
+ANSC_STATUS WanMgr_RdkBus_setAllowRemoteIfaceToPsm(BOOL Enable);
 ANSC_STATUS WanMgr_RdkBus_updateInterfaceUpstreamFlag(char *phyPath, BOOL flag);
 void* WanMgr_RdkBus_WanIfRefreshThread( void *arg );
 

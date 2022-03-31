@@ -1242,6 +1242,7 @@ static ANSC_STATUS WanMgr_WanConfInit (DML_WANMGR_CONFIG* pWanConfig)
 {
     unsigned int wan_enable;
     unsigned int wan_policy;
+    unsigned int wan_allow_remote_iface = 0;
     unsigned int wan_idle_timeout;
     int ret_val = ANSC_STATUS_SUCCESS;
     int retPsmGet = CCSP_SUCCESS;
@@ -1269,6 +1270,15 @@ static ANSC_STATUS WanMgr_WanConfInit (DML_WANMGR_CONFIG* pWanConfig)
         ret_val = ANSC_STATUS_FAILURE;
 
     pWanConfig->Policy = wan_policy;
+
+    memset(param_name, 0, sizeof(param_name));
+    memset(param_value, 0, sizeof(param_value));
+    _ansc_sprintf(param_name, PSM_WANMANAGER_ALLOW_REMOTE_IFACE);
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
+    if (retPsmGet == CCSP_SUCCESS && param_value[0] != '\0')
+        wan_allow_remote_iface = atoi(param_value);
+
+    pWanConfig->AllowRemoteInterfaces = wan_allow_remote_iface;
 
     return ret_val;
 }
