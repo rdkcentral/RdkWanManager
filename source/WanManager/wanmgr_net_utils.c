@@ -1824,6 +1824,9 @@ static void* DmlHandlePPPCreateRequestThread( void *arg )
     }
 
     CcspTraceInfo(("%s %d PPP Interface Instance:%d\n",__FUNCTION__, __LINE__, iPPPInstance));
+    snprintf( acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s%d.", PPP_INTERFACE_TABLE, iPPPInstance);
+    CcspTraceInfo(("%s %d Set ppp path to %s \n", __FUNCTION__,__LINE__ ,acSetParamValue ));
+    strncpy(pInterface->PPP.Path, acSetParamValue,sizeof(pInterface->PPP.Path)-1);
 
     //Set Lower Layer
     snprintf( acSetParamName, DATAMODEL_PARAM_LENGTH, PPP_INTERFACE_LOWERLAYERS, iPPPInstance );
@@ -1902,9 +1905,6 @@ static void* DmlHandlePPPCreateRequestThread( void *arg )
     }
     WanMgr_RdkBus_SetParamValues( PPPMGR_COMPONENT_NAME, PPPMGR_DBUS_PATH, acSetParamName, acSetParamValue, ccsp_boolean, TRUE );
 
-    snprintf( acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s%d.", PPP_INTERFACE_TABLE, iPPPInstance);
-    CcspTraceInfo(("%s %d Set ppp path to %s \n", __FUNCTION__,__LINE__ ,acSetParamValue ));
-    strncpy(pInterface->PPP.Path, acSetParamValue,sizeof(pInterface->PPP.Path)-1);
 
     CcspTraceInfo(("%s %d Successfully created PPP %s interface \n", __FUNCTION__,__LINE__, pInterface->Wan.Name ));
 
@@ -1957,12 +1957,6 @@ ANSC_STATUS WanManager_DeletePPPSession(DML_WAN_IFACE* pInterface)
     CcspTraceInfo(("%s %d Successfully deleted PPP interface \n", __FUNCTION__,__LINE__ ));
 
     sleep(2);
-
-    //clear PPP data
-    pInterface->PPP.IPCPStatus = WAN_IFACE_IPCP_STATUS_DOWN;
-    pInterface->PPP.IPV6CPStatus = WAN_IFACE_IPV6CP_STATUS_DOWN;
-    pInterface->PPP.LCPStatus = WAN_IFACE_LCP_STATUS_DOWN;
-    pInterface->PPP.LinkStatus = WAN_IFACE_PPP_LINK_STATUS_DOWN;
 
     /* Create a dummy wan bridge */
     if (syscfg_set(NULL, SYSCFG_WAN_INTERFACE_NAME, DEFAULT_IFNAME) != 0)
