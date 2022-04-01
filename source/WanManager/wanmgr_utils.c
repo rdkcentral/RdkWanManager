@@ -731,12 +731,12 @@ int WanManager_DoRestartApp(const char *appName, const char *cmdLineArgs)
 
 void WanManager_DoCollectApp(const char *appName)
 {
-    int pid;
+    int pid = 0;
 
-    pid = util_getPidByName(appName);
+    pid = util_getZombiePidByName(appName);
     if (pid > 0)
     {
-        CcspTraceInfo(("Stopping %s zombie pid:%d\n", appName, pid));
+        CcspTraceInfo(("%s [%d]: Stopping %s zombie pid:%d\n", __FUNCTION__, __LINE__, appName, pid));
         CollectApp(pid);
     }
 }
@@ -848,4 +848,80 @@ uint32_t WanManager_getUpTime()
     struct sysinfo info;
     sysinfo( &info );
     return( info.uptime );
+}
+
+/*
+ * util_getZombiePidByName  ()
+ * @description: check the contents of /proc directory to match the process name
+ * @params     : name - process name
+ * @return     : returns the Zombie pid if proc entry exists
+ */
+int util_getZombiePidByName (char * name)
+{
+    if (name == NULL)
+    {
+        CcspTraceInfo(("%s %d: Invalid args\n", __FUNCTION__, __LINE__));
+        return 0;
+    }
+
+    DIR *dir;
+    FILE *fp;
+    struct dirent *dent;
+    bool found=false;
+    int pid, rc, p, i;
+    int rval = 0;
+    char processName[BUFLEN_256];
+    char filename[BUFLEN_256];
+    char status = 0;
+
+    if (NULL == (dir = opendir("/proc")))
+    {
+        CcspTraceInfo(("%s %d:could not open /proc\n", __FUNCTION__, __LINE__));
+        return 0;
+    }
+
+    while (!found && (dent = readdir(dir)) != NULL)
+    {
+        if ((dent->d_type == DT_DIR) &&
+                (RETURN_OK == strtol64(dent->d_name, NULL, 10, (int64_t*)&pid)))
+        {
+            snprintf(filename, sizeof(filename), "/proc/%d/stat", pid);
+            if ((fp = fopen(filename, "r")) == NULL)
+            {
+                CcspTraceInfo(("%s %d:could not open %s\n", __FUNCTION__, __LINE__, filename));
+            }
+            else
+            {
+                memset(processName, 0, sizeof(processName));
+                status = 0;
+                rc = fscanf(fp, "%d (%255s %c ", &p, processName, &status);
+                fclose(fp);
+
+                if (rc >= 2)
+                {
+                    i = strlen(processName);
+                    if (i > 0)
+                    {
+                        if (processName[i-1] == ')')
+                            processName[i-1] = 0;
+                    }
+                }
+
+                if (!strcmp(processName, name))
+                {
+	            if (status == 'Z')
+                    {
+                        rval = pid;
+                        found = true;
+                        CcspTraceInfo(("%s %d: processName=[%s], %s running in %c mode\n", __FUNCTION__, __LINE__, processName, filename, status));
+                    }
+                }
+            }
+        }
+    }
+
+    closedir(dir);
+
+    return rval;
+
 }

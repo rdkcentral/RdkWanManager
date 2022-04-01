@@ -1281,10 +1281,13 @@ static eWanState_t wan_transition_ipv4_down(WanMgr_IfaceSM_Controller_t* pWanIfa
     {
         /* Collect if any zombie process. */
         WanManager_DoCollectApp(DHCPV4_CLIENT_NAME);
-        if (WanManager_IsApplicationRunning(DHCPV4_CLIENT_NAME) != TRUE)
+
+        // start DHCPv4 client if it is not running, MAP-T not configured and PPP Disable scenario.
+        if ((WanManager_IsApplicationRunning(DHCPV4_CLIENT_NAME) != TRUE) && (pInterface->PPP.Enable == FALSE) &&
+            (!(pInterface->Wan.EnableMAPT == TRUE && pInterface->Wan.ActiveLink == TRUE && pInterface->MAP.MaptStatus == WAN_IFACE_MAPT_STATE_UP)))
         {
             pInterface->IP.Dhcp4cPid = WanManager_StartDhcpv4Client(pInterface->Wan.Name);
-            CcspTraceInfo(("%s %d - Started dhcpc on interface %s, dhcpv4_pid %d \n", __FUNCTION__, __LINE__, pInterface->Wan.Name, pInterface->IP.Dhcp4cPid));
+            CcspTraceInfo(("%s %d - SELFHEAL - Started dhcpc on interface %s, dhcpv4_pid %d \n", __FUNCTION__, __LINE__, pInterface->Wan.Name, pInterface->IP.Dhcp4cPid));
         }
     }
     WanManager_UpdateInterfaceStatus (pInterface, WANMGR_IFACE_CONNECTION_DOWN);
@@ -1402,12 +1405,13 @@ static eWanState_t wan_transition_ipv6_down(WanMgr_IfaceSM_Controller_t* pWanIfa
     {
         /* Collect if any zombie process. */
         WanManager_DoCollectApp(DHCPV6_CLIENT_NAME);
+
         if (WanManager_IsApplicationRunning(DHCPV6_CLIENT_NAME) != TRUE)
         {
             /* Start DHCPv6 Client */
             CcspTraceInfo(("%s %d - Starting dibbler-client on interface %s \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
             pInterface->IP.Dhcp6cPid = WanManager_StartDhcpv6Client(pInterface->Wan.Name);
-            CcspTraceInfo(("%s %d - Started dibbler-client on interface %s, dhcpv6_pid %d \n", __FUNCTION__, __LINE__, pInterface->Wan.Name, pInterface->IP.Dhcp6cPid));
+            CcspTraceInfo(("%s %d - SELFHEAL - Started dibbler-client on interface %s, dhcpv6_pid %d \n", __FUNCTION__, __LINE__, pInterface->Wan.Name, pInterface->IP.Dhcp6cPid));
         }
     }
 

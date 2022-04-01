@@ -151,5 +151,6 @@ int util_getPidByName(const char *name);
 int util_getNameByPid(int pid, char *nameBuf, int nameBufLen);
 int util_collectProcess(int pid, int timeout);
 int util_runCommandInShellBlocking(char *command);
+int util_getZombiePidByName(char * name);
 
 #endif /* _WANMGR_UTILS_H_ */
