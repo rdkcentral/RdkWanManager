@@ -1202,8 +1202,6 @@ static eWanState_t wan_transition_ipv4_up(WanMgr_IfaceSM_Controller_t* pWanIface
     /* successfully got the v4 lease from the interface, so lets mark it validated */
     pInterface->Wan.Status = WAN_IFACE_STATUS_UP;
 
-    if(pInterface->Wan.ActiveLink == TRUE )
-    {
         /* Configure IPv4. */
         ret = wan_setUpIPv4(pInterface);
         if (ret != RETURN_OK)
@@ -1222,7 +1220,6 @@ static eWanState_t wan_transition_ipv4_up(WanMgr_IfaceSM_Controller_t* pWanIface
         }
 #endif
         wanmgr_sysevents_setWanState(WAN_IPV4_UP);
-    }
 
     /* Force reset ipv4 state global flag. */
     pInterface->IP.Ipv4Changed = FALSE;
@@ -1280,8 +1277,6 @@ static eWanState_t wan_transition_ipv4_down(WanMgr_IfaceSM_Controller_t* pWanIfa
         CcspTraceError(("%s %d - Failed to tear down IPv4 for %s \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
     }
 
-    if (pInterface->Wan.ActiveLink == TRUE)
-    {
 #ifdef FEATURE_IPOE_HEALTH_CHECK
         if (pInterface->PPP.Enable == FALSE)
         {
@@ -1293,7 +1288,6 @@ static eWanState_t wan_transition_ipv4_down(WanMgr_IfaceSM_Controller_t* pWanIfa
         }
 #endif
         wanmgr_sysevents_setWanState(WAN_IPV4_DOWN);
-    }
 
     sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_IPV6_CONNECTION_STATE, buf, sizeof(buf));
 
@@ -1327,8 +1321,6 @@ static eWanState_t wan_transition_ipv6_up(WanMgr_IfaceSM_Controller_t* pWanIface
     /* successfully got the v6 lease from the interface, so lets mark it validated */
     pInterface->Wan.Status = WAN_IFACE_STATUS_UP;
 
-    if(pInterface->Wan.ActiveLink == TRUE )
-    {
         /* Configure IPv6. */
         ret = wan_setUpIPv6(pInterface);
         if (ret != RETURN_OK)
@@ -1346,7 +1338,6 @@ static eWanState_t wan_transition_ipv6_up(WanMgr_IfaceSM_Controller_t* pWanIface
         }
 #endif
         wanmgr_sysevents_setWanState(WAN_IPV6_UP);
-    }
 
     sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_WAN_SERVICE_STATUS, buf, sizeof(buf));
     if (strcmp(buf, WAN_STATUS_STARTED))
@@ -1398,8 +1389,6 @@ static eWanState_t wan_transition_ipv6_down(WanMgr_IfaceSM_Controller_t* pWanIfa
         CcspTraceError(("%s %d - Failed to tear down IPv6 for %s \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
     }
 
-    if(pInterface->Wan.ActiveLink == TRUE)
-    {
 #ifdef FEATURE_IPOE_HEALTH_CHECK
         if ( pInterface->PPP.Enable == FALSE )
         {
@@ -1411,7 +1400,6 @@ static eWanState_t wan_transition_ipv6_down(WanMgr_IfaceSM_Controller_t* pWanIfa
         }
 #endif
         wanmgr_sysevents_setWanState(WAN_IPV6_DOWN);
-    }
 
     sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_IPV4_CONNECTION_STATE, buf, sizeof(buf));
 
