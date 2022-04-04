@@ -562,7 +562,6 @@ BOOL WanIfCfg_SetParamIntValue(ANSC_HANDLE hInsContext, char* ParamName, int iVa
     UINT uiTotalIfaces = -1;
     INT  IfIndex = 0;
     BOOL Status = FALSE;
-    DML_WAN_IFACE_TYPE priorityType = WAN_IFACE_TYPE_UNCONFIGURED;
 
     WanMgr_Iface_Data_t* pIfaceDmlEntry = (WanMgr_Iface_Data_t*) hInsContext;
     if(pIfaceDmlEntry != NULL)
@@ -572,7 +571,6 @@ BOOL WanIfCfg_SetParamIntValue(ANSC_HANDLE hInsContext, char* ParamName, int iVa
         {
             DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
             IfIndex =  pWanDmlIface->uiIfaceIdx;
-            priorityType = pWanDmlIface->Wan.Type;
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
 
             /* check the parameter name and set the corresponding value */
@@ -580,7 +578,7 @@ BOOL WanIfCfg_SetParamIntValue(ANSC_HANDLE hInsContext, char* ParamName, int iVa
             {
                 uiTotalIfaces = WanIf_GetEntryCount(NULL);
 
-                if ( WanManager_CheckGivenPriorityExists(IfIndex, uiTotalIfaces, iValue, priorityType, &Status) == ANSC_STATUS_SUCCESS )
+                if ( WanManager_CheckGivenPriorityExists(IfIndex, uiTotalIfaces, iValue, &Status) == ANSC_STATUS_SUCCESS )
                 {
                     if(Status)
                     {

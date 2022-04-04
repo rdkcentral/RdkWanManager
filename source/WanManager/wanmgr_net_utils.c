@@ -2115,12 +2115,13 @@ static void deleteDummyWanBridgeIfExist(char * iface_name)
     return;
 }
 
-ANSC_STATUS WanManager_CheckGivenPriorityExists(INT IfIndex, UINT uiTotalIfaces, INT priority, DML_WAN_IFACE_TYPE priorityType, BOOL *Status)
+ANSC_STATUS WanManager_CheckGivenPriorityExists(INT IfIndex, UINT uiTotalIfaces, INT priority, BOOL *Status)
 {
     ANSC_STATUS             retStatus    = ANSC_STATUS_SUCCESS;
     INT                     uiLoopCount   = 0;
     INT                     wan_if_count = 0;
 
+    *Status = FALSE;
     if ( uiTotalIfaces <= 0 )
     {
         CcspTraceError(("%s Invalid Parameter\n", __FUNCTION__ ));
@@ -2140,12 +2141,9 @@ ANSC_STATUS WanManager_CheckGivenPriorityExists(INT IfIndex, UINT uiTotalIfaces,
             }
             if(pWanIfaceData->Wan.Priority == priority)
             {
-                if ( pWanIfaceData->Wan.Type == priorityType)
-                {
-                    *Status = TRUE;
-                    WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
-                    return retStatus;
-                }
+                *Status = TRUE;
+                WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+                return retStatus;
             }
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
         }
