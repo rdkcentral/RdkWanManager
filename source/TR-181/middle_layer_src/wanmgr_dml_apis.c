@@ -121,6 +121,12 @@ WanManager_GetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL* pBo
             ret = TRUE;
         }
 
+        if(AnscEqualString(ParamName, "ResetDefaultConfig", TRUE))
+        {
+            *pBool= FALSE;
+            ret = TRUE;
+        }
+
         WanMgrDml_GetConfigData_release(pWanConfigData);
     }
 
@@ -232,6 +238,17 @@ BOOL WanManager_SetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL
         if(AnscEqualString(ParamName, "AllowRemoteInterfaces", TRUE))
         {
             pWanDmlData->AllowRemoteInterfaces = bValue;
+            ret = TRUE;
+        }
+
+        if(AnscEqualString(ParamName, "ResetDefaultConfig", TRUE))
+        {
+            if(bValue == TRUE)
+            {
+                system("rm -f /nvram/.wanmanager_upgrade");
+                system("sed -i '/dmsb.wanmanager./d' /nvram/bbhm_bak_cfg.xml");
+            }
+
             ret = TRUE;
         }
 

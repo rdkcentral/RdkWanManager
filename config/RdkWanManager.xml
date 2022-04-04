@@ -84,6 +84,12 @@
                     <syntax>string</syntax>
                     <writable>false</writable>
                 </parameter>
+                <parameter>
+                    <name>ResetDefaultConfig</name>
+                    <type>boolean</type>
+                    <syntax>bool</syntax>
+                    <writable>true</writable>
+                </parameter>
            </parameters>
             <objects>
                 <object>
