@@ -35,7 +35,8 @@
 
 
 #define LOOP_TIMEOUT 50000 // timeout in milliseconds. This is the state machine loop interval
-
+#define RESOLV_CONF_FILE "/etc/resolv.conf"
+#define LOOPBACK "127.0.0.1"
 #ifdef FEATURE_IPOE_HEALTH_CHECK
 #define IPOE_HEALTH_CHECK_V4_STATUS "ipoe_health_check_ipv4_status"
 #define IPOE_HEALTH_CHECK_V6_STATUS "ipoe_health_check_ipv6_status"
@@ -82,50 +83,54 @@ extern int mapt_feature_enable_changed;
 #endif //FEATURE_MAPT
 static eWanState_t wan_transition_exit(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
 
+/***************************************************************************
+ * @brief API used to check the incoming nameserver is valid
+ * @param af indicates ip address family
+ * @param nameserver dns namserver name
+ * @return RETURN_OK if execution successful else returned error.
+ ****************************************************************************/
+int IsValidDnsServer(int32_t af, const char *nameServer);
+
 /********************************************************************************
  * @brief Configure IPV4 configuration on the interface.
  * This API calls the HAL routine to configure ipv4.
- * @param ifname Wan interface name
- * @param wanData pointer to WanData_t holds the wan data
+ * @param pWanIfaceCtrl Interface state machine data - iface and config wan data
  * @return RETURN_OK upon success else returned error code.
  *********************************************************************************/
-static int wan_setUpIPv4(DML_DEVICE_MODE DeviceMode, DML_WAN_IFACE* pInterface);
+static int wan_setUpIPv4(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl);
 
 /********************************************************************************
  * @brief Unconfig IPV4 configuration on the interface.
  * This API calls the HAL routine to unconfig ipv4.
- * @param ifname Wan interface name
- * @param wanData pointer to WanData_t holds the wan data
+ * @param pWanIfaceCtrl Interface state machine data - iface and config wan data
  * @return RETURN_OK upon success else returned error code.
  *********************************************************************************/
-static int wan_tearDownIPv4(DML_DEVICE_MODE DeviceMode, DML_WAN_IFACE* pInterface);
+static int wan_tearDownIPv4(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl);
 
 /*************************************************************************************
  * @brief Configure IPV6 configuration on the interface.
  * This API calls the HAL routine to config ipv6.
- * @param ifname Wan interface name
- * @param wanData pointer to WanData_t holds the wan data
+ * @param pWanIfaceCtrl Interface state machine data - iface and config wan data
  * @return  RETURN_OK upon success else returned error code.
  **************************************************************************************/
-static int wan_setUpIPv6(DML_DEVICE_MODE DeviceMode, DML_WAN_IFACE* pInterface);
+static int wan_setUpIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl);
 
 /*************************************************************************************
  * @brief Unconfig IPV6 configuration on the interface.
  * This API calls the HAL routine to unconfig ipv6.
- * @param ifname Wan interface name
- * @param wanData pointer to WanData_t holds the wan data
+ * @param pWanIfaceCtrl Interface state machine data - iface and config wan data
  * @return RETURN_OK upon success else returned error code.
  **************************************************************************************/
-static int wan_tearDownIPv6(DML_DEVICE_MODE DeviceMode, DML_WAN_IFACE* pInterface);
+static int wan_tearDownIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl);
 
 /**************************************************************************************
  * @brief Update DNS configuration into /etc/resolv.conf
- * @param wanIfname wan interface name
+ * @param pWanIfaceCtrl Interface state machine data - iface and config wan data
  * @param addIPv4 boolean flag indicates whether IPv4 DNS data needs to be update
  * @param addIPv6 boolean flag indicates whether IPv6 DNS data needs to be update
  * @return RETURN_OK upon success else ERROR code returned
  **************************************************************************************/
-int wan_updateDNS(DML_WAN_IFACE* pInterface, BOOL addIPv4, BOOL addIPv6);
+int wan_updateDNS(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl, BOOL addIPv4, BOOL addIPv6);
 
 /**************************************************************************************
  * @brief Clear the DHCP client data stored.
@@ -389,6 +394,152 @@ static ANSC_STATUS WanMgr_Send_InterfaceRefresh(DML_WAN_IFACE* pInterface)
     return ANSC_STATUS_SUCCESS;
 }
 
+int wan_updateDNS(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl, BOOL addIPv4, BOOL addIPv6)
+{
+
+    if ((pWanIfaceCtrl == NULL) || (pWanIfaceCtrl->pIfaceData == NULL))
+    {
+        CcspTraceError(("%s %d - Invalid args \n", __FUNCTION__, __LINE__));
+        return RETURN_ERR;
+    }
+
+    DML_DEVICE_MODE deviceMode = pWanIfaceCtrl->DeviceMode;
+    DML_WAN_IFACE * pInterface = pWanIfaceCtrl->pIfaceData;
+
+    bool valid_dns = FALSE;
+    int ret = RETURN_OK;
+    FILE *fp = NULL;
+    char syseventParam[BUFLEN_128]={0};
+
+    if (deviceMode == GATEWAY_MODE)
+    {
+        if((fp = fopen(RESOLV_CONF_FILE, "w+")) == NULL)
+        {
+            CcspTraceError(("%s %d - Open %s error!\n", __FUNCTION__, __LINE__, RESOLV_CONF_FILE));
+            return RETURN_ERR;
+        }
+    }
+    else if (deviceMode == MODEM_MODE)
+    {
+        // DNS nameserves should not be configured in MODEM mode
+        remove(RESOLV_CONF_FILE);
+    }
+
+    if (addIPv4)
+    {
+        snprintf(syseventParam, sizeof(syseventParam), SYSEVENT_IPV4_WANIFNAME_DNS_PRIMARY, pInterface->Wan.Name);
+
+        // v4 DNS1
+        if(IsValidDnsServer(AF_INET, pInterface->IP.Ipv4Data.dnsServer) == RETURN_OK)
+        {
+            // v4 DNS1 is a valid
+            if (fp != NULL)
+            {
+                // GATEWAY Mode
+                CcspTraceInfo(("%s %d: adding nameserver %s >> %s\n", __FUNCTION__, __LINE__, pInterface->IP.Ipv4Data.dnsServer, RESOLV_CONF_FILE));
+                fprintf(fp, "nameserver %s\n", pInterface->IP.Ipv4Data.dnsServer);
+            }
+            sysevent_set(sysevent_fd, sysevent_token, syseventParam, pInterface->IP.Ipv4Data.dnsServer, 0);
+            sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV4_DNS_PRIMARY, pInterface->IP.Ipv4Data.dnsServer, 0);
+            valid_dns = TRUE;
+        }
+        else
+        {
+            // v4 DNS1 is a invalid
+            sysevent_set(sysevent_fd, sysevent_token, syseventParam, "", 0);
+            sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV4_DNS_PRIMARY, "", 0);
+        }
+
+        // v4 DNS2
+        snprintf(syseventParam, sizeof(syseventParam), SYSEVENT_IPV4_WANIFNAME_DNS_SECONDARY, pInterface->Wan.Name);
+        if(IsValidDnsServer(AF_INET, pInterface->IP.Ipv4Data.dnsServer1) == RETURN_OK)
+        {
+            // v4 DNS2 is a valid
+            if (fp != NULL)
+            {
+                // GATEWAY Mode
+                CcspTraceInfo(("%s %d: adding nameserver %s >> %s\n", __FUNCTION__, __LINE__, pInterface->IP.Ipv4Data.dnsServer1, RESOLV_CONF_FILE));
+                fprintf(fp, "nameserver %s\n", pInterface->IP.Ipv4Data.dnsServer1);
+            }
+            sysevent_set(sysevent_fd, sysevent_token, syseventParam, pInterface->IP.Ipv4Data.dnsServer1, 0);
+            sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV4_DNS_SECONDARY, pInterface->IP.Ipv4Data.dnsServer1, 0);
+            if (valid_dns == TRUE)
+            {
+                snprintf(syseventParam, sizeof(syseventParam), SYSEVENT_IPV4_DNS_NUMBER, pInterface->Wan.Name);
+                sysevent_set(sysevent_fd, sysevent_token, syseventParam, SYSEVENT_IPV4_NO_OF_DNS_SUPPORTED, 0);
+            }
+            valid_dns = TRUE;
+        }
+        else
+        {
+            // v4 DNS2 is a invalid
+            sysevent_set(sysevent_fd, sysevent_token, syseventParam, "", 0);
+            sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV4_DNS_SECONDARY, "", 0);
+        }
+    }
+
+    if (addIPv6)
+    {
+        // v6 DNS1
+        if(IsValidDnsServer(AF_INET6, pInterface->IP.Ipv6Data.nameserver) == RETURN_OK)
+        {
+            // v6 DNS1 is valid
+            if (fp != NULL)
+            {
+                // GATEWAY Mode
+                CcspTraceInfo(("%s %d: adding nameserver %s >> %s\n", __FUNCTION__, __LINE__, pInterface->IP.Ipv6Data.nameserver, RESOLV_CONF_FILE));
+                fprintf(fp, "nameserver %s\n", pInterface->IP.Ipv6Data.nameserver);
+            }
+            sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_DNS_PRIMARY, pInterface->IP.Ipv6Data.nameserver, 0);
+            valid_dns = TRUE;
+        }
+        else
+        {
+            // v6 DNS1 is invalid
+            sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_DNS_PRIMARY, "", 0);
+        }
+
+        // v6 DNS2
+        if(IsValidDnsServer(AF_INET6, pInterface->IP.Ipv6Data.nameserver1) == RETURN_OK)
+        {
+            // v6 DNS2 is valid
+            if (fp != NULL)
+            {
+                CcspTraceInfo(("%s %d: adding nameserver %s >> %s\n", __FUNCTION__, __LINE__, pInterface->IP.Ipv6Data.nameserver1, RESOLV_CONF_FILE));
+                fprintf(fp, "nameserver %s\n", pInterface->IP.Ipv6Data.nameserver1);
+            }
+            sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_DNS_SECONDARY, pInterface->IP.Ipv6Data.nameserver1, 0);
+            valid_dns = TRUE;
+        }
+        else
+        {
+            // v6 DNS2 is invalid
+            sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_DNS_SECONDARY, "", 0);
+        }
+    }
+
+    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_DHCP_SERVER_RESTART, NULL, 0);
+
+    if (valid_dns == TRUE)
+    {
+        CcspTraceInfo(("%s %d - Active domainname servers set!\n", __FUNCTION__,__LINE__));
+    }
+    else
+    {
+        CcspTraceInfo(("%s %d - No valid nameserver is available, adding loopback address for nameserver\n", __FUNCTION__,__LINE__));
+        if (fp != NULL)
+        {
+            fprintf(fp, "nameserver %s \n", LOOPBACK);
+        }
+    }
+
+    if (fp != NULL)
+    {
+        fclose(fp);
+    }
+
+    return ret;
+}
 
 static int checkIpv6LanAddressIsReadyToUse()
 {
@@ -539,9 +690,15 @@ static int setUpLanPrefixIPv6(DML_WAN_IFACE* pIfaceData)
     return RETURN_OK;
 }
 
-
-static int wan_setUpIPv4(DML_DEVICE_MODE DeviceMode, DML_WAN_IFACE* pInterface)
+static int wan_setUpIPv4(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
 {
+
+    if ((pWanIfaceCtrl == NULL) || (pWanIfaceCtrl->pIfaceData == NULL))
+    {
+        CcspTraceError(("%s %d - Invalid args \n", __FUNCTION__, __LINE__));
+        return RETURN_ERR;
+    }
+
     int ret = RETURN_OK;
     char cmdStr[BUFLEN_128 + IP_ADDR_LENGTH] = {0};
     char bCastStr[IP_ADDR_LENGTH] = {0};
@@ -550,11 +707,9 @@ static int wan_setUpIPv4(DML_DEVICE_MODE DeviceMode, DML_WAN_IFACE* pInterface)
     char *cp = NULL;
     FILE *fp = NULL;
 
-    if (pInterface == NULL)
-    {
-        CcspTraceError(("%s %d - Invalid memory \n", __FUNCTION__, __LINE__));
-        return RETURN_ERR;
-    }
+
+    DML_DEVICE_MODE DeviceMode = pWanIfaceCtrl->DeviceMode;
+    DML_WAN_IFACE * pInterface = pWanIfaceCtrl->pIfaceData;
 
     /** Setup IPv4: such as
      * "ifconfig eth0 10.6.33.165 netmask 255.255.255.192 broadcast 10.6.33.191 up"
@@ -583,7 +738,7 @@ static int wan_setUpIPv4(DML_DEVICE_MODE DeviceMode, DML_WAN_IFACE* pInterface)
     }
 
     /** configure DNS */
-    if (RETURN_OK != wan_updateDNS(pInterface, TRUE, (pInterface->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_UP)))
+    if (RETURN_OK != wan_updateDNS(pWanIfaceCtrl, TRUE, (pInterface->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_UP)))
     {
         CcspTraceInfo(("%s %d - Failed to configure IPv4 DNS servers \n", __FUNCTION__, __LINE__));
         ret = RETURN_ERR;
@@ -648,27 +803,29 @@ static int wan_setUpIPv4(DML_DEVICE_MODE DeviceMode, DML_WAN_IFACE* pInterface)
 }
 
 
-static int wan_tearDownIPv4(DML_DEVICE_MODE DeviceMode, DML_WAN_IFACE* pInterface)
+static int wan_tearDownIPv4(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
 {
+    if ((pWanIfaceCtrl == NULL) || (pWanIfaceCtrl->pIfaceData == NULL))
+    {
+        CcspTraceError(("%s %d - Invalid args \n", __FUNCTION__, __LINE__));
+        return RETURN_ERR;
+    }
+
     int ret = RETURN_OK;
     char cmdStr[BUFLEN_64] = {0};
     char buf[BUFLEN_32] = {0};
 
-    if (pInterface == NULL)
-    {
-        CcspTraceError(("%s %d - Invalid memory \n", __FUNCTION__, __LINE__));
-        return RETURN_ERR;
-    }
+    DML_WAN_IFACE * pInterface = pWanIfaceCtrl->pIfaceData;
 
         /** Reset IPv4 DNS configuration. */
-    if (RETURN_OK != wan_updateDNS(pInterface, FALSE, (pInterface->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_UP)))
-        {
-            CcspTraceError(("%s %d - Failed to unconfig IPv4 DNS servers \n", __FUNCTION__, __LINE__));
-            ret = RETURN_ERR;
-        }
+    if (RETURN_OK != wan_updateDNS(pWanIfaceCtrl, FALSE, (pInterface->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_UP)))
+    {
+        CcspTraceError(("%s %d - Failed to unconfig IPv4 DNS servers \n", __FUNCTION__, __LINE__));
+        ret = RETURN_ERR;
+    }
     else
     {
-    CcspTraceInfo(("%s %d -  IPv4 DNS servers unconfig successfully \n", __FUNCTION__, __LINE__));
+        CcspTraceInfo(("%s %d -  IPv4 DNS servers unconfig successfully \n", __FUNCTION__, __LINE__));
     }
 
     /* Need to remove the network from the routing table by
@@ -705,11 +862,19 @@ static int wan_tearDownIPv4(DML_DEVICE_MODE DeviceMode, DML_WAN_IFACE* pInterfac
     return ret;
 }
 
-
-static int wan_setUpIPv6(DML_DEVICE_MODE DeviceMode, DML_WAN_IFACE* pInterface)
+static int wan_setUpIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
 {
+
+    if ((pWanIfaceCtrl == NULL) || (pWanIfaceCtrl->pIfaceData == NULL))
+    {
+        CcspTraceError(("%s %d - Invalid args \n", __FUNCTION__, __LINE__));
+        return RETURN_ERR;
+    }
+
     int ret = RETURN_OK;
     char buf[BUFLEN_32] = {0};
+
+    DML_WAN_IFACE * pInterface = pWanIfaceCtrl->pIfaceData;
 
     if (pInterface == NULL)
     {
@@ -718,7 +883,7 @@ static int wan_setUpIPv6(DML_DEVICE_MODE DeviceMode, DML_WAN_IFACE* pInterface)
     }
 
     /** Reset IPv6 DNS configuration. */
-    if (wan_updateDNS(pInterface, (pInterface->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_UP), TRUE) != RETURN_OK)
+    if (wan_updateDNS(pWanIfaceCtrl, (pInterface->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_UP), TRUE) != RETURN_OK)
     {
         CcspTraceError(("%s %d - Failed to configure IPv6 DNS servers \n", __FUNCTION__, __LINE__));
         ret = RETURN_ERR;
@@ -757,19 +922,22 @@ static int wan_setUpIPv6(DML_DEVICE_MODE DeviceMode, DML_WAN_IFACE* pInterface)
     return ret;
 }
 
-static int wan_tearDownIPv6(DML_DEVICE_MODE DeviceMode, DML_WAN_IFACE* pInterface)
+static int wan_tearDownIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
 {
-    int ret = RETURN_OK;
-    char buf[BUFLEN_32] = {0};
 
-    if (pInterface == NULL)
+    if ((pWanIfaceCtrl == NULL) || (pWanIfaceCtrl->pIfaceData == NULL))
     {
-        CcspTraceError(("%s %d - Invalid memory \n", __FUNCTION__, __LINE__));
+        CcspTraceError(("%s %d - Invalid args \n", __FUNCTION__, __LINE__));
         return RETURN_ERR;
     }
 
+    int ret = RETURN_OK;
+    char buf[BUFLEN_32] = {0};
+
+    DML_WAN_IFACE * pInterface = pWanIfaceCtrl->pIfaceData;
+
     /** Reset IPv6 DNS configuration. */
-    if (RETURN_OK == wan_updateDNS(pInterface, (pInterface->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_UP), FALSE))
+    if (RETURN_OK == wan_updateDNS(pWanIfaceCtrl, (pInterface->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_UP), FALSE))
     {
         CcspTraceInfo(("%s %d -  IPv6 DNS servers unconfig successfully \n", __FUNCTION__, __LINE__));
     }
@@ -1190,7 +1358,7 @@ static eWanState_t wan_transition_ipv4_up(WanMgr_IfaceSM_Controller_t* pWanIface
     pInterface->Wan.Status = WAN_IFACE_STATUS_UP;
 
     /* Configure IPv4. */
-    ret = wan_setUpIPv4(pWanIfaceCtrl->DeviceMode, pInterface);
+    ret = wan_setUpIPv4(pWanIfaceCtrl);
     if (ret != RETURN_OK)
     {
         CcspTraceError(("%s %d - Failed to configure IPv4 successfully \n", __FUNCTION__, __LINE__));
@@ -1272,7 +1440,7 @@ static eWanState_t wan_transition_ipv4_down(WanMgr_IfaceSM_Controller_t* pWanIfa
     }
     WanManager_UpdateInterfaceStatus (pInterface, WANMGR_IFACE_CONNECTION_DOWN);
 
-    if (wan_tearDownIPv4(pWanIfaceCtrl->DeviceMode, pInterface) != RETURN_OK)
+    if (wan_tearDownIPv4(pWanIfaceCtrl) != RETURN_OK)
     {
         CcspTraceError(("%s %d - Failed to tear down IPv4 for %s \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
     }
@@ -1322,7 +1490,7 @@ static eWanState_t wan_transition_ipv6_up(WanMgr_IfaceSM_Controller_t* pWanIface
     pInterface->Wan.Status = WAN_IFACE_STATUS_UP;
 
     /* Configure IPv6. */
-    ret = wan_setUpIPv6(pWanIfaceCtrl->DeviceMode, pInterface);
+    ret = wan_setUpIPv6(pWanIfaceCtrl);
     if (ret != RETURN_OK)
     {
         CcspTraceError(("%s %d - Failed to configure IPv6 successfully \n", __FUNCTION__, __LINE__));
@@ -1397,7 +1565,7 @@ static eWanState_t wan_transition_ipv6_down(WanMgr_IfaceSM_Controller_t* pWanIfa
 
     WanManager_UpdateInterfaceStatus (pInterface, WANMGR_IFACE_CONNECTION_IPV6_DOWN);
 
-    if (wan_tearDownIPv6(pWanIfaceCtrl->DeviceMode, pInterface) != RETURN_OK)
+    if (wan_tearDownIPv6(pWanIfaceCtrl) != RETURN_OK)
     {
         CcspTraceError(("%s %d - Failed to tear down IPv6 for %s \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
     }
@@ -1871,9 +2039,9 @@ static eWanState_t wan_state_ipv4_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
     }
     else if (pInterface->IP.Ipv4Changed == TRUE)
     {
-        if (wan_tearDownIPv4(pWanIfaceCtrl->DeviceMode, pInterface) == RETURN_OK)
+        if (wan_tearDownIPv4(pWanIfaceCtrl) == RETURN_OK)
         {
-            if (wan_setUpIPv4(pWanIfaceCtrl->DeviceMode, pInterface) == RETURN_OK)
+            if (wan_setUpIPv4(pWanIfaceCtrl) == RETURN_OK)
             {
 #ifdef FEATURE_IPOE_HEALTH_CHECK
                 if ((pInterface->PPP.Enable == FALSE) && (pInterface->Wan.EnableIPoE == TRUE) &&
@@ -2007,11 +2175,11 @@ static eWanState_t wan_state_ipv6_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
     }
     else if (pInterface->IP.Ipv6Changed == TRUE)
     {
-        if (wan_tearDownIPv6(pWanIfaceCtrl->DeviceMode, pInterface) == RETURN_OK)
+        if (wan_tearDownIPv6(pWanIfaceCtrl) == RETURN_OK)
         {
             if (setUpLanPrefixIPv6(pInterface) == RETURN_OK)
             {
-                if (wan_setUpIPv6(pWanIfaceCtrl->DeviceMode, pInterface) == RETURN_OK)
+                if (wan_setUpIPv6(pWanIfaceCtrl) == RETURN_OK)
                 {
 #ifdef FEATURE_IPOE_HEALTH_CHECK
                     if ((pInterface->PPP.Enable == FALSE) && (pInterface->Wan.EnableIPoE == TRUE) && 
@@ -2152,9 +2320,9 @@ static eWanState_t wan_state_dual_stack_active(WanMgr_IfaceSM_Controller_t* pWan
     }
     else if (pInterface->IP.Ipv4Changed == TRUE)
     {
-        if (wan_tearDownIPv4(pWanIfaceCtrl->DeviceMode, pInterface) == RETURN_OK)
+        if (wan_tearDownIPv4(pWanIfaceCtrl) == RETURN_OK)
         {
-            if (wan_setUpIPv4(pWanIfaceCtrl->DeviceMode, pInterface) == RETURN_OK)
+            if (wan_setUpIPv4(pWanIfaceCtrl) == RETURN_OK)
             {
 #ifdef FEATURE_IPOE_HEALTH_CHECK
                 if ((pInterface->PPP.Enable == FALSE) && (pInterface->Wan.EnableIPoE == TRUE) &&
@@ -2184,11 +2352,11 @@ static eWanState_t wan_state_dual_stack_active(WanMgr_IfaceSM_Controller_t* pWan
     }
     else if (pInterface->IP.Ipv6Changed == TRUE)
     {
-        if (wan_tearDownIPv6(pWanIfaceCtrl->DeviceMode, pInterface) == RETURN_OK)
+        if (wan_tearDownIPv6(pWanIfaceCtrl) == RETURN_OK)
         {
             if (setUpLanPrefixIPv6(pInterface) == RETURN_OK)
             {
-                if (wan_setUpIPv6(pWanIfaceCtrl->DeviceMode, pInterface) == RETURN_OK)
+                if (wan_setUpIPv6(pWanIfaceCtrl) == RETURN_OK)
                 {
 #ifdef FEATURE_IPOE_HEALTH_CHECK
                     if ((pInterface->PPP.Enable == FALSE) && (pInterface->Wan.EnableIPoE == TRUE) &&
@@ -2297,11 +2465,11 @@ static eWanState_t wan_state_mapt_active(WanMgr_IfaceSM_Controller_t* pWanIfaceC
     }
     else if (pInterface->IP.Ipv6Changed == TRUE)
     {
-        if (wan_tearDownIPv6(pWanIfaceCtrl->DeviceMode, pInterface) == RETURN_OK)
+        if (wan_tearDownIPv6(pWanIfaceCtrl) == RETURN_OK)
         {
             if (setUpLanPrefixIPv6(pInterface) == RETURN_OK)
             {
-                if (wan_setUpIPv6(pWanIfaceCtrl->DeviceMode, pInterface) == RETURN_OK)
+                if (wan_setUpIPv6(pWanIfaceCtrl) == RETURN_OK)
                 {
 #ifdef FEATURE_IPOE_HEALTH_CHECK
                     if ((pInterface->PPP.Enable == FALSE) && (pInterface->Wan.EnableIPoE == TRUE) &&
@@ -2558,7 +2726,6 @@ static void* WanMgr_InterfaceSMThread( void *arg )
             /* interrupted by signal or something, continue */
             continue;
         }
-
 
         //Update Wan config
         WanMgr_Config_Data_t*   pWanConfigData = WanMgr_GetConfigData_locked();

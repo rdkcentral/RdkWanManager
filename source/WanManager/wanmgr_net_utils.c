@@ -41,8 +41,6 @@
 #include "wanmgr_sysevents.h"
 #include <sysevent/sysevent.h>
 
-#define RESOLV_CONF_FILE "/etc/resolv.conf"
-#define LOOPBACK "127.0.0.1"
 #define BROADCAST_IP "255.255.255.255"
 /* To ignore link local addresses configured as DNS servers,
  * it covers the range 169.254.x.x */
@@ -97,13 +95,6 @@ extern token_t sysevent_token;
 
 #define IPMONITOR_WAIT_MAX_TIMEOUT 240
 #define IPMONITOR_QUERY_INTERVAL 1
-/***************************************************************************
- * @brief API used to check the incoming nameserver is valid
- * @param af indicates ip address family
- * @param nameserver dns namserver name
- * @return RETURN_OK if execution successful else returned error.
- ****************************************************************************/
-static int IsValidDnsServer(int32_t af, const char *nameServer);
 
 /***************************************************************************
  * @brief API used to check the incoming ipv4 address is a valid ipv4 address
@@ -1237,7 +1228,7 @@ void WanManager_UpdateMaptLogFile(ipc_mapt_data_t *dhcp6cMAPTMsgBody)
 
 #endif /* FEATURE_MAPT */
 
-static int IsValidDnsServer(int32_t af, const char *nameServer)
+int IsValidDnsServer(int32_t af, const char *nameServer)
 {
     if (nameServer == NULL)
     {
@@ -1289,150 +1280,6 @@ static int IsValidDnsServer(int32_t af, const char *nameServer)
     return RETURN_OK;
 }
 
-int wan_updateDNS(DML_WAN_IFACE* pInterface, BOOL addIPv4, BOOL addIPv6)
-{
-    if (NULL == pInterface)
-    {
-        CcspTraceError(("%s %d - Invalid memory \n", __FUNCTION__, __LINE__));
-        return RETURN_ERR;
-    }
-
-    bool valid_dns = FALSE;
-    int ret = RETURN_OK;
-    FILE *fp = NULL;
-    char syseventParam[BUFLEN_128]={0};
-
-    DML_DEVICE_MODE deviceMode = WanMgr_GetDeviceMode();
-
-    if (deviceMode == GATEWAY_MODE)
-    {
-        if((fp = fopen(RESOLV_CONF_FILE, "w+")) == NULL)
-        {
-            CcspTraceError(("%s %d - Open %s error!\n", __FUNCTION__, __LINE__, RESOLV_CONF_FILE));
-            return RETURN_ERR;
-        }
-    }
-    else if (deviceMode == MODEM_MODE)
-    {
-        // DNS nameserves should not be configured in MODEM mode
-        remove(RESOLV_CONF_FILE);
-    }
-
-    if (addIPv4)
-    {
-        snprintf(syseventParam, sizeof(syseventParam), SYSEVENT_IPV4_WANIFNAME_DNS_PRIMARY, pInterface->Wan.Name);
-
-        // v4 DNS1
-        if(IsValidDnsServer(AF_INET, pInterface->IP.Ipv4Data.dnsServer) == RETURN_OK)
-        {
-            // v4 DNS1 is a valid
-            if (fp != NULL)
-            {
-                // GATEWAY Mode
-                CcspTraceInfo(("%s %d: adding nameserver %s >> %s\n", __FUNCTION__, __LINE__, pInterface->IP.Ipv4Data.dnsServer, RESOLV_CONF_FILE));
-                fprintf(fp, "nameserver %s\n", pInterface->IP.Ipv4Data.dnsServer);
-            }
-            sysevent_set(sysevent_fd, sysevent_token, syseventParam, pInterface->IP.Ipv4Data.dnsServer, 0);
-            sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV4_DNS_PRIMARY, pInterface->IP.Ipv4Data.dnsServer, 0);
-            valid_dns = TRUE;
-        }
-        else
-        {
-            // v4 DNS1 is a invalid
-            sysevent_set(sysevent_fd, sysevent_token, syseventParam, "", 0);
-            sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV4_DNS_PRIMARY, "", 0);
-        }
-
-        // v4 DNS2
-        snprintf(syseventParam, sizeof(syseventParam), SYSEVENT_IPV4_WANIFNAME_DNS_SECONDARY, pInterface->Wan.Name);
-        if(IsValidDnsServer(AF_INET, pInterface->IP.Ipv4Data.dnsServer1) == RETURN_OK)
-        {
-            // v4 DNS2 is a valid
-            if (fp != NULL)
-            {
-                // GATEWAY Mode
-                CcspTraceInfo(("%s %d: adding nameserver %s >> %s\n", __FUNCTION__, __LINE__, pInterface->IP.Ipv4Data.dnsServer1, RESOLV_CONF_FILE));
-                fprintf(fp, "nameserver %s\n", pInterface->IP.Ipv4Data.dnsServer1);
-            }
-            sysevent_set(sysevent_fd, sysevent_token, syseventParam, pInterface->IP.Ipv4Data.dnsServer1, 0);
-            sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV4_DNS_SECONDARY, pInterface->IP.Ipv4Data.dnsServer1, 0);
-            if (valid_dns == TRUE)
-            {
-                snprintf(syseventParam, sizeof(syseventParam), SYSEVENT_IPV4_DNS_NUMBER, pInterface->Wan.Name);
-                sysevent_set(sysevent_fd, sysevent_token, syseventParam, SYSEVENT_IPV4_NO_OF_DNS_SUPPORTED, 0);
-            }
-            valid_dns = TRUE;
-        }
-        else
-        {
-            // v4 DNS2 is a invalid
-            sysevent_set(sysevent_fd, sysevent_token, syseventParam, "", 0);
-            sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV4_DNS_SECONDARY, "", 0);
-        }
-    }
-
-    if (addIPv6)
-    {
-        // v6 DNS1
-        if(IsValidDnsServer(AF_INET6, pInterface->IP.Ipv6Data.nameserver) == RETURN_OK)
-        {
-            // v6 DNS1 is valid
-            if (fp != NULL)
-            {
-                // GATEWAY Mode
-                CcspTraceInfo(("%s %d: adding nameserver %s >> %s\n", __FUNCTION__, __LINE__, pInterface->IP.Ipv6Data.nameserver, RESOLV_CONF_FILE));
-                fprintf(fp, "nameserver %s\n", pInterface->IP.Ipv6Data.nameserver);
-            }
-            sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_DNS_PRIMARY, pInterface->IP.Ipv6Data.nameserver, 0);
-            valid_dns = TRUE;
-        }
-        else
-        {
-            // v6 DNS1 is invalid
-            sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_DNS_PRIMARY, "", 0);
-        }
-
-        // v6 DNS2
-        if(IsValidDnsServer(AF_INET6, pInterface->IP.Ipv6Data.nameserver1) == RETURN_OK)
-        {
-            // v6 DNS2 is valid
-            if (fp != NULL)
-            {
-                CcspTraceInfo(("%s %d: adding nameserver %s >> %s\n", __FUNCTION__, __LINE__, pInterface->IP.Ipv6Data.nameserver1, RESOLV_CONF_FILE));
-                fprintf(fp, "nameserver %s\n", pInterface->IP.Ipv6Data.nameserver1);
-            }
-            sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_DNS_SECONDARY, pInterface->IP.Ipv6Data.nameserver1, 0);
-            valid_dns = TRUE;
-        }
-        else
-        {
-            // v6 DNS2 is invalid
-            sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_DNS_SECONDARY, "", 0);
-        }
-    }
-
-    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_DHCP_SERVER_RESTART, NULL, 0);
-
-    if (valid_dns == TRUE)
-    {
-        CcspTraceInfo(("%s %d - Active domainname servers set!\n", __FUNCTION__,__LINE__));
-    }
-    else
-    {
-        CcspTraceInfo(("%s %d - No valid nameserver is available, adding loopback address for nameserver\n", __FUNCTION__,__LINE__));
-        if (fp != NULL)
-        {
-            fprintf(fp, "nameserver %s \n", LOOPBACK);
-        }
-    }
-
-    if (fp != NULL)
-    {
-        fclose(fp);
-    }
-
-    return ret;
-}
 
 int WanManager_GetBCastFromIpSubnetMask(const char* inIpStr, const char* inSubnetMaskStr, char *outBcastStr)
 {
