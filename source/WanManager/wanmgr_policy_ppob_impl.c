@@ -464,10 +464,10 @@ ANSC_STATUS WanMgr_Policy_PrimaryPriorityOnBootupPolicy(void)
         {
             WanPolicyCtrl.WanEnable = pWanConfigData->data.Enable;
             WanPolicyCtrl.PolicyChanged = pWanConfigData->data.PolicyChanged;
-            WanPolicyCtrl.TotalIfaces = WanMgr_IfaceData_GetTotalWanIface();
 
             WanMgrDml_GetConfigData_release(pWanConfigData);
         }
+        WanPolicyCtrl.TotalIfaces = WanMgr_IfaceData_GetTotalWanIface();
 
         //Lock Iface Data
         WanPolicyCtrl.pWanActiveIfaceData = WanMgr_GetIfaceData_locked(WanPolicyCtrl.activeInterfaceIdx);
