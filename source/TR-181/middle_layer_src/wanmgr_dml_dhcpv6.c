@@ -607,7 +607,7 @@ Client3_GetParamBoolValue
     PDML_DHCPCV6_FULL            pDhcpc          = (PDML_DHCPCV6_FULL)pCxtLink->hContext;
 
     /* check the parameter name and return the corresponding value */
-    if( AnscEqualString(ParamName, "Enable", TRUE) )
+    if (strcmp(ParamName, "Enable") == 0)
     {
         /* collect value */
         /**pBool   = pDhcpc->Cfg.bEnabled;*/
@@ -616,7 +616,7 @@ Client3_GetParamBoolValue
         return TRUE;
     }
 
-    if( AnscEqualString(ParamName, "RequestAddresses", TRUE) )
+    if (strcmp(ParamName, "RequestAddresses") == 0)
     {
         /* collect value */
         *pBool   = pDhcpc->Cfg.RequestAddresses;
@@ -624,7 +624,7 @@ Client3_GetParamBoolValue
         return TRUE;
     }
 
-    if( AnscEqualString(ParamName, "RequestPrefixes", TRUE) )
+    if (strcmp(ParamName, "RequestPrefixes") == 0)
     {
         /* collect value */
         *pBool   = pDhcpc->Cfg.RequestPrefixes;
@@ -632,7 +632,7 @@ Client3_GetParamBoolValue
         return TRUE;
     }
 
-    if( AnscEqualString(ParamName, "RapidCommit", TRUE) )
+    if (strcmp(ParamName, "RapidCommit") == 0)
     {
         /* collect value */
         *pBool   = pDhcpc->Cfg.RapidCommit;
@@ -640,7 +640,7 @@ Client3_GetParamBoolValue
         return TRUE;
     }
 
-    if( AnscEqualString(ParamName, "Renew", TRUE) )
+    if (strcmp(ParamName, "Renew") == 0)
     {
         /* collect value */
         *pBool   = FALSE;
@@ -696,7 +696,7 @@ Client3_GetParamIntValue
     PDML_DHCPCV6_FULL            pDhcpc            = (PDML_DHCPCV6_FULL)pCxtLink->hContext;
 
     /* check the parameter name and return the corresponding value */
-    if( AnscEqualString(ParamName, "SuggestedT1", TRUE) )
+    if (strcmp(ParamName, "SuggestedT1") == 0)
     {
         /* collect value */        
         *pInt   = pDhcpc->Cfg.SuggestedT1;
@@ -704,7 +704,7 @@ Client3_GetParamIntValue
         return TRUE;
     }
 
-    if( AnscEqualString(ParamName, "SuggestedT2", TRUE) )
+    if (strcmp(ParamName, "SuggestedT2") == 0)
     {
         /* collect value */
         *pInt   = pDhcpc->Cfg.SuggestedT2;
@@ -760,7 +760,7 @@ Client3_GetParamUlongValue
     PDML_DHCPCV6_FULL            pDhcpc            = (PDML_DHCPCV6_FULL)pCxtLink->hContext;
 
     /* check the parameter name and return the corresponding value */
-    if( AnscEqualString(ParamName, "Status", TRUE) )
+    if (strcmp(ParamName, "Status") == 0)
     {
         /* collect value */
         WanMgr_DmlDhcpv6cGetInfo(pDhcpc, pCxtLink->InstanceNumber, &pDhcpc->Info);
@@ -829,7 +829,7 @@ Client3_GetParamStringValue
     INT                             instanceNumber    = -1;
 	ULONG                        i, len            = 0;
     /* check the parameter name and return the corresponding value */
-    if( AnscEqualString(ParamName, "Alias", TRUE) )
+    if (strcmp(ParamName, "Alias") == 0)
     {
         /* collect value */
         if ( AnscSizeOfString((const char*)pDhcpc->Cfg.Alias) < *pUlSize)
@@ -845,7 +845,7 @@ Client3_GetParamStringValue
 
         return 0;
     }
-    else if( AnscEqualString(ParamName, "Interface", TRUE) )
+    else if (strcmp(ParamName, "Interface") == 0)
     {
         DmlGetInstanceByKeywordFromPandM(pDhcpc->Cfg.Interface, &instanceNumber);
         snprintf(interface, DATAMODEL_PARAM_LENGTH, PAM_IF_TABLE_OBJECT, instanceNumber);
@@ -869,7 +869,7 @@ Client3_GetParamStringValue
 
         return 0;
     }
-    else if( AnscEqualString(ParamName, "DUID", TRUE) )
+    else if (strcmp(ParamName, "DUID") == 0)
     {
         WanMgr_DmlDhcpv6cGetInfo(pDhcpc, pCxtLink->InstanceNumber, &pDhcpc->Info);
 
@@ -885,7 +885,7 @@ Client3_GetParamStringValue
             return 1;
         }
     }
-    else if( AnscEqualString(ParamName, "SupportedOptions", TRUE) )
+    else if (strcmp(ParamName, "SupportedOptions") == 0)
     {
         /* collect value */
         if ( AnscSizeOfString((const char*)pDhcpc->Info.SupportedOptions) < *pUlSize)
@@ -899,7 +899,7 @@ Client3_GetParamStringValue
             return 1;
         }
     }
-    else if( AnscEqualString(ParamName, "RequestedOptions", TRUE) )
+    else if (strcmp(ParamName, "RequestedOptions") == 0)
     {
         /* collect value */
         if ( AnscSizeOfString((const char*)pDhcpc->Cfg.RequestedOptions) < *pUlSize)
@@ -961,35 +961,35 @@ Client3_SetParamBoolValue
     PDML_DHCPCV6_FULL            pDhcpc            = (PDML_DHCPCV6_FULL)pCxtLink->hContext;
 
     /* check the parameter name and set the corresponding value */
-    if( AnscEqualString(ParamName, "Enable", TRUE) )
+    if (strcmp(ParamName, "Enable") == 0)
     {
         /* save update to backup */
         pDhcpc->Cfg.bEnabled = bValue;
 
         return TRUE;
     }
-	else if( AnscEqualString(ParamName, "RequestAddresses", TRUE) )
+	else if (strcmp(ParamName, "RequestAddresses") == 0)
     {
         /* save update to backup */
         pDhcpc->Cfg.RequestAddresses = bValue;
 
         return TRUE;
     }
-    else if( AnscEqualString(ParamName, "RequestPrefixes", TRUE) )
+    else if (strcmp(ParamName, "RequestPrefixes") == 0)
     {
         /* save update to backup */
         pDhcpc->Cfg.RequestPrefixes = bValue;
 
         return TRUE;
     }
-    else if( AnscEqualString(ParamName, "RapidCommit", TRUE) )
+    else if (strcmp(ParamName, "RapidCommit") == 0)
     {
         /* save update to backup */
         pDhcpc->Cfg.RapidCommit = bValue;
 
         return TRUE;
     }
-    else if( AnscEqualString(ParamName, "Renew", TRUE) )
+    else if (strcmp(ParamName, "Renew") == 0)
     {
         /* save update to backup */
         if ( bValue )
@@ -1051,14 +1051,14 @@ Client3_SetParamIntValue
     PDML_DHCPCV6_FULL            pDhcpc            = (PDML_DHCPCV6_FULL)pCxtLink->hContext;
 
     /* check the parameter name and set the corresponding value */
-    if( AnscEqualString(ParamName, "SuggestedT1", TRUE) )
+    if (strcmp(ParamName, "SuggestedT1") == 0)
     {
         /* save update to backup */
         pDhcpc->Cfg.SuggestedT1 = iValue;
         
         return TRUE;
     }
-    else if( AnscEqualString(ParamName, "SuggestedT2", TRUE) )
+    else if (strcmp(ParamName, "SuggestedT2") == 0)
     {
         /* save update to backup */
         pDhcpc->Cfg.SuggestedT2 = iValue;
@@ -1161,14 +1161,14 @@ Client3_SetParamStringValue
 	PWAN_DHCPV6_DATA              pDhcpv6       = (PWAN_DHCPV6_DATA)g_pWanMgrBE->hDhcpv6;
         
     /* check the parameter name and set the corresponding value */
-    if( AnscEqualString(ParamName, "RequestedOptions", TRUE) )
+    if (strcmp(ParamName, "RequestedOptions") == 0)
     {
         /* save update to backup */
         AnscCopyString(pDhcpc->Cfg.RequestedOptions, pString);
 
         return TRUE;
     }
-    else if( AnscEqualString(ParamName, "Alias", TRUE) )
+    else if (strcmp(ParamName, "Alias") == 0)
     {
         /* save update to backup */
         AnscCopyString(pDhcpv6->AliasOfClient, pDhcpc->Cfg.Alias);
@@ -1177,7 +1177,7 @@ Client3_SetParamStringValue
 
         return TRUE;
     }
-    else if( AnscEqualString(ParamName, "Interface", TRUE) )
+    else if (strcmp(ParamName, "Interface") == 0)
     {
 
         /* save update to backup */
@@ -1802,7 +1802,7 @@ Server2_GetParamStringValue
     PDML_DHCPCV6_SVR pDhcpcServer    = (PDML_DHCPCV6_SVR)hInsContext;
 
     /* check the parameter name and return the corresponding value */
-    if( AnscEqualString(ParamName, "SourceAddress", TRUE) )
+    if (strcmp(ParamName, "SourceAddress") == 0)
     {
         /* collect value */
         if ( AnscSizeOfString((const char*)pDhcpcServer->SourceAddress) < *pUlSize)
@@ -1818,7 +1818,7 @@ Server2_GetParamStringValue
 
         return 0;
     }
-	else if( AnscEqualString(ParamName, "DUID", TRUE) )
+	else if (strcmp(ParamName, "DUID") == 0)
     {
         /* collect value */
         if ( AnscSizeOfString((const char*)pDhcpcServer->DUID) < *pUlSize)
@@ -1833,7 +1833,7 @@ Server2_GetParamStringValue
         }
         return 0;
     }
-	else if( AnscEqualString(ParamName, "InformationRefreshTime", TRUE) )
+	else if (strcmp(ParamName, "InformationRefreshTime") == 0)
     {
         /* collect value */
         if ( AnscSizeOfString((const char*)pDhcpcServer->InformationRefreshTime) < *pUlSize)
@@ -2159,7 +2159,7 @@ SentOption1_GetParamBoolValue
     ANSC_STATUS                     returnStatus         = ANSC_STATUS_SUCCESS;
 
     /* check the parameter name and return the corresponding value */
-    if( AnscEqualString(ParamName, "Enable", TRUE) )
+    if (strcmp(ParamName, "Enable") == 0)
     {
         /* collect value */
         *pBool  = pDhcpSentOption->bEnabled;
@@ -2262,7 +2262,7 @@ SentOption1_GetParamUlongValue
     ANSC_STATUS                     returnStatus         = ANSC_STATUS_SUCCESS;
 
     /* check the parameter name and return the corresponding value */
-    if( AnscEqualString(ParamName, "Tag", TRUE) )
+    if (strcmp(ParamName, "Tag") == 0)
     {
         /* collect value */
         *puLong = pDhcpSentOption->Tag;
@@ -2327,7 +2327,7 @@ SentOption1_GetParamStringValue
     ANSC_STATUS                     returnStatus         = ANSC_STATUS_SUCCESS;
 
     /* check the parameter name and return the corresponding value */
-    if( AnscEqualString(ParamName, "Alias", TRUE) )
+    if (strcmp(ParamName, "Alias") == 0)
     {
         /* collect value */
         if ( AnscSizeOfString((const char*)pDhcpSentOption->Alias) < *pUlSize)
@@ -2341,7 +2341,7 @@ SentOption1_GetParamStringValue
             return 1;
         }
     }
-    else if( AnscEqualString(ParamName, "Value", TRUE) )
+    else if (strcmp(ParamName, "Value") == 0)
     {
         /* collect value */
         if ( AnscSizeOfString((const char*)pDhcpSentOption->Value) < *pUlSize)
@@ -2403,7 +2403,7 @@ SentOption1_SetParamBoolValue
     PDML_DHCPCV6_SENT          pDhcpSentOption      = (PDML_DHCPCV6_SENT)pCxtLink->hContext;
 
     /* check the parameter name and set the corresponding value */
-    if( AnscEqualString(ParamName, "Enable", TRUE) )
+    if (strcmp(ParamName, "Enable") == 0)
     {
         /* save update to backup */
         pDhcpSentOption->bEnabled  = bValue;
@@ -2504,7 +2504,7 @@ SentOption1_SetParamUlongValue
     PDML_DHCPCV6_SENT          pDhcpSentOption      = (PDML_DHCPCV6_SENT)pCxtLink->hContext;
 
     /* check the parameter name and set the corresponding value */
-    if( AnscEqualString(ParamName, "Tag", TRUE) )
+    if (strcmp(ParamName, "Tag") == 0)
     {
         /* save update to backup */
         pDhcpSentOption->Tag  = (UCHAR)uValue;
@@ -2560,7 +2560,7 @@ SentOption1_SetParamStringValue
     PDHCPCV6_CONTEXT_LINK_OBJECT pCxtDhcpcLink     = (PDHCPCV6_CONTEXT_LINK_OBJECT)pCxtLink->hParentTable;
 
     /* check the parameter name and set the corresponding value */
-    if( AnscEqualString(ParamName, "Alias", TRUE) )
+    if (strcmp(ParamName, "Alias") == 0)
     {
         /* save update to backup */
         AnscCopyString(pCxtDhcpcLink->AliasOfSent, (char*)pDhcpSentOption->Alias);
@@ -2569,7 +2569,7 @@ SentOption1_SetParamStringValue
 
         return TRUE;
     }
-    else if( AnscEqualString(ParamName, "Value", TRUE) )
+    else if (strcmp(ParamName, "Value") == 0)
     {
         /* save update to backup */
         AnscCopyString((char*)pDhcpSentOption->Value, pString);
@@ -3156,7 +3156,7 @@ ReceivedOption_GetParamUlongValue
     PDML_DHCPCV6_RECV pDhcpcRecv      = (PDML_DHCPCV6_RECV)hInsContext;
 
     /* check the parameter name and return the corresponding value */
-    if( AnscEqualString(ParamName, "Tag", TRUE) )
+    if (strcmp(ParamName, "Tag") == 0)
     {
         /* collect value */
         *puLong  = pDhcpcRecv->Tag;
@@ -3220,7 +3220,7 @@ ReceivedOption_GetParamStringValue
     PDML_DHCPCV6_RECV pDhcpcRecv      = (PDML_DHCPCV6_RECV)hInsContext;
 
     /* check the parameter name and return the corresponding value */
-    if( AnscEqualString(ParamName, "Value", TRUE) )
+    if (strcmp(ParamName, "Value") == 0)
     {
         /* collect value */
         if ( AnscSizeOfString((const char*)pDhcpcRecv->Value) < *pUlSize)
@@ -3234,7 +3234,7 @@ ReceivedOption_GetParamStringValue
             return 1;
         }
     }
-	else if( AnscEqualString(ParamName, "Server", TRUE) )
+	else if (strcmp(ParamName, "Server") == 0)
     {
         /* collect value */
         if ( AnscSizeOfString((const char*)pDhcpcRecv->Server) < *pUlSize)
@@ -3293,7 +3293,7 @@ dhcp6c_mapt_mape_GetParamBoolValue
 {
     UNREFERENCED_PARAMETER(hInsContext);
     /* check the parameter name and return the corresponding value */
-    if( AnscEqualString(ParamName, "MapIsFMR", TRUE) )
+    if (strcmp(ParamName, "MapIsFMR") == 0)
     {
 #if defined(_HUB4_PRODUCT_REQ_) || defined(FEATURE_SUPPORT_MAPT_NAT46)
         char temp[32] = {0};
@@ -3355,7 +3355,7 @@ dhcp6c_mapt_mape_GetParamUlongValue
     char temp[64] = {0};
 #endif
     /* check the parameter name and return the corresponding value */
-    if( AnscEqualString(ParamName, "MapEALen", TRUE) )
+    if (strcmp(ParamName, "MapEALen") == 0)
     {
 #if defined(_HUB4_PRODUCT_REQ_) || defined(FEATURE_SUPPORT_MAPT_NAT46)
         sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_MAP_EA_LEN, temp, sizeof(temp));
@@ -3366,7 +3366,7 @@ dhcp6c_mapt_mape_GetParamUlongValue
         return TRUE;
     }
 
-    if( AnscEqualString(ParamName, "MapPSIDOffset", TRUE) )
+    if (strcmp(ParamName, "MapPSIDOffset") == 0)
     {
 #if defined(_HUB4_PRODUCT_REQ_) || defined(FEATURE_SUPPORT_MAPT_NAT46)
         sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_MAPT_PSID_OFFSET, temp, sizeof(temp));
@@ -3377,7 +3377,7 @@ dhcp6c_mapt_mape_GetParamUlongValue
         return TRUE;
     }
 
-    if( AnscEqualString(ParamName, "MapPSIDLen", TRUE) )
+    if (strcmp(ParamName, "MapPSIDLen") == 0)
     {
 #if defined(_HUB4_PRODUCT_REQ_) || defined(FEATURE_SUPPORT_MAPT_NAT46)
         sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_MAPT_PSID_LENGTH, temp, sizeof(temp));
@@ -3388,7 +3388,7 @@ dhcp6c_mapt_mape_GetParamUlongValue
         return TRUE;
     }
 
-    if( AnscEqualString(ParamName, "MapPSID", TRUE) )
+    if (strcmp(ParamName, "MapPSID") == 0)
     {
 #if defined(_HUB4_PRODUCT_REQ_) || defined(FEATURE_SUPPORT_MAPT_NAT46)
         sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_MAPT_PSID_VALUE, temp, sizeof(temp));
@@ -3467,7 +3467,7 @@ dhcp6c_mapt_mape_GetParamStringValue
 #endif
     UNREFERENCED_PARAMETER(pUlSize);
     /* check the parameter name and return the corresponding value */
-    if( AnscEqualString(ParamName, "MapTransportMode", TRUE) )
+    if (strcmp(ParamName, "MapTransportMode") == 0)
     {
 #if defined(_HUB4_PRODUCT_REQ_) || defined(FEATURE_SUPPORT_MAPT_NAT46)
         sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_MAP_TRANSPORT_MODE, temp, sizeof(temp));
@@ -3493,7 +3493,7 @@ dhcp6c_mapt_mape_GetParamStringValue
 #endif
     }
 
-    if( AnscEqualString(ParamName, "MapBRPrefix", TRUE) )
+    if (strcmp(ParamName, "MapBRPrefix") == 0)
     {
 #if defined(_HUB4_PRODUCT_REQ_) || defined(FEATURE_SUPPORT_MAPT_NAT46)
         sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_MAP_BR_IPV6_PREFIX, temp, sizeof(temp));
@@ -3513,7 +3513,7 @@ dhcp6c_mapt_mape_GetParamStringValue
 #endif
     }
 
-    if( AnscEqualString(ParamName, "MapRuleIPv4Prefix", TRUE) )
+    if (strcmp(ParamName, "MapRuleIPv4Prefix") == 0)
     {
 #if defined(_HUB4_PRODUCT_REQ_) || defined(FEATURE_SUPPORT_MAPT_NAT46)
          sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_MAP_RULE_IPADDRESS, temp, sizeof(temp));
@@ -3533,7 +3533,7 @@ dhcp6c_mapt_mape_GetParamStringValue
 #endif
     }
 
-    if( AnscEqualString(ParamName, "MapRuleIPv6Prefix", TRUE) )
+    if (strcmp(ParamName, "MapRuleIPv6Prefix") == 0)
     {
 #if defined(_HUB4_PRODUCT_REQ_) || defined(FEATURE_SUPPORT_MAPT_NAT46)
         sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_MAP_RULE_IPV6_ADDRESS, temp, sizeof(temp));
@@ -3553,7 +3553,7 @@ dhcp6c_mapt_mape_GetParamStringValue
 #endif
     }
 
-    if( AnscEqualString(ParamName, "MapIpv4Address", TRUE) )
+    if (strcmp(ParamName, "MapIpv4Address") == 0)
     {
 #if defined(_HUB4_PRODUCT_REQ_) || defined(FEATURE_SUPPORT_MAPT_NAT46)
         sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_MAPT_IPADDRESS, temp, sizeof(temp));

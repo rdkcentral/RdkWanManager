@@ -51,6 +51,7 @@
 **************************************************************************/
 
 /* ---- Include Files ---------------------------------------- */
+#include <syscfg/syscfg.h>
 #include "dmsb_tr181_psm_definitions.h"
 #include "wanmgr_rdkbus_utils.h"
 #include "ansc_platform.h"
@@ -250,7 +251,7 @@ ANSC_STATUS WaitForInterfaceComponentReady(char *pPhyPath)
 
 ANSC_STATUS WanMgr_RdkBus_SetRequestIfComponent(char *pPhyPath, char *pInputparamName, char *pInputParamValue, enum dataType_e type)
 {
-    char param_name[BUFLEN_256] = {0};
+    char param_name[BUFLEN_256];
     char  pCompName[BUFLEN_64] = {0};
     char  pCompPath[BUFLEN_64] = {0};
     char *faultParam = NULL;
@@ -264,8 +265,7 @@ ANSC_STATUS WanMgr_RdkBus_SetRequestIfComponent(char *pPhyPath, char *pInputpara
         return ANSC_STATUS_FAILURE;
     }
 
-    strncpy(param_name, pPhyPath, sizeof(param_name)-1);
-    strncat(param_name,pInputparamName,sizeof(param_name));
+    snprintf(param_name, sizeof(param_name), "%s%s", pPhyPath, pInputparamName);
 
     if(strstr(param_name, "CableModem") != NULL) { // CM wan interface
         strncpy(pCompName, CMAGENT_COMPONENT_NAME, sizeof(pCompName));
@@ -851,11 +851,7 @@ int WanMgr_RdkBus_SetParamValuesToDB( char *pParamName, char *pParamVal )
         CcspTraceError(("%s Error %d writing %s\n", __FUNCTION__, retPsmSet, pParamName));
     } 
 #else
-    if ( syscfg_set(NULL, pParamName, pParamVal) == 0 )
-    {
-        syscfg_commit();
-    }
-    else
+    if ( syscfg_set_commit(NULL, pParamName, pParamVal) != 0 )
     {
         CcspTraceError(("%s Error writing %s\n", __FUNCTION__,pParamName));
         retPsmSet  = CCSP_FAILURE;

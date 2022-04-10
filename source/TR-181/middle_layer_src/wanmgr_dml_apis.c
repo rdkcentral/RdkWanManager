@@ -51,7 +51,7 @@ WanManager_GetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG* p
     {
         DML_WANMGR_CONFIG* pWanDmlData = &(pWanConfigData->data);
 
-        if(AnscEqualString(ParamName, "Policy", TRUE))
+        if (strcmp(ParamName, "Policy") == 0)
         {
             *puLong= pWanDmlData->Policy;
             ret = TRUE;
@@ -79,7 +79,7 @@ WanManager_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG uV
     {
         DML_WANMGR_CONFIG* pWanDmlData = &(pWanConfigData->data);
 
-        if(AnscEqualString(ParamName, "Policy", TRUE))
+        if (strcmp(ParamName, "Policy") == 0)
         {
             retStatus = WanMgr_RdkBus_setWanPolicy((DML_WAN_POLICY)uValue);
             if(retStatus == ANSC_STATUS_SUCCESS)
@@ -120,25 +120,25 @@ WanManager_GetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL* pBo
     if(pWanConfigData != NULL)
     {
         DML_WANMGR_CONFIG* pWanDmlData = &(pWanConfigData->data);
-        if(AnscEqualString(ParamName, "Enable", TRUE))
+        if (strcmp(ParamName, "Enable") == 0)
         {
             *pBool= pWanDmlData->Enable;
             ret = TRUE;
         }
 
-        if(AnscEqualString(ParamName, "ResetActiveInterface", TRUE))
+        if (strcmp(ParamName, "ResetActiveInterface") == 0)
         {
             *pBool= pWanDmlData->ResetActiveInterface;
             ret = TRUE;
         }
 
-        if(AnscEqualString(ParamName, "AllowRemoteInterfaces", TRUE))
+        if (strcmp(ParamName, "AllowRemoteInterfaces") == 0)
         {
             *pBool= pWanDmlData->AllowRemoteInterfaces;
             ret = TRUE;
         }
 
-        if(AnscEqualString(ParamName, "ResetDefaultConfig", TRUE))
+        if (strcmp(ParamName, "ResetDefaultConfig") == 0)
         {
             *pBool= FALSE;
             ret = TRUE;
@@ -159,7 +159,7 @@ BOOL WanManager_SetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, ch
     {
         DML_WANMGR_CONFIG* pWanDmlData = &(pWanConfigData->data);
 
-        if( AnscEqualString(ParamName, "Data", TRUE) )
+        if (strcmp(ParamName, "Data") == 0)
         {
             char *webConf = NULL;
             int webSize = 0;
@@ -205,14 +205,14 @@ LONG WanManager_GetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, ch
      {
         DML_WANMGR_CONFIG* pWanDmlData = &(pWanConfigData->data);
 
-        if( AnscEqualString(ParamName, "Data", TRUE) )
+        if (strcmp(ParamName, "Data") == 0)
         {
             /* Data value should be empty for all get */
             snprintf(pValue, pulSize, "%s", "");
             ret = 0;
         }
 
-        if( AnscEqualString(ParamName, "InterfaceAvailableStatus", TRUE) )
+	if (strcmp(ParamName, "InterfaceAvailableStatus") == 0)
         {
             if (( sizeof(pWanDmlData->InterfaceAvailableStatus ) - 1 ) < *pulSize )
             {
@@ -221,7 +221,7 @@ LONG WanManager_GetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, ch
             }
         }
 
-        else if( AnscEqualString(ParamName, "InterfaceActiveStatus", TRUE) )
+        else if (strcmp(ParamName, "InterfaceActiveStatus") == 0)
         {
             if ( ( sizeof(pWanDmlData->InterfaceActiveStatus) - 1 ) < *pulSize )
             {
@@ -246,20 +246,20 @@ BOOL WanManager_SetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL
         DML_WANMGR_CONFIG* pWanDmlData = &(pWanConfigData->data);
 
 
-        if(AnscEqualString(ParamName, "Enable", TRUE))
+        if (strcmp(ParamName, "Enable") == 0)
         {
             WanMgr_RdkBus_setWanEnableToPsm(bValue);
             pWanDmlData->Enable = bValue;
             ret = TRUE;
         }
 
-        if(AnscEqualString(ParamName, "ResetActiveInterface", TRUE))
+        if (strcmp(ParamName, "ResetActiveInterface") == 0)
         {
             pWanDmlData->ResetActiveInterface = bValue;
             ret = TRUE;
         }
 
-        if(AnscEqualString(ParamName, "AllowRemoteInterfaces", TRUE))
+        if (strcmp(ParamName, "AllowRemoteInterfaces") == 0)
         {
 #ifdef WAN_FAILOVER_SUPPORTED
             pWanDmlData->AllowRemoteInterfaces = bValue;
@@ -270,7 +270,7 @@ BOOL WanManager_SetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL
 #endif
         }
 
-        if(AnscEqualString(ParamName, "ResetDefaultConfig", TRUE))
+        if (strcmp(ParamName, "ResetDefaultConfig") == 0)
         {
             if(bValue == TRUE)
             {

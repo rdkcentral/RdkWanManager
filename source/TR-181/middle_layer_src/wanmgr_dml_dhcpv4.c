@@ -571,7 +571,7 @@ Client_GetParamBoolValue
     PDML_DHCPC_FULL            pDhcpc            = (PDML_DHCPC_FULL)pCxtLink->hContext;
 
     /* check the parameter name and return the corresponding value */
-    if( AnscEqualString(ParamName, "Enable", TRUE))
+    if (strcmp(ParamName, "Enable") == 0)
     {
         /* collect value */
         *pBool   = pDhcpc->Cfg.bEnabled;
@@ -579,7 +579,7 @@ Client_GetParamBoolValue
         return TRUE;
     }
 
-    else if( AnscEqualString(ParamName, "Renew", TRUE))
+    else if (strcmp(ParamName, "Renew") == 0)
     {
         /* collect value */
         *pBool   = FALSE;
@@ -634,7 +634,7 @@ Client_GetParamIntValue
     PDML_DHCPC_FULL            pDhcpc            = (PDML_DHCPC_FULL)pCxtLink->hContext;
 
     /* check the parameter name and return the corresponding value */
-    if( AnscEqualString(ParamName, "LeaseTimeRemaining", TRUE))
+    if (strcmp(ParamName, "LeaseTimeRemaining") == 0)
     {
         /* collect value */
         WanMgr_DmlDhcpcGetInfo(NULL, pCxtLink->InstanceNumber, &pDhcpc->Info);
@@ -692,7 +692,7 @@ Client_GetParamUlongValue
 
 
     /* check the parameter name and return the corresponding value */
-    if( AnscEqualString(ParamName, "Status", TRUE))
+    if (strcmp(ParamName, "Status") == 0)
     {
         /* collect value */
         WanMgr_DmlDhcpcGetInfo(NULL, pCxtLink->InstanceNumber, &pDhcpc->Info);
@@ -702,7 +702,7 @@ Client_GetParamUlongValue
         return TRUE;
     }
 
-    else if( AnscEqualString(ParamName, "DHCPStatus", TRUE))
+    else if (strcmp(ParamName, "DHCPStatus") == 0)
     {
         /* collect value */
         WanMgr_DmlDhcpcGetInfo(NULL, pCxtLink->InstanceNumber, &pDhcpc->Info);
@@ -712,7 +712,7 @@ Client_GetParamUlongValue
         return TRUE;
     }
 
-    else if( AnscEqualString(ParamName, "IPAddress", TRUE))
+    else if (strcmp(ParamName, "IPAddress") == 0)
     {
         /* collect value */
         WanMgr_DmlDhcpcGetInfo(NULL, pCxtLink->InstanceNumber, &pDhcpc->Info);
@@ -729,7 +729,7 @@ Client_GetParamUlongValue
         return TRUE;
     }
 
-	else if( AnscEqualString(ParamName, "SubnetMask", TRUE))
+	else if (strcmp(ParamName, "SubnetMask") == 0)
     {
         /* collect value */
         WanMgr_DmlDhcpcGetInfo(NULL, pCxtLink->InstanceNumber, &pDhcpc->Info);
@@ -745,7 +745,7 @@ Client_GetParamUlongValue
         return TRUE;
     }
 
-	else if( AnscEqualString(ParamName, "DHCPServer", TRUE))
+	else if (strcmp(ParamName, "DHCPServer") == 0)
     {
         /* collect value */
         if ( !pDhcpc->Info.DHCPServer.Value )
@@ -819,7 +819,7 @@ Client_GetParamStringValue
     CHAR                            interface[DATAMODEL_PARAM_LENGTH] = {0};
 
     /* check the parameter name and return the corresponding value */
-    if( AnscEqualString(ParamName, "Alias", TRUE))
+    if (strcmp(ParamName, "Alias") == 0)
     {
         /* collect value */
         if ( AnscSizeOfString(pDhcpc->Cfg.Alias) < *pUlSize)
@@ -834,7 +834,7 @@ Client_GetParamStringValue
         }
     }
 
-	else if( AnscEqualString(ParamName, "X_CISCO_COM_BootFileName", TRUE))
+	else if (strcmp(ParamName, "X_CISCO_COM_BootFileName") == 0)
     {
         /* collect value */
         if ( AnscSizeOfString(pDhcpc->Cfg.X_CISCO_COM_BootFileName) < *pUlSize)
@@ -849,7 +849,7 @@ Client_GetParamStringValue
         }
     }
 
-	else if( AnscEqualString(ParamName, "Interface", TRUE))
+	else if (strcmp(ParamName, "Interface") == 0)
     {
         DmlGetInstanceByKeywordFromPandM(pDhcpc->Cfg.Interface, &instanceNumber);
         snprintf(interface, DATAMODEL_PARAM_LENGTH, PAM_IF_TABLE_OBJECT, instanceNumber);
@@ -875,7 +875,7 @@ Client_GetParamStringValue
 
     }
 
-	else if( AnscEqualString(ParamName, "IPRouters", TRUE))
+	else if (strcmp(ParamName, "IPRouters") == 0)
     {
         /* collect value */
         WanMgr_DmlDhcpcGetInfo(NULL, pCxtLink->InstanceNumber, &pDhcpc->Info);
@@ -910,7 +910,7 @@ Client_GetParamStringValue
         return 0;
     }
 
-	else if( AnscEqualString(ParamName, "DNSServers", TRUE))
+	else if (strcmp(ParamName, "DNSServers") == 0)
     {
         /* collect value */
         
@@ -996,7 +996,7 @@ Client_SetParamBoolValue
     PDML_DHCPC_FULL            pDhcpc            = (PDML_DHCPC_FULL)pCxtLink->hContext;
 
     /* check the parameter name and set the corresponding value */
-    if( AnscEqualString(ParamName, "Enable", TRUE))
+    if (strcmp(ParamName, "Enable") == 0)
     {
         /* save update to backup */
         pDhcpc->Cfg.bEnabled = bValue;
@@ -1004,7 +1004,7 @@ Client_SetParamBoolValue
         return  TRUE;
     }
 
-	else if( AnscEqualString(ParamName, "Renew", TRUE))
+	else if (strcmp(ParamName, "Renew") == 0)
     {
         /* save update to backup */
         if ( bValue )
@@ -1171,20 +1171,20 @@ Client_SetParamStringValue
         return FALSE;
     }
     /* check the parameter name and set the corresponding value */
-    if( AnscEqualString(ParamName, "Alias", TRUE))
+    if (strcmp(ParamName, "Alias") == 0)
     {
         AnscCopyString(pDhcpv4->AliasOfClient, pDhcpc->Cfg.Alias);
         AnscCopyString(pDhcpc->Cfg.Alias, pString);
         return TRUE;
     }
-    else if( AnscEqualString(ParamName, "X_CISCO_COM_BootFileName", TRUE))
+    else if (strcmp(ParamName, "X_CISCO_COM_BootFileName") == 0)
     {
         AnscCopyString(pDhcpc->Cfg.X_CISCO_COM_BootFileName, pString);
         
         return TRUE;
     }
 
-	else if( AnscEqualString(ParamName, "Interface", TRUE))
+	else if (strcmp(ParamName, "Interface") == 0)
     {
         /* save update to backup */
         AnscCopyString(pDhcpc->Cfg.Interface, pString);
@@ -1747,7 +1747,7 @@ SentOption_GetParamBoolValue
     ANSC_STATUS                     returnStatus         = ANSC_STATUS_SUCCESS;
 
     /* check the parameter name and return the corresponding value */
-    if( AnscEqualString(ParamName, "Enable", TRUE))
+    if (strcmp(ParamName, "Enable") == 0)
     {
         /* collect value */
         *pBool  = pDhcpSendOption->bEnabled;
@@ -1851,7 +1851,7 @@ SentOption_GetParamUlongValue
     ANSC_STATUS                     returnStatus         = ANSC_STATUS_SUCCESS;
 
     /* check the parameter name and return the corresponding value */
-    if( AnscEqualString(ParamName, "Tag", TRUE))
+    if (strcmp(ParamName, "Tag") == 0)
     {
         /* collect value */
         *puLong = pDhcpSendOption->Tag;
@@ -1916,7 +1916,7 @@ SentOption_GetParamStringValue
     ANSC_STATUS                     returnStatus         = ANSC_STATUS_SUCCESS;
 
     /* check the parameter name and return the corresponding value */
-    if( AnscEqualString(ParamName, "Alias", TRUE))
+    if (strcmp(ParamName, "Alias") == 0)
     {
         /* collect value */
         if ( AnscSizeOfString(pDhcpSendOption->Alias) < *pUlSize)
@@ -1931,7 +1931,7 @@ SentOption_GetParamStringValue
         }
     }
 
-	else if( AnscEqualString(ParamName, "Value", TRUE))
+	else if (strcmp(ParamName, "Value") == 0)
     {
         /* collect value */
         if ( AnscSizeOfString((const char*)pDhcpSendOption->Value) < *pUlSize)
@@ -1992,7 +1992,7 @@ SentOption_SetParamBoolValue
     PCOSA_DML_DHCP_OPT              pDhcpSendOption      = (PCOSA_DML_DHCP_OPT)pCxtLink->hContext;
 
     /* check the parameter name and set the corresponding value */
-    if( AnscEqualString(ParamName, "Enable", TRUE))
+    if (strcmp(ParamName, "Enable") == 0)
     {
         /* save update to backup */
         pDhcpSendOption->bEnabled  = bValue;
@@ -2094,7 +2094,7 @@ SentOption_SetParamUlongValue
     PCOSA_DML_DHCP_OPT              pDhcpSendOption      = (PCOSA_DML_DHCP_OPT)pCxtLink->hContext;
 
     /* check the parameter name and set the corresponding value */
-    if( AnscEqualString(ParamName, "Tag", TRUE))
+    if (strcmp(ParamName, "Tag") == 0)
     {
         /* save update to backup */
         pDhcpSendOption->Tag  = (UCHAR)uValue;
@@ -2154,7 +2154,7 @@ SentOption_SetParamStringValue
     BOOL                            bFound            = FALSE;
 
     /* check the parameter name and set the corresponding value */
-    if( AnscEqualString(ParamName, "Alias", TRUE))
+    if (strcmp(ParamName, "Alias") == 0)
     {
         AnscCopyString(pCxtDhcpcLink->AliasOfSend, pDhcpSendOption->Alias);
 
@@ -2163,7 +2163,7 @@ SentOption_SetParamStringValue
         return TRUE;
     }
 
-	else if( AnscEqualString(ParamName, "Value", TRUE))
+	else if (strcmp(ParamName, "Value") == 0)
     {
         /* save update to backup */
         AnscCopyString((char*)pDhcpSendOption->Value, pString);
@@ -2707,7 +2707,7 @@ ReqOption_GetParamBoolValue
     ANSC_STATUS                     returnStatus         = ANSC_STATUS_SUCCESS;
 
     /* check the parameter name and return the corresponding value */
-    if( AnscEqualString(ParamName, "Enable", TRUE))
+    if (strcmp(ParamName, "Enable") == 0)
     {
         /* collect value */
         *pBool    =  pDhcpReqOption->bEnabled;
@@ -2811,7 +2811,7 @@ ReqOption_GetParamUlongValue
     ANSC_STATUS                     returnStatus         = ANSC_STATUS_SUCCESS;
 
     /* check the parameter name and return the corresponding value */
-    if( AnscEqualString(ParamName, "Order", TRUE))
+    if (strcmp(ParamName, "Order") == 0)
     {
         /* collect value */
         *puLong  =  pDhcpReqOption->Order;
@@ -2819,7 +2819,7 @@ ReqOption_GetParamUlongValue
         return TRUE;
     }
 
-	else if( AnscEqualString(ParamName, "Tag", TRUE))
+	else if (strcmp(ParamName, "Tag") == 0)
     {
         /* collect value */
         *puLong  =  pDhcpReqOption->Tag;
@@ -2886,7 +2886,7 @@ ReqOption_GetParamStringValue
     ANSC_STATUS                     returnStatus         = ANSC_STATUS_SUCCESS;
 
     /* check the parameter name and return the corresponding value */
-    if( AnscEqualString(ParamName, "Alias", TRUE))
+    if (strcmp(ParamName, "Alias") == 0)
     {
         /* collect value */
         if ( AnscSizeOfString(pDhcpReqOption->Alias) < *pUlSize)
@@ -2901,7 +2901,7 @@ ReqOption_GetParamStringValue
         }
     }
 
-	else if( AnscEqualString(ParamName, "Value", TRUE))
+	else if (strcmp(ParamName, "Value") == 0)
     {
         /* collect value */
         WanMgr_DmlDhcpcGetReqOptionbyInsNum(NULL, pDhcpc->Cfg.InstanceNumber, pDhcpReqOption);
@@ -2965,7 +2965,7 @@ ReqOption_SetParamBoolValue
     PDML_DHCPC_REQ_OPT         pDhcpReqOption       = (PDML_DHCPC_REQ_OPT)pCxtLink->hContext;
 
     /* check the parameter name and set the corresponding value */
-    if( AnscEqualString(ParamName, "Enable", TRUE))
+    if (strcmp(ParamName, "Enable") == 0)
     {
         /* save update to backup */
         pDhcpReqOption->bEnabled   =  bValue;
@@ -3068,7 +3068,7 @@ ReqOption_SetParamUlongValue
     PDML_DHCPC_REQ_OPT         pDhcpReqOption       = (PDML_DHCPC_REQ_OPT)pCxtLink->hContext;
 
     /* check the parameter name and set the corresponding value */
-    if( AnscEqualString(ParamName, "Order", TRUE))
+    if (strcmp(ParamName, "Order") == 0)
     {
         /* save update to backup */
         pDhcpReqOption->Order   = uValue;
@@ -3076,7 +3076,7 @@ ReqOption_SetParamUlongValue
         return TRUE;
     }
 
-	else if( AnscEqualString(ParamName, "Tag", TRUE))
+	else if (strcmp(ParamName, "Tag") == 0)
     {
         /* save update to backup */
         pDhcpReqOption->Tag   = (UCHAR)uValue;
@@ -3136,7 +3136,7 @@ ReqOption_SetParamStringValue
     BOOL                            bFound            = FALSE;
 
     /* check the parameter name and set the corresponding value */
-    if( AnscEqualString(ParamName, "Alias", TRUE))
+    if (strcmp(ParamName, "Alias") == 0)
     {
         /* Backup old alias firstly */
         AnscCopyString(pCxtDhcpcLink->AliasOfReq, pDhcpReqOption->Alias);

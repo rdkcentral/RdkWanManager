@@ -62,7 +62,6 @@
 #include "ansc_platform.h"
 #include "platform_hal.h"
 
-#include <syscfg.h>
 #include <syscfg/syscfg.h>
 
 #define UPSTREAM_DM_SUFFIX                  ".Upstream"

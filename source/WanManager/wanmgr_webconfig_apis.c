@@ -21,8 +21,8 @@
 #include <assert.h>
 #include <stdlib.h>
 #include "ansc_status.h"
-#include <sysevent.h>
-#include <syscfg.h>
+#include <sysevent/sysevent.h>
+#include <syscfg/syscfg.h>
 #include "ccsp_trace.h"
 #include "ccsp_syslog.h"
 #include "ccsp_message_bus.h"
@@ -492,16 +492,9 @@ static int setWanDataBlobVersion(char *pSubDoc, unsigned int version)
     snprintf(buf, sizeof(buf), "%s_version", pSubDoc);
 
     //Set blob version to DB
-    if( syscfg_set( NULL, buf, subdoc_ver ) != 0 )
+    if( syscfg_set_commit( NULL, buf, subdoc_ver ) != 0 )
     {
         return -1;
-    }
-    else
-    {
-        if ( 0 != syscfg_commit( ) )
-        {
-            return -1;
-        }
     }
 
     CcspTraceInfo(("%s wan manager data %s blob version %s set successfully\n",__FUNCTION__, pSubDoc, subdoc_ver));
