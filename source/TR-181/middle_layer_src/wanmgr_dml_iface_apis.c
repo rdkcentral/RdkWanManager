@@ -742,7 +742,7 @@ BOOL WanIfCfg_GetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG
                 *puLong = pWanDmlIface->Wan.OperationalStatus;
                 ret = TRUE;
             }
-	    if( AnscEqualString(ParamName, "Group", TRUE))
+	    if (strcmp(ParamName, "Group") == 0)
             {
                 *puLong = pWanDmlIface->Wan.Group;
                 ret = TRUE;

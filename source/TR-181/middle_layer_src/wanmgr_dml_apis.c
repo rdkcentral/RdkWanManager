@@ -56,7 +56,7 @@ WanManager_GetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG* p
             *puLong= pWanDmlData->Policy;
             ret = TRUE;
         }
-        if(AnscEqualString(ParamName, "RestorationDelay", TRUE))
+        if (strcmp(ParamName, "RestorationDelay") == 0)
         {
             *puLong= pWanDmlData->RestorationDelay;
             ret = TRUE;
@@ -92,7 +92,7 @@ WanManager_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG uV
                 ret = TRUE;
             }
         }
-        if(AnscEqualString(ParamName, "RestorationDelay", TRUE))
+        if (strcmp(ParamName, "RestorationDelay") == 0)
         {
             retStatus = WanMgr_RdkBus_setRestorationDelay(uValue);
             if(retStatus == ANSC_STATUS_SUCCESS)
@@ -183,7 +183,7 @@ BOOL WanManager_SetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, ch
             AnscFreeMemory(webConf);
         }
 
-        else if( AnscEqualString(ParamName, "WanFailoverData", TRUE) )
+        else if (strcmp(ParamName, "WanFailoverData") == 0)
         {
             char *webConf = NULL;
             int webSize = 0;
@@ -218,7 +218,7 @@ LONG WanManager_GetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, ch
 {
     LONG ret = -1;
 
-    if( AnscEqualString(ParamName, "Data", TRUE) )
+    if (strcmp(ParamName, "Data") == 0)
     {
         /* Data value should be empty for all get */
         snprintf(pValue, pulSize, "%s", "");
