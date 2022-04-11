@@ -2140,14 +2140,14 @@ static void createDummyWanBridge(char * iface_name)
 
 static void deleteDummyWanBridgeIfExist(char * iface_name)
 {
-    char resultBuff[1024] = {'\0'};
+    char resultBuff[256];
     FILE *fp = NULL;
     int ret = 0;
     memset(resultBuff, '\0', sizeof(resultBuff));
     fp = v_secure_popen("r","ip -d link show %s | tail -n +2 | grep bridge", iface_name);
     if (fp != NULL)
     {
-        fgets(resultBuff, 1024, fp);
+        fgets(resultBuff, sizeof(resultBuff), fp);
         if (resultBuff[0] == '\0')
         {
             // Empty result. No bridge found.
