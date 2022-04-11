@@ -112,22 +112,22 @@ WAN_DHCPV6_DATA,  *PWAN_DHCPV6_DATA;
 
 
 #define   DHCPV6_CLIENT_ENTRY_MATCH(src,dst)                       \
-    (AnscEqualString((src)->Alias, (dst)->Alias, TRUE))            \
+    (strcmp((src)->Alias, (dst)->Alias) == 0)
 
 #define   DHCPV6_CLIENT_ENTRY_MATCH2(src,dst)                      \
-    (AnscEqualString((src), (dst), TRUE))                          \
+    (strcmp((src), (dst)) == 0)
 
 #define   DHCPV6_SENDOPTION_ENTRY_MATCH(src,dst)                   \
-    (AnscEqualString((src)->Alias, (dst)->Alias, TRUE))            \
+    (strcmp((src)->Alias, (dst)->Alias) == 0)
         
 #define   DHCPV6_SENDOPTION_ENTRY_MATCH2(src,dst)                  \
-    (AnscEqualString((src), (dst), TRUE))                          \
+    (strcmp((src), (dst)) == 0)
 
 #define   DHCPV6_REQOPTION_ENTRY_MATCH(src,dst)                    \
-    (AnscEqualString((src)->Alias, (dst)->Alias, TRUE))            \
+    (strcmp((src)->Alias, (dst)->Alias) == 0)
 
 #define   DHCPV6_REQOPTION_ENTRY_MATCH2(src,dst)                   \
-    (AnscEqualString((src), (dst), TRUE))                          \
+    (strcmp((src), (dst)) == 0)
 
 #define   DHCPV6_CLIENT_INITIATION_CONTEXT(pDhcpc)                 \
     CONTEXT_LINK_INITIATION_CONTENT(((PCONTEXT_LINK_OBJECT)(pDhcpc)))  \

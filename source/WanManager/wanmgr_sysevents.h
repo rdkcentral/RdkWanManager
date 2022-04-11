@@ -213,14 +213,6 @@ ANSC_STATUS WanMgr_SysEvents_Finalise(void);
 ANSC_STATUS syscfg_set_string(const char* name, const char* value);
 
 /*
- * @brief Utility function used to set bool values to syscfg.
- * @param[in] const char* name - Indicates string name represent the value
- * @param[in] int value- Indicates the value to pass to the curresponding mem
- * @return Returns ANSC_STATUS.
-*/
-ANSC_STATUS syscfg_set_bool(const char* name, int value);
-
-/*
  * @brief Utility function used to init all IPv6 values in sysevent
  * @param[in] None
  * @return Returns ANSC_STATUS.

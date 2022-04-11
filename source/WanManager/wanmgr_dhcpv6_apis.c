@@ -26,6 +26,7 @@
 
 
 #include <sysevent/sysevent.h>
+#include <string.h>
 #include <net/if.h>
 #include <sys/ioctl.h>
 #include <ctype.h>
@@ -655,8 +656,7 @@ WanMgr_DmlDhcpv6cSetCfg
     if (pCfg->InstanceNumber != 1)
         return ANSC_STATUS_FAILURE;
 
-
-    if (!AnscEqualString((char*)pCfg->Alias, (char*)g_dhcpv6_client.Cfg.Alias, TRUE))
+    if (strcmp((char *) pCfg->Alias, (char *) g_dhcpv6_client.Cfg.Alias) != 0)
     {
         strncpy(buf, SYSCFG_FORMAT_DHCP6C"_alias",sizeof(buf)-1);
         syscfg_set_string(buf,(char*)pCfg->Alias);
@@ -678,7 +678,7 @@ WanMgr_DmlDhcpv6cSetCfg
         need_to_restart_service = 1;
     }
 
-    if (!AnscEqualString((char*)pCfg->RequestedOptions, (char*)g_dhcpv6_client.Cfg.RequestedOptions, TRUE))
+    if (strcmp((char *) pCfg->RequestedOptions, (char *) g_dhcpv6_client.Cfg.RequestedOptions) != 0)
     {
         strncpy(buf, SYSCFG_FORMAT_DHCP6C"_requested_options",sizeof(buf)-1);
         syscfg_set_string(buf, (char*)pCfg->RequestedOptions);
@@ -1317,7 +1317,7 @@ WanMgr_DmlDhcpv6cSetSentOption
             /*handle syscfg*/
             sprintf(namespace, SYSCFG_DHCP6C_SENT_OPTION_FORMAT, index+1);
 
-            if (!AnscEqualString(pEntry->Alias, p_old_entry->Alias, TRUE))
+            if (strcmp(pEntry->Alias, p_old_entry->Alias) != 0)
             {
                 snprintf(buf,sizeof(buf)-1, "%s_alias", namespace);
                 syscfg_set_string(buf, pEntry->Alias);
@@ -1343,7 +1343,7 @@ WanMgr_DmlDhcpv6cSetSentOption
                 need_restart_service = 1;
             }
 
-            if (!AnscEqualString(pEntry->Value, p_old_entry->Value, TRUE))
+            if (strcmp(pEntry->Value, p_old_entry->Value) != 0)
             {
                 snprintf(buf, sizeof(buf)-1, "%s_value", namespace);
                 syscfg_set_string(buf, pEntry->Value);

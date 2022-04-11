@@ -139,22 +139,6 @@ ANSC_STATUS syscfg_set_string(const char* name, const char* value)
     return ret;
 }
 
-ANSC_STATUS syscfg_set_bool(const char* name, int value)
-{
-    ANSC_STATUS ret = ANSC_STATUS_SUCCESS;
-    char buf[10];
-    memset(buf,0,sizeof(buf));
-
-    sprintf(buf, "%d", value);
-    if (syscfg_set_commit(NULL, name, buf) != 0)
-    {
-        CcspTraceError(("syscfg_set failed: %s %d\n", name, value));
-        ret = ANSC_STATUS_FAILURE;
-    }
-
-    return ret;
-}
-
 ANSC_STATUS wanmgr_sysevents_ipv6Info_init()
 {
     sysevent_set(sysevent_fd, sysevent_token,SYSEVENT_FIELD_IPV6_DOMAIN, "", 0);

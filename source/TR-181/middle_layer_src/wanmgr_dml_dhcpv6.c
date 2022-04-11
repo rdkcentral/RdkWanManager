@@ -3298,7 +3298,7 @@ dhcp6c_mapt_mape_GetParamBoolValue
 #if defined(_HUB4_PRODUCT_REQ_) || defined(FEATURE_SUPPORT_MAPT_NAT46)
         char temp[32] = {0};
         sysevent_get(sysevent_fd, sysevent_token,SYSEVENT_MAP_IS_FMR, temp, sizeof(temp));
-        if( AnscEqualString(temp, "TRUE", TRUE))
+        if (strcmp(temp, "TRUE") == 0)
             *pBool  = TRUE;
         else
             *pBool  = FALSE;
@@ -3399,7 +3399,7 @@ dhcp6c_mapt_mape_GetParamUlongValue
         return TRUE;
     }
 
-    if( AnscEqualString(ParamName, "MapRatio", TRUE) )
+    if (strcmp(ParamName, "MapRatio") == 0)
     {
 #if defined(FEATURE_SUPPORT_MAPT_NAT46) || defined(FEATURE_MAPT)
         sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_MAPT_RATIO, temp, sizeof(temp));

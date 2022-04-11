@@ -1485,7 +1485,7 @@ SentOption_GetEntryStatus
     PDHCPC_CONTEXT_LINK_OBJECT pCxtLink          = (PDHCPC_CONTEXT_LINK_OBJECT)hInsContext;
     PDML_DHCPC_FULL            pDhcpc            = (PDML_DHCPC_FULL)pCxtLink->hContext;
 
-    if( AnscEqualString(StatusName, "Committed", TRUE))
+    if (strcmp(StatusName, "Committed") == 0)
     {
         /* collect value */
         if ( pCxtLink->bNew )

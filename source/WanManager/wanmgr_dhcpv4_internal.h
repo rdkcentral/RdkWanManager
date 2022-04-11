@@ -97,22 +97,22 @@ WAN_DHCPV4_DATA,  *PWAN_DHCPV4_DATA;
 
 
 #define   DHCPV4_CLIENT_ENTRY_MATCH(src,dst)                       \
-    (AnscEqualString((src)->Alias, (dst)->Alias, TRUE))            \
+    (strcmp((src)->Alias, (dst)->Alias) == 0)
 
 #define   DHCPV4_CLIENT_ENTRY_MATCH2(src,dst)                      \
-    (AnscEqualString((src), (dst), TRUE))                          \
+    (strcmp((src), (dst)) == 0)
 
 #define   DHCPV4_SENDOPTION_ENTRY_MATCH(src,dst)                   \
-    (AnscEqualString((src)->Alias, (dst)->Alias, TRUE))            \
+    (strcmp((src)->Alias, (dst)->Alias) == 0)
         
 #define   DHCPV4_SENDOPTION_ENTRY_MATCH2(src,dst)                  \
-    (AnscEqualString((src), (dst), TRUE))                          \
+    (strcmp((src), (dst)) == 0)
 
 #define   DHCPV4_REQOPTION_ENTRY_MATCH(src,dst)                    \
-    (AnscEqualString((src)->Alias, (dst)->Alias, TRUE))            \
+    (strcmp((src)->Alias, (dst)->Alias) == 0)
 
 #define   DHCPV4_REQOPTION_ENTRY_MATCH2(src,dst)                   \
-    (AnscEqualString((src), (dst), TRUE))                          \
+    (strcmp((src), (dst)) == 0)
 
 #define   DHCPV4_CLIENT_INITIATION_CONTEXT(pDhcpc)                 \
     CONTEXT_LINK_INITIATION_CONTENT(((PCONTEXT_LINK_OBJECT)(pDhcpc)))  \
