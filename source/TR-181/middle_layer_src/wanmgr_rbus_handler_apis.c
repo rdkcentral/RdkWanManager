@@ -1464,7 +1464,7 @@ ANSC_STATUS WanMgr_RestartUpdateRemoteIface()
 }
 #endif
 
-#ifdef _HUB4_PRODUCT_REQ_
+#if defined(_HUB4_PRODUCT_REQ_) ||  defined(_PLATFORM_RASPBERRYPI_)
 BOOL WanMgr_Rbus_discover_components(char const *pModuleList)
 {
     rbusError_t rc = RBUS_ERROR_SUCCESS;
@@ -1522,4 +1522,4 @@ BOOL WanMgr_Rbus_discover_components(char const *pModuleList)
     return ret;
 }
 
-#endif //_HUB4_PRODUCT_REQ_
+#endif //_HUB4_PRODUCT_REQ_ || _PLATFORM_RASPPBERRYPI_

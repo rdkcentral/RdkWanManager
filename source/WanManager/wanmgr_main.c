@@ -63,7 +63,7 @@
 #include "ccsp_dm_api.h"
 
 #include "webconfig_framework.h"
-#ifdef _HUB4_PRODUCT_REQ_
+#if defined (_HUB4_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_)
 #include "wanmgr_rbus_handler_apis.h"
 #endif
 #define DEBUG_INI_NAME "/etc/debug.ini"
@@ -86,10 +86,10 @@ extern char*                                pComponentName;
 char                                        g_Subsystem[32]         = {0};
 
 #if defined (FEATURE_RDKB_WAN_MANAGER)
-#if !defined(AUTOWAN_ENABLE) && !defined(_PLATFORM_RASPBERRYPI_) && !defined(INTEL_PUMA7)// This is not needed when auto wan is enabled for TCXBX platforms
+#if !defined(AUTOWAN_ENABLE) && !defined(INTEL_PUMA7)// This is not needed when auto wan is enabled for TCXBX platforms
 extern ANSC_HANDLE bus_handle;
 
-#ifdef _HUB4_PRODUCT_REQ_
+#if defined(_HUB4_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_)
 #define  ARRAY_SZ(x) (sizeof(x) / sizeof((x)[0]))
 
 typedef struct
@@ -104,11 +104,13 @@ static void waitUntilSystemReady()
     char pModule[1024] = {0};
     /* list of dependency modules should get registered before wanmgr start */
     Rbus_Module pModuleNames[] = {{"/usr/bin/PsmSsp",    "rbusPsmSsp"},
+#if !defined(_PLATFORM_RASPBERRYPI_)
                                {"/usr/bin/VlanManager", "eRT.com.cisco.spvtg.ccsp.vlanmanager"},
                                {"/usr/bin/xdslmanager",   "eRT.com.cisco.spvtg.ccsp.xdslmanager"},
                                {"/usr/bin/pppmanager",    "eRT.com.cisco.spvtg.ccsp.pppmanager"},
                                {"/usr/bin/CcspCMAgentSsp","eRT.com.cisco.spvtg.ccsp.cm"},
                                {"/usr/bin/rdkledmanager", "eRT.com.cisco.spvtg.ccsp.ledmanager"},
+#endif
                                {"/usr/bin/CcspEthAgent",  "RbusEthAgent"},
                                {"/usr/bin/CcspPandMSsp",  "CcspPandMSsp"}};
 
@@ -137,7 +139,7 @@ static void waitUntilSystemReady()
         sleep(2);
     }
 }
-#endif //_HUB4_PRODUCT_REQ_
+#endif //_HUB4_PRODUCT_REQ_ || _PLATFORM_RASPBERRYPI_
 #endif
 #endif //#if defined (FEATURE_RDKB_WAN_MANAGER)
 
@@ -413,10 +415,10 @@ int main(int argc, char* argv[])
     WanMgr_Core_Init();
 
 #if defined (FEATURE_RDKB_WAN_MANAGER)
-#if !defined(AUTOWAN_ENABLE) && !defined(_PLATFORM_RASPBERRYPI_) && !defined(INTEL_PUMA7)// This is not needed when auto wan is enabled for TCXBX platforms
-#ifdef _HUB4_PRODUCT_REQ_
+#if !defined(AUTOWAN_ENABLE) && !defined(INTEL_PUMA7)// This is not needed when auto wan is enabled for TCXBX platforms
+#if defined (_HUB4_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_)
     waitUntilSystemReady();
-#endif //_HUB4_PRODUCT_REQ_
+#endif //_HUB4_PRODUCT_REQ_ || _PLATFORM_RASPBERRYPI_
 #endif
 #endif //#if defined (FEATURE_RDKB_WAN_MANAGER)
 

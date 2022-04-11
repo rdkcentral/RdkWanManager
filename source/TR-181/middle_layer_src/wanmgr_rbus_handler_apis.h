@@ -100,7 +100,7 @@ void WanMgr_Rbus_UnSubscribeDML(void);
 ANSC_STATUS WanMgr_RestartUpdateRemoteIface();
 ANSC_STATUS WanMgr_WanRemoteIfaceConfigure(WanMgr_DeviceChangeEvent * pDeviceChangeEvent);
 #endif //RBUS_BUILD_FLAG_ENABLE
-#ifdef _HUB4_PRODUCT_REQ_
+#if defined (_HUB4_PRODUCT_REQ_) || defined(_PLATFORM_RASPPBERRYPI_)
 BOOL WanMgr_Rbus_discover_components(char const *ModuleList);
 #endif //_HUB4_PRODUCT_REQ_
 #endif
