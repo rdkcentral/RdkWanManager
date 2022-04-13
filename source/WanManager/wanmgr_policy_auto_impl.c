@@ -218,10 +218,10 @@ static void WanMgr_UpdateControllerData (WanMgr_Policy_Controller_t* pWanControl
     {
         pWanController->WanEnable = pWanConfigData->data.Enable;
         pWanController->PolicyChanged = pWanConfigData->data.PolicyChanged;
-        pWanController->TotalIfaces = WanMgr_IfaceData_GetTotalWanIface();
 
         WanMgrDml_GetConfigData_release(pWanConfigData);
     }
+    pWanController->TotalIfaces = WanMgr_IfaceData_GetTotalWanIface();
 
 }
 
