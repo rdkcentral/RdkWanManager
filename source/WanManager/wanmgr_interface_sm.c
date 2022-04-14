@@ -979,6 +979,23 @@ static eWanState_t wan_transition_physical_interface_down(WanMgr_IfaceSM_Control
 
     DML_WAN_IFACE* pInterface = pWanIfaceCtrl->pIfaceData;
 
+#ifdef FEATURE_MAPT
+    if(pInterface->MAP.MaptStatus == WAN_IFACE_MAPT_STATE_UP)
+    {
+        wan_transition_mapt_down(pWanIfaceCtrl);
+    }
+#endif
+
+    if(pInterface->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_UP)
+    {
+        wan_transition_ipv6_down(pWanIfaceCtrl);
+    }
+
+    if(pInterface->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_UP)
+    {
+        wan_transition_ipv4_down(pWanIfaceCtrl);
+    }
+
     if (pInterface->PPP.Enable == TRUE)
     {
         /* Stops DHCPv6 client */
@@ -1686,8 +1703,7 @@ static eWanState_t wan_state_configuring_wan(WanMgr_IfaceSM_Controller_t* pWanIf
 
     if (pWanIfaceCtrl->WanEnable == FALSE ||
         pInterface->SelectionStatus == WAN_IFACE_NOT_SELECTED ||
-        pInterface->Phy.Status ==  WAN_IFACE_PHY_STATUS_DOWN ||
-        pInterface->Wan.LinkStatus ==  WAN_IFACE_LINKSTATUS_DOWN )
+        pInterface->Phy.Status ==  WAN_IFACE_PHY_STATUS_DOWN)
     {
         return wan_transition_physical_interface_down(pWanIfaceCtrl);
     }
@@ -1711,8 +1727,7 @@ static eWanState_t wan_state_validating_wan(WanMgr_IfaceSM_Controller_t* pWanIfa
 
     if (pWanIfaceCtrl->WanEnable == FALSE ||
             pInterface->SelectionStatus == WAN_IFACE_NOT_SELECTED ||
-            pInterface->Phy.Status ==  WAN_IFACE_PHY_STATUS_DOWN ||
-            pInterface->Wan.LinkStatus ==  WAN_IFACE_LINKSTATUS_DOWN )
+            pInterface->Phy.Status ==  WAN_IFACE_PHY_STATUS_DOWN)
     {
         return wan_transition_physical_interface_down(pWanIfaceCtrl);
     }
@@ -1740,8 +1755,7 @@ static eWanState_t wan_state_obtaining_ip_addresses(WanMgr_IfaceSM_Controller_t*
 
     if (pWanIfaceCtrl->WanEnable == FALSE ||
             pInterface->SelectionStatus == WAN_IFACE_NOT_SELECTED ||
-            pInterface->Phy.Status ==  WAN_IFACE_PHY_STATUS_DOWN ||
-            pInterface->Wan.LinkStatus ==  WAN_IFACE_LINKSTATUS_DOWN )
+            pInterface->Phy.Status ==  WAN_IFACE_PHY_STATUS_DOWN)
     {
         return wan_transition_physical_interface_down(pWanIfaceCtrl);
     }
@@ -1883,11 +1897,12 @@ static eWanState_t wan_state_ipv4_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
 
     if (pWanIfaceCtrl->WanEnable == FALSE ||
             pInterface->SelectionStatus == WAN_IFACE_NOT_SELECTED ||
-            pInterface->Phy.Status ==  WAN_IFACE_PHY_STATUS_DOWN ||
-            pInterface->Wan.LinkStatus ==  WAN_IFACE_LINKSTATUS_DOWN ||
-            pInterface->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_DOWN ||
-            ((pInterface->Wan.RefreshDHCP == TRUE) && (pInterface->Wan.EnableDHCP == FALSE))    // EnableDHCP changes to FALSE
-       )
+            pInterface->Phy.Status ==  WAN_IFACE_PHY_STATUS_DOWN)
+    {
+        return wan_transition_physical_interface_down(pWanIfaceCtrl);
+    }
+    else if (pInterface->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_DOWN ||
+            ((pInterface->Wan.RefreshDHCP == TRUE) && (pInterface->Wan.EnableDHCP == FALSE)))    // EnableDHCP changes to FALSE
     {
         return wan_transition_ipv4_down(pWanIfaceCtrl);
     }
@@ -2018,11 +2033,12 @@ static eWanState_t wan_state_ipv6_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
 
     if (pWanIfaceCtrl->WanEnable == FALSE ||
             pInterface->SelectionStatus == WAN_IFACE_NOT_SELECTED ||
-            pInterface->Phy.Status ==  WAN_IFACE_PHY_STATUS_DOWN ||
-            pInterface->Wan.LinkStatus ==  WAN_IFACE_LINKSTATUS_DOWN ||
-            pInterface->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_DOWN ||
-            ((pInterface->Wan.RefreshDHCP == TRUE) && (pInterface->Wan.EnableDHCP == FALSE))    // EnableDHCP changes to FALSE
-       )
+            pInterface->Phy.Status ==  WAN_IFACE_PHY_STATUS_DOWN)
+    {
+        return wan_transition_physical_interface_down(pWanIfaceCtrl);
+    }
+    else if (pInterface->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_DOWN ||
+            ((pInterface->Wan.RefreshDHCP == TRUE) && (pInterface->Wan.EnableDHCP == FALSE)))    // EnableDHCP changes to FALSE
     {
         return wan_transition_ipv6_down(pWanIfaceCtrl);
     }
@@ -2153,10 +2169,12 @@ static eWanState_t wan_state_dual_stack_active(WanMgr_IfaceSM_Controller_t* pWan
 #endif
 
     if (pWanIfaceCtrl->WanEnable == FALSE ||
-        pInterface->SelectionStatus == WAN_IFACE_NOT_SELECTED ||
-        pInterface->Phy.Status ==  WAN_IFACE_PHY_STATUS_DOWN ||
-        pInterface->Wan.LinkStatus ==  WAN_IFACE_LINKSTATUS_DOWN ||
-        ((pInterface->Wan.RefreshDHCP == TRUE) && (pInterface->Wan.EnableDHCP == FALSE)))
+            pInterface->SelectionStatus == WAN_IFACE_NOT_SELECTED ||
+            pInterface->Phy.Status ==  WAN_IFACE_PHY_STATUS_DOWN)
+    {
+        return wan_transition_physical_interface_down(pWanIfaceCtrl);
+    }
+    else if ((pInterface->Wan.RefreshDHCP == TRUE) && (pInterface->Wan.EnableDHCP == FALSE))
     {
         return wan_transition_dual_stack_down(pWanIfaceCtrl);
     }
@@ -2293,10 +2311,12 @@ static eWanState_t wan_state_mapt_active(WanMgr_IfaceSM_Controller_t* pWanIfaceC
     DML_WAN_IFACE* pInterface = pWanIfaceCtrl->pIfaceData;
 
     if (pWanIfaceCtrl->WanEnable == FALSE ||
-            pInterface->Wan.EnableMAPT == FALSE ||
             pInterface->SelectionStatus == WAN_IFACE_NOT_SELECTED ||
-            pInterface->Phy.Status ==  WAN_IFACE_PHY_STATUS_DOWN ||
-            pInterface->Wan.LinkStatus ==  WAN_IFACE_LINKSTATUS_DOWN ||
+            pInterface->Phy.Status ==  WAN_IFACE_PHY_STATUS_DOWN)
+    {
+        return wan_transition_physical_interface_down(pWanIfaceCtrl);
+    }
+    else if (pInterface->Wan.EnableMAPT == FALSE ||
             pInterface->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_DOWN ||
             pInterface->MAP.MaptStatus == WAN_IFACE_MAPT_STATE_DOWN ||
             pInterface->Wan.Refresh == TRUE )
@@ -2413,12 +2433,10 @@ static eWanState_t wan_state_refreshing_wan(WanMgr_IfaceSM_Controller_t* pWanIfa
 
     if (pWanIfaceCtrl->WanEnable == FALSE ||
         pInterface->SelectionStatus == WAN_IFACE_NOT_SELECTED ||
-        pInterface->Phy.Status ==  WAN_IFACE_PHY_STATUS_DOWN ||
-        pInterface->Wan.LinkStatus ==  WAN_IFACE_LINKSTATUS_DOWN)
+        pInterface->Phy.Status ==  WAN_IFACE_PHY_STATUS_DOWN)
     {
         return wan_transition_physical_interface_down(pWanIfaceCtrl);
     }
-
     else if (pInterface->Wan.LinkStatus == WAN_IFACE_LINKSTATUS_UP &&
              pInterface->Wan.Refresh == TRUE)
     {
