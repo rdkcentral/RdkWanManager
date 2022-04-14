@@ -175,6 +175,9 @@
 #define IVICTL_COMMAND_ERROR             0xff
 #endif // FEATURE_MAPT
 
+#define SYSEVENT_DHCPV4_OPT_43    "dhcpv4_option_43"
+#define PSM_DHCPV4_OPT_43         "dmsb.dhcpv4.option.43"
+
 /**********************************************************************
                 FUNCTION PROTOTYPES
 **********************************************************************/

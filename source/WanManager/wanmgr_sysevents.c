@@ -387,7 +387,7 @@ ANSC_STATUS maptInfo_reset()
 static int set_default_conf_entry()
 {
     char command[BUFLEN_64];
-    char result[BUFLEN_64];
+    char result[BUFLEN_128];
     FILE *fp;
 
     syscfg_init();
@@ -407,6 +407,14 @@ static int set_default_conf_entry()
     syscfg_set(NULL, SYSCFG_ETH_WAN_ENABLED, "false"); // to handle Factory reset case
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_ETHWAN_INITIALIZED, "0", 0);
     syscfg_set(NULL, SYSCFG_NTP_ENABLED, "1"); // Enable NTP in case of ETHWAN
+
+    // set DHCPv4 Vendor specific option 43
+    memset(result, 0, sizeof(result));
+    if (WanMgr_RdkBus_GetParamValuesFromDB(PSM_DHCPV4_OPT_43, result, sizeof(result)) == CCSP_SUCCESS)
+    {
+        CcspTraceInfo(("%s %d: found dhcp option 43 from PSM: %s\n", __FUNCTION__, __LINE__, result));
+        sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_DHCPV4_OPT_43, result, 0);
+    }
 
     syscfg_commit();
     return 0;
