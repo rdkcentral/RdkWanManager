@@ -858,9 +858,17 @@ static WcAwPolicyState_t Transistion_WanInterfaceUp (WanMgr_Policy_Controller_t 
         return STATE_AUTO_WAN_ERROR;
     }
 
-    if (WanMgr_StartIfaceStateMachine (pWanController) != ANSC_STATUS_SUCCESS)
+    if (WanMgr_CheckIfIntfStateMachineRunning(pWanController) == TRUE)
     {
-        CcspTraceError(("%s %d: unable to start interface state machine\n", __FUNCTION__, __LINE__));
+        CcspTraceInfo(("%s %d: Waiting to start new interface state machine \n", __FUNCTION__, __LINE__));
+        return STATE_AUTO_WAN_INTERFACE_DOWN;
+    }
+    else
+    {
+        if (WanMgr_StartIfaceStateMachine (pWanController) != ANSC_STATUS_SUCCESS)
+        {
+            CcspTraceError(("%s %d: unable to start interface state machine\n", __FUNCTION__, __LINE__));
+        }
     }
 
     CcspTraceInfo(("%s %d: started interface state machine & moving to state State_WanInterfaceActive()\n", __FUNCTION__, __LINE__));
