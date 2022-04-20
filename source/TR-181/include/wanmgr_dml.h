@@ -378,6 +378,8 @@ typedef struct _DML_WANMGR_CONFIG_
     BOOLEAN PolicyChanged;
     CHAR    InterfaceAvailableStatus[BUFLEN_64];
     CHAR    InterfaceActiveStatus[BUFLEN_64];
+    CHAR    CurrentActiveInterface[BUFLEN_64];
+    CHAR    CurrentStandbyInterface[BUFLEN_64];
 } DML_WANMGR_CONFIG;
 
 #endif //_WANMGR_DML_H_

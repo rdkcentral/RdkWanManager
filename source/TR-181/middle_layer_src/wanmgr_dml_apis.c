@@ -193,6 +193,18 @@ BOOL WanManager_SetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, ch
 LONG WanManager_GetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, char* pValue, ULONG* pulSize)
 {
      LONG ret = -1;
+
+     if( AnscEqualString(ParamName, "InterfaceAvailableStatus", TRUE) ||
+          AnscEqualString(ParamName, "InterfaceActiveStatus", TRUE) )
+     {
+         Update_Iface_Status();
+     }
+     else if( AnscEqualString(ParamName, "CurrentActiveInterface", TRUE) ||
+               AnscEqualString(ParamName, "CurrentStandbyInterface", TRUE) )
+     {
+         Update_Current_Iface_Status();
+     }
+
      WanMgr_Config_Data_t*   pWanConfigData = WanMgr_GetConfigData_locked();
 
      if (pWanConfigData != NULL)
@@ -206,9 +218,8 @@ LONG WanManager_GetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, ch
             ret = 0;
         }
 
-	if( AnscEqualString(ParamName, "InterfaceAvailableStatus", TRUE) )
+        if( AnscEqualString(ParamName, "InterfaceAvailableStatus", TRUE) )
         {
-            Update_Iface_Status();
             if (( sizeof(pWanDmlData->InterfaceAvailableStatus ) - 1 ) < *pulSize )
             {
                 AnscCopyString( pValue, pWanDmlData->InterfaceAvailableStatus );
@@ -218,7 +229,6 @@ LONG WanManager_GetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, ch
 
         else if( AnscEqualString(ParamName, "InterfaceActiveStatus", TRUE) )
         {
-            Update_Iface_Status();
             if ( ( sizeof(pWanDmlData->InterfaceActiveStatus) - 1 ) < *pulSize )
             {
                 AnscCopyString( pValue, pWanDmlData->InterfaceActiveStatus );
@@ -226,6 +236,23 @@ LONG WanManager_GetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, ch
             }
         }
 
+        else if( AnscEqualString(ParamName, "CurrentActiveInterface", TRUE) )
+        {
+            if ( ( sizeof(pWanDmlData->CurrentActiveInterface) - 1 ) < *pulSize )
+            {
+                AnscCopyString( pValue, pWanDmlData->CurrentActiveInterface );
+                ret = 0;
+            }
+        }
+
+        else if( AnscEqualString(ParamName, "CurrentStandbyInterface", TRUE) )
+        {
+            if ( ( sizeof(pWanDmlData->CurrentStandbyInterface) - 1 ) < *pulSize )
+            {
+                AnscCopyString( pValue, pWanDmlData->CurrentStandbyInterface );
+                ret = 0;
+            }
+        }
         WanMgrDml_GetConfigData_release(pWanConfigData);
      }
 

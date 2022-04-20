@@ -44,6 +44,8 @@
 #define PPP_LINKTYPE_PPPOA "PPPoA"
 #define PPP_LINKTYPE_PPPOE "PPPoE"
 
+#define MESH_IFNAME        "br-home"
+
 #define DATA_SKB_MARKING_LOCATION "/tmp/skb_marking.conf"
 extern char g_Subsystem[32];
 extern ANSC_HANDLE bus_handle;
@@ -1514,6 +1516,67 @@ ANSC_STATUS Update_Iface_Status()
         }
         WanMgrDml_GetConfigData_release(pWanConfigData);
         deleteList(head);
+    }
+    return ANSC_STATUS_SUCCESS;
+}
+
+ANSC_STATUS Update_Current_Iface_Status()
+{
+    int uiLoopCount;
+    DML_DEVICE_MODE devMode = GATEWAY_MODE;
+    CHAR    CurrentActiveInterface[BUFLEN_64] = {0};
+    CHAR    CurrentStandbyInterface[BUFLEN_64] = {0};
+
+    WanMgr_Config_Data_t*   pWanConfigData = WanMgr_GetConfigData_locked();
+    if (pWanConfigData != NULL)
+    {
+        DML_WANMGR_CONFIG* pWanDmlData = &(pWanConfigData->data);
+        devMode = pWanDmlData->DeviceMode;
+        WanMgrDml_GetConfigData_release(pWanConfigData);
+    }
+
+    int TotalIfaces = WanMgr_IfaceData_GetTotalWanIface();
+
+    for (uiLoopCount = 0; uiLoopCount < TotalIfaces; uiLoopCount++)
+    {
+        WanMgr_Iface_Data_t*   pWanDmlIfaceData = WanMgr_GetIfaceData_locked(uiLoopCount);
+        if(pWanDmlIfaceData != NULL)
+        {
+            DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
+            if(pWanIfaceData->Wan.Enable == TRUE)
+            {
+                if(devMode  == GATEWAY_MODE)
+                {
+                    if(pWanIfaceData->SelectionStatus == WAN_IFACE_ACTIVE)
+                    {
+                        snprintf(CurrentActiveInterface, sizeof(CurrentActiveInterface), "%s", pWanIfaceData->Wan.Name);
+                    }
+                    else if(pWanIfaceData->SelectionStatus == WAN_IFACE_SELECTED)
+                    {
+                        snprintf(CurrentStandbyInterface, sizeof(CurrentStandbyInterface), "%s", pWanIfaceData->Wan.Name);
+                    }
+                }
+                else // MODEM_MODE
+                {
+                    if(pWanIfaceData->SelectionStatus == WAN_IFACE_ACTIVE)
+                    {
+                        strncpy(CurrentActiveInterface, MESH_IFNAME, sizeof(MESH_IFNAME));
+                        WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+                        break;
+                    }
+                }
+            }
+            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+        }
+    }
+
+    pWanConfigData = WanMgr_GetConfigData_locked();
+    if (pWanConfigData != NULL)
+    {
+        DML_WANMGR_CONFIG* pWanDmlData = &(pWanConfigData->data);
+        strcpy(pWanDmlData->CurrentActiveInterface,CurrentActiveInterface);
+        strcpy(pWanDmlData->CurrentStandbyInterface,CurrentStandbyInterface);
+        WanMgrDml_GetConfigData_release(pWanConfigData);
     }
     return ANSC_STATUS_SUCCESS;
 }
