@@ -565,8 +565,8 @@ static int wan_setUpIPv4(DML_DEVICE_MODE DeviceMode, DML_WAN_IFACE* pInterface)
         return RETURN_ERR;
     }
 
-    snprintf(cmdStr, sizeof(cmdStr), "ifconfig %s %s netmask %s broadcast %s",
-             pInterface->IP.Ipv4Data.ifname, pInterface->IP.Ipv4Data.ip, pInterface->IP.Ipv4Data.mask, bCastStr);
+    snprintf(cmdStr, sizeof(cmdStr), "ifconfig %s %s netmask %s broadcast %s mtu %u",
+             pInterface->IP.Ipv4Data.ifname, pInterface->IP.Ipv4Data.ip, pInterface->IP.Ipv4Data.mask, bCastStr, pInterface->IP.Ipv4Data.mtuSize);
     CcspTraceInfo(("%s %d -  IP configuration = %s \n", __FUNCTION__, __LINE__, cmdStr));
     WanManager_DoSystemAction("setupIPv4:", cmdStr);
 

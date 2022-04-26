@@ -68,6 +68,7 @@
 #define SYSEVENT_IPV4_US_CURRENT_RATE "ipv4_%s_us_current_rate_0"
 #define SYSEVENT_IPV4_DS_CURRENT_RATE "ipv4_%s_ds_current_rate_0"
 #define SYSEVENT_FIELD_SERVICE_ROUTED_STATUS "routed-status"
+#define SYSEVENT_IPV4_MTU_SIZE "ipv4_%s_mtu"
 
 /*dhcp server restart*/
 #define SYSEVENT_DHCP_SERVER_RESTART "dhcp_server-restart"
@@ -177,6 +178,8 @@
 
 #define SYSEVENT_DHCPV4_OPT_43    "dhcpv4_option_43"
 #define PSM_DHCPV4_OPT_43         "dmsb.dhcpv4.option.43"
+
+#define  WANMNGR_INTERFACE_DEFAULT_MTU_SIZE          (1500)
 
 /**********************************************************************
                 FUNCTION PROTOTYPES

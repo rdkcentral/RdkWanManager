@@ -232,6 +232,10 @@ ANSC_STATUS wanmgr_sysevents_ipv4Info_set(const ipc_dhcpv4_data_t* dhcp4Info, co
     snprintf(value, sizeof(value), "%u",dhcp4Info->leaseTime);
     sysevent_set(sysevent_fd, sysevent_token,name, value, 0);
 
+    snprintf(name,sizeof(name), SYSEVENT_IPV4_MTU_SIZE, dhcp4Info->dhcpcInterface);
+    snprintf(value, sizeof(value), "%u",dhcp4Info->mtuSize);
+    sysevent_set(sysevent_fd, sysevent_token,name, value, 0);
+
     return ANSC_STATUS_SUCCESS;
 }
 
@@ -250,6 +254,7 @@ ANSC_STATUS wanmgr_sysevents_ipv4Info_init(const char *wanIfName)
     sysevent_set(sysevent_fd, sysevent_token,SYSEVENT_CURRENT_WAN_IPADDR, "0.0.0.0", 0);
     snprintf(name, sizeof(name), SYSEVENT_IPV4_START_TIME, wanIfName);
     sysevent_set(sysevent_fd, sysevent_token,name, "0", 0);
+    ipv4Data.mtuSize = WANMNGR_INTERFACE_DEFAULT_MTU_SIZE;
     return wanmgr_sysevents_ipv4Info_set(&ipv4Data, wanIfName);
 }
 

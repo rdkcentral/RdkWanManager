@@ -257,7 +257,7 @@ typedef struct _DML_WANIFACE_INFO
     BOOL                        RebootOnConfiguration;
     BOOL                        EnableDHCP;
     BOOL                        RefreshDHCP;
-    IFACE_TYPE                  IfaceType;
+    IFACE_TYPE                  IfaceType;    
 } DML_WANIFACE_INFO;
 
 
@@ -269,6 +269,7 @@ typedef struct _WANMGR_IPV4_DATA
     char gateway[BUFLEN_32];           /** New gateway, if addressAssigned==TRUE */
     char dnsServer[BUFLEN_64];         /** New dns Server, if addressAssigned==TRUE */
     char dnsServer1[BUFLEN_64];        /** New dns Server, if addressAssigned==TRUE */
+    uint32_t mtuSize;                  /** New MTU size, if mtuAssigned==TRUE */
 } WANMGR_IPV4_DATA;
 
 

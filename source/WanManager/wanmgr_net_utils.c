@@ -1449,7 +1449,7 @@ int WanManager_GetBCastFromIpSubnetMask(const char* inIpStr, const char* inSubne
    ip.s_addr = inet_addr(inIpStr);
    subnetMask.s_addr = inet_addr(inSubnetMaskStr);
    bCast.s_addr = ip.s_addr | ~subnetMask.s_addr;
-   strncpy(outBcastStr, inet_ntoa(bCast),sizeof(inet_ntoa(bCast))-1);
+   strncpy(outBcastStr, inet_ntoa(bCast),strlen(inet_ntoa(bCast))+1);
 
    return ret;
 }

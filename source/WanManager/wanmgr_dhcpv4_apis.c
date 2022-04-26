@@ -81,6 +81,15 @@ static ANSC_STATUS wanmgr_dchpv4_get_ipc_msg_info(WANMGR_IPV4_DATA* pDhcpv4Data,
     memcpy(pDhcpv4Data->dnsServer, pIpcIpv4Data->dnsServer, BUFLEN_64);
     memcpy(pDhcpv4Data->dnsServer1, pIpcIpv4Data->dnsServer1, BUFLEN_64);
 
+    if( ( TRUE == pIpcIpv4Data->mtuAssigned ) && ( 0 != pIpcIpv4Data->mtuSize ) )
+    {
+        pDhcpv4Data->mtuSize =  pIpcIpv4Data->mtuSize;
+    }
+    else
+    {
+        pDhcpv4Data->mtuSize =  WANMNGR_INTERFACE_DEFAULT_MTU_SIZE;
+    }
+
     return ANSC_STATUS_SUCCESS;
 }
 
@@ -124,7 +133,7 @@ ANSC_STATUS wanmgr_handle_dchpv4_event_data(DML_WAN_IFACE* pIfaceData)
 
     if (pDhcpcInfo->addressAssigned)
     {
-        CcspTraceInfo(("assigned ip=%s netmask=%s gateway=%s dns server=%s,%s leasetime = %d, rebindtime = %d, renewaltime = %d, dhcp state = %s\n",
+        CcspTraceInfo(("assigned ip=%s netmask=%s gateway=%s dns server=%s,%s leasetime = %d, rebindtime = %d, renewaltime = %d, dhcp state = %s mtu = %d\n",
                      pDhcpcInfo->ip,
                      pDhcpcInfo->mask,
                      pDhcpcInfo->gateway,
@@ -133,7 +142,8 @@ ANSC_STATUS wanmgr_handle_dchpv4_event_data(DML_WAN_IFACE* pIfaceData)
                      pDhcpcInfo->leaseTime,
                      pDhcpcInfo->rebindingTime,
                      pDhcpcInfo->renewalTime,
-                     pDhcpcInfo->dhcpState));
+                     pDhcpcInfo->dhcpState,
+                     pDhcpcInfo->mtuSize));
 
         if (IPv4ConfigChanged)
         {
