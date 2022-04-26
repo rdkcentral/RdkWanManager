@@ -221,10 +221,6 @@ int util_spawnProcess(const char *execName, const char *args, int * processId)
       signal(SIGILL, SIG_DFL);
       signal(SIGTRAP, SIG_DFL);
       signal(SIGABRT, SIG_DFL);  /* same as SIGIOT */
-      signal(SIGQUIT, SIG_DFL);
-      signal(SIGILL, SIG_DFL);
-      signal(SIGTRAP, SIG_DFL);
-      signal(SIGABRT, SIG_DFL);  /* same as SIGIOT */
       signal(SIGFPE, SIG_DFL);
       signal(SIGBUS, SIG_DFL);
       signal(SIGSEGV, SIG_DFL);

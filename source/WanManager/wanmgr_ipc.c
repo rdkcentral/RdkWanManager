@@ -355,10 +355,13 @@ static ANSC_STATUS IpcServerInit()
 
     if ((ipcListenFd = nn_socket(AF_SP, NN_PULL)) < 0)
     {
+        CcspTraceError(("Error: nn_socket failed[%s]\n",nn_strerror(nn_errno ())));
         return ANSC_STATUS_FAILURE;
     }
     if ((i = nn_bind(ipcListenFd, WAN_MANAGER_ADDR)) < 0)
     {
+        CcspTraceError(("Error: nn_bind failed[%s]\n",nn_strerror(nn_errno ())));
+        nn_close(ipcListenFd);
         return ANSC_STATUS_FAILURE;
     }
 
