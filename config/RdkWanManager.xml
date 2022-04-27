@@ -91,18 +91,6 @@
                     <writable>true</writable>
                 </parameter>
                 <parameter>
-                    <name>CurrentActiveInterface</name>
-                    <type>string</type>
-                    <syntax>string</syntax>
-                    <writable>false</writable>
-                </parameter>
-                <parameter>
-                    <name>CurrentStandbyInterface</name>
-                    <type>string</type>
-                    <syntax>string</syntax>
-                    <writable>false</writable>
-                </parameter>
-                <parameter>
                     <name>RestorationDelay</name>
                     <type>unsignedInt</type>
                     <syntax>uint32</syntax>

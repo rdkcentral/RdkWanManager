@@ -61,14 +61,16 @@ void WanMgr_SetConfigData_Default(DML_WANMGR_CONFIG* pWanDmlConfig)
         memset(pWanDmlConfig->InterfaceActiveStatus, 0, BUFLEN_64);
 
         pWanDmlConfig->DeviceNwMode = GATEWAY_MODE;
+#ifdef RBUS_BUILD_FLAG_ENABLE
         UINT ret = 0;
-        if (WanMgr_getUintParamValue(WANMGR_DEVICE_NETWORKING_MODE, &ret) == ANSC_STATUS_SUCCESS)
+        if (WanMgr_Rbus_getUintParamValue(WANMGR_DEVICE_NETWORKING_MODE, &ret) == ANSC_STATUS_SUCCESS)
         {
             if (ret == 1)
             {
                 pWanDmlConfig->DeviceNwMode = MODEM_MODE;
             }
         }
+#endif //RBUS_BUILD_FLAG_ENABLE
     }
 }
 

@@ -81,7 +81,6 @@ ULONG GetParamValueUlong (char* pParamName);
 int GetParamValueString (char* pParamName, char* pBuffer, PULONG pulSize);
 BOOL GetParamValueBool (char* pParamName);
 ULONG GetInstanceNumberByIndex (char* pObjName, ULONG ulIndex);
-ANSC_STATUS WanMgr_getUintParamValue (char * param, UINT * value);
 
 
 #endif //_WANMGR_BUS_UTILS_H_

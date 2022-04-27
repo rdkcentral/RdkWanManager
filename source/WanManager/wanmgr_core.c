@@ -24,7 +24,9 @@
 #include "wanmgr_rdkbus_apis.h"
 #include "wanmgr_ipc.h"
 #include "wanmgr_controller.h"
+#ifdef RBUS_BUILD_FLAG_ENABLE
 #include "wanmgr_rbus_handler_apis.h"
+#endif //RBUS_BUILD_FLAG_ENABLE
 
 ANSC_STATUS WanMgr_Core_Init(void)
 {
@@ -50,13 +52,14 @@ ANSC_STATUS WanMgr_Core_Init(void)
         CcspTraceInfo(("%s %d - IPC Thread failed to start!\n", __FUNCTION__, __LINE__ ));
     }
 
+#ifdef RBUS_BUILD_FLAG_ENABLE
     //Starts the Rbus Initialize
     retStatus = WanMgr_Rbus_Init();
     if(retStatus != ANSC_STATUS_SUCCESS)
     {
         CcspTraceError(("%s %d - Rbus Init failed !\n", __FUNCTION__, __LINE__ ));
-        return retStatus;
     }
+#endif //RBUS_BUILD_FLAG_ENABLE
 
     system("netmonitor &");
 
@@ -66,8 +69,9 @@ ANSC_STATUS WanMgr_Core_Init(void)
 ANSC_STATUS WanMgr_Core_Start(void)
 {
     ANSC_STATUS retStatus = ANSC_STATUS_SUCCESS;
-
-    WanMgr_SubscribeDML();
+#ifdef RBUS_BUILD_FLAG_ENABLE
+    WanMgr_Rbus_SubscribeDML();
+#endif // RBUS_BUILD_FLAG_ENABLE
     //Initialise Policy State Machine
     WanController_Init_StateMachine();
 

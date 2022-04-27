@@ -16,13 +16,17 @@
 
 #ifndef _WANMGR_RBUS_H_
 #define _WANMGR_RBUS_H_
-
+#ifdef RBUS_BUILD_FLAG_ENABLE
 #include "ansc_platform.h"
 
-#define WANMGR_DEVICE_NETWORKING_MODE     "Device.X_RDKCENTRAL-COM_DeviceControl.DeviceNetworkingMode"
+#define NUM_OF_RBUS_PARAMS                           2
+#define WANMGR_CONFIG_WAN_CURRENTACTIVEINTERFACE     "Device.X_RDK_WanManager.CurrentActiveInterface"
+#define WANMGR_CONFIG_WAN_CURRENTSTANDBYINTERFACE    "Device.X_RDK_WanManager.CurrentStandbyInterface"
+#define WANMGR_DEVICE_NETWORKING_MODE                "Device.X_RDKCENTRAL-COM_DeviceControl.DeviceNetworkingMode"
 
 ANSC_STATUS WanMgr_Rbus_Init();
 ANSC_STATUS WanMgr_Rbus_Exit();
 ANSC_STATUS WanMgr_Rbus_String_EventPublish(char *dm_event, char *dm_value);
-
+ANSC_STATUS WanMgr_Rbus_getUintParamValue(char * param, UINT * value);
+#endif //RBUS_BUILD_FLAG_ENABLE
 #endif

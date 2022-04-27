@@ -38,6 +38,9 @@
 #include "wanmgr_rdkbus_apis.h"
 #include "dmsb_tr181_psm_definitions.h"
 #include "wanmgr_net_utils.h"
+#ifdef RBUS_BUILD_FLAG_ENABLE
+#include "wanmgr_rbus_handler_apis.h"
+#endif //RBUS_BUILD_FLAG_ENABLE
 //
 #define PSM_ENABLE_STRING_TRUE  "TRUE"
 #define PSM_ENABLE_STRING_FALSE  "FALSE"
@@ -1551,6 +1554,10 @@ ANSC_STATUS Update_Current_Iface_Status()
     DEVICE_NETWORKING_MODE devMode = GATEWAY_MODE;
     CHAR    CurrentActiveInterface[BUFLEN_64] = {0};
     CHAR    CurrentStandbyInterface[BUFLEN_64] = {0};
+#ifdef RBUS_BUILD_FLAG_ENABLE
+    bool    publishCurrentActiveInf  = FALSE;
+    bool    publishCurrentStandbyInf = FALSE;
+#endif //RBUS_BUILD_FLAG_ENABLE
 
     WanMgr_Config_Data_t*   pWanConfigData = WanMgr_GetConfigData_locked();
     if (pWanConfigData != NULL)
@@ -1599,9 +1606,36 @@ ANSC_STATUS Update_Current_Iface_Status()
     if (pWanConfigData != NULL)
     {
         DML_WANMGR_CONFIG* pWanDmlData = &(pWanConfigData->data);
-        strcpy(pWanDmlData->CurrentActiveInterface,CurrentActiveInterface);
-        strcpy(pWanDmlData->CurrentStandbyInterface,CurrentStandbyInterface);
+        
+        CcspTraceInfo(("%s %d -- [%s] [%s]\n",__FUNCTION__,__LINE__,pWanDmlData->CurrentActiveInterface,CurrentActiveInterface));
+        if(strcmp(pWanDmlData->CurrentActiveInterface,CurrentActiveInterface) != 0 )
+        {
+            strcpy(pWanDmlData->CurrentActiveInterface,CurrentActiveInterface);
+#ifdef RBUS_BUILD_FLAG_ENABLE
+            publishCurrentActiveInf = TRUE;
+#endif //RBUS_BUILD_FLAG_ENABLE
+        }
+
+        CcspTraceInfo(("%s %d -- [%s] [%s]\n",__FUNCTION__,__LINE__,pWanDmlData->CurrentStandbyInterface,CurrentStandbyInterface));
+        if(strcmp(pWanDmlData->CurrentStandbyInterface,CurrentStandbyInterface) != 0)
+        {
+            strcpy(pWanDmlData->CurrentStandbyInterface,CurrentStandbyInterface);
+#ifdef RBUS_BUILD_FLAG_ENABLE
+            publishCurrentStandbyInf = TRUE;
+#endif //RBUS_BUILD_FLAG_ENABLE
+        }
         WanMgrDml_GetConfigData_release(pWanConfigData);
     }
+#ifdef RBUS_BUILD_FLAG_ENABLE
+    if(publishCurrentActiveInf == TRUE)
+    {
+        WanMgr_Rbus_String_EventPublish(WANMGR_CONFIG_WAN_CURRENTACTIVEINTERFACE, CurrentActiveInterface);
+    }
+
+    if(publishCurrentStandbyInf == TRUE)
+    {
+        WanMgr_Rbus_String_EventPublish(WANMGR_CONFIG_WAN_CURRENTSTANDBYINTERFACE, CurrentStandbyInterface);
+    }
+#endif //RBUS_BUILD_FLAG_ENABLE
     return ANSC_STATUS_SUCCESS;
 }

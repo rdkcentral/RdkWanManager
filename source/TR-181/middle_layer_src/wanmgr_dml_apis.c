@@ -198,11 +198,6 @@ LONG WanManager_GetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, ch
      {
          Update_Iface_Status();
      }
-     else if( AnscEqualString(ParamName, "CurrentActiveInterface", TRUE) ||
-               AnscEqualString(ParamName, "CurrentStandbyInterface", TRUE) )
-     {
-         Update_Current_Iface_Status();
-     }
 
      WanMgr_Config_Data_t*   pWanConfigData = WanMgr_GetConfigData_locked();
 
@@ -235,23 +230,6 @@ LONG WanManager_GetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, ch
             }
         }
 
-        else if( AnscEqualString(ParamName, "CurrentActiveInterface", TRUE) )
-        {
-            if ( ( sizeof(pWanDmlData->CurrentActiveInterface) - 1 ) < *pulSize )
-            {
-                AnscCopyString( pValue, pWanDmlData->CurrentActiveInterface );
-                ret = 0;
-            }
-        }
-
-        else if( AnscEqualString(ParamName, "CurrentStandbyInterface", TRUE) )
-        {
-            if ( ( sizeof(pWanDmlData->CurrentStandbyInterface) - 1 ) < *pulSize )
-            {
-                AnscCopyString( pValue, pWanDmlData->CurrentStandbyInterface );
-                ret = 0;
-            }
-        }
         WanMgrDml_GetConfigData_release(pWanConfigData);
      }
 

@@ -31,6 +31,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#ifdef RBUS_BUILD_FLAG_ENABLE
 #include <rbus.h>
 #include "wanmgr_data.h"
 #include "wanmgr_net_utils.h"
@@ -38,13 +39,56 @@
 
 static rbusHandle_t rbusHandle;
 
-char componentName[] = "WANMANAGER";
+char componentName[32] = "WANMANAGER";
 
 unsigned int gSubscribersCount = 0;
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
-ANSC_STATUS WanMgr_getUintParamValue (char * param, UINT * value)
+char localCurrentActiveInterface[64] = {0};
+char localCurrentStandbyInterface[64] = {0};
+
+rbusError_t WanMgr_Rbus_SubscribeHandler(rbusHandle_t handle, rbusEventSubAction_t action, const char *eventName, rbusFilter_t filter, int32_t interval, bool *autoPublish);
+rbusError_t WanMgr_Rbus_getHandler(rbusHandle_t handle, rbusProperty_t property, rbusGetHandlerOptions_t *opts);
+/***********************************************************************
+
+  Data Elements declaration:
+
+ ***********************************************************************/
+rbusDataElement_t wanMgrRbusDataElements[NUM_OF_RBUS_PARAMS] = {
+    {WANMGR_CONFIG_WAN_CURRENTACTIVEINTERFACE,  RBUS_ELEMENT_TYPE_EVENT | RBUS_ELEMENT_TYPE_PROPERTY, {WanMgr_Rbus_getHandler, NULL, NULL, NULL, WanMgr_Rbus_SubscribeHandler, NULL}},
+    {WANMGR_CONFIG_WAN_CURRENTSTANDBYINTERFACE, RBUS_ELEMENT_TYPE_EVENT | RBUS_ELEMENT_TYPE_PROPERTY, {WanMgr_Rbus_getHandler, NULL, NULL, NULL, WanMgr_Rbus_SubscribeHandler, NULL}},
+};
+
+rbusError_t WanMgr_Rbus_getHandler(rbusHandle_t handle, rbusProperty_t property, rbusGetHandlerOptions_t *opts)
+{
+    (void)handle;
+    (void)opts;
+    char const* name = rbusProperty_GetName(property);
+
+    rbusValue_t value;
+    rbusValue_Init(&value);
+
+    if (strcmp(name, WANMGR_CONFIG_WAN_CURRENTACTIVEINTERFACE) == 0)
+    {
+        rbusValue_SetString(value, localCurrentActiveInterface);
+    }
+    else if (strcmp(name, WANMGR_CONFIG_WAN_CURRENTSTANDBYINTERFACE) == 0)
+    {
+        rbusValue_SetString(value, localCurrentStandbyInterface);
+    }
+    else
+    {
+        CcspTraceWarning(("getHandler: Invalid Input\n"));
+        return RBUS_ERROR_INVALID_INPUT;
+    }
+
+    rbusProperty_SetValue(property, value);
+    rbusValue_Release(value);
+    return RBUS_ERROR_SUCCESS;
+}
+
+ANSC_STATUS WanMgr_Rbus_getUintParamValue (char * param, UINT * value)
 {
     if ((param == NULL) || (value == NULL))
     {
@@ -60,6 +104,7 @@ ANSC_STATUS WanMgr_getUintParamValue (char * param, UINT * value)
 
     return ANSC_STATUS_SUCCESS;
 }
+
 
 
 static void WanMgr_Rbus_EventReceiveHandler(rbusHandle_t handle, rbusEvent_t const* event, rbusEventSubscription_t* subscription)
@@ -108,7 +153,7 @@ static void WanMgr_Rbus_EventReceiveHandler(rbusHandle_t handle, rbusEvent_t con
 }
 
 
-void WanMgr_SubscribeDML(void)
+void WanMgr_Rbus_SubscribeDML(void)
 {
     rbusError_t ret = RBUS_ERROR_SUCCESS;
 
@@ -118,10 +163,10 @@ void WanMgr_SubscribeDML(void)
         CcspTraceError(("%s %d - Failed to Subscribe %s, Error=%s \n", __FUNCTION__, __LINE__, rbusError_ToString(ret), WANMGR_DEVICE_NETWORKING_MODE));
     }
 
-    CcspTraceInfo(("WanMgr_SubscribeDML done\n"));
+    CcspTraceInfo(("WanMgr_Rbus_SubscribeDML done\n"));
 }
 
-void WanMgr_UnSubscribeDML(void)
+void WanMgr_Rbus_UnSubscribeDML(void)
 {
     rbusError_t ret = RBUS_ERROR_SUCCESS;
 
@@ -131,7 +176,7 @@ void WanMgr_UnSubscribeDML(void)
         CcspTraceError(("%s %d - Failed to Subscribe %s, Error=%s \n", __FUNCTION__, __LINE__, WANMGR_DEVICE_NETWORKING_MODE, rbusError_ToString(ret)));
     }
 
-    CcspTraceInfo(("WanMgr_UnSubscribeDML done\n"));
+    CcspTraceInfo(("WanMgr_Rbus_UnSubscribeDML done\n"));
 }
 
 /***********************************************************************
@@ -148,6 +193,16 @@ ANSC_STATUS WanMgr_Rbus_Init()
         return rc;
     }
 
+    // Register data elements
+    rc = rbus_regDataElements(rbusHandle, NUM_OF_RBUS_PARAMS, wanMgrRbusDataElements);
+
+    if (rc != RBUS_ERROR_SUCCESS)
+    {
+        CcspTraceWarning(("rbus register data elements failed\n"));
+        rbus_close(rbusHandle);
+        return rc;
+    }
+
     return ANSC_STATUS_SUCCESS;
 }
 
@@ -157,8 +212,120 @@ ANSC_STATUS WanMgr_Rbus_Init()
 ANSC_STATUS WanMgr_RbusExit()
 {
     CcspTraceInfo(("%s %d - WanMgr_RbusExit called\n", __FUNCTION__, __LINE__ ));
-    WanMgr_UnSubscribeDML();
+    rbus_unregDataElements(rbusHandle, NUM_OF_RBUS_PARAMS, wanMgrRbusDataElements);
+    WanMgr_Rbus_UnSubscribeDML();
 
     rbus_close(rbusHandle);
     return ANSC_STATUS_SUCCESS;
 }
+
+/*******************************************************************************
+  WanMgr_Rbus_EventPublishHandler(): publish rbus events
+ ********************************************************************************/
+ANSC_STATUS WanMgr_Rbus_EventPublishHandler(char *dm_event, void *dm_value, rbusValueType_t valueType)
+{
+    rbusEvent_t event;
+    rbusObject_t rdata;
+    rbusValue_t value;
+
+    if(dm_event == NULL || dm_value == NULL)
+    {
+        CcspTraceInfo(("%s %d - Failed publishing\n", __FUNCTION__, __LINE__));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    rbusValue_Init(&value);
+    rbusObject_Init(&rdata, NULL);
+
+    rbusObject_SetValue(rdata, dm_event, value);
+    CcspTraceInfo(("%s %d - dm_event[%s] valueType[%d]\n", __FUNCTION__, __LINE__, dm_event,valueType));
+    switch(valueType)
+    {
+        case RBUS_BOOLEAN:
+            rbusValue_SetBoolean(value, (*(bool*)(dm_value)));
+            CcspTraceInfo(("%s %d - dm_value[%s]\n", __FUNCTION__, __LINE__, (dm_value)?"True":"False"));
+            break;
+        case RBUS_UINT64:
+            rbusValue_SetUInt64(value, (*(int*)(dm_value)));
+            CcspTraceInfo(("%s %d - dm_value[%d]\n", __FUNCTION__, __LINE__, dm_value));
+            break;
+        case RBUS_STRING:
+            rbusValue_SetString(value, (char*)dm_value);
+            CcspTraceInfo(("%s %d - dm_value[%s]\n", __FUNCTION__, __LINE__, dm_value));
+            break;
+        default:
+            CcspTraceInfo(("%s %d - Cannot identify valueType %d\n", __FUNCTION__, __LINE__, valueType));
+            return ANSC_STATUS_FAILURE;
+    }
+
+    event.name = dm_event;
+    event.data = rdata;
+    event.type = RBUS_EVENT_GENERAL;
+    if(rbusEvent_Publish(rbusHandle, &event) != RBUS_ERROR_SUCCESS) {
+        CcspTraceInfo(("%s %d - event pusblishing failed for type %d\n", __FUNCTION__, __LINE__, valueType));
+        return ANSC_STATUS_FAILURE;
+    }
+    CcspTraceInfo(("%s %d - Successfully Pusblished event for event %s \n", __FUNCTION__, __LINE__, dm_event));
+    rbusValue_Release(value);
+    rbusObject_Release(rdata);
+
+    return ANSC_STATUS_SUCCESS;
+}
+/*******************************************************************************
+  WanMgr_Rbus_String_EventPublish(): publish rbus string events
+ ********************************************************************************/
+ANSC_STATUS WanMgr_Rbus_String_EventPublish(char *dm_event, char *dm_value)
+{
+    if (strcmp(dm_event, WANMGR_CONFIG_WAN_CURRENTACTIVEINTERFACE) == 0)
+    {
+        strncpy(localCurrentActiveInterface,dm_value,sizeof(localCurrentActiveInterface));
+        return WanMgr_Rbus_EventPublishHandler(dm_event, dm_value, RBUS_STRING);
+    }
+    else if (strcmp(dm_event, WANMGR_CONFIG_WAN_CURRENTSTANDBYINTERFACE) == 0)
+    {
+        strncpy(localCurrentStandbyInterface,dm_value,sizeof(localCurrentStandbyInterface));
+        return WanMgr_Rbus_EventPublishHandler(dm_event, dm_value, RBUS_STRING);
+    }
+    else
+    {
+        CcspTraceWarning(("WanMgr_Rbus_String_EventPublish: Invalid Input\n"));
+        return ANSC_STATUS_FAILURE;
+    }
+}
+
+/***********************************************************************
+  Event subscribe handler API for objects:
+ ***********************************************************************/
+rbusError_t WanMgr_Rbus_SubscribeHandler(rbusHandle_t handle, rbusEventSubAction_t action, const char *eventName, rbusFilter_t filter, int32_t interval, bool *autoPublish)
+{
+    (void)handle;
+    (void)filter;
+    (void)interval;
+
+    *autoPublish = false;
+
+    CcspTraceWarning(("WanMgr_Rbus_SubscribeHandler called.\n"));
+
+    if ((strcmp(eventName, WANMGR_CONFIG_WAN_CURRENTACTIVEINTERFACE) == 0) ||
+        (strcmp(eventName, WANMGR_CONFIG_WAN_CURRENTSTANDBYINTERFACE) == 0))
+    {
+        if (action == RBUS_EVENT_ACTION_SUBSCRIBE)
+        {
+            gSubscribersCount += 1;
+        }
+        else
+        {
+            if (gSubscribersCount > 0)
+            {
+                gSubscribersCount -= 1;
+            }
+        }
+        CcspTraceWarning(("Subscribers count changed, new value=%d\n", gSubscribersCount));
+    }
+    else
+    {
+        CcspTraceWarning(("provider: eventSubHandler unexpected eventName %s\n", eventName));
+    }
+    return RBUS_ERROR_SUCCESS;
+}
+#endif //RBUS_BUILD_FLAG_ENABLE
