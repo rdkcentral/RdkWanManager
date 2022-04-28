@@ -22,7 +22,7 @@
 
 
 /******** WAN MGR DATABASE ********/
-static WANMGR_DATA_ST gWanMgrDataBase;
+WANMGR_DATA_ST gWanMgrDataBase;
 
 
 
@@ -74,6 +74,24 @@ void WanMgr_SetConfigData_Default(DML_WANMGR_CONFIG* pWanDmlConfig)
     }
 }
 
+/******** WANMGR IFACE CTRL FUNCTIONS ********/
+void WanMgr_SetIfaceGroup_Default(WanMgr_IfaceGroup_t *pWanIfacegroup)
+{
+
+    if(pWanIfacegroup != NULL)
+    {
+        pWanIfacegroup->ulTotalNumbWanIfaceGroup = MAX_INTERFACE_GROUP;
+        for(int i = 0; i < MAX_INTERFACE_GROUP; i++)
+	{
+            pWanIfacegroup->Group[i].ThreadId = 0;
+            pWanIfacegroup->Group[i].GroupState = 0;
+            pWanIfacegroup->Group[i].Interfaces = 0;
+            pWanIfacegroup->Group[i].SelectedInterface = 0;
+            pWanIfacegroup->Group[i].SelectedIfaceStatus = 0;
+            pWanIfacegroup->Group[i].GroupIfaceListChanged = 0;
+	}
+    }
+}
 
 
 /******** WANMGR IFACE CTRL FUNCTIONS ********/
@@ -189,6 +207,34 @@ void WanMgrDml_GetIfaceData_release(WanMgr_Iface_Data_t* pWanIfaceData)
     }
 }
 
+WANMGR_IFACE_GROUP* WanMgr_GetIfaceGroup_locked(UINT iface_index)
+{
+    if(pthread_mutex_lock(&(gWanMgrDataBase.IfaceGroup.mGroupMutex)) == 0)
+    {
+        WanMgr_IfaceGroup_t* pWanIfaceGroup = &(gWanMgrDataBase.IfaceGroup);
+        if(iface_index < pWanIfaceGroup->ulTotalNumbWanIfaceGroup)
+        {
+            if(pWanIfaceGroup->Group != NULL)
+            {
+                WANMGR_IFACE_GROUP* pWanIfacegroup = &(pWanIfaceGroup->Group[iface_index]);
+                return pWanIfacegroup;
+            }
+        }
+        WanMgrDml_GetIfaceData_release(NULL);
+    }
+
+    return NULL;
+}
+
+void WanMgrDml_GetIfaceGroup_release(void)
+{
+    WanMgr_IfaceGroup_t* pWanIfaceGroup = &(gWanMgrDataBase.IfaceGroup);
+    if(pWanIfaceGroup != NULL)
+    {
+        pthread_mutex_unlock (&(pWanIfaceGroup->mGroupMutex));
+    }
+}
+
 void WanMgr_IfaceData_Init(WanMgr_Iface_Data_t* pIfaceData, UINT iface_index)
 {
     if(pIfaceData != NULL)
@@ -223,6 +269,7 @@ void WanMgr_IfaceData_Init(WanMgr_Iface_Data_t* pIfaceData, UINT iface_index)
         pWanDmlIface->Wan.LinkStatus = WAN_IFACE_LINKSTATUS_DOWN;
         pWanDmlIface->Wan.Refresh = FALSE;
         pWanDmlIface->Wan.RebootOnConfiguration = FALSE;
+	pWanDmlIface->Wan.Group = 1;
         memset(pWanDmlIface->IP.Path, 0, 64);
         pWanDmlIface->IP.Ipv4Status = WAN_IFACE_IPV4_STATE_DOWN;
         pWanDmlIface->IP.Ipv6Status = WAN_IFACE_IPV6_STATE_DOWN;
@@ -266,6 +313,9 @@ void WanMgr_Data_Init(void)
     /*** WAN IFACE ***/
     WanMgr_SetIfaceCtrl_Default(&(pWanMgrData->IfaceCtrl));
     pthread_mutex_init(&(pWanMgrData->IfaceCtrl.mDataMutex), &(muttex_attr));
+
+    WanMgr_SetIfaceGroup_Default(&(pWanMgrData->IfaceGroup));
+    pthread_mutex_init(&(pWanMgrData->IfaceGroup.mGroupMutex), &(muttex_attr));
 }
 
 
@@ -286,6 +336,7 @@ ANSC_STATUS WanMgr_Data_Delete(void)
     WanMgr_IfaceCtrl_Delete(&(pWanMgrData->IfaceCtrl));
     pthread_mutex_destroy(&(pWanMgrData->IfaceCtrl.mDataMutex));
 
+    pthread_mutex_destroy(&(pWanMgrData->IfaceGroup.mGroupMutex));
     return result;
 }
 

@@ -28,7 +28,7 @@
 
 //Minimum SelectionTimeOut Value
 #define SELECTION_TIMEOUT_DEFAULT_MIN 20
-
+#define MAX_INTERFACE_GROUP           2
 //WAN CONFIG
 typedef struct _WANMGR_CONFIG_DATA_
 {
@@ -51,7 +51,22 @@ typedef struct _WANMGR_IFACECTRL_DATA_
     pthread_mutex_t             mDataMutex;
 }WanMgr_IfaceCtrl_Data_t;
 
+typedef struct _WANMGR_IFACE_GROUP_DATA_
+{
+    pthread_t          ThreadId;
+    UINT               GroupState;
+    UINT               Interfaces;
+    UINT               SelectedInterface;
+    BOOL               SelectedIfaceStatus;
+    BOOL               GroupIfaceListChanged;
+}WANMGR_IFACE_GROUP;
 
+typedef struct _WANMGR_IFACE_GROUP_
+{
+    UINT                      ulTotalNumbWanIfaceGroup;
+    WANMGR_IFACE_GROUP        Group[MAX_INTERFACE_GROUP];
+    pthread_mutex_t           mGroupMutex;
+}WanMgr_IfaceGroup_t;
 
 typedef struct _WANMGR_DATA_ST_
 {
@@ -60,6 +75,9 @@ typedef struct _WANMGR_DATA_ST_
 
     //WAN IFACE
     WanMgr_IfaceCtrl_Data_t     IfaceCtrl;
+
+    //Iface Group
+    WanMgr_IfaceGroup_t         IfaceGroup;
 } WANMGR_DATA_ST;
 
 

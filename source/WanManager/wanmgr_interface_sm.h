@@ -72,7 +72,8 @@ typedef enum
     WAN_STATE_MAPT_ACTIVE,
 #endif //FEATURE_MAPT
     WAN_STATE_REFRESHING_WAN,
-    WAN_STATE_DECONFIGURING_WAN
+    WAN_STATE_DECONFIGURING_WAN,
+    WAN_STATE_STANDBY
 } eWanState_t;
 
 typedef struct WanMgr_IfaceSM_Ctrl_st

@@ -28,8 +28,22 @@
 #include "wanmgr_rdkbus_apis.h"
 
 /* ---- Global Constants -------------------------- */
-#define LOOP_TIMEOUT 500000 // timeout in milliseconds. This is the state machine loop interval
+#define SELECTION_PROCESS_LOOP_TIMEOUT 500000 // timeout in milliseconds. This is the state machine loop interval
+#define AUTO_POLICY_LOOP_TIMEOUT 5000000 // timeout in seconds. This is the Auto Policy Thread
+#define FAILOVER_PROCESS_LOOP_TIMEOUT 100000
 
+extern WANMGR_DATA_ST gWanMgrDataBase;
+
+struct timespec         RestorationDelayStart;
+struct timespec         RestorationDelayEnd;
+
+UINT RestorationDelayTimeOut = 0;
+
+typedef enum {
+    STATE_GROUP_UKNOWN,
+    STATE_GROUP_RUNNING,
+    STATE_GROUP_STOPPED,
+} wgIfaceGroup_t;
 
 typedef enum {
     STATE_AUTO_WAN_INTERFACE_SELECTING = 0,
@@ -45,7 +59,20 @@ typedef enum {
     STATE_AUTO_WAN_SM_EXIT
 } WcAwPolicyState_t;
 
-/* STATES */
+typedef enum {
+    STATE_FAILOVER_ACTIVE_DOWN_STANDBY_DOWN = 1,
+    STATE_FAILOVER_ACTIVE_UP_STANDBY_DOWN,
+    STATE_FAILOVER_ACTIVE_DOWN_STANDBY_UP,
+    STATE_FAILOVER_ACTIVE_UP_STANDBY_UP
+} FailOverState_t;
+
+/* FAILOVER STATES */
+static FailOverState_t State_FailOver_ActiveDown_StandbyDown(UINT Active, BOOL ActiveStatus, UINT standby, BOOL StandbyStatus);
+static FailOverState_t State_FailOver_ActiveUp_StandbyDown(UINT Active, BOOL ActiveStatus, UINT standby, BOOL StandbyStatus);
+static FailOverState_t State_FailOver_ActiveDown_StandbyUp(UINT Active, BOOL ActiveStatus, UINT standby, BOOL StandbyStatus);
+static FailOverState_t State_FailOver_ActiveUp_StandbyUp(UINT Active, BOOL ActiveStatus, UINT standby, BOOL StandbyStatus);
+
+/* SELECTION STATES */
 static WcAwPolicyState_t State_SelectingInterface (WanMgr_Policy_Controller_t * pWanController);
 static WcAwPolicyState_t State_WaitForInterface (WanMgr_Policy_Controller_t * pWanController);
 static WcAwPolicyState_t State_ScanningInterface (WanMgr_Policy_Controller_t * pWanController);
@@ -71,29 +98,45 @@ static WcAwPolicyState_t Transistion_WanInterfaceDown (WanMgr_Policy_Controller_
 static WcAwPolicyState_t Transistion_WanInterfaceUp (WanMgr_Policy_Controller_t * pWanController);
 static WcAwPolicyState_t Transition_ResetActiveInterface (WanMgr_Policy_Controller_t * pWanController);
 
+
 /*
- * WanMgr_SetActiveLink()
+ * WanMgr_SetGroupSelectedIface()
+ * - sets the Group Selected Interface.
+ */
+static int WanMgr_SetGroupSelectedIface (UINT GroupInst, UINT IfaceInst, BOOL Status)
+{
+    WANMGR_IFACE_GROUP* pWanIfaceGroup = WanMgr_GetIfaceGroup_locked((GroupInst - 1));
+    if (pWanIfaceGroup != NULL)
+    {
+        pWanIfaceGroup->SelectedInterface = IfaceInst;
+        pWanIfaceGroup->SelectedIfaceStatus = Status;
+        WanMgrDml_GetIfaceGroup_release();
+    }
+    return ANSC_STATUS_SUCCESS;
+}
+
+/*
+ * WanMgr_SetSelectionStatus()
  * - sets the ActiveLink locallt and saves it to PSM
  */
-static int WanMgr_SetActiveLink (WanMgr_Policy_Controller_t * pWanController, bool storeValue)
+static int WanMgr_SetSelectionStatus (UINT IfaceInst, UINT SelStatus, BOOL ActiveState)
 {
-    if ((pWanController == NULL) || (pWanController->activeInterfaceIdx == -1)
-            || (pWanController->pWanActiveIfaceData == NULL))
+    WanMgr_Iface_Data_t* pWanIfaceData = WanMgr_GetIfaceData_locked((IfaceInst - 1));
+    if (pWanIfaceData != NULL)
     {
-        CcspTraceError(("%s %d: Invalid args \n", __FUNCTION__, __LINE__));
-        return ANSC_STATUS_FAILURE;
+        DML_WAN_IFACE* pWanIface = &(pWanIfaceData->data);
+        pWanIface->Wan.ActiveLink = ActiveState;
+	if (pWanIface->SelectionStatus > WAN_IFACE_NOT_SELECTED)
+            pWanIface->SelectionStatus = SelStatus;
+
+        WanMgrDml_GetIfaceData_release(pWanIfaceData);
     }
-
-    // set ActiveLink in Interface data
-    DML_WAN_IFACE* pIfaceData = &(pWanController->pWanActiveIfaceData->data);
-    pIfaceData->Wan.ActiveLink = storeValue;
-
-    // save ActiveLink value in PSM
-    if (DmlSetWanActiveLinkInPSMDB(pWanController->activeInterfaceIdx, storeValue) != ANSC_STATUS_SUCCESS)
+    if (DmlSetWanActiveLinkInPSMDB((IfaceInst - 1), ActiveState) != ANSC_STATUS_SUCCESS)
     {
         CcspTraceError(("%s %d: Failed to set ActiveLink in PSM, SelectedInterface %d \n",
-                    __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
+                    __FUNCTION__, __LINE__, IfaceInst));
     }
+
     return ANSC_STATUS_SUCCESS;
 }
 
@@ -115,6 +158,12 @@ static int WanMgr_GetPrevSelectedInterface (WanMgr_Policy_Controller_t* pWanCont
 
     for( uiLoopCount = 0; uiLoopCount < pWanController->TotalIfaces; uiLoopCount++ )
         {
+            if (!(pWanController->GroupIfaceList & (1 << uiLoopCount)))
+            {
+                CcspTraceError(("%s-%d: Interface(%d) not present in GroupIfaceList(%x) \n", 
+                                 __FUNCTION__, __LINE__, (uiLoopCount+1), pWanController->GroupIfaceList));
+                continue;
+            }
             WanMgr_Iface_Data_t*   pWanDmlIfaceData = WanMgr_GetIfaceData_locked(uiLoopCount);
             if(pWanDmlIfaceData != NULL)
             {
@@ -168,6 +217,12 @@ static void WanMgr_Policy_Auto_GetHighPriorityIface(WanMgr_Policy_Controller_t *
 
     for( uiLoopCount = 0; uiLoopCount < pWanController->TotalIfaces; uiLoopCount++ )
     {
+        if (!(pWanController->GroupIfaceList & (1 << uiLoopCount)))
+        {
+            CcspTraceError(("%s-%d: Interface(%d) not present in GroupIfaceList(%x) \n",
+                             __FUNCTION__, __LINE__, (uiLoopCount+1), pWanController->GroupIfaceList));
+            continue;
+        }
         WanMgr_Iface_Data_t*   pWanDmlIfaceData = WanMgr_GetIfaceData_locked(uiLoopCount);
         if(pWanDmlIfaceData != NULL)
         {
@@ -232,12 +287,9 @@ static void WanMgr_UpdateControllerData (WanMgr_Policy_Controller_t* pWanControl
 }
 
 /*
- * WanMgr_ResetActiveLinkOnAllIface()
- * - reset ActiveLink to false and saves it in PSM
- * - this will prevent any newly connected high priority iface to become second ActiveLink, 
-        in case ResetActiveLinkflag is set
+ * WanMgr_ResetGroupSelectedIface()
  */
-static int WanMgr_ResetActiveLinkOnAllIface (WanMgr_Policy_Controller_t* pWanController)
+static int WanMgr_ResetGroupSelectedIface (WanMgr_Policy_Controller_t* pWanController)
 {
     if ((pWanController == NULL) || (pWanController->TotalIfaces == 0))
     {
@@ -245,24 +297,10 @@ static int WanMgr_ResetActiveLinkOnAllIface (WanMgr_Policy_Controller_t* pWanCon
         return ANSC_STATUS_FAILURE;
     }
 
-    UINT uiLoopCount;
-    for (uiLoopCount = 0; uiLoopCount < pWanController->TotalIfaces; uiLoopCount++)
+    if (WanMgr_SetGroupSelectedIface (pWanController->GroupInst, (pWanController->activeInterfaceIdx+1), 0) != ANSC_STATUS_SUCCESS)
     {
-        WanMgr_Iface_Data_t*   pWanDmlIfaceData = WanMgr_GetIfaceData_locked(uiLoopCount);
-        if(pWanDmlIfaceData != NULL)
-        {
-            DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
-            CcspTraceInfo(("%s %d: setting Interface index:%d, ActiveLink = FALSE and saving it in PSM \n", __FUNCTION__, __LINE__, uiLoopCount));
-            pWanIfaceData->Wan.ActiveLink = FALSE;
-            if (DmlSetWanActiveLinkInPSMDB(uiLoopCount, FALSE) != ANSC_STATUS_SUCCESS)
-            {
-                CcspTraceError(("%s %d: Failed to set ActiveLink in PSM, SelectedInterface %d \n",
-                            __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
-                WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
-                return ANSC_STATUS_FAILURE;
-            }
-            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
-        }
+        CcspTraceError(("%s %d: Failed to set ActiveLink in PSM, SelectedInterface %d \n",
+                        __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
     }
     return ANSC_STATUS_SUCCESS;
 }
@@ -282,6 +320,12 @@ static void WanMgr_ResetIfaceTable (WanMgr_Policy_Controller_t* pWanController)
     UINT uiLoopCount;
     for( uiLoopCount = 0; uiLoopCount < pWanController->TotalIfaces; uiLoopCount++ )
     {
+        if (!(pWanController->GroupIfaceList & (1 << uiLoopCount)))
+        {
+            CcspTraceError(("%s-%d: Interface(%d) not present in GroupIfaceList(%x) \n",
+                             __FUNCTION__, __LINE__, (uiLoopCount+1), pWanController->GroupIfaceList));
+            continue;
+        }
         WanMgr_Iface_Data_t*   pWanDmlIfaceData = WanMgr_GetIfaceData_locked(uiLoopCount);
         if(pWanDmlIfaceData != NULL)
         {
@@ -316,6 +360,12 @@ static bool WanMgr_CheckIfSelectedIfaceOnlyPossibleWanLink (WanMgr_Policy_Contro
     UINT uiLoopCount;
     for( uiLoopCount = 0; uiLoopCount < pWanController->TotalIfaces; uiLoopCount++ )
     {
+        if (!(pWanController->GroupIfaceList & (1 << uiLoopCount)))
+        {
+            CcspTraceError(("%s-%d: Interface(%d) not present in GroupIfaceList(%x) \n",
+                             __FUNCTION__, __LINE__, (uiLoopCount+1), pWanController->GroupIfaceList));
+            continue;
+        }
         if (uiLoopCount == pWanController->activeInterfaceIdx)
             continue;
 
@@ -356,6 +406,12 @@ static bool WanMgr_CheckIfPlatformReconfiguringRequired (WanMgr_Policy_Controlle
 
     for( uiLoopCount = 0; uiLoopCount < pWanController->TotalIfaces; uiLoopCount++ )
     {
+        if (!(pWanController->GroupIfaceList & (1 << uiLoopCount)))
+        {
+            CcspTraceError(("%s-%d: Interface(%d) not present in GroupIfaceList(%x) \n",
+                             __FUNCTION__, __LINE__, (uiLoopCount+1), pWanController->GroupIfaceList));
+            continue;
+        }
         WanMgr_Iface_Data_t*   pWanDmlIfaceData = WanMgr_GetIfaceData_locked(uiLoopCount);
 
         if(pWanDmlIfaceData != NULL)
@@ -475,6 +531,12 @@ static void WanMgr_SetUpstreamOnlyForSelectedIntf (WanMgr_Policy_Controller_t* p
 
     for( uiLoopCount = 0; uiLoopCount < pWanController->TotalIfaces; uiLoopCount++ )
     {
+        if (!(pWanController->GroupIfaceList & (1 << uiLoopCount)))
+        {
+            CcspTraceError(("%s-%d: Interface(%d) not present in GroupIfaceList(%x) \n",
+                             __FUNCTION__, __LINE__, (uiLoopCount+1), pWanController->GroupIfaceList));
+            continue;
+        }
         WanMgr_Iface_Data_t*   pWanDmlIfaceData = WanMgr_GetIfaceData_locked(uiLoopCount);
         if(pWanDmlIfaceData != NULL)
         {
@@ -530,7 +592,7 @@ static int WanMgr_StartIfaceStateMachine (WanMgr_Policy_Controller_t * pWanContr
 
     // Set SelectionStatus = ACTIVE & start Interface State Machine
     DML_WAN_IFACE * pActiveInterface = &(pWanController->pWanActiveIfaceData->data);
-    pActiveInterface->SelectionStatus = WAN_IFACE_ACTIVE;
+    pActiveInterface->SelectionStatus = WAN_IFACE_SELECTED;
 
     WanMgr_IfaceSM_Controller_t wanIfCtrl;
     WanMgr_IfaceSM_Init(&wanIfCtrl, pWanController->activeInterfaceIdx);
@@ -632,10 +694,11 @@ static WcAwPolicyState_t Transition_InterfaceInvalid (WanMgr_Policy_Controller_t
 
     // set ActiveLink = FALSE and save it to PSM
     CcspTraceInfo(("%s %d: setting Interface index:%d, ActiveLink = False and saving it in PSM \n", __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
-    if (WanMgr_SetActiveLink (pWanController, FALSE) != ANSC_STATUS_SUCCESS)
+    pIfaceData->Wan.ActiveLink = FALSE;
+    if (DmlSetWanActiveLinkInPSMDB(pWanController->activeInterfaceIdx, FALSE) != ANSC_STATUS_SUCCESS)
     {
-        CcspTraceError(("%s %d: Failed to set ActiveLink in PSM, SelectedInterface %d \n",
-                    __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
+        CcspTraceError(("%s-%d: Failed to set ActiveLink in PSM, SelectedInterface %d \n",
+                         __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
     }
 
     // deselect the interface
@@ -748,10 +811,10 @@ static WcAwPolicyState_t Transition_InterfaceValidated (WanMgr_Policy_Controller
     }
 
     // Set ActiveLink to TRUE and store it in PSM
-    CcspTraceInfo(("%s %d: setting Interface index:%d, ActiveLink = TRUE and saving it in PSM \n", __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
-    if (WanMgr_SetActiveLink(pWanController, TRUE) != ANSC_STATUS_SUCCESS)
+    CcspTraceInfo(("%s %d: setting GroupSelectedInterface(%d) \n", __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
+    if (WanMgr_SetGroupSelectedIface (pWanController->GroupInst, (pWanController->activeInterfaceIdx+1), 1) != ANSC_STATUS_SUCCESS)
     {
-        CcspTraceError(("%s-%d: Failed to set ActiveLink in PSM, SelectedInterface %d \n",
+        CcspTraceError(("%s-%d: Failed to set GroupSelectedInterface %d \n",
                     __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
     }
 
@@ -783,9 +846,9 @@ static WcAwPolicyState_t Transition_RestartSelectionInterface (WanMgr_Policy_Con
     WanMgr_ResetIfaceTable(pWanController);
 
     // reset ActiveLink to false for all interfaces and save it in PSM
-    if (WanMgr_ResetActiveLinkOnAllIface(pWanController) != ANSC_STATUS_SUCCESS)
+    if (WanMgr_ResetGroupSelectedIface(pWanController) != ANSC_STATUS_SUCCESS)
     {   
-        CcspTraceError(("%s %d: Unable to reset ActiveLink in all interfaces\n", __FUNCTION__, __LINE__));
+        CcspTraceError(("%s %d: Unable to reset GroupSelectedInterface \n", __FUNCTION__, __LINE__));
         return STATE_AUTO_WAN_ERROR;
     }
 
@@ -1145,9 +1208,15 @@ static WcAwPolicyState_t State_WanInterfaceActive (WanMgr_Policy_Controller_t * 
 
     // check if PHY is still UP
     DML_WAN_IFACE * pActiveInterface = &(pWanController->pWanActiveIfaceData->data);
-    if (pActiveInterface->Phy.Status != WAN_IFACE_PHY_STATUS_UP)
+    if (pActiveInterface->Phy.Status != WAN_IFACE_PHY_STATUS_UP ||
+        pActiveInterface->Wan.Enable == FALSE)
     {
         CcspTraceInfo(("%s %d: interface:%d is PHY down\n", __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
+        if (WanMgr_SetGroupSelectedIface (pWanController->GroupInst, (pWanController->activeInterfaceIdx+1), 0) != ANSC_STATUS_SUCCESS)
+        {
+            CcspTraceError(("%s %d: Failed to set GroupSelectedInterface %d \n",
+                            __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
+        }
         return Transistion_WanInterfaceDown (pWanController);
     }
 
@@ -1181,8 +1250,14 @@ static WcAwPolicyState_t State_WanInterfaceDown (WanMgr_Policy_Controller_t * pW
 
     // check if PHY is UP
     DML_WAN_IFACE * pActiveInterface = &(pWanController->pWanActiveIfaceData->data);
-    if (pActiveInterface->Phy.Status == WAN_IFACE_PHY_STATUS_UP)
+    if (pActiveInterface->Phy.Status == WAN_IFACE_PHY_STATUS_UP &&
+        pActiveInterface->Wan.Enable == TRUE)
     {
+        if (WanMgr_SetGroupSelectedIface (pWanController->GroupInst, (pWanController->activeInterfaceIdx+1), 1) != ANSC_STATUS_SUCCESS)
+        {
+            CcspTraceError(("%s %d: Failed to set GroupSelectedInterface %d \n",
+                            __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
+        }
         return Transistion_WanInterfaceUp (pWanController);
     }
     
@@ -1212,16 +1287,229 @@ static WcAwPolicyState_t State_WaitingForInterfaceSMExit(WanMgr_Policy_Controlle
 
     WanMgr_ResetIfaceTable(pWanController);
 
-    if(pWanController->PolicyChanged == TRUE)
-    {
-        WanMgr_ResetActiveLinkOnAllIface(pWanController);
-    }
-    return STATE_AUTO_WAN_SM_EXIT;
+    WanMgr_ResetGroupSelectedIface(pWanController);
 
+    return STATE_AUTO_WAN_SM_EXIT;
 }
 
 
-ANSC_STATUS WanMgr_Policy_AutoWanPolicy (void)
+/* FailOver States Definitions  */
+
+static FailOverState_t State_FailOver_ActiveDown_StandbyDown(UINT Active, BOOL ActiveStatus, UINT Standby, BOOL StandbyStatus)
+{
+    if (ActiveStatus && StandbyStatus)
+    {
+        //Set ActiveLink true for Active Inst
+        if (WanMgr_SetSelectionStatus (Active, WAN_IFACE_ACTIVE, TRUE) != ANSC_STATUS_SUCCESS)
+        {
+            CcspTraceError(("%s %d: Failed to set ActiveLink in PSM, ActiveInst %d \n",
+                             __FUNCTION__, __LINE__, Active));
+        }
+	CcspTraceInfo(("%s-%d : Change state from STATE_FAILOVER_ACTIVE_DOWN_STANDBY_DOWN to STATE_FAILOVER_ACTIVE_UP_STANDBY_UP\n", __FUNCTION__, __LINE__));
+        return STATE_FAILOVER_ACTIVE_UP_STANDBY_UP;
+    }
+    else if (ActiveStatus && !StandbyStatus)
+    {
+	//set ActiveLink true for Active Inst
+        if (WanMgr_SetSelectionStatus (Active, WAN_IFACE_ACTIVE, TRUE) != ANSC_STATUS_SUCCESS)
+        {
+            CcspTraceError(("%s %d: Failed to set ActiveLink in PSM, ActiveInst %d \n",
+                             __FUNCTION__, __LINE__, Active));
+        }
+        CcspTraceInfo(("%s-%d : Change state from STATE_FAILOVER_ACTIVE_DOWN_STANDBY_DOWN to STATE_FAILOVER_ACTIVE_UP_STANDBY_DOWN\n", __FUNCTION__, __LINE__));
+        return STATE_FAILOVER_ACTIVE_UP_STANDBY_DOWN;
+    }
+    else if(!ActiveStatus && StandbyStatus)
+    {
+	//Set ActiveLink true for standby Inst
+        if (WanMgr_SetSelectionStatus (Standby, WAN_IFACE_ACTIVE, TRUE) != ANSC_STATUS_SUCCESS)
+        {
+            CcspTraceError(("%s %d: Failed to set ActiveLink in PSM, StandbyInst %d \n",
+                             __FUNCTION__, __LINE__, Standby));
+        }
+        CcspTraceInfo(("%s-%d : Change state from STATE_FAILOVER_ACTIVE_DOWN_STANDBY_DOWN to STATE_FAILOVER_ACTIVE_DOWN_STANDBY_UP\n", __FUNCTION__, __LINE__));
+        return STATE_FAILOVER_ACTIVE_DOWN_STANDBY_UP;
+    }
+
+    return STATE_FAILOVER_ACTIVE_DOWN_STANDBY_DOWN;
+}
+
+static FailOverState_t State_FailOver_ActiveUp_StandbyDown(UINT Active, BOOL ActiveStatus, UINT Standby, BOOL StandbyStatus)
+{
+    if (ActiveStatus && StandbyStatus)
+    {
+        //just change state
+	CcspTraceInfo(("%s-%d : Change state from STATE_FAILOVER_ACTIVE_UP_STANDBY_DOWN to STATE_FAILOVER_ACTIVE_UP_STANDBY_UP\n", __FUNCTION__, __LINE__));
+        return STATE_FAILOVER_ACTIVE_UP_STANDBY_UP;
+    }
+    else if (!ActiveStatus && !StandbyStatus)
+    {
+	//set ActiveLink false for active Inst
+        if (WanMgr_SetSelectionStatus (Active, WAN_IFACE_SELECTED, FALSE) != ANSC_STATUS_SUCCESS)
+        {
+            CcspTraceError(("%s %d: Failed to set ActiveLink in PSM, ActiveInst %d \n",
+                             __FUNCTION__, __LINE__, Active));
+        }
+        CcspTraceInfo(("%s-%d : Change state from STATE_FAILOVER_ACTIVE_UP_STANDBY_DOWN to STATE_FAILOVER_ACTIVE_DOWN_STANDBY_DOWN\n", __FUNCTION__, __LINE__));
+        return STATE_FAILOVER_ACTIVE_DOWN_STANDBY_DOWN;
+    }
+    else if(!ActiveStatus && StandbyStatus)
+    {
+	//set ActiveLink false for Active Inst
+        if (WanMgr_SetSelectionStatus (Active, WAN_IFACE_SELECTED, FALSE) != ANSC_STATUS_SUCCESS)
+        {
+            CcspTraceError(("%s %d: Failed to set ActiveLink in PSM, ActiveInst %d \n",
+                             __FUNCTION__, __LINE__, Active));
+        }
+	//set ActiveLink true for Standby Inst
+        if (WanMgr_SetSelectionStatus (Standby, WAN_IFACE_ACTIVE, TRUE) != ANSC_STATUS_SUCCESS)
+        {
+            CcspTraceError(("%s %d: Failed to set ActiveLink in PSM, StandbyInst %d \n",
+                             __FUNCTION__, __LINE__, Standby));
+        }
+        CcspTraceInfo(("%s-%d : Change state from STATE_FAILOVER_ACTIVE_UP_STANDBY_DOWN to STATE_FAILOVER_ACTIVE_DOWN_STANDBY_UP\n", __FUNCTION__, __LINE__));
+        return STATE_FAILOVER_ACTIVE_DOWN_STANDBY_UP;
+    }
+
+    return STATE_FAILOVER_ACTIVE_UP_STANDBY_DOWN;
+}
+
+static FailOverState_t State_FailOver_ActiveDown_StandbyUp(UINT Active, BOOL ActiveStatus, UINT Standby, BOOL StandbyStatus)
+{
+    BOOL SwitchOver = 0;
+
+    if(ActiveStatus)
+    {
+        if(RestorationDelayStart.tv_sec > 0)
+        {
+           clock_gettime( CLOCK_MONOTONIC_RAW, &(RestorationDelayEnd));
+           if(difftime(RestorationDelayEnd.tv_sec, RestorationDelayStart.tv_sec ) > 0)
+           {
+               SwitchOver = 1;
+               memset(&(RestorationDelayStart), 0, sizeof(struct timespec));
+               CcspTraceInfo(("%s %d: Restoration Timer expired for Iface index:%d So Switch From Standby(%d) to Active Iface(%d).\n",
+                               __FUNCTION__, __LINE__, Standby, Standby, Active));
+           }
+	   else
+	   {
+               return STATE_FAILOVER_ACTIVE_DOWN_STANDBY_UP;
+	   }
+        }
+    }
+    else
+    {
+        memset(&(RestorationDelayStart), 0, sizeof(struct timespec));
+    }
+    if (ActiveStatus && StandbyStatus)
+    {
+        if (!SwitchOver)
+        {
+            memset(&(RestorationDelayStart), 0, sizeof(struct timespec));
+            clock_gettime(CLOCK_MONOTONIC_RAW, &(RestorationDelayStart));
+            RestorationDelayStart.tv_sec += RestorationDelayTimeOut;
+            CcspTraceInfo(("%s %d: Starting Restoration timer(%d) for Active Iface(%d) \n", __FUNCTION__, __LINE__,RestorationDelayTimeOut, Active));
+        }
+        else
+        {
+	    //set ActiveLink false for standby Inst
+            if (WanMgr_SetSelectionStatus (Standby, WAN_IFACE_SELECTED, FALSE) != ANSC_STATUS_SUCCESS)
+            {
+                CcspTraceError(("%s %d: Failed to set ActiveLink in PSM, StandbyInst %d \n",
+                                 __FUNCTION__, __LINE__, Standby));
+            }
+	    //set ActiveLink true for Active Inst
+            if (WanMgr_SetSelectionStatus (Active, WAN_IFACE_ACTIVE, TRUE) != ANSC_STATUS_SUCCESS)
+            {
+                CcspTraceError(("%s %d: Failed to set ActiveLink in PSM, SelectedInterfaceInst %d \n",
+                                 __FUNCTION__, __LINE__, Active));
+            }
+            CcspTraceInfo(("%s-%d : Change state from STATE_FAILOVER_ACTIVE_DOWN_STANDBY_UP to STATE_FAILOVER_ACTIVE_UP_STANDBY_UP\n", __FUNCTION__, __LINE__));
+            return STATE_FAILOVER_ACTIVE_UP_STANDBY_UP;
+        }
+    }
+    else if (ActiveStatus && !StandbyStatus)
+    {
+        if (!SwitchOver)
+        {
+            memset(&(RestorationDelayStart), 0, sizeof(struct timespec));
+            clock_gettime(CLOCK_MONOTONIC_RAW, &(RestorationDelayStart));
+            RestorationDelayStart.tv_sec += RestorationDelayTimeOut;
+            CcspTraceInfo(("%s %d: Starting Restoration timer for Active Iface(%d) \n", __FUNCTION__, __LINE__, Active));
+        }
+        else
+        {
+	    //set ActiveLink true for Active Inst
+            if (WanMgr_SetSelectionStatus (Active, WAN_IFACE_ACTIVE, TRUE) != ANSC_STATUS_SUCCESS)
+            {
+                CcspTraceError(("%s %d: Failed to set ActiveLink in PSM, ActiveInst %d \n",
+                                 __FUNCTION__, __LINE__, Active));
+            }
+	    //set ActiveLink false for Standby Inst
+            if (WanMgr_SetSelectionStatus (Standby, WAN_IFACE_SELECTED, FALSE) != ANSC_STATUS_SUCCESS)
+            {
+                CcspTraceError(("%s %d: Failed to set ActiveLink in PSM, StandbyInst %d \n",
+                                 __FUNCTION__, __LINE__, Standby));
+            }
+            CcspTraceInfo(("%s-%d : Change state from STATE_FAILOVER_ACTIVE_DOWN_STANDBY_UP to STATE_FAILOVER_ACTIVE_UP_STANDBY_DOWN\n", __FUNCTION__, __LINE__));
+            return STATE_FAILOVER_ACTIVE_UP_STANDBY_DOWN;
+        }
+    }
+    else if(!ActiveStatus && !StandbyStatus)
+    {
+	//set ActiveLink false to Standby Inst
+        if (WanMgr_SetSelectionStatus (Standby, WAN_IFACE_SELECTED, FALSE) != ANSC_STATUS_SUCCESS)
+        {
+            CcspTraceError(("%s %d: Failed to set ActiveLink in PSM, StandbyInst %d \n",
+                             __FUNCTION__, __LINE__, Standby));
+        }
+        CcspTraceInfo(("%s-%d : Change state from STATE_FAILOVER_ACTIVE_DOWN_STANDBY_UP to STATE_FAILOVER_ACTIVE_DOWN_STANDBY_DOWN\n", __FUNCTION__, __LINE__));
+        return STATE_FAILOVER_ACTIVE_DOWN_STANDBY_DOWN;
+    }
+
+    return STATE_FAILOVER_ACTIVE_DOWN_STANDBY_UP;
+}
+
+static FailOverState_t State_FailOver_ActiveUp_StandbyUp(UINT Active, BOOL ActiveStatus, UINT Standby, BOOL StandbyStatus)
+{
+    if (!ActiveStatus && !StandbyStatus)
+    {
+	//Set ActiveLink false for Active Inst
+        if (WanMgr_SetSelectionStatus (Active, WAN_IFACE_SELECTED, FALSE) != ANSC_STATUS_SUCCESS)
+        {
+            CcspTraceError(("%s %d: Failed to set ActiveLink in PSM, ActiveInst %d \n",
+                             __FUNCTION__, __LINE__, Active));
+        }
+        CcspTraceInfo(("%s-%d : Change state from STATE_FAILOVER_ACTIVE_UP_STANDBY_UP to STATE_FAILOVER_ACTIVE_DOWN_STANDBY_DOWN\n", __FUNCTION__, __LINE__));
+        return STATE_FAILOVER_ACTIVE_DOWN_STANDBY_DOWN;
+    }
+    else if (ActiveStatus && !StandbyStatus)
+    {
+	//just change state
+        CcspTraceInfo(("%s-%d : Change state from STATE_FAILOVER_ACTIVE_UP_STANDBY_UP to STATE_FAILOVER_ACTIVE_UP_STANDBY_DOWN\n", __FUNCTION__, __LINE__));
+        return STATE_FAILOVER_ACTIVE_UP_STANDBY_DOWN;
+    }
+    else if(!ActiveStatus && StandbyStatus)
+    {
+	//set ActiveLink false for Active Inst
+        if (WanMgr_SetSelectionStatus (Active, WAN_IFACE_SELECTED, FALSE) != ANSC_STATUS_SUCCESS)
+        {
+            CcspTraceError(("%s %d: Failed to set ActiveLink in PSM, ActiveInst %d \n",
+                             __FUNCTION__, __LINE__, Active));
+        }
+	//set ActiveLink true for Standby Inst
+        if (WanMgr_SetSelectionStatus (Standby, WAN_IFACE_ACTIVE, TRUE) != ANSC_STATUS_SUCCESS)
+        {
+            CcspTraceError(("%s %d: Failed to set ActiveLink in PSM, StandbyInst %d \n",
+                             __FUNCTION__, __LINE__, Standby));
+        }
+        CcspTraceInfo(("%s-%d : Change state from STATE_FAILOVER_ACTIVE_UP_STANDBY_UP to STATE_FAILOVER_ACTIVE_DOWN_STANDBY_UP\n", __FUNCTION__, __LINE__));
+        return STATE_FAILOVER_ACTIVE_DOWN_STANDBY_UP;
+    }
+
+    return STATE_FAILOVER_ACTIVE_UP_STANDBY_UP;
+}
+
+static void WanMgr_FailOverProcess (void)
 {
     CcspTraceInfo(("%s %d \n", __FUNCTION__, __LINE__));
 
@@ -1230,9 +1518,112 @@ ANSC_STATUS WanMgr_Policy_AutoWanPolicy (void)
 
     bool bRunning = true;
     int n = 0;
+    FailOverState_t fo_sm_state;
+    UINT  ActiveInterfaceInst = 0;
+    UINT  StandbyInterfaceInst = 0;
+    BOOL  ActiveInterfaceStatus = 0;
+    BOOL  StandbyInterfaceStatus = 0;
+    struct timeval tv;
+
+    CcspTraceInfo(("%s %d: FailOverProcess Thread Starting \n", __FUNCTION__, __LINE__));
+
+    fo_sm_state = STATE_FAILOVER_ACTIVE_DOWN_STANDBY_DOWN;
+
+    while (bRunning)
+    {
+        /* Wait up to 500 milliseconds */
+        tv.tv_sec = 0;
+        tv.tv_usec = FAILOVER_PROCESS_LOOP_TIMEOUT;
+
+        n = select(0, NULL, NULL, NULL, &tv);
+        if (n < 0)
+        {
+            /* interrupted by signal or something, continue */
+            continue;
+        }
+
+        for(int i = 0; i < MAX_INTERFACE_GROUP; i++)
+        {
+            WANMGR_IFACE_GROUP* pWanIfaceGroup = WanMgr_GetIfaceGroup_locked((i));
+            if (pWanIfaceGroup != NULL)
+            {
+                if (pWanIfaceGroup->SelectedInterface)
+                {
+                    if (i == 0)
+                    {
+                        ActiveInterfaceInst = (i+1);
+                    }
+                    else if (i == 1)
+                    {
+                        StandbyInterfaceInst = (i+1);
+                    }
+                }
+                if (i == 0)
+                {
+                    ActiveInterfaceStatus = pWanIfaceGroup->SelectedIfaceStatus;
+                }
+                else if (i == 1)
+                {
+                    StandbyInterfaceStatus = pWanIfaceGroup->SelectedIfaceStatus;
+                }
+                WanMgrDml_GetIfaceGroup_release();
+            }
+        }
+
+        // process states
+        switch (fo_sm_state)
+        {
+            case STATE_FAILOVER_ACTIVE_DOWN_STANDBY_DOWN:
+                fo_sm_state = State_FailOver_ActiveDown_StandbyDown(ActiveInterfaceInst, ActiveInterfaceStatus, StandbyInterfaceInst, StandbyInterfaceStatus);
+                break;
+            case STATE_FAILOVER_ACTIVE_UP_STANDBY_DOWN:
+                fo_sm_state = State_FailOver_ActiveUp_StandbyDown(ActiveInterfaceInst, ActiveInterfaceStatus, StandbyInterfaceInst, StandbyInterfaceStatus);
+                break;
+            case STATE_FAILOVER_ACTIVE_DOWN_STANDBY_UP:
+                fo_sm_state = State_FailOver_ActiveDown_StandbyUp(ActiveInterfaceInst, ActiveInterfaceStatus, StandbyInterfaceInst, StandbyInterfaceStatus);
+                break;
+            case STATE_FAILOVER_ACTIVE_UP_STANDBY_UP:
+                fo_sm_state = State_FailOver_ActiveUp_StandbyUp(ActiveInterfaceInst, ActiveInterfaceStatus, StandbyInterfaceInst, StandbyInterfaceStatus);
+                break;
+            default:
+                CcspTraceInfo(("%s %d: FailOver Undefined Case \n", __FUNCTION__, __LINE__));
+                bRunning = false;
+                break;
+        }
+
+        //Get Policy
+        WanMgr_Config_Data_t* pWanConfigData = WanMgr_GetConfigData_locked();
+        if(pWanConfigData != NULL)
+        {
+            DML_WANMGR_CONFIG* pWanConfig = &(pWanConfigData->data);
+            RestorationDelayTimeOut = pWanConfig->RestorationDelay;
+            if ((fo_sm_state == STATE_FAILOVER_ACTIVE_DOWN_STANDBY_DOWN) && 
+                (pWanConfig->Enable == FALSE) || (pWanConfig->Policy != AUTOWAN_MODE))
+                bRunning = false;
+
+            WanMgrDml_GetConfigData_release(pWanConfigData);
+        }
+    }
+
+    CcspTraceInfo(("%s %d - Exit from FailOver state machine\n", __FUNCTION__, __LINE__));
+
+    pthread_exit(NULL);
+}
+
+
+static void WanMgr_SelectionProcess (void* arg)
+{
+    CcspTraceInfo(("%s %d \n", __FUNCTION__, __LINE__));
+
+    // detach thread from caller stack
+    pthread_detach(pthread_self());
+
+    bool bRunning = true;
+    int n = 0;
+    UINT IfaceGroup = 0;
     WanMgr_Policy_Controller_t    WanController;
     WcAwPolicyState_t aw_sm_state;
-    int retStatus = ANSC_STATUS_SUCCESS;
+    UINT *pWanGroupIfaceList = (UINT*)arg;
     struct timeval tv;
 
     // initialising policy data
@@ -1242,10 +1633,11 @@ ANSC_STATUS WanMgr_Policy_AutoWanPolicy (void)
         return ANSC_STATUS_FAILURE;
     }
 
+    WanController.GroupIfaceList = *pWanGroupIfaceList;
     // updates policy controller data
     WanMgr_UpdateControllerData (&WanController);
 
-    CcspTraceInfo(("%s %d: Auto WAN Policy Thread Starting \n", __FUNCTION__, __LINE__));
+    CcspTraceInfo(("%s %d: SelectionProcess Thread Starting for GroupIfaceList(%d) \n", __FUNCTION__, __LINE__, *pWanGroupIfaceList));
 
     aw_sm_state = Transition_Start(&WanController); // do this first before anything else to init variables
 
@@ -1253,7 +1645,7 @@ ANSC_STATUS WanMgr_Policy_AutoWanPolicy (void)
     {
         /* Wait up to 500 milliseconds */
         tv.tv_sec = 0;
-        tv.tv_usec = LOOP_TIMEOUT;
+        tv.tv_usec = SELECTION_PROCESS_LOOP_TIMEOUT;
 
         n = select(0, NULL, NULL, NULL, &tv);
         if (n < 0)
@@ -1271,6 +1663,20 @@ ANSC_STATUS WanMgr_Policy_AutoWanPolicy (void)
         {
             DML_WAN_IFACE* pWanIfaceData = &(WanController.pWanActiveIfaceData->data);
             WanController.InterfaceSelectionTimeOut = pWanIfaceData->Wan.SelectionTimeout;
+            if (!WanController.GroupInst)
+            {
+                WanController.GroupInst = pWanIfaceData->Wan.Group;
+            }
+            WANMGR_IFACE_GROUP* pWanIfaceGroup = WanMgr_GetIfaceGroup_locked((WanController.GroupInst - 1));
+            if (pWanIfaceGroup != NULL)
+            {
+                if (pWanIfaceGroup->GroupIfaceListChanged)
+                {
+                    if (aw_sm_state != STATE_AUTO_WAN_SM_EXIT)
+                        aw_sm_state = STATE_AUTO_WAN_TEARING_DOWN;
+                }
+                WanMgrDml_GetIfaceGroup_release();
+            }
         }
 
         // process states
@@ -1310,10 +1716,8 @@ ANSC_STATUS WanMgr_Policy_AutoWanPolicy (void)
             default:
                 CcspTraceInfo(("%s %d: Failure Case \n", __FUNCTION__, __LINE__));
                 bRunning = false;
-                retStatus = ANSC_STATUS_FAILURE;
                 break;
         }
-
         // release lock iface data
         if(WanController.pWanActiveIfaceData != NULL)
         {
@@ -1321,7 +1725,149 @@ ANSC_STATUS WanMgr_Policy_AutoWanPolicy (void)
         }
 
     }
+    WANMGR_IFACE_GROUP* pWanIfaceGroup = WanMgr_GetIfaceGroup_locked((WanController.GroupInst - 1));
+    if (pWanIfaceGroup != NULL)
+    {
+        pWanIfaceGroup->ThreadId = 0;
+        pWanIfaceGroup->Interfaces = 0;
+        pWanIfaceGroup->SelectedInterface = 0;
+        pWanIfaceGroup->GroupIfaceListChanged = 0;
+        pWanIfaceGroup->GroupState = STATE_GROUP_STOPPED;
+        WanMgrDml_GetIfaceGroup_release();
+    }
+    CcspTraceInfo(("%s %d - Exit from SelectionProcess Group(%d) state machine\n", __FUNCTION__, __LINE__, WanController.GroupInst));
+    
+    if(NULL != pWanGroupIfaceList)
+    {
+        free(pWanGroupIfaceList);
+        pWanGroupIfaceList = NULL;
+    }
+    pthread_exit(NULL);
+}
 
-    CcspTraceInfo(("%s %d - Exit from state machine\n", __FUNCTION__, __LINE__));
+static BOOL WanMgr_IfaceGroupMonitor(void)
+{
+    UINT GroupIfaceList[MAX_INTERFACE_GROUP] = {0};
+    BOOL ret = FALSE;
+
+    if(pthread_mutex_lock(&(gWanMgrDataBase.IfaceCtrl.mDataMutex)) == 0)
+    {
+        WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl = &(gWanMgrDataBase.IfaceCtrl);
+        for (int i = 0 ; i < pWanIfaceCtrl->ulTotalNumbWanInterfaces; i++)
+        {
+            WanMgr_Iface_Data_t*  pIfaceData  = &(pWanIfaceCtrl->pIface[i]);
+	    DML_WAN_IFACE* pWanDmlIface = &(pIfaceData->data);
+            if (pWanDmlIface->Wan.Group && pWanDmlIface->Wan.Group <= MAX_INTERFACE_GROUP)
+            {
+                GroupIfaceList[(pWanDmlIface->Wan.Group - 1)] |= (1<<i);
+            }
+        }
+        WanMgrDml_GetIfaceData_release(NULL);
+    }
+
+    if(pthread_mutex_lock(&(gWanMgrDataBase.IfaceGroup.mGroupMutex)) == 0)
+    {
+        WanMgr_IfaceGroup_t* pWanIfaceGroup = &(gWanMgrDataBase.IfaceGroup);
+        for (int j = 0; j < MAX_INTERFACE_GROUP; j++)
+        {
+            if (pWanIfaceGroup->Group[j].Interfaces != GroupIfaceList[j])
+            {
+                pWanIfaceGroup->Group[j].Interfaces = GroupIfaceList[j];
+                pWanIfaceGroup->Group[j].GroupIfaceListChanged = 1;
+                ret = TRUE;
+            }
+        }
+        WanMgrDml_GetIfaceGroup_release();
+    }
+    return ret;
+}
+
+static BOOL WanMgr_UpdateIfaceGroupChange(void)
+{
+    INT iErrorCode = -1;
+
+    if(pthread_mutex_lock(&(gWanMgrDataBase.IfaceGroup.mGroupMutex)) == 0)
+    {
+        WanMgr_IfaceGroup_t* pWanIfaceGroup = &(gWanMgrDataBase.IfaceGroup);
+        for (int j = 0; j < MAX_INTERFACE_GROUP; j++)
+        {
+            if (pWanIfaceGroup->Group[j].GroupIfaceListChanged)
+            {
+                if (pWanIfaceGroup->Group[j].GroupState != STATE_GROUP_RUNNING)
+		{
+                    UINT* GroupIfaceList = (UINT*)malloc( sizeof( UINT ) );
+
+		    *GroupIfaceList = pWanIfaceGroup->Group[j].Interfaces;
+                    if( NULL == GroupIfaceList )
+                    {
+                        CcspTraceError(("%s-%d : Failed to allocate memory\n", __FUNCTION__, __LINE__));
+                        continue;
+                    }
+
+                    pWanIfaceGroup->Group[j].GroupIfaceListChanged = 0;
+                    if (pthread_create( &pWanIfaceGroup->Group[j].ThreadId, NULL, &WanMgr_SelectionProcess, GroupIfaceList ) != 0)
+                    {
+                        CcspTraceError(("%s %d - Failed to Create Group(%d) Thread\n", __FUNCTION__, __LINE__, (j+1)));
+                        continue;
+                    }
+		    CcspTraceInfo(("%s %d - Successfully Created Group(%d) Thread Id : %d \n", __FUNCTION__, __LINE__, (j+1), pWanIfaceGroup->Group[j].ThreadId));
+                    pWanIfaceGroup->Group[j].GroupState == STATE_GROUP_RUNNING;
+		}
+            }
+        }
+        WanMgrDml_GetIfaceGroup_release();
+    }
+    return(TRUE);
+}
+
+ANSC_STATUS WanMgr_Policy_AutoWanPolicy (void)
+{
+    CcspTraceInfo(("%s %d \n", __FUNCTION__, __LINE__));
+    pthread_t FailOver_ThreadId = 0;
+    // detach thread from caller stack
+    pthread_detach(pthread_self());
+
+    bool bRunning = true;
+    int n = 0;
+    int retStatus = ANSC_STATUS_SUCCESS;
+    struct timeval tv;
+
+    if (pthread_create( &FailOver_ThreadId, NULL, &WanMgr_FailOverProcess, NULL ) != 0)
+    {
+        CcspTraceError(("%s %d - Failed to Create FailOver Thread\n", __FUNCTION__, __LINE__));
+    }
+    CcspTraceInfo(("%s %d - Successfully Created FailOver Thread Id : %d\n", __FUNCTION__, __LINE__, FailOver_ThreadId));
+
+    while (bRunning)
+    {
+        /* Wait up to 500 milliseconds */
+        tv.tv_sec = 0;
+        tv.tv_usec = AUTO_POLICY_LOOP_TIMEOUT;
+
+        n = select(0, NULL, NULL, NULL, &tv);
+        if (n < 0)
+        {
+            /* interrupted by signal or something, continue */
+            continue;
+        }
+
+        if (WanMgr_IfaceGroupMonitor())
+        {
+            WanMgr_UpdateIfaceGroupChange();
+        }
+
+        //Get Policy
+        WanMgr_Config_Data_t* pWanConfigData = WanMgr_GetConfigData_locked();
+        if(pWanConfigData != NULL)
+        {
+            DML_WANMGR_CONFIG* pWanConfig = &(pWanConfigData->data);
+            if ((pWanConfig->Enable == FALSE) || (pWanConfig->Policy != AUTOWAN_MODE))
+                bRunning = false;
+
+            WanMgrDml_GetConfigData_release(pWanConfigData);
+        }
+    }
+
+    CcspTraceInfo(("%s %d - Exit from Policy\n", __FUNCTION__, __LINE__));
     return retStatus;
 }

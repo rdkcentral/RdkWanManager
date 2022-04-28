@@ -221,6 +221,8 @@ ANSC_STATUS WanMgr_Controller_PolicyCtrlInit(WanMgr_Policy_Controller_t* pWanPol
         pWanPolicyCtrl->InterfaceSelectionTimeOut = 0;
         pWanPolicyCtrl->TotalIfaces = 0;
         pWanPolicyCtrl->WanOperationalMode = -1;
+        pWanPolicyCtrl->GroupIfaceList = 0;
+        pWanPolicyCtrl->GroupInst = 0;
         retStatus = ANSC_STATUS_SUCCESS;
     }
 
