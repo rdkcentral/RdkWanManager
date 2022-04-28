@@ -668,6 +668,11 @@ BOOL WanIfCfg_GetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG
                 *puLong = pWanDmlIface->Wan.OperationalStatus;
                 ret = TRUE;
             }
+            if( AnscEqualString(ParamName, "Group", TRUE))
+            {
+                *puLong = pWanDmlIface->Wan.Group;
+                ret = TRUE;
+            }
 
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
         }
@@ -720,6 +725,11 @@ BOOL WanIfCfg_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG
             if( AnscEqualString(ParamName, "SelectionTimeout", TRUE))
             {
                 pWanDmlIface->Wan.SelectionTimeout = uValue;
+                ret = TRUE;
+            }
+            if( AnscEqualString(ParamName, "Group", TRUE))
+            {
+                pWanDmlIface->Wan.Group = uValue;
                 ret = TRUE;
             }
             if( AnscEqualString(ParamName, "Type", TRUE))

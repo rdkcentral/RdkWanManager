@@ -27,6 +27,7 @@
 #define PSM_WANMANAGER_WANMODE                              "dmsb.wanmanager.wanmode"
 #define PSM_WANMANAGER_WANPOLICY                            "dmsb.wanmanager.wanpolicy"
 #define PSM_WANMANAGER_DEVICEMODE                           "dmsb.wanmanager.devicemode"    // Gateway/Modem
+#define PSM_WANMANAGER_RESTORATION_DELAY                    "dmsb.wanmanager.RestorationDelay"
 #define PSM_WANMANAGER_WANIFCOUNT                           "dmsb.wanmanager.wanifcount"
 #define PSM_WANMANAGER_ALLOW_REMOTE_IFACE                   "dmsb.wanmanager.allowremoteinterfaces"
 #define PSM_WANMANAGER_IF_ENABLE                            "dmsb.wanmanager.if.%d.Enable"
@@ -45,6 +46,8 @@
 #define PSM_WANMANAGER_IF_WAN_PPP_IPCP_ENABLE               "dmsb.wanmanager.if.%d.PPPIPCPEnable"
 #define PSM_WANMANAGER_IF_WAN_PPP_IPV6CP_ENABLE             "dmsb.wanmanager.if.%d.PPPIPV6CPEnable"
 #define PSM_WANMANAGER_IF_WAN_ENABLE_DHCP                   "dmsb.wanmanager.if.%d.EnableDHCP"
+#define PSM_WANMANAGER_IF_HOTSTANDBY                        "dmsb.wanmanager.if.%d.HotStandby"
+#define PSM_WANMANAGER_IF_GROUP                             "dmsb.wanmanager.if.%d.Group"
 #define PSM_SELFHEAL_REBOOT_STATUS                          "dmsb.selfheal.rebootstatus"
 
 /**********************************************************************

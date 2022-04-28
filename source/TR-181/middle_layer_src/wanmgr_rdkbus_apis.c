@@ -147,6 +147,16 @@ static int get_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFACE*
     {
         p_Interface->Wan.SelectionTimeout = SELECTION_TIMEOUT_DEFAULT_MIN;
     }
+
+    _ansc_memset(param_name, 0, sizeof(param_name));
+    _ansc_memset(param_value, 0, sizeof(param_value));
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_GROUP, instancenum);
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
+    if (retPsmGet == CCSP_SUCCESS)
+    {
+        _ansc_sscanf(param_value, "%d", &(p_Interface->Wan.Group));
+    }
+
     _ansc_memset(param_name, 0, sizeof(param_name));
     _ansc_memset(param_value, 0, sizeof(param_value));
     _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_ENABLE_MAPT, instancenum);
@@ -355,6 +365,11 @@ static int write_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFAC
     _ansc_sprintf(param_name, PSM_WANMANAGER_IF_SELECTIONTIMEOUT, instancenum);
     WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
 
+    memset(param_value, 0, sizeof(param_value));
+    memset(param_name, 0, sizeof(param_name));
+    _ansc_sprintf(param_value, "%d", p_Interface->Wan.Group );
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_GROUP, instancenum);
+    WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
 
     memset(param_value, 0, sizeof(param_value));
     memset(param_name, 0, sizeof(param_name));
@@ -1245,6 +1260,7 @@ static ANSC_STATUS WanMgr_WanConfInit (DML_WANMGR_CONFIG* pWanConfig)
     unsigned int wan_enable;
     unsigned int wan_policy;
     unsigned int wan_allow_remote_iface = 0;
+    unsigned int wan_restoration_delay = 0;
     unsigned int wan_idle_timeout;
     int ret_val = ANSC_STATUS_SUCCESS;
     int retPsmGet = CCSP_SUCCESS;
@@ -1281,6 +1297,15 @@ static ANSC_STATUS WanMgr_WanConfInit (DML_WANMGR_CONFIG* pWanConfig)
         wan_allow_remote_iface = atoi(param_value);
 
     pWanConfig->AllowRemoteInterfaces = wan_allow_remote_iface;
+
+    memset(param_name, 0, sizeof(param_name));
+    memset(param_value, 0, sizeof(param_value));
+    _ansc_sprintf(param_name, PSM_WANMANAGER_RESTORATION_DELAY);
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
+    if (retPsmGet == CCSP_SUCCESS && param_value[0] != '\0')
+        wan_restoration_delay = atoi(param_value);
+
+    pWanConfig->RestorationDelay = wan_restoration_delay;
 
     return ret_val;
 }

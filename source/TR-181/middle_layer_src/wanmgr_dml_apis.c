@@ -63,6 +63,12 @@ WanManager_GetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG* p
             ret = TRUE;
         }
 
+        if(AnscEqualString(ParamName, "RestorationDelay", TRUE))
+        {
+            *puLong= pWanDmlData->RestorationDelay;
+            ret = TRUE;
+        }
+
         WanMgrDml_GetConfigData_release(pWanConfigData);
     }
 
@@ -101,6 +107,18 @@ WanManager_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG uV
                 if(pWanDmlData->DeviceMode != uValue)
                 {
                     pWanDmlData->DeviceMode = uValue;
+                }
+                ret = TRUE;
+            }
+        }
+        if(AnscEqualString(ParamName, "RestorationDelay", TRUE))
+        {
+            retStatus = WanMgr_RdkBus_setRestorationDelay(uValue);
+            if(retStatus == ANSC_STATUS_SUCCESS)
+            {
+                if(pWanDmlData->RestorationDelay != uValue)
+                {
+                    pWanDmlData->RestorationDelay = uValue;
                 }
                 ret = TRUE;
             }

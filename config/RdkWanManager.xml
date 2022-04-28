@@ -108,6 +108,12 @@
                     <syntax>string</syntax>
                     <writable>false</writable>
                 </parameter>
+                <parameter>
+                    <name>RestorationDelay</name>
+                    <type>unsignedInt</type>
+                    <syntax>uint32</syntax>
+                    <writable>true</writable>
+                </parameter>
            </parameters>
             <objects>
                 <object>
@@ -297,6 +303,12 @@
                                     <name>LinkStatus</name>
                                     <type>string: Down(1),Configuring(2),Up(3)</type>
                                     <syntax>uint32/mapped</syntax>
+                                    <writable>true</writable>
+                                </parameter>
+                                <parameter>
+                                    <name>Group</name>
+                                    <type>unsignedInt[1:2]</type>
+                                    <syntax>uint32</syntax>
                                     <writable>true</writable>
                                 </parameter>
                             </parameters>

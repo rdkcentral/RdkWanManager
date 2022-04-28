@@ -257,7 +257,8 @@ typedef struct _DML_WANIFACE_INFO
     BOOL                        RebootOnConfiguration;
     BOOL                        EnableDHCP;
     BOOL                        RefreshDHCP;
-    IFACE_TYPE                  IfaceType;    
+    IFACE_TYPE                  IfaceType;
+    UINT                        Group;
 } DML_WANIFACE_INFO;
 
 
@@ -381,6 +382,7 @@ typedef struct _DML_WANMGR_CONFIG_
     CHAR    InterfaceActiveStatus[BUFLEN_64];
     CHAR    CurrentActiveInterface[BUFLEN_64];
     CHAR    CurrentStandbyInterface[BUFLEN_64];
+    UINT    RestorationDelay;
 } DML_WANMGR_CONFIG;
 
 #endif //_WANMGR_DML_H_

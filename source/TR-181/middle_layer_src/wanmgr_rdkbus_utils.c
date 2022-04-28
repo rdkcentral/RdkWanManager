@@ -104,6 +104,29 @@ ANSC_STATUS WanMgr_RdkBus_setDeviceMode(DML_DEVICE_MODE mode)
     return result;
 }
 
+ANSC_STATUS WanMgr_RdkBus_setRestorationDelay(UINT delay)
+{
+    int result = ANSC_STATUS_SUCCESS;
+    int retPsmSet = CCSP_SUCCESS;
+    char param_name[BUFLEN_256] = {0};
+    char param_value[BUFLEN_256] = {0};
+
+    /* Update the wan policy information in PSM */
+    memset(param_value, 0, sizeof(param_value));
+    memset(param_name, 0, sizeof(param_name));
+
+    snprintf(param_value, sizeof(param_value), "%d", delay);
+    _ansc_sprintf(param_name, PSM_WANMANAGER_RESTORATION_DELAY);
+
+    retPsmSet = WanMgr_RdkBus_SetParamValuesToDB(param_name, param_value);
+    if (retPsmSet != CCSP_SUCCESS) {
+        AnscTraceError(("%s Error %d writing %s %s\n", __FUNCTION__, retPsmSet, param_name, param_value));
+        result = ANSC_STATUS_FAILURE;
+    }
+
+    return result;
+}
+
 ANSC_STATUS WanMgr_RdkBus_setWanPolicy(DML_WAN_POLICY wan_policy)
 {
     int result = ANSC_STATUS_SUCCESS;
