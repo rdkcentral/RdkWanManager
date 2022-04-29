@@ -152,5 +152,6 @@ int util_getNameByPid(int pid, char *nameBuf, int nameBufLen);
 int util_collectProcess(int pid, int timeout);
 int util_runCommandInShellBlocking(char *command);
 int util_getZombiePidByName(char * name);
+void WanManager_Util_GetShell_output(char *cmd, char *out, int len);
 
 #endif /* _WANMGR_UTILS_H_ */

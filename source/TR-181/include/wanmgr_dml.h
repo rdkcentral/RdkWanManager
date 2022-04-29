@@ -68,6 +68,13 @@ typedef enum _DML_WAN_IFACE_STATUS
     WAN_IFACE_STATUS_INVALID
 } DML_WAN_IFACE_STATUS;
 
+
+typedef enum _DML_WAN_IFACE_SCAN_STATUS
+{
+    WAN_IFACE_STATUS_NOT_SCANNED = 1,
+    WAN_IFACE_STATUS_SCANNED,
+} DML_WAN_IFACE_SCAN_STATUS;
+
 typedef enum _DML_WAN_IFACE_LINKSTATUS
 {
     WAN_IFACE_LINKSTATUS_DOWN = 1,
@@ -359,6 +366,7 @@ typedef struct _DML_WAN_INTERFACE
     BOOL                        WanConfigEnabled;
     BOOL                        CustomConfigEnable;
     CHAR                        CustomConfigPath[BUFLEN_128];
+    DML_WAN_IFACE_SCAN_STATUS   InterfaceScanStatus;
     DML_WANIFACE_PHY            Phy;
     DML_WANIFACE_INFO           Wan;
     DML_WANIFACE_IP             IP;

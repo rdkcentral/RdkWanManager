@@ -836,6 +836,12 @@ ANSC_STATUS wanmgr_sshd_restart()
     return ANSC_STATUS_SUCCESS;
 }
 
+ANSC_STATUS wanmgr_firewall_restart(void)
+{
+    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, "", 0);
+    CcspTraceInfo(("%s %d - firewall restart\n", __FUNCTION__, __LINE__));
+    return ANSC_STATUS_SUCCESS;
+}
 
 ANSC_STATUS WanMgr_SysEvents_Init(void)
 {

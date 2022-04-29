@@ -245,6 +245,7 @@ ANSC_STATUS wanmgr_setwanstop();
 ANSC_STATUS wanmgr_sshd_restart();
 ANSC_STATUS wanmgr_setwanrestart();
 INT wanmgr_isWanStarted();
+ANSC_STATUS wanmgr_firewall_restart(void);
 //#ifdef FEATURE_MAPT
 ///*
 // * @brief Utility function used to store MAPT specific values in sysevent/
