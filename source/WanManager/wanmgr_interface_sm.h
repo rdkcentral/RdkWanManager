@@ -86,7 +86,7 @@ typedef struct WanMgr_IfaceSM_Ctrl_st
 #endif
     DML_WAN_IFACE*          pIfaceData;
     eWanState_t            eCurrentState; 
-    DML_DEVICE_MODE         DeviceMode;
+    DEVICE_NETWORKING_MODE         DeviceNwMode;
 } WanMgr_IfaceSM_Controller_t;
 
 

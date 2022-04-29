@@ -175,9 +175,10 @@ int WanManager_ResetMAPTConfiguration(const char *baseIf, const char *vlanIf);
 /***************************************************************************
  * @brief API used to update default ipv4 gateway
  * @param ipv4Info pointer to ipc_dhcpv4_data_t holds the IPv4 configuration
+ * @param DeviceNwMode Gateway/Extender Mode
  * @return RETURN_OK upon success else returned error code.
  ****************************************************************************/
-int WanManager_AddDefaultGatewayRoute(const WANMGR_IPV4_DATA* ipv4Info);
+int WanManager_AddDefaultGatewayRoute(DEVICE_NETWORKING_MODE DeviceNwMode, const WANMGR_IPV4_DATA* ipv4Info);
 
 /***************************************************************************
  * @brief API used to get broadcast IP from IP and subnet mask

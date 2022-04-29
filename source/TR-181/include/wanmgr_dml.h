@@ -46,11 +46,11 @@ typedef enum _DML_WAN_POLICY
    AUTOWAN_MODE
 } DML_WAN_POLICY;
 
-typedef enum _DML_DEVICE_MODE_
+typedef enum _DEVICE_NETWORKING_MODE_
 {
     GATEWAY_MODE = 1,
     MODEM_MODE
-} DML_DEVICE_MODE;
+} DEVICE_NETWORKING_MODE;
 
 typedef enum _DML_WAN_IFACE_OPER_STATUS
 {
@@ -374,7 +374,7 @@ typedef struct _DML_WANMGR_CONFIG_
 {
     BOOLEAN Enable;
     DML_WAN_POLICY Policy;
-    DML_DEVICE_MODE DeviceMode;
+    DEVICE_NETWORKING_MODE DeviceNwMode;
     BOOLEAN ResetActiveInterface;
     BOOLEAN AllowRemoteInterfaces;
     BOOLEAN PolicyChanged;

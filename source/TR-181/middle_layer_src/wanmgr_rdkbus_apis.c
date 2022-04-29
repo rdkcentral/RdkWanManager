@@ -1548,7 +1548,7 @@ ANSC_STATUS Update_Iface_Status()
 ANSC_STATUS Update_Current_Iface_Status()
 {
     int uiLoopCount;
-    DML_DEVICE_MODE devMode = GATEWAY_MODE;
+    DEVICE_NETWORKING_MODE devMode = GATEWAY_MODE;
     CHAR    CurrentActiveInterface[BUFLEN_64] = {0};
     CHAR    CurrentStandbyInterface[BUFLEN_64] = {0};
 
@@ -1556,7 +1556,7 @@ ANSC_STATUS Update_Current_Iface_Status()
     if (pWanConfigData != NULL)
     {
         DML_WANMGR_CONFIG* pWanDmlData = &(pWanConfigData->data);
-        devMode = pWanDmlData->DeviceMode;
+        devMode = pWanDmlData->DeviceNwMode;
         WanMgrDml_GetConfigData_release(pWanConfigData);
     }
 

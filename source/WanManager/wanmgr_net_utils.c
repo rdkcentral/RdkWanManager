@@ -56,6 +56,7 @@
 #define DSL_INTERFACE "dsl0"
 #define PTM_INTERFACE "ptm0"
 #define NF_NAT_FTP_MODULE "nf_nat_ftp"
+#define ROUTE_TABLE_FILE "/etc/iproute2/rt_tables"
 
 /** Macro to determine if a string parameter is empty or not */
 #define IS_EMPTY_STR(s)    ((s == NULL) || (*s == '\0'))
@@ -95,6 +96,9 @@ extern token_t sysevent_token;
 
 #define IPMONITOR_WAIT_MAX_TIMEOUT 240
 #define IPMONITOR_QUERY_INTERVAL 1
+
+#define MODEM_TABLE_NAME "MODEM"
+#define WAN_BRIDGE       "brWAN"
 
 /***************************************************************************
  * @brief API used to check the incoming ipv4 address is a valid ipv4 address
@@ -1301,26 +1305,57 @@ int WanManager_GetBCastFromIpSubnetMask(const char* inIpStr, const char* inSubne
    return ret;
 }
 
-int WanManager_AddDefaultGatewayRoute(const WANMGR_IPV4_DATA* pIpv4Info)
+int WanManager_AddDefaultGatewayRoute(DEVICE_NETWORKING_MODE DeviceNwMode, const WANMGR_IPV4_DATA* pIpv4Info)
 {
-   char cmd[BUFLEN_128]={0};
-   int ret = RETURN_OK;
-   FILE *fp = NULL;
+    char cmd[BUFLEN_128]={0};
+    int ret = RETURN_OK;
 
-   /* delete default gateway first before add  */
-   snprintf(cmd, sizeof(cmd), "route del default 2>/dev/null");
-   WanManager_DoSystemAction("SetUpDefaultSystemGateway:", cmd);
+    if (DeviceNwMode == GATEWAY_MODE)
+    {
+        CcspTraceInfo(("%s %d: Device in Gateway Mode. So configure default route in main routing table\n", __FUNCTION__, __LINE__));
+        /* delete default gateway first before add  */
+        snprintf(cmd, sizeof(cmd), "route del default 2>/dev/null");
+        WanManager_DoSystemAction("SetUpDefaultSystemGateway:", cmd);
 
-   /* Sets default gateway route entry */
-   /* For IPoE, always use gw IP address. */
-   if (IsValidIpv4Address(pIpv4Info->gateway) && !(IsZeroIpvxAddress(AF_SELECT_IPV4, pIpv4Info->gateway)))
-   {
-       snprintf(cmd, sizeof(cmd), "route add default gw %s dev %s", pIpv4Info->gateway, pIpv4Info->ifname);
-       WanManager_DoSystemAction("SetUpDefaultSystemGateway:", cmd);
-       CcspTraceInfo(("%s %d - The default gateway route entries set!\n",__FUNCTION__,__LINE__));
-   }
+        /* Sets default gateway route entry */
+        /* For IPoE, always use gw IP address. */
+        if (IsValidIpv4Address(pIpv4Info->gateway) && !(IsZeroIpvxAddress(AF_SELECT_IPV4, pIpv4Info->gateway)))
+        {
+            snprintf(cmd, sizeof(cmd), "route add default gw %s dev %s", pIpv4Info->gateway, pIpv4Info->ifname);
+            WanManager_DoSystemAction("SetUpDefaultSystemGateway:", cmd);
+            CcspTraceInfo(("%s %d - The default gateway route entries set!\n",__FUNCTION__,__LINE__));
+        }
+    }
+    else if (DeviceNwMode == MODEM_MODE)   
+    {
+        CcspTraceInfo(("%s %d: Device in MODEM Mode. So configure default route in user defined MODEM routing table\n", __FUNCTION__, __LINE__));
+        FILE * fp = NULL;
+        if((fp = fopen(ROUTE_TABLE_FILE, "a")) == NULL)
+        {
+            CcspTraceError(("%s %d - Open %s error!\n", __FUNCTION__, __LINE__, ROUTE_TABLE_FILE));
+            return RETURN_ERR;
+        }
 
-   return ret;
+        // add new routing table 
+        fprintf(fp, "200 %s\n", MODEM_TABLE_NAME);
+        fclose (fp);
+
+        // add rule for packets from brWan to lookup MODEM table
+        memset (cmd, 0, sizeof(cmd));
+        snprintf(cmd, sizeof(cmd), "ip rule add iif %s table %s", WAN_BRIDGE, MODEM_TABLE_NAME);
+        WanManager_DoSystemAction("SetUpDefaultSystemGateway:", cmd);
+
+        // add route to extender gateway via extender wan interface
+        memset (cmd, 0, sizeof(cmd));
+        snprintf(cmd, sizeof(cmd), "ip route add default via %s dev %s table MODEM", pIpv4Info->gateway, pIpv4Info->ifname, WAN_BRIDGE, MODEM_TABLE_NAME);
+        WanManager_DoSystemAction("SetUpDefaultSystemGateway:", cmd);
+
+        // put the previous rule/route to action
+        WanManager_DoSystemAction("SetUpDefaultSystemGateway:", "ip route flush cache");
+
+    }
+
+    return ret;
 }
 
 static BOOL IsValidIpv4Address(const char* input)

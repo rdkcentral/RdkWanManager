@@ -73,12 +73,6 @@
                     <writable>true</writable>
                 </parameter>
                 <parameter>
-                    <name>DeviceMode</name>
-                    <type>string: GATEWAY_MODE(1),MODEM_MODE(2)</type>
-                    <syntax>uint32/mapped</syntax>
-                    <writable>true</writable>
-                </parameter>
-                <parameter>
                     <name>InterfaceAvailableStatus</name>
                     <type>string</type>
                     <syntax>string</syntax>

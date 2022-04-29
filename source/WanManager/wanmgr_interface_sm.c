@@ -403,7 +403,7 @@ int wan_updateDNS(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl, BOOL addIPv4, BOOL
         return RETURN_ERR;
     }
 
-    DML_DEVICE_MODE deviceMode = pWanIfaceCtrl->DeviceMode;
+    DEVICE_NETWORKING_MODE deviceMode = pWanIfaceCtrl->DeviceNwMode;
     DML_WAN_IFACE * pInterface = pWanIfaceCtrl->pIfaceData;
 
     bool valid_dns = FALSE;
@@ -421,8 +421,14 @@ int wan_updateDNS(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl, BOOL addIPv4, BOOL
     }
     else if (deviceMode == MODEM_MODE)
     {
-        // DNS nameserves should not be configured in MODEM mode
-        remove(RESOLV_CONF_FILE);
+        // DNS nameserves should not be configured in MODEM mode so clear file contents
+        if((fp = fopen(RESOLV_CONF_FILE, "w")) == NULL)
+        {
+            CcspTraceError(("%s %d - Open %s error!\n", __FUNCTION__, __LINE__, RESOLV_CONF_FILE));
+            return RETURN_ERR;
+        }
+        fclose(fp);
+        fp = NULL;
     }
 
     if (addIPv4)
@@ -708,7 +714,7 @@ static int wan_setUpIPv4(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
     FILE *fp = NULL;
 
 
-    DML_DEVICE_MODE DeviceMode = pWanIfaceCtrl->DeviceMode;
+    DEVICE_NETWORKING_MODE DeviceNwMode = pWanIfaceCtrl->DeviceNwMode;
     DML_WAN_IFACE * pInterface = pWanIfaceCtrl->pIfaceData;
 
     /** Setup IPv4: such as
@@ -748,13 +754,11 @@ static int wan_setUpIPv4(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
     CcspTraceInfo(("%s %d -  IPv4 DNS servers configures successfully \n", __FUNCTION__, __LINE__));
     }
 
-    if (DeviceMode == GATEWAY_MODE)
-    {
         /** Set default gatway. */
-        if (WanManager_AddDefaultGatewayRoute(&pInterface->IP.Ipv4Data) != RETURN_OK)
-        {
-            CcspTraceError(("%s %d - Failed to set up default system gateway", __FUNCTION__, __LINE__));
-        }
+    if (WanManager_AddDefaultGatewayRoute(DeviceNwMode, &pInterface->IP.Ipv4Data) != RETURN_OK)
+    {
+        CcspTraceError(("%s %d - Failed to set up default system gateway", __FUNCTION__, __LINE__));
+        ret = RETURN_ERR;
     }
 
     /** Update required sysevents. */
@@ -2732,7 +2736,7 @@ static void* WanMgr_InterfaceSMThread( void *arg )
         if(pWanConfigData != NULL)
         {
             pWanIfaceCtrl->WanEnable = pWanConfigData->data.Enable;
-            pWanIfaceCtrl->DeviceMode = pWanConfigData->data.DeviceMode;
+            pWanIfaceCtrl->DeviceNwMode = pWanConfigData->data.DeviceNwMode;
             WanMgrDml_GetConfigData_release(pWanConfigData);
         }
 
