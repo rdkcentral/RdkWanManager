@@ -1923,6 +1923,12 @@ static eWanState_t wan_state_obtaining_ip_addresses(WanMgr_IfaceSM_Controller_t*
         return wan_transition_physical_interface_down(pWanIfaceCtrl);
     }
 
+    if ( pInterface->Wan.LinkStatus ==  WAN_IFACE_LINKSTATUS_DOWN )
+    {
+        pInterface->Wan.LinkStatus =  WAN_IFACE_LINKSTATUS_CONFIGURING;
+        return WAN_STATE_CONFIGURING_WAN;
+    }
+
     if ( pInterface->Wan.LinkStatus ==  WAN_IFACE_LINKSTATUS_CONFIGURING ||
             pInterface->Wan.Refresh == TRUE)
     {
@@ -2129,6 +2135,7 @@ static eWanState_t wan_state_ipv4_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
         return wan_transition_physical_interface_down(pWanIfaceCtrl);
     }
     else if (pInterface->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_DOWN ||
+             pInterface->Wan.LinkStatus ==  WAN_IFACE_LINKSTATUS_DOWN ||
             ((pInterface->Wan.RefreshDHCP == TRUE) && (pInterface->Wan.EnableDHCP == FALSE)))    // EnableDHCP changes to FALSE
     {
         return wan_transition_ipv4_down(pWanIfaceCtrl);
@@ -2266,6 +2273,7 @@ static eWanState_t wan_state_ipv6_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
         return wan_transition_physical_interface_down(pWanIfaceCtrl);
     }
     else if (pInterface->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_DOWN ||
+             pInterface->Wan.LinkStatus ==  WAN_IFACE_LINKSTATUS_DOWN ||
             ((pInterface->Wan.RefreshDHCP == TRUE) && (pInterface->Wan.EnableDHCP == FALSE)))    // EnableDHCP changes to FALSE
     {
         return wan_transition_ipv6_down(pWanIfaceCtrl);
@@ -2403,7 +2411,8 @@ static eWanState_t wan_state_dual_stack_active(WanMgr_IfaceSM_Controller_t* pWan
     {
         return wan_transition_physical_interface_down(pWanIfaceCtrl);
     }
-    else if ((pInterface->Wan.RefreshDHCP == TRUE) && (pInterface->Wan.EnableDHCP == FALSE))
+    else if (pInterface->Wan.LinkStatus ==  WAN_IFACE_LINKSTATUS_DOWN ||
+             (pInterface->Wan.RefreshDHCP == TRUE) && (pInterface->Wan.EnableDHCP == FALSE))
     {
         return wan_transition_dual_stack_down(pWanIfaceCtrl);
     }
