@@ -1305,29 +1305,32 @@ static FailOverState_t State_FailOver_ActiveDown_StandbyDown(UINT Active, BOOL A
             CcspTraceError(("%s %d: Failed to set ActiveLink in PSM, ActiveInst %d \n",
                              __FUNCTION__, __LINE__, Active));
         }
-	CcspTraceInfo(("%s-%d : Change state from STATE_FAILOVER_ACTIVE_DOWN_STANDBY_DOWN to STATE_FAILOVER_ACTIVE_UP_STANDBY_UP\n", __FUNCTION__, __LINE__));
+        CcspTraceInfo(("%s-%d : Change state to STATE_FAILOVER_ACTIVE_UP_STANDBY_UP\n", __FUNCTION__, __LINE__));
+        Update_Current_Iface_Status();
         return STATE_FAILOVER_ACTIVE_UP_STANDBY_UP;
     }
     else if (ActiveStatus && !StandbyStatus)
     {
-	//set ActiveLink true for Active Inst
+        //set ActiveLink true for Active Inst
         if (WanMgr_SetSelectionStatus (Active, WAN_IFACE_ACTIVE, TRUE) != ANSC_STATUS_SUCCESS)
         {
             CcspTraceError(("%s %d: Failed to set ActiveLink in PSM, ActiveInst %d \n",
                              __FUNCTION__, __LINE__, Active));
         }
-        CcspTraceInfo(("%s-%d : Change state from STATE_FAILOVER_ACTIVE_DOWN_STANDBY_DOWN to STATE_FAILOVER_ACTIVE_UP_STANDBY_DOWN\n", __FUNCTION__, __LINE__));
+        CcspTraceInfo(("%s-%d : Change state to STATE_FAILOVER_ACTIVE_UP_STANDBY_DOWN\n", __FUNCTION__, __LINE__));
+        Update_Current_Iface_Status();
         return STATE_FAILOVER_ACTIVE_UP_STANDBY_DOWN;
     }
     else if(!ActiveStatus && StandbyStatus)
     {
-	//Set ActiveLink true for standby Inst
+        //Set ActiveLink true for standby Inst
         if (WanMgr_SetSelectionStatus (Standby, WAN_IFACE_ACTIVE, TRUE) != ANSC_STATUS_SUCCESS)
         {
             CcspTraceError(("%s %d: Failed to set ActiveLink in PSM, StandbyInst %d \n",
                              __FUNCTION__, __LINE__, Standby));
         }
-        CcspTraceInfo(("%s-%d : Change state from STATE_FAILOVER_ACTIVE_DOWN_STANDBY_DOWN to STATE_FAILOVER_ACTIVE_DOWN_STANDBY_UP\n", __FUNCTION__, __LINE__));
+        CcspTraceInfo(("%s-%d : Change state to STATE_FAILOVER_ACTIVE_DOWN_STANDBY_UP\n", __FUNCTION__, __LINE__));
+        Update_Current_Iface_Status();
         return STATE_FAILOVER_ACTIVE_DOWN_STANDBY_UP;
     }
 
@@ -1339,23 +1342,25 @@ static FailOverState_t State_FailOver_ActiveUp_StandbyDown(UINT Active, BOOL Act
     if (ActiveStatus && StandbyStatus)
     {
         //just change state
-	CcspTraceInfo(("%s-%d : Change state from STATE_FAILOVER_ACTIVE_UP_STANDBY_DOWN to STATE_FAILOVER_ACTIVE_UP_STANDBY_UP\n", __FUNCTION__, __LINE__));
+        CcspTraceInfo(("%s-%d : Change state to STATE_FAILOVER_ACTIVE_UP_STANDBY_UP\n", __FUNCTION__, __LINE__));
+        Update_Current_Iface_Status();
         return STATE_FAILOVER_ACTIVE_UP_STANDBY_UP;
     }
     else if (!ActiveStatus && !StandbyStatus)
     {
-	//set ActiveLink false for active Inst
+        //set ActiveLink false for active Inst
         if (WanMgr_SetSelectionStatus (Active, WAN_IFACE_SELECTED, FALSE) != ANSC_STATUS_SUCCESS)
         {
             CcspTraceError(("%s %d: Failed to set ActiveLink in PSM, ActiveInst %d \n",
                              __FUNCTION__, __LINE__, Active));
         }
-        CcspTraceInfo(("%s-%d : Change state from STATE_FAILOVER_ACTIVE_UP_STANDBY_DOWN to STATE_FAILOVER_ACTIVE_DOWN_STANDBY_DOWN\n", __FUNCTION__, __LINE__));
+        CcspTraceInfo(("%s-%d : Change state to STATE_FAILOVER_ACTIVE_DOWN_STANDBY_DOWN\n", __FUNCTION__, __LINE__));
+        Update_Current_Iface_Status();
         return STATE_FAILOVER_ACTIVE_DOWN_STANDBY_DOWN;
     }
     else if(!ActiveStatus && StandbyStatus)
     {
-	//set ActiveLink false for Active Inst
+        //set ActiveLink false for Active Inst
         if (WanMgr_SetSelectionStatus (Active, WAN_IFACE_SELECTED, FALSE) != ANSC_STATUS_SUCCESS)
         {
             CcspTraceError(("%s %d: Failed to set ActiveLink in PSM, ActiveInst %d \n",
@@ -1367,7 +1372,8 @@ static FailOverState_t State_FailOver_ActiveUp_StandbyDown(UINT Active, BOOL Act
             CcspTraceError(("%s %d: Failed to set ActiveLink in PSM, StandbyInst %d \n",
                              __FUNCTION__, __LINE__, Standby));
         }
-        CcspTraceInfo(("%s-%d : Change state from STATE_FAILOVER_ACTIVE_UP_STANDBY_DOWN to STATE_FAILOVER_ACTIVE_DOWN_STANDBY_UP\n", __FUNCTION__, __LINE__));
+        CcspTraceInfo(("%s-%d : Change state to STATE_FAILOVER_ACTIVE_DOWN_STANDBY_UP\n", __FUNCTION__, __LINE__));
+        Update_Current_Iface_Status();
         return STATE_FAILOVER_ACTIVE_DOWN_STANDBY_UP;
     }
 
@@ -1423,7 +1429,8 @@ static FailOverState_t State_FailOver_ActiveDown_StandbyUp(UINT Active, BOOL Act
                 CcspTraceError(("%s %d: Failed to set ActiveLink in PSM, SelectedInterfaceInst %d \n",
                                  __FUNCTION__, __LINE__, Active));
             }
-            CcspTraceInfo(("%s-%d : Change state from STATE_FAILOVER_ACTIVE_DOWN_STANDBY_UP to STATE_FAILOVER_ACTIVE_UP_STANDBY_UP\n", __FUNCTION__, __LINE__));
+            CcspTraceInfo(("%s-%d : Change state to STATE_FAILOVER_ACTIVE_UP_STANDBY_UP\n", __FUNCTION__, __LINE__));
+            Update_Current_Iface_Status();
             return STATE_FAILOVER_ACTIVE_UP_STANDBY_UP;
         }
     }
@@ -1450,7 +1457,8 @@ static FailOverState_t State_FailOver_ActiveDown_StandbyUp(UINT Active, BOOL Act
                 CcspTraceError(("%s %d: Failed to set ActiveLink in PSM, StandbyInst %d \n",
                                  __FUNCTION__, __LINE__, Standby));
             }
-            CcspTraceInfo(("%s-%d : Change state from STATE_FAILOVER_ACTIVE_DOWN_STANDBY_UP to STATE_FAILOVER_ACTIVE_UP_STANDBY_DOWN\n", __FUNCTION__, __LINE__));
+            CcspTraceInfo(("%s-%d : Change state to STATE_FAILOVER_ACTIVE_UP_STANDBY_DOWN\n", __FUNCTION__, __LINE__));
+            Update_Current_Iface_Status();
             return STATE_FAILOVER_ACTIVE_UP_STANDBY_DOWN;
         }
     }
@@ -1462,7 +1470,8 @@ static FailOverState_t State_FailOver_ActiveDown_StandbyUp(UINT Active, BOOL Act
             CcspTraceError(("%s %d: Failed to set ActiveLink in PSM, StandbyInst %d \n",
                              __FUNCTION__, __LINE__, Standby));
         }
-        CcspTraceInfo(("%s-%d : Change state from STATE_FAILOVER_ACTIVE_DOWN_STANDBY_UP to STATE_FAILOVER_ACTIVE_DOWN_STANDBY_DOWN\n", __FUNCTION__, __LINE__));
+        CcspTraceInfo(("%s-%d : Change state to STATE_FAILOVER_ACTIVE_DOWN_STANDBY_DOWN\n", __FUNCTION__, __LINE__));
+        Update_Current_Iface_Status();
         return STATE_FAILOVER_ACTIVE_DOWN_STANDBY_DOWN;
     }
 
@@ -1479,13 +1488,15 @@ static FailOverState_t State_FailOver_ActiveUp_StandbyUp(UINT Active, BOOL Activ
             CcspTraceError(("%s %d: Failed to set ActiveLink in PSM, ActiveInst %d \n",
                              __FUNCTION__, __LINE__, Active));
         }
-        CcspTraceInfo(("%s-%d : Change state from STATE_FAILOVER_ACTIVE_UP_STANDBY_UP to STATE_FAILOVER_ACTIVE_DOWN_STANDBY_DOWN\n", __FUNCTION__, __LINE__));
+        CcspTraceInfo(("%s-%d : Change state to STATE_FAILOVER_ACTIVE_DOWN_STANDBY_DOWN\n", __FUNCTION__, __LINE__));
+        Update_Current_Iface_Status();
         return STATE_FAILOVER_ACTIVE_DOWN_STANDBY_DOWN;
     }
     else if (ActiveStatus && !StandbyStatus)
     {
 	//just change state
-        CcspTraceInfo(("%s-%d : Change state from STATE_FAILOVER_ACTIVE_UP_STANDBY_UP to STATE_FAILOVER_ACTIVE_UP_STANDBY_DOWN\n", __FUNCTION__, __LINE__));
+        CcspTraceInfo(("%s-%d : Change state to STATE_FAILOVER_ACTIVE_UP_STANDBY_DOWN\n", __FUNCTION__, __LINE__));
+        Update_Current_Iface_Status();
         return STATE_FAILOVER_ACTIVE_UP_STANDBY_DOWN;
     }
     else if(!ActiveStatus && StandbyStatus)
@@ -1502,7 +1513,8 @@ static FailOverState_t State_FailOver_ActiveUp_StandbyUp(UINT Active, BOOL Activ
             CcspTraceError(("%s %d: Failed to set ActiveLink in PSM, StandbyInst %d \n",
                              __FUNCTION__, __LINE__, Standby));
         }
-        CcspTraceInfo(("%s-%d : Change state from STATE_FAILOVER_ACTIVE_UP_STANDBY_UP to STATE_FAILOVER_ACTIVE_DOWN_STANDBY_UP\n", __FUNCTION__, __LINE__));
+        CcspTraceInfo(("%s-%d : Change state to STATE_FAILOVER_ACTIVE_DOWN_STANDBY_UP\n", __FUNCTION__, __LINE__));
+        Update_Current_Iface_Status();
         return STATE_FAILOVER_ACTIVE_DOWN_STANDBY_UP;
     }
 
@@ -1551,11 +1563,11 @@ static void WanMgr_FailOverProcess (void)
                 {
                     if (i == 0)
                     {
-                        ActiveInterfaceInst = (i+1);
+                        ActiveInterfaceInst = pWanIfaceGroup->SelectedInterface;
                     }
                     else if (i == 1)
                     {
-                        StandbyInterfaceInst = (i+1);
+                        StandbyInterfaceInst = pWanIfaceGroup->SelectedInterface;
                     }
                 }
                 if (i == 0)

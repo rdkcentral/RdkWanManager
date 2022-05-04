@@ -76,6 +76,7 @@ static eWanState_t wan_transition_ipv4_down(WanMgr_IfaceSM_Controller_t* pWanIfa
 static eWanState_t wan_transition_ipv6_up(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
 static eWanState_t wan_transition_ipv6_down(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
 static eWanState_t wan_transition_dual_stack_down(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
+static eWanState_t wan_transition_standby(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
 #ifdef FEATURE_MAPT
 static eWanState_t wan_transition_mapt_feature_refresh(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
 static eWanState_t wan_transition_mapt_up(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
@@ -1828,6 +1829,26 @@ static eWanState_t wan_transition_exit(WanMgr_IfaceSM_Controller_t* pWanIfaceCtr
     return WAN_STATE_EXIT;
 }
 
+static eWanState_t wan_transition_standby(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
+{
+
+    DML_WAN_IFACE* pInterface = pWanIfaceCtrl->pIfaceData;
+
+    if (pInterface->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_UP)
+    {
+        pInterface->Wan.Status = WAN_IFACE_STATUS_UP;
+        pInterface->IP.Ipv4Changed = FALSE;
+
+    }
+    if (pInterface->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_UP)
+    {
+        pInterface->Wan.Status = WAN_IFACE_STATUS_UP;
+        pInterface->IP.Ipv6Changed = FALSE;
+    }
+    CcspTraceInfo(("%s %d - TRANSITION WAN_STATE_STANDBY\n", __FUNCTION__, __LINE__));
+    return WAN_STATE_STANDBY;
+}
+
 /*********************************************************************************/
 /**************************** STATES *********************************************/
 /*********************************************************************************/
@@ -1959,9 +1980,7 @@ static eWanState_t wan_state_obtaining_ip_addresses(WanMgr_IfaceSM_Controller_t*
         }
         else
         {
-            pInterface->Wan.Status = WAN_IFACE_STATUS_UP;
-            pInterface->IP.Ipv4Changed = FALSE;
-            return WAN_STATE_STANDBY;
+            return wan_transition_standby(pWanIfaceCtrl);
         }
     }
     else if (pInterface->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_UP)
@@ -1990,9 +2009,7 @@ static eWanState_t wan_state_obtaining_ip_addresses(WanMgr_IfaceSM_Controller_t*
 	}
         else
         {
-            pInterface->Wan.Status = WAN_IFACE_STATUS_UP;
-            pInterface->IP.Ipv6Changed = FALSE;
-            return WAN_STATE_STANDBY;
+            return wan_transition_standby(pWanIfaceCtrl);
         }
     }
 #ifdef FEATURE_MAPT
@@ -2027,8 +2044,8 @@ static eWanState_t wan_state_standby(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
         pInterface->SelectionStatus == WAN_IFACE_NOT_SELECTED ||
         pInterface->Phy.Status ==  WAN_IFACE_PHY_STATUS_DOWN ||
         pInterface->Wan.LinkStatus ==  WAN_IFACE_LINKSTATUS_DOWN ||
-        pInterface->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_DOWN ||
-        pInterface->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_DOWN ||
+        (pInterface->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_DOWN &&
+        pInterface->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_DOWN) ||
         ((pInterface->Wan.RefreshDHCP == TRUE) && (pInterface->Wan.EnableDHCP == FALSE)))
     {
         return WAN_STATE_OBTAINING_IP_ADDRESSES;
@@ -2045,6 +2062,18 @@ static eWanState_t wan_state_standby(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
             pInterface->IP.Ipv6Changed = FALSE;
         }
         return ret;
+    }
+    else
+    {
+        if (pInterface->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_UP)
+        {
+            pInterface->IP.Ipv4Changed = FALSE;
+        }
+        if (pInterface->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_UP)
+        {
+            pInterface->IP.Ipv6Changed = FALSE;
+        }
+
     }
     return WAN_STATE_STANDBY;
 }
