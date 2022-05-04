@@ -257,9 +257,13 @@ BOOL WanManager_SetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL
 
         if(AnscEqualString(ParamName, "AllowRemoteInterfaces", TRUE))
         {
+#ifdef WAN_FAILOVER_SUPPORTED
             pWanDmlData->AllowRemoteInterfaces = bValue;
             WanMgr_RdkBus_setAllowRemoteIfaceToPsm(bValue);
             ret = TRUE;
+#else
+            ret = FALSE;
+#endif
         }
 
         if(AnscEqualString(ParamName, "ResetDefaultConfig", TRUE))
