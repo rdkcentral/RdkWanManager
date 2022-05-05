@@ -21,6 +21,8 @@
 #define _WANMGR_RBUS_H_
 #ifdef RBUS_BUILD_FLAG_ENABLE
 #include "ansc_platform.h"
+#include <rbus.h>
+#include "ccsp_base_api.h"
 
 #define NUM_OF_RBUS_PARAMS                           4
 #define WANMGR_CONFIG_WAN_CURRENTACTIVEINTERFACE     "Device.X_RDK_WanManager.CurrentActiveInterface"
@@ -28,6 +30,52 @@
 #define WANMGR_CONFIG_WAN_INTERFACEAVAILABLESTATUS   "Device.X_RDK_WanManager.InterfaceAvailableStatus"
 #define WANMGR_CONFIG_WAN_INTERFACEACTIVESTATUS      "Device.X_RDK_WanManager.InterfaceActiveStatus"
 #define WANMGR_DEVICE_NETWORKING_MODE                "Device.X_RDKCENTRAL-COM_DeviceControl.DeviceNetworkingMode"
+
+
+typedef enum _IDM_MSG_OPERATION
+{
+    IDM_SET = 1,
+    IDM_GET,
+    IDM_SUBS,
+    IDM_REQUEST,
+
+}IDM_MSG_OPERATION;
+
+typedef struct _idm_invoke_method_Params
+{
+    IDM_MSG_OPERATION operation;
+    char Mac_dest[18];
+    char param_name[128];
+    char param_value[2048];
+    char pComponent_name[128];
+    char pBus_path[128];
+    uint timeout;
+    enum dataType_e type;
+    rbusMethodAsyncHandle_t asyncHandle;
+}idm_invoke_method_Params_t;
+
+/***********************************************************************
+ WanMgr_IDM_Invoke():
+Description:
+    Send Invoke request to IDM
+Arguments:
+    idm_invoke_method_Params_t*
+
+    struct list:
+    IDM_MSG_OPERATION operation : DM GET/SET/SUBSCRIBE
+    char Mac_dest[18]           : Destination device (identifier) MAC
+    char param_name[128]        : DM name
+    char param_value[2048]      : DM value
+    char pComponent_name[128]   : Destination Component name (EX: eRT.com.cisco.spvtg.ccsp.wanmanager)
+    char pBus_path[128]         : Destination Component bus path (EX : /com/cisco/spvtg/ccsp/wanmanager)
+    uint timeout                : Timeout for async call back
+    enum dataType_e type        : DM data type
+    rbusMethodAsyncHandle_t asyncHandle : Async call back handler pointer
+Return value:
+    ANSC_STATUS
+
+ ***********************************************************************/
+ANSC_STATUS WanMgr_IDM_Invoke(idm_invoke_method_Params_t *IDM_request);
 
 ANSC_STATUS WanMgr_Rbus_Init();
 ANSC_STATUS WanMgr_Rbus_Exit();
