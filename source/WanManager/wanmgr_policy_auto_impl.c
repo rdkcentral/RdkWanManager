@@ -1306,7 +1306,6 @@ static FailOverState_t State_FailOver_ActiveDown_StandbyDown(UINT Active, BOOL A
                              __FUNCTION__, __LINE__, Active));
         }
         CcspTraceInfo(("%s-%d : Change state to STATE_FAILOVER_ACTIVE_UP_STANDBY_UP\n", __FUNCTION__, __LINE__));
-        Update_Current_Iface_Status();
         return STATE_FAILOVER_ACTIVE_UP_STANDBY_UP;
     }
     else if (ActiveStatus && !StandbyStatus)
@@ -1318,7 +1317,6 @@ static FailOverState_t State_FailOver_ActiveDown_StandbyDown(UINT Active, BOOL A
                              __FUNCTION__, __LINE__, Active));
         }
         CcspTraceInfo(("%s-%d : Change state to STATE_FAILOVER_ACTIVE_UP_STANDBY_DOWN\n", __FUNCTION__, __LINE__));
-        Update_Current_Iface_Status();
         return STATE_FAILOVER_ACTIVE_UP_STANDBY_DOWN;
     }
     else if(!ActiveStatus && StandbyStatus)
@@ -1330,7 +1328,6 @@ static FailOverState_t State_FailOver_ActiveDown_StandbyDown(UINT Active, BOOL A
                              __FUNCTION__, __LINE__, Standby));
         }
         CcspTraceInfo(("%s-%d : Change state to STATE_FAILOVER_ACTIVE_DOWN_STANDBY_UP\n", __FUNCTION__, __LINE__));
-        Update_Current_Iface_Status();
         return STATE_FAILOVER_ACTIVE_DOWN_STANDBY_UP;
     }
 
@@ -1343,7 +1340,6 @@ static FailOverState_t State_FailOver_ActiveUp_StandbyDown(UINT Active, BOOL Act
     {
         //just change state
         CcspTraceInfo(("%s-%d : Change state to STATE_FAILOVER_ACTIVE_UP_STANDBY_UP\n", __FUNCTION__, __LINE__));
-        Update_Current_Iface_Status();
         return STATE_FAILOVER_ACTIVE_UP_STANDBY_UP;
     }
     else if (!ActiveStatus && !StandbyStatus)
@@ -1355,7 +1351,6 @@ static FailOverState_t State_FailOver_ActiveUp_StandbyDown(UINT Active, BOOL Act
                              __FUNCTION__, __LINE__, Active));
         }
         CcspTraceInfo(("%s-%d : Change state to STATE_FAILOVER_ACTIVE_DOWN_STANDBY_DOWN\n", __FUNCTION__, __LINE__));
-        Update_Current_Iface_Status();
         return STATE_FAILOVER_ACTIVE_DOWN_STANDBY_DOWN;
     }
     else if(!ActiveStatus && StandbyStatus)
@@ -1373,7 +1368,6 @@ static FailOverState_t State_FailOver_ActiveUp_StandbyDown(UINT Active, BOOL Act
                              __FUNCTION__, __LINE__, Standby));
         }
         CcspTraceInfo(("%s-%d : Change state to STATE_FAILOVER_ACTIVE_DOWN_STANDBY_UP\n", __FUNCTION__, __LINE__));
-        Update_Current_Iface_Status();
         return STATE_FAILOVER_ACTIVE_DOWN_STANDBY_UP;
     }
 
@@ -1430,7 +1424,6 @@ static FailOverState_t State_FailOver_ActiveDown_StandbyUp(UINT Active, BOOL Act
                                  __FUNCTION__, __LINE__, Active));
             }
             CcspTraceInfo(("%s-%d : Change state to STATE_FAILOVER_ACTIVE_UP_STANDBY_UP\n", __FUNCTION__, __LINE__));
-            Update_Current_Iface_Status();
             return STATE_FAILOVER_ACTIVE_UP_STANDBY_UP;
         }
     }
@@ -1458,7 +1451,6 @@ static FailOverState_t State_FailOver_ActiveDown_StandbyUp(UINT Active, BOOL Act
                                  __FUNCTION__, __LINE__, Standby));
             }
             CcspTraceInfo(("%s-%d : Change state to STATE_FAILOVER_ACTIVE_UP_STANDBY_DOWN\n", __FUNCTION__, __LINE__));
-            Update_Current_Iface_Status();
             return STATE_FAILOVER_ACTIVE_UP_STANDBY_DOWN;
         }
     }
@@ -1471,7 +1463,6 @@ static FailOverState_t State_FailOver_ActiveDown_StandbyUp(UINT Active, BOOL Act
                              __FUNCTION__, __LINE__, Standby));
         }
         CcspTraceInfo(("%s-%d : Change state to STATE_FAILOVER_ACTIVE_DOWN_STANDBY_DOWN\n", __FUNCTION__, __LINE__));
-        Update_Current_Iface_Status();
         return STATE_FAILOVER_ACTIVE_DOWN_STANDBY_DOWN;
     }
 
@@ -1489,14 +1480,12 @@ static FailOverState_t State_FailOver_ActiveUp_StandbyUp(UINT Active, BOOL Activ
                              __FUNCTION__, __LINE__, Active));
         }
         CcspTraceInfo(("%s-%d : Change state to STATE_FAILOVER_ACTIVE_DOWN_STANDBY_DOWN\n", __FUNCTION__, __LINE__));
-        Update_Current_Iface_Status();
         return STATE_FAILOVER_ACTIVE_DOWN_STANDBY_DOWN;
     }
     else if (ActiveStatus && !StandbyStatus)
     {
 	//just change state
         CcspTraceInfo(("%s-%d : Change state to STATE_FAILOVER_ACTIVE_UP_STANDBY_DOWN\n", __FUNCTION__, __LINE__));
-        Update_Current_Iface_Status();
         return STATE_FAILOVER_ACTIVE_UP_STANDBY_DOWN;
     }
     else if(!ActiveStatus && StandbyStatus)
@@ -1514,7 +1503,6 @@ static FailOverState_t State_FailOver_ActiveUp_StandbyUp(UINT Active, BOOL Activ
                              __FUNCTION__, __LINE__, Standby));
         }
         CcspTraceInfo(("%s-%d : Change state to STATE_FAILOVER_ACTIVE_DOWN_STANDBY_UP\n", __FUNCTION__, __LINE__));
-        Update_Current_Iface_Status();
         return STATE_FAILOVER_ACTIVE_DOWN_STANDBY_UP;
     }
 
