@@ -1496,6 +1496,12 @@ void deleteList( struct IFACE_INFO* head)
 ANSC_STATUS Update_Iface_Status()
 {
     struct IFACE_INFO *head = NULL;
+    CHAR    local_InterfaceAvailableStatus[BUFLEN_64]  = {0};
+    CHAR    local_InterfaceActiveStatus[BUFLEN_64]     = {0};
+#ifdef RBUS_BUILD_FLAG_ENABLE
+    bool    publishAvailableStatus  = FALSE;
+    bool    publishActiveStatus = FALSE;
+#endif
     int uiLoopCount;
 
     int TotalIfaces = WanMgr_IfaceData_GetTotalWanIface();
@@ -1528,23 +1534,51 @@ ANSC_STATUS Update_Iface_Status()
         }
     }
 
+    struct IFACE_INFO* current = head;
+    while(current!= NULL)
+    {
+        strcat(local_InterfaceAvailableStatus,current->AvailableStatus);
+        strcat(local_InterfaceActiveStatus,current->ActiveStatus);
+        current = current->next;
+    }
+
+    if(head != NULL)
+    {
+        deleteList(head);
+    }
+
     WanMgr_Config_Data_t*   pWanConfigData = WanMgr_GetConfigData_locked();
     if (pWanConfigData != NULL)
     {
         DML_WANMGR_CONFIG* pWanDmlData = &(pWanConfigData->data);
-        memset(pWanDmlData->InterfaceAvailableStatus,0, sizeof(pWanDmlData->InterfaceAvailableStatus));
-        memset(pWanDmlData->InterfaceActiveStatus,0, sizeof(pWanDmlData->InterfaceActiveStatus));
-        struct IFACE_INFO* current = head;
-        while(current!= NULL)
+        if(strcmp(pWanDmlData->InterfaceAvailableStatus,local_InterfaceAvailableStatus) != 0)
         {
-            strcat(pWanDmlData->InterfaceAvailableStatus,current->AvailableStatus);
-            strcat(pWanDmlData->InterfaceActiveStatus,current->ActiveStatus);
-
-            current = current->next;
+            memset(pWanDmlData->InterfaceAvailableStatus,0, sizeof(pWanDmlData->InterfaceAvailableStatus));
+            strcpy(pWanDmlData->InterfaceAvailableStatus,local_InterfaceAvailableStatus);
+#ifdef RBUS_BUILD_FLAG_ENABLE
+            publishAvailableStatus = TRUE;
+#endif 
+        }
+        if(strcmp(pWanDmlData->InterfaceActiveStatus,local_InterfaceActiveStatus) != 0)
+        {
+            memset(pWanDmlData->InterfaceActiveStatus,0, sizeof(pWanDmlData->InterfaceActiveStatus));
+            strcpy(pWanDmlData->InterfaceActiveStatus,local_InterfaceActiveStatus);
+#ifdef RBUS_BUILD_FLAG_ENABLE
+            publishActiveStatus = TRUE;
+#endif 
         }
         WanMgrDml_GetConfigData_release(pWanConfigData);
-        deleteList(head);
     }
+#ifdef RBUS_BUILD_FLAG_ENABLE
+    if(publishAvailableStatus == TRUE)
+    {
+        WanMgr_Rbus_String_EventPublish(WANMGR_CONFIG_WAN_INTERFACEAVAILABLESTATUS, local_InterfaceAvailableStatus);
+    }
+    if(publishActiveStatus == TRUE)
+    {
+        WanMgr_Rbus_String_EventPublish(WANMGR_CONFIG_WAN_INTERFACEACTIVESTATUS, local_InterfaceActiveStatus);
+    }
+#endif 
     return ANSC_STATUS_SUCCESS;
 }
 

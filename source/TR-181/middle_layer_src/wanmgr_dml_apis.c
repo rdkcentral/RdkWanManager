@@ -191,49 +191,16 @@ BOOL WanManager_SetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, ch
 
 LONG WanManager_GetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, char* pValue, ULONG* pulSize)
 {
-     LONG ret = -1;
+    LONG ret = -1;
 
-     if( AnscEqualString(ParamName, "InterfaceAvailableStatus", TRUE) ||
-          AnscEqualString(ParamName, "InterfaceActiveStatus", TRUE) )
-     {
-         Update_Iface_Status();
-     }
+    if( AnscEqualString(ParamName, "Data", TRUE) )
+    {
+        /* Data value should be empty for all get */
+        snprintf(pValue, pulSize, "%s", "");
+        ret = 0;
+    }
 
-     WanMgr_Config_Data_t*   pWanConfigData = WanMgr_GetConfigData_locked();
-
-     if (pWanConfigData != NULL)
-     {
-        DML_WANMGR_CONFIG* pWanDmlData = &(pWanConfigData->data);
-
-        if (strcmp(ParamName, "Data") == 0)
-        {
-            /* Data value should be empty for all get */
-            snprintf(pValue, pulSize, "%s", "");
-            ret = 0;
-        }
-
-	if (strcmp(ParamName, "InterfaceAvailableStatus") == 0)
-        {
-            if (( sizeof(pWanDmlData->InterfaceAvailableStatus ) - 1 ) < *pulSize )
-            {
-                AnscCopyString( pValue, pWanDmlData->InterfaceAvailableStatus );
-                ret = 0;
-            }
-        }
-
-        else if (strcmp(ParamName, "InterfaceActiveStatus") == 0)
-        {
-            if ( ( sizeof(pWanDmlData->InterfaceActiveStatus) - 1 ) < *pulSize )
-            {
-                AnscCopyString( pValue, pWanDmlData->InterfaceActiveStatus );
-                ret = 0;
-            }
-        }
-
-        WanMgrDml_GetConfigData_release(pWanConfigData);
-     }
-
-     return ret;
+    return ret;
 }
 
 BOOL WanManager_SetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL bValue)

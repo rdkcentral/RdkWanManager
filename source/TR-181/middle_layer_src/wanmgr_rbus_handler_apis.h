@@ -22,9 +22,11 @@
 #ifdef RBUS_BUILD_FLAG_ENABLE
 #include "ansc_platform.h"
 
-#define NUM_OF_RBUS_PARAMS                           2
+#define NUM_OF_RBUS_PARAMS                           4
 #define WANMGR_CONFIG_WAN_CURRENTACTIVEINTERFACE     "Device.X_RDK_WanManager.CurrentActiveInterface"
 #define WANMGR_CONFIG_WAN_CURRENTSTANDBYINTERFACE    "Device.X_RDK_WanManager.CurrentStandbyInterface"
+#define WANMGR_CONFIG_WAN_INTERFACEAVAILABLESTATUS   "Device.X_RDK_WanManager.InterfaceAvailableStatus"
+#define WANMGR_CONFIG_WAN_INTERFACEACTIVESTATUS      "Device.X_RDK_WanManager.InterfaceActiveStatus"
 #define WANMGR_DEVICE_NETWORKING_MODE                "Device.X_RDKCENTRAL-COM_DeviceControl.DeviceNetworkingMode"
 
 ANSC_STATUS WanMgr_Rbus_Init();

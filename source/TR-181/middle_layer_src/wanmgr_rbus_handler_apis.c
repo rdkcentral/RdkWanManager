@@ -33,6 +33,8 @@ pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 char localCurrentActiveInterface[64] = {0};
 char localCurrentStandbyInterface[64] = {0};
+char localInterfaceAvailableStatus[64] = {0};
+char localInterfaceActiveStatus[64] = {0};
 
 rbusError_t WanMgr_Rbus_SubscribeHandler(rbusHandle_t handle, rbusEventSubAction_t action, const char *eventName, rbusFilter_t filter, int32_t interval, bool *autoPublish);
 rbusError_t WanMgr_Rbus_getHandler(rbusHandle_t handle, rbusProperty_t property, rbusGetHandlerOptions_t *opts);
@@ -44,6 +46,8 @@ rbusError_t WanMgr_Rbus_getHandler(rbusHandle_t handle, rbusProperty_t property,
 rbusDataElement_t wanMgrRbusDataElements[NUM_OF_RBUS_PARAMS] = {
     {WANMGR_CONFIG_WAN_CURRENTACTIVEINTERFACE,  RBUS_ELEMENT_TYPE_EVENT | RBUS_ELEMENT_TYPE_PROPERTY, {WanMgr_Rbus_getHandler, NULL, NULL, NULL, WanMgr_Rbus_SubscribeHandler, NULL}},
     {WANMGR_CONFIG_WAN_CURRENTSTANDBYINTERFACE, RBUS_ELEMENT_TYPE_EVENT | RBUS_ELEMENT_TYPE_PROPERTY, {WanMgr_Rbus_getHandler, NULL, NULL, NULL, WanMgr_Rbus_SubscribeHandler, NULL}},
+    {WANMGR_CONFIG_WAN_INTERFACEAVAILABLESTATUS,RBUS_ELEMENT_TYPE_EVENT | RBUS_ELEMENT_TYPE_PROPERTY, {WanMgr_Rbus_getHandler, NULL, NULL, NULL, WanMgr_Rbus_SubscribeHandler, NULL}},
+    {WANMGR_CONFIG_WAN_INTERFACEACTIVESTATUS,   RBUS_ELEMENT_TYPE_EVENT | RBUS_ELEMENT_TYPE_PROPERTY, {WanMgr_Rbus_getHandler, NULL, NULL, NULL, WanMgr_Rbus_SubscribeHandler, NULL}},
 };
 
 rbusError_t WanMgr_Rbus_getHandler(rbusHandle_t handle, rbusProperty_t property, rbusGetHandlerOptions_t *opts)
@@ -63,9 +67,19 @@ rbusError_t WanMgr_Rbus_getHandler(rbusHandle_t handle, rbusProperty_t property,
     {
         rbusValue_SetString(value, localCurrentStandbyInterface);
     }
+    else if (strcmp(name, WANMGR_CONFIG_WAN_INTERFACEAVAILABLESTATUS) == 0)
+    {
+        Update_Iface_Status();
+        rbusValue_SetString(value, localInterfaceAvailableStatus);
+    }
+    else if (strcmp(name, WANMGR_CONFIG_WAN_INTERFACEACTIVESTATUS) == 0)
+    {
+        Update_Iface_Status();
+        rbusValue_SetString(value, localInterfaceActiveStatus);
+    }
     else
     {
-        CcspTraceWarning(("getHandler: Invalid Input\n"));
+        CcspTraceWarning(("WanMgr_Rbus_getHandler: Invalid Input\n"));
         return RBUS_ERROR_INVALID_INPUT;
     }
 
@@ -270,6 +284,16 @@ ANSC_STATUS WanMgr_Rbus_String_EventPublish(char *dm_event, char *dm_value)
     else if (strcmp(dm_event, WANMGR_CONFIG_WAN_CURRENTSTANDBYINTERFACE) == 0)
     {
         strncpy(localCurrentStandbyInterface,dm_value,sizeof(localCurrentStandbyInterface));
+        return WanMgr_Rbus_EventPublishHandler(dm_event, dm_value, RBUS_STRING);
+    }
+    else if (strcmp(dm_event, WANMGR_CONFIG_WAN_INTERFACEAVAILABLESTATUS) == 0)
+    {
+        strncpy(localInterfaceAvailableStatus,dm_value,sizeof(localInterfaceAvailableStatus));
+        return WanMgr_Rbus_EventPublishHandler(dm_event, dm_value, RBUS_STRING);
+    }
+    else if (strcmp(dm_event, WANMGR_CONFIG_WAN_INTERFACEACTIVESTATUS) == 0)
+    {
+        strncpy(localInterfaceActiveStatus,dm_value,sizeof(localInterfaceActiveStatus));
         return WanMgr_Rbus_EventPublishHandler(dm_event, dm_value, RBUS_STRING);
     }
     else
