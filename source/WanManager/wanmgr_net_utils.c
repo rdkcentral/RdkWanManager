@@ -1305,7 +1305,7 @@ int WanManager_GetBCastFromIpSubnetMask(const char* inIpStr, const char* inSubne
    return ret;
 }
 
-int WanManager_AddDefaultGatewayRoute(DEVICE_NETWORKING_MODE DeviceNwMode, const WANMGR_IPV4_DATA* pIpv4Info)
+int WanManager_DelDefaultGatewayRoute(DEVICE_NETWORKING_MODE DeviceNwMode, const WANMGR_IPV4_DATA* pIpv4Info)
 {
     char cmd[BUFLEN_128]={0};
     int ret = RETURN_OK;
@@ -1316,14 +1316,25 @@ int WanManager_AddDefaultGatewayRoute(DEVICE_NETWORKING_MODE DeviceNwMode, const
         /* delete default gateway first before add  */
         snprintf(cmd, sizeof(cmd), "route del default 2>/dev/null");
         WanManager_DoSystemAction("SetUpDefaultSystemGateway:", cmd);
+    }
+    return ret;
+}
 
+int WanManager_AddDefaultGatewayRoute(DEVICE_NETWORKING_MODE DeviceNwMode, const WANMGR_IPV4_DATA* pIpv4Info)
+{
+    char cmd[BUFLEN_128]={0};
+    int ret = RETURN_OK;
+
+    if (DeviceNwMode == GATEWAY_MODE)
+    {
+        CcspTraceInfo(("%s %d: Device in Gateway Mode. So configure default route in main routing table\n", __FUNCTION__, __LINE__));
         /* Sets default gateway route entry */
         /* For IPoE, always use gw IP address. */
         if (IsValidIpv4Address(pIpv4Info->gateway) && !(IsZeroIpvxAddress(AF_SELECT_IPV4, pIpv4Info->gateway)))
         {
             snprintf(cmd, sizeof(cmd), "route add default gw %s dev %s", pIpv4Info->gateway, pIpv4Info->ifname);
             WanManager_DoSystemAction("SetUpDefaultSystemGateway:", cmd);
-            CcspTraceInfo(("%s %d - The default gateway route entries set!\n",__FUNCTION__,__LINE__));
+            CcspTraceInfo(("%s %d - The default gateway route entries set!, cmd(%s)\n",__FUNCTION__,__LINE__, cmd));
         }
     }
     else if (DeviceNwMode == MODEM_MODE)   

@@ -30,7 +30,7 @@
 /* ---- Global Constants -------------------------- */
 #define SELECTION_PROCESS_LOOP_TIMEOUT 500000 // timeout in milliseconds. This is the state machine loop interval
 #define AUTO_POLICY_LOOP_TIMEOUT 5000000 // timeout in seconds. This is the Auto Policy Thread
-#define FAILOVER_PROCESS_LOOP_TIMEOUT 100000
+#define FAILOVER_PROCESS_LOOP_TIMEOUT 500000
 
 extern WANMGR_DATA_ST gWanMgrDataBase;
 
@@ -119,25 +119,34 @@ static int WanMgr_SetGroupSelectedIface (UINT GroupInst, UINT IfaceInst, BOOL St
  * WanMgr_SetSelectionStatus()
  * - sets the ActiveLink locallt and saves it to PSM
  */
-static int WanMgr_SetSelectionStatus (UINT IfaceInst, UINT SelStatus, BOOL ActiveState)
+static BOOL WanMgr_SetSelectionStatus (UINT IfaceInst, UINT SelStatus, BOOL ActiveState, BOOL flag)
 {
+    BOOL ret = FALSE;
     WanMgr_Iface_Data_t* pWanIfaceData = WanMgr_GetIfaceData_locked((IfaceInst - 1));
     if (pWanIfaceData != NULL)
     {
         DML_WAN_IFACE* pWanIface = &(pWanIfaceData->data);
-        pWanIface->Wan.ActiveLink = ActiveState;
-	if (pWanIface->SelectionStatus > WAN_IFACE_NOT_SELECTED)
-            pWanIface->SelectionStatus = SelStatus;
-
+        if ((flag == TRUE) || (ActiveState == FALSE && pWanIface->Wan.Status != WAN_IFACE_STATUS_UP))
+        {
+            pWanIface->Wan.ActiveLink = ActiveState;
+            if (pWanIface->SelectionStatus > WAN_IFACE_NOT_SELECTED)
+            {
+                pWanIface->SelectionStatus = SelStatus;
+            }
+            ret = TRUE;
+        }
         WanMgrDml_GetIfaceData_release(pWanIfaceData);
     }
-    if (DmlSetWanActiveLinkInPSMDB((IfaceInst - 1), ActiveState) != ANSC_STATUS_SUCCESS)
-    {
-        CcspTraceError(("%s %d: Failed to set ActiveLink in PSM, SelectedInterface %d \n",
-                    __FUNCTION__, __LINE__, IfaceInst));
-    }
 
-    return ANSC_STATUS_SUCCESS;
+    if (ret == TRUE)
+    {
+        if (DmlSetWanActiveLinkInPSMDB((IfaceInst - 1), ActiveState) != ANSC_STATUS_SUCCESS)
+        {
+            CcspTraceError(("%s %d: Failed to set ActiveLink in PSM, SelectedInterface %d \n",
+                              __FUNCTION__, __LINE__, IfaceInst));
+        }
+    }
+    return ret;
 }
 
 /*
@@ -362,8 +371,6 @@ static bool WanMgr_CheckIfSelectedIfaceOnlyPossibleWanLink (WanMgr_Policy_Contro
     {
         if (!(pWanController->GroupIfaceList & (1 << uiLoopCount)))
         {
-            CcspTraceError(("%s-%d: Interface(%d) not present in GroupIfaceList(%x) \n",
-                             __FUNCTION__, __LINE__, (uiLoopCount+1), pWanController->GroupIfaceList));
             continue;
         }
         if (uiLoopCount == pWanController->activeInterfaceIdx)
@@ -1068,6 +1075,7 @@ static WcAwPolicyState_t State_ScanningInterface (WanMgr_Policy_Controller_t * p
 
     // checked if iface is validated or only interface enabled
     if ((pActiveInterface->Wan.Status == WAN_IFACE_STATUS_UP) || 
+        (pActiveInterface->Wan.Status == WAN_IFACE_STATUS_STANDBY) ||
             (SelectedIfaceLastWanLink == TRUE))
     {
         CcspTraceInfo(("%s %d: Interface validated\n", __FUNCTION__, __LINE__));
@@ -1300,37 +1308,30 @@ static FailOverState_t State_FailOver_ActiveDown_StandbyDown(UINT Active, BOOL A
     if (ActiveStatus && StandbyStatus)
     {
         //Set ActiveLink true for Active Inst
-        if (WanMgr_SetSelectionStatus (Active, WAN_IFACE_ACTIVE, TRUE) != ANSC_STATUS_SUCCESS)
+        if (WanMgr_SetSelectionStatus (Active, WAN_IFACE_ACTIVE, TRUE, TRUE))
         {
-            CcspTraceError(("%s %d: Failed to set ActiveLink in PSM, ActiveInst %d \n",
-                             __FUNCTION__, __LINE__, Active));
+            CcspTraceInfo(("%s-%d : Change state to STATE_FAILOVER_ACTIVE_UP_STANDBY_UP\n", __FUNCTION__, __LINE__));
+            return STATE_FAILOVER_ACTIVE_UP_STANDBY_UP;
         }
-        CcspTraceInfo(("%s-%d : Change state to STATE_FAILOVER_ACTIVE_UP_STANDBY_UP\n", __FUNCTION__, __LINE__));
-        return STATE_FAILOVER_ACTIVE_UP_STANDBY_UP;
     }
     else if (ActiveStatus && !StandbyStatus)
     {
         //set ActiveLink true for Active Inst
-        if (WanMgr_SetSelectionStatus (Active, WAN_IFACE_ACTIVE, TRUE) != ANSC_STATUS_SUCCESS)
+        if (WanMgr_SetSelectionStatus (Active, WAN_IFACE_ACTIVE, TRUE, TRUE))
         {
-            CcspTraceError(("%s %d: Failed to set ActiveLink in PSM, ActiveInst %d \n",
-                             __FUNCTION__, __LINE__, Active));
+            CcspTraceInfo(("%s-%d : Change state to STATE_FAILOVER_ACTIVE_UP_STANDBY_DOWN\n", __FUNCTION__, __LINE__));
+            return STATE_FAILOVER_ACTIVE_UP_STANDBY_DOWN;
         }
-        CcspTraceInfo(("%s-%d : Change state to STATE_FAILOVER_ACTIVE_UP_STANDBY_DOWN\n", __FUNCTION__, __LINE__));
-        return STATE_FAILOVER_ACTIVE_UP_STANDBY_DOWN;
     }
     else if(!ActiveStatus && StandbyStatus)
     {
         //Set ActiveLink true for standby Inst
-        if (WanMgr_SetSelectionStatus (Standby, WAN_IFACE_ACTIVE, TRUE) != ANSC_STATUS_SUCCESS)
+        if (WanMgr_SetSelectionStatus (Standby, WAN_IFACE_ACTIVE, TRUE, TRUE))
         {
-            CcspTraceError(("%s %d: Failed to set ActiveLink in PSM, StandbyInst %d \n",
-                             __FUNCTION__, __LINE__, Standby));
+            CcspTraceInfo(("%s-%d : Change state to STATE_FAILOVER_ACTIVE_DOWN_STANDBY_UP\n", __FUNCTION__, __LINE__));
+            return STATE_FAILOVER_ACTIVE_DOWN_STANDBY_UP;
         }
-        CcspTraceInfo(("%s-%d : Change state to STATE_FAILOVER_ACTIVE_DOWN_STANDBY_UP\n", __FUNCTION__, __LINE__));
-        return STATE_FAILOVER_ACTIVE_DOWN_STANDBY_UP;
     }
-
     return STATE_FAILOVER_ACTIVE_DOWN_STANDBY_DOWN;
 }
 
@@ -1345,30 +1346,24 @@ static FailOverState_t State_FailOver_ActiveUp_StandbyDown(UINT Active, BOOL Act
     else if (!ActiveStatus && !StandbyStatus)
     {
         //set ActiveLink false for active Inst
-        if (WanMgr_SetSelectionStatus (Active, WAN_IFACE_SELECTED, FALSE) != ANSC_STATUS_SUCCESS)
+        if (WanMgr_SetSelectionStatus (Active, WAN_IFACE_SELECTED, FALSE, TRUE))
         {
-            CcspTraceError(("%s %d: Failed to set ActiveLink in PSM, ActiveInst %d \n",
-                             __FUNCTION__, __LINE__, Active));
+            CcspTraceInfo(("%s-%d : Change state to STATE_FAILOVER_ACTIVE_DOWN_STANDBY_DOWN\n", __FUNCTION__, __LINE__));
+            return STATE_FAILOVER_ACTIVE_DOWN_STANDBY_DOWN;
         }
-        CcspTraceInfo(("%s-%d : Change state to STATE_FAILOVER_ACTIVE_DOWN_STANDBY_DOWN\n", __FUNCTION__, __LINE__));
-        return STATE_FAILOVER_ACTIVE_DOWN_STANDBY_DOWN;
     }
     else if(!ActiveStatus && StandbyStatus)
     {
         //set ActiveLink false for Active Inst
-        if (WanMgr_SetSelectionStatus (Active, WAN_IFACE_SELECTED, FALSE) != ANSC_STATUS_SUCCESS)
+        if (WanMgr_SetSelectionStatus (Active, WAN_IFACE_SELECTED, FALSE, FALSE))
         {
-            CcspTraceError(("%s %d: Failed to set ActiveLink in PSM, ActiveInst %d \n",
-                             __FUNCTION__, __LINE__, Active));
+            //set ActiveLink true for Standby Inst
+            if (WanMgr_SetSelectionStatus (Standby, WAN_IFACE_ACTIVE, TRUE, TRUE))
+            {
+                CcspTraceInfo(("%s-%d : Change state to STATE_FAILOVER_ACTIVE_DOWN_STANDBY_UP\n", __FUNCTION__, __LINE__));
+                return STATE_FAILOVER_ACTIVE_DOWN_STANDBY_UP;
+            }
         }
-	//set ActiveLink true for Standby Inst
-        if (WanMgr_SetSelectionStatus (Standby, WAN_IFACE_ACTIVE, TRUE) != ANSC_STATUS_SUCCESS)
-        {
-            CcspTraceError(("%s %d: Failed to set ActiveLink in PSM, StandbyInst %d \n",
-                             __FUNCTION__, __LINE__, Standby));
-        }
-        CcspTraceInfo(("%s-%d : Change state to STATE_FAILOVER_ACTIVE_DOWN_STANDBY_UP\n", __FUNCTION__, __LINE__));
-        return STATE_FAILOVER_ACTIVE_DOWN_STANDBY_UP;
     }
 
     return STATE_FAILOVER_ACTIVE_UP_STANDBY_DOWN;
@@ -1377,6 +1372,7 @@ static FailOverState_t State_FailOver_ActiveUp_StandbyDown(UINT Active, BOOL Act
 static FailOverState_t State_FailOver_ActiveDown_StandbyUp(UINT Active, BOOL ActiveStatus, UINT Standby, BOOL StandbyStatus)
 {
     BOOL SwitchOver = 0;
+    static BOOL DoOnce = FALSE;
 
     if(ActiveStatus)
     {
@@ -1411,20 +1407,24 @@ static FailOverState_t State_FailOver_ActiveDown_StandbyUp(UINT Active, BOOL Act
         }
         else
         {
-	    //set ActiveLink false for standby Inst
-            if (WanMgr_SetSelectionStatus (Standby, WAN_IFACE_SELECTED, FALSE) != ANSC_STATUS_SUCCESS)
+            //set ActiveLink false for standby Inst
+            if (!DoOnce)
             {
-                CcspTraceError(("%s %d: Failed to set ActiveLink in PSM, StandbyInst %d \n",
-                                 __FUNCTION__, __LINE__, Standby));
+                if (WanMgr_SetSelectionStatus (Standby, WAN_IFACE_SELECTED, FALSE, TRUE))
+                {
+                    DoOnce = TRUE;
+                }
             }
-	    //set ActiveLink true for Active Inst
-            if (WanMgr_SetSelectionStatus (Active, WAN_IFACE_ACTIVE, TRUE) != ANSC_STATUS_SUCCESS)
+            //set ActiveLink true for Active Inst
+            if (WanMgr_SetSelectionStatus (Standby, WAN_IFACE_SELECTED, FALSE, FALSE))
             {
-                CcspTraceError(("%s %d: Failed to set ActiveLink in PSM, SelectedInterfaceInst %d \n",
-                                 __FUNCTION__, __LINE__, Active));
+                if (WanMgr_SetSelectionStatus (Active, WAN_IFACE_ACTIVE, TRUE, TRUE))
+                {
+                    DoOnce = FALSE;
+                    CcspTraceInfo(("%s-%d : Change state to STATE_FAILOVER_ACTIVE_UP_STANDBY_UP\n", __FUNCTION__, __LINE__));
+                    return STATE_FAILOVER_ACTIVE_UP_STANDBY_UP;
+                }
             }
-            CcspTraceInfo(("%s-%d : Change state to STATE_FAILOVER_ACTIVE_UP_STANDBY_UP\n", __FUNCTION__, __LINE__));
-            return STATE_FAILOVER_ACTIVE_UP_STANDBY_UP;
         }
     }
     else if (ActiveStatus && !StandbyStatus)
@@ -1438,34 +1438,35 @@ static FailOverState_t State_FailOver_ActiveDown_StandbyUp(UINT Active, BOOL Act
         }
         else
         {
-	    //set ActiveLink true for Active Inst
-            if (WanMgr_SetSelectionStatus (Active, WAN_IFACE_ACTIVE, TRUE) != ANSC_STATUS_SUCCESS)
+            //set ActiveLink false for Standby Inst
+            if (!DoOnce)
             {
-                CcspTraceError(("%s %d: Failed to set ActiveLink in PSM, ActiveInst %d \n",
-                                 __FUNCTION__, __LINE__, Active));
+                if (WanMgr_SetSelectionStatus (Standby, WAN_IFACE_SELECTED, FALSE, TRUE))
+                {
+                    DoOnce = TRUE;
+                }
             }
-	    //set ActiveLink false for Standby Inst
-            if (WanMgr_SetSelectionStatus (Standby, WAN_IFACE_SELECTED, FALSE) != ANSC_STATUS_SUCCESS)
+            //set ActiveLink true for Active Inst
+            if (WanMgr_SetSelectionStatus (Standby, WAN_IFACE_SELECTED, FALSE, FALSE))
             {
-                CcspTraceError(("%s %d: Failed to set ActiveLink in PSM, StandbyInst %d \n",
-                                 __FUNCTION__, __LINE__, Standby));
+                if (WanMgr_SetSelectionStatus (Active, WAN_IFACE_ACTIVE, TRUE, TRUE))
+                {
+                    DoOnce = FALSE;
+                    CcspTraceInfo(("%s-%d : Change state to STATE_FAILOVER_ACTIVE_UP_STANDBY_DOWN\n", __FUNCTION__, __LINE__));
+                    return STATE_FAILOVER_ACTIVE_UP_STANDBY_DOWN;
+                }
             }
-            CcspTraceInfo(("%s-%d : Change state to STATE_FAILOVER_ACTIVE_UP_STANDBY_DOWN\n", __FUNCTION__, __LINE__));
-            return STATE_FAILOVER_ACTIVE_UP_STANDBY_DOWN;
         }
     }
     else if(!ActiveStatus && !StandbyStatus)
     {
-	//set ActiveLink false to Standby Inst
-        if (WanMgr_SetSelectionStatus (Standby, WAN_IFACE_SELECTED, FALSE) != ANSC_STATUS_SUCCESS)
+        //set ActiveLink false to Standby Inst
+        if (WanMgr_SetSelectionStatus (Standby, WAN_IFACE_SELECTED, FALSE, TRUE))
         {
-            CcspTraceError(("%s %d: Failed to set ActiveLink in PSM, StandbyInst %d \n",
-                             __FUNCTION__, __LINE__, Standby));
+            CcspTraceInfo(("%s-%d : Change state to STATE_FAILOVER_ACTIVE_DOWN_STANDBY_DOWN\n", __FUNCTION__, __LINE__));
+            return STATE_FAILOVER_ACTIVE_DOWN_STANDBY_DOWN;
         }
-        CcspTraceInfo(("%s-%d : Change state to STATE_FAILOVER_ACTIVE_DOWN_STANDBY_DOWN\n", __FUNCTION__, __LINE__));
-        return STATE_FAILOVER_ACTIVE_DOWN_STANDBY_DOWN;
     }
-
     return STATE_FAILOVER_ACTIVE_DOWN_STANDBY_UP;
 }
 
@@ -1473,39 +1474,32 @@ static FailOverState_t State_FailOver_ActiveUp_StandbyUp(UINT Active, BOOL Activ
 {
     if (!ActiveStatus && !StandbyStatus)
     {
-	//Set ActiveLink false for Active Inst
-        if (WanMgr_SetSelectionStatus (Active, WAN_IFACE_SELECTED, FALSE) != ANSC_STATUS_SUCCESS)
+        //Set ActiveLink false for Active Inst
+        if (WanMgr_SetSelectionStatus (Active, WAN_IFACE_SELECTED, FALSE, TRUE))
         {
-            CcspTraceError(("%s %d: Failed to set ActiveLink in PSM, ActiveInst %d \n",
-                             __FUNCTION__, __LINE__, Active));
+            CcspTraceInfo(("%s-%d : Change state to STATE_FAILOVER_ACTIVE_DOWN_STANDBY_DOWN\n", __FUNCTION__, __LINE__));
+            return STATE_FAILOVER_ACTIVE_DOWN_STANDBY_DOWN;
         }
-        CcspTraceInfo(("%s-%d : Change state to STATE_FAILOVER_ACTIVE_DOWN_STANDBY_DOWN\n", __FUNCTION__, __LINE__));
-        return STATE_FAILOVER_ACTIVE_DOWN_STANDBY_DOWN;
     }
     else if (ActiveStatus && !StandbyStatus)
     {
-	//just change state
+        //just change state
         CcspTraceInfo(("%s-%d : Change state to STATE_FAILOVER_ACTIVE_UP_STANDBY_DOWN\n", __FUNCTION__, __LINE__));
         return STATE_FAILOVER_ACTIVE_UP_STANDBY_DOWN;
     }
     else if(!ActiveStatus && StandbyStatus)
     {
-	//set ActiveLink false for Active Inst
-        if (WanMgr_SetSelectionStatus (Active, WAN_IFACE_SELECTED, FALSE) != ANSC_STATUS_SUCCESS)
+        //set ActiveLink false for Active Inst
+        if (WanMgr_SetSelectionStatus (Active, WAN_IFACE_SELECTED, FALSE, FALSE))
         {
-            CcspTraceError(("%s %d: Failed to set ActiveLink in PSM, ActiveInst %d \n",
-                             __FUNCTION__, __LINE__, Active));
+            //set ActiveLink true for Standby Inst
+            if (WanMgr_SetSelectionStatus (Standby, WAN_IFACE_ACTIVE, TRUE, TRUE) != ANSC_STATUS_SUCCESS)
+            {
+                CcspTraceInfo(("%s-%d : Change state to STATE_FAILOVER_ACTIVE_DOWN_STANDBY_UP\n", __FUNCTION__, __LINE__));
+                return STATE_FAILOVER_ACTIVE_DOWN_STANDBY_UP;
+            }
         }
-	//set ActiveLink true for Standby Inst
-        if (WanMgr_SetSelectionStatus (Standby, WAN_IFACE_ACTIVE, TRUE) != ANSC_STATUS_SUCCESS)
-        {
-            CcspTraceError(("%s %d: Failed to set ActiveLink in PSM, StandbyInst %d \n",
-                             __FUNCTION__, __LINE__, Standby));
-        }
-        CcspTraceInfo(("%s-%d : Change state to STATE_FAILOVER_ACTIVE_DOWN_STANDBY_UP\n", __FUNCTION__, __LINE__));
-        return STATE_FAILOVER_ACTIVE_DOWN_STANDBY_UP;
     }
-
     return STATE_FAILOVER_ACTIVE_UP_STANDBY_UP;
 }
 

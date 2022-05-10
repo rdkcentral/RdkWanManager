@@ -179,7 +179,7 @@ int WanManager_ResetMAPTConfiguration(const char *baseIf, const char *vlanIf);
  * @return RETURN_OK upon success else returned error code.
  ****************************************************************************/
 int WanManager_AddDefaultGatewayRoute(DEVICE_NETWORKING_MODE DeviceNwMode, const WANMGR_IPV4_DATA* ipv4Info);
-
+int WanManager_DelDefaultGatewayRoute(DEVICE_NETWORKING_MODE DeviceNwMode, const WANMGR_IPV4_DATA* pIpv4Info);
 /***************************************************************************
  * @brief API used to get broadcast IP from IP and subnet mask
  * @param inIpStr IP address

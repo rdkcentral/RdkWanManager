@@ -250,7 +250,7 @@
 <?ifndef RBUS_BUILD_FLAG_ENABLE?>
                                 <parameter>
                                     <name>Status</name>
-                                    <type>string: Disabled(1),Initialising(2),Validating(3),Up(4),Invalid(5)</type>
+                                    <type>string: Disabled(1),Initialising(2),Validating(3),Up(4),Invalid(5),Standby(6)</type>
                                     <syntax>uint32/mapped</syntax>
                                     <writable>false</writable>
                                 </parameter>

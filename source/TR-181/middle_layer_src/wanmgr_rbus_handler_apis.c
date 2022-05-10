@@ -82,7 +82,8 @@ static void WanMgr_EnumToString(UINT Enum, UINT EnumType, char* String)
         Ptr = ((Enum == WAN_IFACE_STATUS_INITIALISING)? "Initialising":
                ((Enum == WAN_IFACE_STATUS_VALIDATING)? "Validating":
                ((Enum == WAN_IFACE_STATUS_UP)? "Up":
-               ((Enum == WAN_IFACE_STATUS_INVALID)? "Invalid":"Down"))));
+               ((Enum == WAN_IFACE_STATUS_STANDBY)? "Standby":
+               ((Enum == WAN_IFACE_STATUS_INVALID)? "Invalid":"Down")))));
     }
     else if (EnumType == ENUM_WAN_LINKSTATUS)
     {
@@ -108,7 +109,8 @@ static void WanMgr_StringToEnum(UINT *Enum, UINT EnumType, char* String)
         *Enum = ((strcmp(String, "Initialising") == 0)? WAN_IFACE_STATUS_INITIALISING:
                 ((strcmp(String, "Validating")== 0)? WAN_IFACE_STATUS_VALIDATING:
                 ((strcmp(String, "Up") == 0)? WAN_IFACE_STATUS_UP:
-                ((strcmp(String, "Invalid") == 0)? WAN_IFACE_STATUS_INVALID:WAN_IFACE_STATUS_DISABLED))));
+                ((strcmp(String, "Standby") == 0)? WAN_IFACE_STATUS_STANDBY:
+                ((strcmp(String, "Invalid") == 0)? WAN_IFACE_STATUS_INVALID:WAN_IFACE_STATUS_DISABLED)))));
     }
     else if (EnumType == ENUM_WAN_LINKSTATUS)
     {

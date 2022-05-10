@@ -161,35 +161,6 @@ ANSC_STATUS wanmgr_sysevents_ipv4Info_set(const ipc_dhcpv4_data_t* dhcp4Info, co
 {
     char name[BUFLEN_64] = {0};
     char value[BUFLEN_64] = {0};
-    char ipv6_status[BUFLEN_16] = {0};
-
-    sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_IPV6_CONNECTION_STATE, ipv6_status, sizeof(ipv6_status));
-    if (!(!strcmp(ipv6_status, STATUS_UP_STRING) && (dhcp4Info->dhcpcInterface[0] == '\0')))
-    {
-        snprintf(name, sizeof(name), SYSEVENT_CURRENT_WAN_IFNAME);
-        sysevent_set(sysevent_fd, sysevent_token,name, dhcp4Info->dhcpcInterface, 0);
-    }
-
-    snprintf(name, sizeof(name), SYSEVENT_IPV4_IP_ADDRESS, wanIfName);
-    sysevent_set(sysevent_fd, sysevent_token,name, dhcp4Info->ip, 0);
-
-    //same as SYSEVENT_IPV4_IP_ADDRESS. But this is required in other components
-    sysevent_set(sysevent_fd, sysevent_token,SYSEVENT_IPV4_WAN_ADDRESS, dhcp4Info->ip, 0);
-
-    snprintf(name, sizeof(name), SYSEVENT_IPV4_SUBNET, wanIfName);
-    sysevent_set(sysevent_fd, sysevent_token,name, dhcp4Info->mask, 0);
-
-    //same as SYSEVENT_IPV4_SUBNET. But this is required in other components
-    sysevent_set(sysevent_fd, sysevent_token,SYSEVENT_IPV4_WAN_SUBNET, dhcp4Info->mask, 0);
-
-    snprintf(name, sizeof(name), SYSEVENT_IPV4_GW_NUMBER, wanIfName);
-    sysevent_set(sysevent_fd, sysevent_token, name, "1", 0);
-
-    snprintf(name, sizeof(name), SYSEVENT_IPV4_GW_ADDRESS, wanIfName);
-    sysevent_set(sysevent_fd, sysevent_token,name, dhcp4Info->gateway, 0);
-    sysevent_set(sysevent_fd, sysevent_token,SYSEVENT_IPV4_DEFAULT_ROUTER, dhcp4Info->gateway, 0);
-
-
 
     snprintf(name, sizeof(name), SYSEVENT_IPV4_DS_CURRENT_RATE, wanIfName);
     snprintf(value, sizeof(value), "%d", dhcp4Info->downstreamCurrRate);
@@ -218,7 +189,43 @@ ANSC_STATUS wanmgr_sysevents_ipv4Info_set(const ipc_dhcpv4_data_t* dhcp4Info, co
     snprintf(value, sizeof(value), "%u",dhcp4Info->leaseTime);
     sysevent_set(sysevent_fd, sysevent_token,name, value, 0);
 
-    snprintf(name,sizeof(name), SYSEVENT_IPV4_MTU_SIZE, dhcp4Info->dhcpcInterface);
+    return ANSC_STATUS_SUCCESS;
+}
+
+
+ANSC_STATUS wanmgr_set_Ipv4Sysevent(const WANMGR_IPV4_DATA* dhcp4Info)
+{
+    char name[BUFLEN_64] = {0};
+    char value[BUFLEN_64] = {0};
+    char ipv6_status[BUFLEN_16] = {0};
+
+    sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_IPV6_CONNECTION_STATE, ipv6_status, sizeof(ipv6_status));
+    if (!(!strcmp(ipv6_status, STATUS_UP_STRING) && (dhcp4Info->ifname[0] == '\0')))
+    {
+        snprintf(name, sizeof(name), SYSEVENT_CURRENT_WAN_IFNAME);
+        sysevent_set(sysevent_fd, sysevent_token,name, dhcp4Info->ifname, 0);
+    }
+
+    snprintf(name, sizeof(name), SYSEVENT_IPV4_IP_ADDRESS, dhcp4Info->ifname);
+    sysevent_set(sysevent_fd, sysevent_token,name, dhcp4Info->ip, 0);
+
+    //same as SYSEVENT_IPV4_IP_ADDRESS. But this is required in other components
+    sysevent_set(sysevent_fd, sysevent_token,SYSEVENT_IPV4_WAN_ADDRESS, dhcp4Info->ip, 0);
+
+    snprintf(name, sizeof(name), SYSEVENT_IPV4_SUBNET, dhcp4Info->ifname);
+    sysevent_set(sysevent_fd, sysevent_token,name, dhcp4Info->mask, 0);
+
+    //same as SYSEVENT_IPV4_SUBNET. But this is required in other components
+    sysevent_set(sysevent_fd, sysevent_token,SYSEVENT_IPV4_WAN_SUBNET, dhcp4Info->mask, 0);
+
+    snprintf(name, sizeof(name), SYSEVENT_IPV4_GW_NUMBER, dhcp4Info->ifname);
+    sysevent_set(sysevent_fd, sysevent_token, name, "1", 0);
+
+    snprintf(name, sizeof(name), SYSEVENT_IPV4_GW_ADDRESS, dhcp4Info->ifname);
+    sysevent_set(sysevent_fd, sysevent_token,name, dhcp4Info->gateway, 0);
+    sysevent_set(sysevent_fd, sysevent_token,SYSEVENT_IPV4_DEFAULT_ROUTER, dhcp4Info->gateway, 0);
+
+    snprintf(name,sizeof(name), SYSEVENT_IPV4_MTU_SIZE, dhcp4Info->ifname);
     snprintf(value, sizeof(value), "%u",dhcp4Info->mtuSize);
     sysevent_set(sysevent_fd, sysevent_token,name, value, 0);
 
@@ -229,9 +236,12 @@ ANSC_STATUS wanmgr_sysevents_ipv4Info_init(const char *wanIfName)
 {
     char name[BUFLEN_64] = {0};
     char value[BUFLEN_64] = {0};
-    ipc_dhcpv4_data_t ipv4Data;
+    ipc_dhcpv4_data_t ipc_ipv4Data;
+    WANMGR_IPV4_DATA ipv4Data;
 
-    memset(&ipv4Data, 0, sizeof(ipc_dhcpv4_data_t));
+    memset(&ipv4Data, 0, sizeof(WANMGR_IPV4_DATA));
+    memset(&ipc_ipv4Data, 0, sizeof(ipc_dhcpv4_data_t));
+
     strncpy(ipv4Data.ip, "0.0.0.0", sizeof(ipv4Data.ip)-1);
     strncpy(ipv4Data.mask, "0.0.0.0", sizeof(ipv4Data.mask)-1);
     strncpy(ipv4Data.gateway, "0.0.0.0", sizeof(ipv4Data.gateway)-1);
@@ -241,7 +251,9 @@ ANSC_STATUS wanmgr_sysevents_ipv4Info_init(const char *wanIfName)
     snprintf(name, sizeof(name), SYSEVENT_IPV4_START_TIME, wanIfName);
     sysevent_set(sysevent_fd, sysevent_token,name, "0", 0);
     ipv4Data.mtuSize = WANMNGR_INTERFACE_DEFAULT_MTU_SIZE;
-    return wanmgr_sysevents_ipv4Info_set(&ipv4Data, wanIfName);
+    
+    wanmgr_sysevents_ipv4Info_set(&ipc_ipv4Data, wanIfName);
+    return wanmgr_set_Ipv4Sysevent(&ipv4Data);
 }
 
 

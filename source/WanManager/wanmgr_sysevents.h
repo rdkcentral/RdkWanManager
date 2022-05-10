@@ -222,8 +222,8 @@ ANSC_STATUS wanmgr_sysevents_ipv4Info_init(const char *wanIfName);
  * @param[in] dhcpv4_data_t *dhcp4Info
  * @return Returns ANSC_STATUS.
 */
+ANSC_STATUS wanmgr_set_Ipv4Sysevent(const WANMGR_IPV4_DATA* dhcp4Info);
 ANSC_STATUS wanmgr_sysevents_ipv4Info_set(const ipc_dhcpv4_data_t* dhcp4Info, const char *wanIfName);
-
 
 /*
  * @brief Utility function used to set led state.

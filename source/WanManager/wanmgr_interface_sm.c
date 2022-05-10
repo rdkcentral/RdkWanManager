@@ -724,6 +724,11 @@ static int wan_setUpIPv4(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
     /** Setup IPv4: such as
      * "ifconfig eth0 10.6.33.165 netmask 255.255.255.192 broadcast 10.6.33.191 up"
      */
+     if (wanmgr_set_Ipv4Sysevent(&pInterface->IP.Ipv4Data) != ANSC_STATUS_SUCCESS)
+     {
+         CcspTraceError(("%s %d - Could not store ipv4 data!", __FUNCTION__, __LINE__));
+     }
+
     if (WanManager_GetBCastFromIpSubnetMask(pInterface->IP.Ipv4Data.ip, pInterface->IP.Ipv4Data.mask, bCastStr) != RETURN_OK)
     {
         CcspTraceError((" %s %d - bad address %s/%s \n",__FUNCTION__,__LINE__, pInterface->IP.Ipv4Data.ip, pInterface->IP.Ipv4Data.mask));
@@ -823,6 +828,7 @@ static int wan_tearDownIPv4(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
     char cmdStr[BUFLEN_64] = {0};
     char buf[BUFLEN_32] = {0};
 
+    DEVICE_NETWORKING_MODE DeviceNwMode = pWanIfaceCtrl->DeviceNwMode;
     DML_WAN_IFACE * pInterface = pWanIfaceCtrl->pIfaceData;
 
         /** Reset IPv4 DNS configuration. */
@@ -844,6 +850,12 @@ static int wan_tearDownIPv4(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
     if (WanManager_DoSystemActionWithStatus("wan_tearDownIPv4: ifconfig L3IfName 0.0.0.0", (cmdStr)) != 0)
     {
         CcspTraceError(("%s %d - failed to run cmd: %s", __FUNCTION__, __LINE__, cmdStr));
+        ret = RETURN_ERR;
+    }
+
+    if (WanManager_DelDefaultGatewayRoute(DeviceNwMode, &pInterface->IP.Ipv4Data) != RETURN_OK)
+    {
+        CcspTraceError(("%s %d - Failed to Del default system gateway", __FUNCTION__, __LINE__));
         ret = RETURN_ERR;
     }
 
@@ -1496,6 +1508,7 @@ static eWanState_t wan_transition_ipv4_down(WanMgr_IfaceSM_Controller_t* pWanIfa
         return WAN_STATE_IPV6_LEASED;
     }
 
+    pInterface->Wan.Status = WAN_IFACE_STATUS_VALIDATING;
     CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION OBTAINING IP ADDRESSES\n", __FUNCTION__, __LINE__, pInterface->Name));
     return WAN_STATE_OBTAINING_IP_ADDRESSES;
 }
@@ -1629,6 +1642,8 @@ static eWanState_t wan_transition_ipv6_down(WanMgr_IfaceSM_Controller_t* pWanIfa
         CcspTraceInfo(("%s %d - Interface '%s' - WAN_STATE_DUAL_STACK_ACTIVE->TRANSITION IPV4 LEASED\n", __FUNCTION__, __LINE__, pInterface->Name));
         return WAN_STATE_IPV4_LEASED;
     }
+
+    pInterface->Wan.Status = WAN_IFACE_STATUS_VALIDATING;
     CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION OBTAINING IP ADDRESSES\n", __FUNCTION__, __LINE__, pInterface->Name));
     return WAN_STATE_OBTAINING_IP_ADDRESSES;
 
@@ -1878,21 +1893,21 @@ static eWanState_t wan_transition_standby(WanMgr_IfaceSM_Controller_t* pWanIface
 
     if (pInterface->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_UP)
     {
-        pInterface->Wan.Status = WAN_IFACE_STATUS_UP;
+        pInterface->Wan.Status = WAN_IFACE_STATUS_STANDBY;
         pInterface->IP.Ipv4Changed = FALSE;
 
     }
     if (pInterface->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_UP)
     {
-        pInterface->Wan.Status = WAN_IFACE_STATUS_UP;
+        pInterface->Wan.Status = WAN_IFACE_STATUS_STANDBY;
         pInterface->IP.Ipv6Changed = FALSE;
     }
-    Update_Iface_Status();
     if (pWanIfaceCtrl->interfaceIdx != -1)
     {
         WanMgr_Publish_WanStatus(pWanIfaceCtrl->interfaceIdx);
     }
 
+    Update_Iface_Status();
     Update_Current_Iface_Status();
     CcspTraceInfo(("%s %d - TRANSITION WAN_STATE_STANDBY\n", __FUNCTION__, __LINE__));
     return WAN_STATE_STANDBY;
@@ -1908,19 +1923,22 @@ static eWanState_t wan_transition_standby_deconfig_ips(WanMgr_IfaceSM_Controller
     DML_WAN_IFACE* pInterface = pWanIfaceCtrl->pIfaceData;
     if (pInterface->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_UP)
     {
-        if (wan_tearDownIPv4(pWanIfaceCtrl) == RETURN_OK)
+        if (wan_tearDownIPv4(pWanIfaceCtrl) != RETURN_OK)
         {
             CcspTraceError(("%s %d - Failed to tear down IPv4 for %s Interface \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
         }
     }
     if (pInterface->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_UP)
     {
-        if (wan_tearDownIPv6(pWanIfaceCtrl) == RETURN_OK)
+        if (wan_tearDownIPv6(pWanIfaceCtrl) != RETURN_OK)
         {
             CcspTraceError(("%s %d - Failed to tear down IPv6 for %s Interface \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
         }
     }
+    pInterface->Wan.Status = WAN_IFACE_STATUS_STANDBY;
+    Update_Iface_Status();
     Update_Current_Iface_Status();
+     CcspTraceInfo(("%s %d - TRANSITION WAN_STATE_STANDBY\n", __FUNCTION__, __LINE__));
     return WAN_STATE_STANDBY;
 }
 
@@ -2148,6 +2166,18 @@ static eWanState_t wan_state_standby(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
         }
         if (pInterface->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_UP)
         {
+            if (setUpLanPrefixIPv6(pInterface) != RETURN_OK)
+            {
+                CcspTraceError((" %s %d - Failed to configure IPv6 prefix \n", __FUNCTION__, __LINE__));
+            }
+            if (checkIpv6AddressAssignedToBridge() != RETURN_OK)
+            {
+                CcspTraceError((" %s %d - IPv6 Address Not Assigned to Bridge Yet.\n", __FUNCTION__, __LINE__));
+            }
+            else
+            {
+                wanmgr_Ipv6Toggle();
+            }
             ret = wan_transition_ipv6_up(pWanIfaceCtrl);
             pInterface->IP.Ipv6Changed = FALSE;
         }
@@ -2813,7 +2843,7 @@ static eWanState_t wan_state_exit(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
 
     //Clear WAN Name
     memset(pWanIfaceCtrl->pIfaceData->Wan.Name, 0, sizeof(pWanIfaceCtrl->pIfaceData->Wan.Name));
-
+    memcpy(pWanIfaceCtrl->pIfaceData->Wan.Name, pWanIfaceCtrl->pIfaceData->Name, sizeof(pWanIfaceCtrl->pIfaceData->Name));
     /* Clear DHCP data */
     WanManager_ClearDHCPData(pWanIfaceCtrl->pIfaceData);
 
