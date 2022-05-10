@@ -29,6 +29,7 @@
 //Minimum SelectionTimeOut Value
 #define SELECTION_TIMEOUT_DEFAULT_MIN 20
 #define MAX_INTERFACE_GROUP           2
+#define MAX_WAN_INTERFACE_ENTRY       32
 //WAN CONFIG
 typedef struct _WANMGR_CONFIG_DATA_
 {
@@ -49,6 +50,7 @@ typedef struct _WANMGR_IFACECTRL_DATA_
     UINT                        ulTotalNumbWanInterfaces;
     WanMgr_Iface_Data_t*        pIface;
     pthread_mutex_t             mDataMutex;
+    UINT                        update;
 }WanMgr_IfaceCtrl_Data_t;
 
 typedef struct _WANMGR_IFACE_GROUP_DATA_
@@ -101,6 +103,7 @@ void WanMgr_SetIfaceCtrl_Default(WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl);
 void WanMgr_Data_Init(void);
 ANSC_STATUS WanMgr_Data_Delete(void);
 
-
-
+// WAN MGR REMOTE INTERFACE
+WanMgr_Iface_Data_t* WanMgr_Remote_IfaceData_configure(char *remoteCPEMac, int *iface_index);
+void WanMgr_Remote_IfaceData_Init(WanMgr_Iface_Data_t* pIfaceData, UINT iface_index);
 #endif  //_WANMGR_DATA_H_

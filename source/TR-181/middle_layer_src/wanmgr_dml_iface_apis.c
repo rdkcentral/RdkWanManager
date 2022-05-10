@@ -40,6 +40,7 @@
 #include "wanmgr_dhcpv6_apis.h"
 #include "wanmgr_data.h"
 
+extern WANMGR_DATA_ST gWanMgrDataBase;
 /***********************************************************************
 
  APIs for Object:
@@ -120,6 +121,75 @@ ANSC_HANDLE WanIf_GetEntry(ANSC_HANDLE hInsContext, ULONG nIndex, ULONG* pInsNum
     }
 
     return pDmlEntry;
+}
+
+/**********************************************************************
+
+    caller:     owner of this object
+
+    prototype:
+        BOOL
+        WanIf_IsUpdated
+            (
+                ANSC_HANDLE                 hInsContext
+            );
+
+    description:
+        This function is checking whether the table is updated or not.
+
+    argument:   ANSC_HANDLE                 hInsContext,
+                The instance handle;
+
+    return:     TRUE or FALSE.
+
+**********************************************************************/
+
+BOOL
+WanIf_IsUpdated
+    (
+        ANSC_HANDLE                 hInsContext
+    )
+{
+
+    if( gWanMgrDataBase.IfaceCtrl.update == 1)
+    {
+        return FALSE;
+    }
+    else
+    {
+        gWanMgrDataBase.IfaceCtrl.update = 1;
+        return TRUE;
+    }
+}
+
+/**********************************************************************
+
+    caller:     owner of this object
+
+    prototype:
+        ULONG
+        WanIf_Synchronize
+            (
+                ANSC_HANDLE                 hInsContext
+            );
+
+    description:
+        This function is called to synchronize the table.
+
+    argument:   ANSC_HANDLE                 hInsContext,
+                The instance handle;
+
+    return:     The status of the operation.
+
+**********************************************************************/
+
+ULONG
+WanIf_Synchronize
+    (
+        ANSC_HANDLE                 hInsContext
+    )
+{
+    return ANSC_STATUS_SUCCESS;
 }
 
 /**********************************************************************

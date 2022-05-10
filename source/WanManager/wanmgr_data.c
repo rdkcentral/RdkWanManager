@@ -236,6 +236,7 @@ void WanMgr_IfaceData_Init(WanMgr_Iface_Data_t* pIfaceData, UINT iface_index)
         pWanDmlIface->WanConfigEnabled = FALSE;
         pWanDmlIface->CustomConfigEnable = FALSE;
         memset(pWanDmlIface->CustomConfigPath,0,sizeof(pWanDmlIface->CustomConfigPath));
+        memset(pWanDmlIface->RemoteCPEMac, 0, sizeof(pWanDmlIface->RemoteCPEMac));
         pWanDmlIface->Wan.OperationalStatus = WAN_OPERSTATUS_UNKNOWN;
         pWanDmlIface->uiIfaceIdx = iface_index;
         pWanDmlIface->uiInstanceNumber = iface_index+1;
@@ -292,6 +293,71 @@ void WanMgr_IfaceData_Init(WanMgr_Iface_Data_t* pIfaceData, UINT iface_index)
     }
 }
 
+
+void WanMgr_Remote_IfaceData_Init(WanMgr_Iface_Data_t* pIfaceData, UINT iface_index)
+{
+    CcspTraceInfo(("%s %d - Enter \n", __FUNCTION__, __LINE__));
+    if(pIfaceData != NULL)
+    {
+        DML_WAN_IFACE* pWanDmlIface = &(pIfaceData->data);
+
+        pWanDmlIface->MonitorOperStatus = FALSE;
+        pWanDmlIface->WanConfigEnabled = FALSE;
+        pWanDmlIface->CustomConfigEnable = FALSE;
+        memset(pWanDmlIface->RemoteCPEMac, 0, sizeof(pWanDmlIface->RemoteCPEMac));
+        memset(pWanDmlIface->CustomConfigPath,0,sizeof(pWanDmlIface->CustomConfigPath));
+        pWanDmlIface->Wan.OperationalStatus = WAN_OPERSTATUS_UNKNOWN;
+        pWanDmlIface->uiIfaceIdx = iface_index;
+        pWanDmlIface->uiInstanceNumber = iface_index+1;
+        memset(pWanDmlIface->Name, 0, 64);
+        memset(pWanDmlIface->DisplayName, 0, 64);
+        memset(pWanDmlIface->Phy.Path, 0, 64);
+        pWanDmlIface->Phy.Status = WAN_IFACE_PHY_STATUS_DOWN;
+        memset(pWanDmlIface->Wan.Name, 0, 64);
+        strcpy(pWanDmlIface->Wan.Name, "brRWAN"); // Remote wan name by default
+        pWanDmlIface->Wan.Enable = TRUE; // Remote wan Enable by default
+        pWanDmlIface->Wan.Priority = -99;
+        pWanDmlIface->Wan.Type = WAN_IFACE_TYPE_UNCONFIGURED;
+        pWanDmlIface->Wan.SelectionTimeout = 0;
+        pWanDmlIface->Wan.EnableMAPT = FALSE;
+        pWanDmlIface->Wan.EnableDSLite = FALSE;
+        pWanDmlIface->Wan.EnableIPoE = FALSE;
+        pWanDmlIface->Wan.EnableDHCP = TRUE;    // DHCP is enabled by default
+        pWanDmlIface->Wan.RefreshDHCP = FALSE;        // RefreshDHCP is set when there is a change in EnableDHCP
+        pWanDmlIface->Wan.IfaceType = REMOTE_IFACE;    // InterfaceType is Remote by default
+        pWanDmlIface->Wan.ActiveLink = FALSE;
+        pWanDmlIface->SelectionStatus = WAN_IFACE_NOT_SELECTED;
+        pWanDmlIface->Wan.Status = WAN_IFACE_STATUS_DISABLED;
+        pWanDmlIface->Wan.LinkStatus = WAN_IFACE_LINKSTATUS_DOWN;
+        pWanDmlIface->Wan.Refresh = FALSE;
+        pWanDmlIface->Wan.RebootOnConfiguration = FALSE;
+     pWanDmlIface->Wan.Group = 1;
+        memset(pWanDmlIface->IP.Path, 0, 64);
+        pWanDmlIface->IP.Ipv4Status = WAN_IFACE_IPV4_STATE_DOWN;
+        pWanDmlIface->IP.Ipv6Status = WAN_IFACE_IPV6_STATE_DOWN;
+        pWanDmlIface->IP.Ipv4Changed = FALSE;
+        pWanDmlIface->IP.Ipv6Changed = FALSE;
+#ifdef FEATURE_IPOE_HEALTH_CHECK
+        pWanDmlIface->IP.Ipv4Renewed = FALSE;
+        pWanDmlIface->IP.Ipv6Renewed = FALSE;
+#endif
+        memset(&(pWanDmlIface->IP.Ipv4Data), 0, sizeof(WANMGR_IPV4_DATA));
+        memset(&(pWanDmlIface->IP.Ipv6Data), 0, sizeof(WANMGR_IPV6_DATA));
+        pWanDmlIface->IP.pIpcIpv4Data = NULL;
+        pWanDmlIface->IP.pIpcIpv6Data = NULL;
+        pWanDmlIface->MAP.MaptStatus = WAN_IFACE_MAPT_STATE_DOWN;
+        memset(pWanDmlIface->MAP.Path, 0, 64);
+        pWanDmlIface->MAP.MaptChanged = FALSE;
+        memset(pWanDmlIface->DSLite.Path, 0, 64);
+        pWanDmlIface->DSLite.Status = WAN_IFACE_DSLITE_STATE_DOWN;
+        pWanDmlIface->DSLite.Changed = FALSE;
+        pWanDmlIface->PPP.LinkStatus = WAN_IFACE_PPP_LINK_STATUS_DOWN;
+        pWanDmlIface->PPP.LCPStatus = WAN_IFACE_LCP_STATUS_DOWN;
+        pWanDmlIface->PPP.IPCPStatus = WAN_IFACE_IPCP_STATUS_DOWN;
+        pWanDmlIface->PPP.IPV6CPStatus = WAN_IFACE_IPV6CP_STATUS_DOWN;
+    }
+}
+
 /******** WAN MGR DATA FUNCTIONS ********/
 void WanMgr_Data_Init(void)
 {
@@ -336,4 +402,27 @@ ANSC_STATUS WanMgr_Data_Delete(void)
     return result;
 }
 
-
+WanMgr_Iface_Data_t* WanMgr_Remote_IfaceData_configure(char *remoteCPEMac, int  *iface_index)
+{
+    if(pthread_mutex_lock(&(gWanMgrDataBase.IfaceCtrl.mDataMutex)) == 0)
+    {
+        WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl = &(gWanMgrDataBase.IfaceCtrl);
+        WanMgr_Iface_Data_t*  pIfaceData = NULL;
+        if (pWanIfaceCtrl->ulTotalNumbWanInterfaces < MAX_WAN_INTERFACE_ENTRY)
+        {
+            pIfaceData = &(pWanIfaceCtrl->pIface[pWanIfaceCtrl->ulTotalNumbWanInterfaces]);
+            WanMgr_Remote_IfaceData_Init(pIfaceData, pWanIfaceCtrl->ulTotalNumbWanInterfaces);
+            DML_WAN_IFACE* pWanDmlIface = &(pIfaceData->data);
+            strcpy(pWanDmlIface->RemoteCPEMac, remoteCPEMac);
+            *iface_index = pWanIfaceCtrl->ulTotalNumbWanInterfaces;
+            pWanIfaceCtrl->ulTotalNumbWanInterfaces = pWanIfaceCtrl->ulTotalNumbWanInterfaces + 1;
+            gWanMgrDataBase.IfaceCtrl.update = 0;
+            WanMgrDml_GetIfaceData_release(NULL);
+        }
+        else
+        {
+            CcspTraceInfo(("%s %d - Wan Interface Entries has reached its limit = [%d]\n", __FUNCTION__, __LINE__, MAX_WAN_INTERFACE_ENTRY));
+        }
+        return pIfaceData;
+    }
+}

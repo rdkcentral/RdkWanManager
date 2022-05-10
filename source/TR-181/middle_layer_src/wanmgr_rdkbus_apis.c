@@ -1234,7 +1234,7 @@ ANSC_STATUS WanMgr_WanIfaceConfInit(WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl)
             return ANSC_STATUS_FAILURE;
         }
 
-        pWanIfaceCtrl->pIface = (WanMgr_Iface_Data_t*) AnscAllocateMemory( sizeof(WanMgr_Iface_Data_t) * uiTotalIfaces);
+        pWanIfaceCtrl->pIface = (WanMgr_Iface_Data_t*) AnscAllocateMemory( sizeof(WanMgr_Iface_Data_t) * MAX_WAN_INTERFACE_ENTRY);
         if( NULL == pWanIfaceCtrl->pIface )
         {
             return ANSC_STATUS_FAILURE;
@@ -1243,7 +1243,7 @@ ANSC_STATUS WanMgr_WanIfaceConfInit(WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl)
         pWanIfaceCtrl->ulTotalNumbWanInterfaces = uiTotalIfaces;
 
         //Memset all memory
-        memset( pWanIfaceCtrl->pIface, 0, ( sizeof(WanMgr_Iface_Data_t) * uiTotalIfaces ) );
+        memset( pWanIfaceCtrl->pIface, 0, ( sizeof(WanMgr_Iface_Data_t) * MAX_WAN_INTERFACE_ENTRY ) );
 
         //Get static interface configuration from PSM data store
         for( idx = 0 ; idx < uiTotalIfaces ; idx++ )
@@ -1252,6 +1252,8 @@ ANSC_STATUS WanMgr_WanIfaceConfInit(WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl)
             WanMgr_IfaceData_Init(pIfaceData, idx);
             get_Wan_Interface_ParametersFromPSM((idx+1), &(pIfaceData->data));
         }
+        // initialize
+        pWanIfaceCtrl->update = 0;
     }
 
     return ANSC_STATUS_SUCCESS;

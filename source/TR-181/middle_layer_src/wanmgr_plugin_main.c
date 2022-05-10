@@ -356,6 +356,8 @@ int ANSC_EXPORT_API WanManagerDmlInit(ULONG uMaxVersionSupported, void* hCosaPlu
 
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "WanIf_GetEntryCount", WanIf_GetEntryCount);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "WanIf_GetEntry", WanIf_GetEntry);
+    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "WanIf_IsUpdated",  WanIf_IsUpdated);
+    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "WanIf_Synchronize",  WanIf_Synchronize);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "WanIf_GetParamStringValue", WanIf_GetParamStringValue);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "WanIf_SetParamStringValue", WanIf_SetParamStringValue);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "WanIf_GetParamBoolValue", WanIf_GetParamBoolValue);

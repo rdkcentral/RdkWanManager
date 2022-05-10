@@ -377,6 +377,7 @@ typedef struct _DML_WAN_INTERFACE
     BOOL                        CustomConfigEnable;
     CHAR                        CustomConfigPath[BUFLEN_128];
     DML_WAN_IFACE_SCAN_STATUS   InterfaceScanStatus;
+    CHAR                        RemoteCPEMac[BUFLEN_128];
     DML_WANIFACE_PHY            Phy;
     DML_WANIFACE_INFO           Wan;
     DML_WANIFACE_IP             IP;

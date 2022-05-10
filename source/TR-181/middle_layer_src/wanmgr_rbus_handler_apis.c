@@ -46,6 +46,9 @@ ANSC_STATUS WanMgr_Rbus_EventPublishHandler(char *dm_event, void *dm_value, rbus
 rbusError_t wanMgrDmlPublishEventHandler(rbusHandle_t handle, rbusEventSubAction_t action, const char* eventName, rbusFilter_t filter, int32_t interval, bool* autoPublish);
 rbusError_t WanMgr_Interface_GetHandler(rbusHandle_t handle, rbusProperty_t property, rbusGetHandlerOptions_t* opts);
 rbusError_t WanMgr_Interface_SetHandler(rbusHandle_t handle, rbusProperty_t prop, rbusSetHandlerOptions_t* opts);
+static void CPEInterface_AsyncMethodHandler( rbusHandle_t handle, char const* methodName, rbusError_t error, rbusObject_t params);
+static int WanMgr_Remote_IfaceData_index(char *macAddress);
+
 /***********************************************************************
 
   Data Elements declaration:
@@ -406,15 +409,15 @@ static void WanMgr_Rbus_EventReceiveHandler(rbusHandle_t handle, rbusEvent_t con
     (void)subscription;
 
     const char* eventName = event->name;
-    rbusValue_t valBuff = rbusObject_GetValue(event->data, NULL );
 
-    if((valBuff == NULL) || (eventName == NULL))
+    if((eventName == NULL))
     {
         CcspTraceError(("%s : FAILED , value is NULL\n",__FUNCTION__));
         return;
     }
     if (strcmp(eventName, WANMGR_DEVICE_NETWORKING_MODE) == 0)
     {
+        rbusValue_t valBuff = rbusObject_GetValue(event->data, NULL );
         CcspTraceInfo(("%s %d: change in %s\n", __FUNCTION__, __LINE__, eventName));
         UINT newValue = rbusValue_GetUInt32(valBuff);
         // Save here 
@@ -438,6 +441,24 @@ static void WanMgr_Rbus_EventReceiveHandler(rbusHandle_t handle, rbusEvent_t con
         }
 
         CcspTraceInfo(("%s:%d Received [%s:%u]\n",__FUNCTION__, __LINE__,eventName, newValue));
+    }
+    else if (strcmp(eventName, X_RDK_REMOTE_DEVICECHANGE) == 0)
+    {
+        CcspTraceInfo(("%s:%d Received [%s] \n",__FUNCTION__, __LINE__,eventName));
+
+        rbusValue_t value;
+        value = rbusObject_GetValue(event->data, "Capabilities");
+        CcspTraceInfo(("%s %d - from source MAC %s\n", __FUNCTION__, __LINE__,rbusValue_GetString(value, NULL)));
+
+        value = rbusObject_GetValue(event->data, "Index");
+        UINT Index = rbusValue_GetUInt32(value);
+        CcspTraceInfo(("%s %d - Index %d\n", __FUNCTION__, __LINE__,Index));
+
+        if (Index > 0)
+        {
+            WanMgr_WanRemoteIfaceConfigure(Index);
+        }
+
     }
     else
     {
@@ -483,6 +504,12 @@ void WanMgr_Rbus_SubscribeDML(void)
         CcspTraceError(("%s %d - Failed to Subscribe %s, Error=%s \n", __FUNCTION__, __LINE__, rbusError_ToString(ret), WANMGR_DEVICE_NETWORKING_MODE));
     }
 
+    ret = rbusEvent_Subscribe(rbusHandle, X_RDK_REMOTE_DEVICECHANGE, WanMgr_Rbus_EventReceiveHandler, NULL, 0);
+    if(ret != RBUS_ERROR_SUCCESS)
+    {
+        CcspTraceError(("%s %d - Failed to Subscribe %s, Error=%s \n", __FUNCTION__, __LINE__, rbusError_ToString(ret), X_RDK_REMOTE_DEVICECHANGE));
+    }
+
     CcspTraceInfo(("WanMgr_Rbus_SubscribeDML done\n"));
 }
 
@@ -494,6 +521,12 @@ void WanMgr_Rbus_UnSubscribeDML(void)
     if(ret != RBUS_ERROR_SUCCESS)
     {
         CcspTraceError(("%s %d - Failed to Subscribe %s, Error=%s \n", __FUNCTION__, __LINE__, WANMGR_DEVICE_NETWORKING_MODE, rbusError_ToString(ret)));
+    }
+
+    ret = rbusEvent_Unsubscribe(rbusHandle, X_RDK_REMOTE_DEVICECHANGE);
+    if(ret != RBUS_ERROR_SUCCESS)
+    {
+        CcspTraceError(("%s %d - Failed to Subscribe %s, Error=%s \n", __FUNCTION__, __LINE__, X_RDK_REMOTE_DEVICECHANGE, rbusError_ToString(ret)));
     }
 
     CcspTraceInfo(("WanMgr_Rbus_UnSubscribeDML done\n"));
@@ -988,4 +1021,191 @@ rbusError_t WanMgr_Rbus_SubscribeHandler(rbusHandle_t handle, rbusEventSubAction
     }
     return RBUS_ERROR_SUCCESS;
 }
+char *RemoteDMs[]  = { "Device.X_RDK_WanManager.CPEInterface.1.Name",
+    "Device.X_RDK_WanManager.CPEInterface.1.Phy.Status",
+    "Device.X_RDK_WanManager.CPEInterface.1.Wan.Status",
+    "Device.X_RDK_WanManager.CPEInterface.1.Wan.LinkStatus"
+};
+
+ANSC_STATUS WanMgr_WanRemoteIfaceConfigure(UINT RemoteDeviceIndex)
+{
+    char dmQuery[BUFLEN_256] = {0};
+    char dmValue[BUFLEN_256] = {0};
+    int  cpeInterfaceIndex   = -1;
+    int  newInterfaceIndex   = -1;
+    int  rc = ANSC_STATUS_FAILURE;
+
+    CcspTraceInfo(("%s %d - Enter \n", __FUNCTION__, __LINE__));
+
+    // get mac of connected remote CPE
+    snprintf(dmQuery, sizeof(dmQuery)-1, "Device.X_RDK_Remote.Device.%d.MAC", RemoteDeviceIndex);
+    if ( ANSC_STATUS_FAILURE == WanMgr_RdkBus_GetParamValueFromAnyComp (dmQuery, dmValue))
+    {
+        CcspTraceError(("%s-%d: %s, Failed to get param value\n", __FUNCTION__, __LINE__, dmQuery));
+    }
+    CcspTraceInfo(("%s %d - dmValue %s \n", __FUNCTION__, __LINE__,dmValue));
+
+    // check the interface table and return index of the match
+    cpeInterfaceIndex =  WanMgr_Remote_IfaceData_index(dmValue);
+
+    if(cpeInterfaceIndex >= 0)
+    {
+        CcspTraceInfo(("%s %d - [%s] MAC  Already have an Entry \n", __FUNCTION__, __LINE__, dmValue));
+        return ANSC_STATUS_SUCCESS;
+    }
+
+    // Initialise remote CPE's wan interface with default
+    WanMgr_Iface_Data_t * pIfaceData = WanMgr_Remote_IfaceData_configure(dmValue, &newInterfaceIndex);
+
+    if(pIfaceData == NULL)
+    {
+        CcspTraceInfo(("%s %d - Failed to configure remote Wan Interface Entry.\n", __FUNCTION__, __LINE__));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    rc = rbusTable_registerRow(rbusHandle, WANMGR_INFACE_TABLE, (newInterfaceIndex+1), NULL);
+    if(rc != RBUS_ERROR_SUCCESS)
+    {
+        CcspTraceError(("%s %d - Iterface(%d) Table (%s) UnRegistartion failed, Error=%d \n", __FUNCTION__, __LINE__, (newInterfaceIndex+1), WANMGR_INFACE_TABLE, rc));
+        return rc;
+    }
+    else
+    {
+        CcspTraceInfo(("%s %d - Iterface(%d) Table (%s) Registartion Successfully\n", __FUNCTION__, __LINE__, (newInterfaceIndex+1), WANMGR_INFACE_TABLE));
+    }
+
+    idm_invoke_method_Params_t IDM_request;
+    /* IDM get request*/
+    for (int i =0; i<4; i++)
+    {
+        /* IDM get request*/
+        CcspTraceInfo(("%s %d - Requesting  %s \n", __FUNCTION__, __LINE__,RemoteDMs[i]));
+        memset(&IDM_request,0, sizeof(idm_invoke_method_Params_t));
+
+        /* Update request parameters */
+        strcpy(IDM_request.Mac_dest,dmValue);
+        strcpy(IDM_request.param_name, RemoteDMs[i]);
+        strcpy(IDM_request.pComponent_name, "eRT.com.cisco.spvtg.ccsp.wanmanager");
+        strcpy(IDM_request.pBus_path, "/com/cisco/spvtg/ccsp/wanmanager");
+        IDM_request.timeout = 20;
+        IDM_request.operation = IDM_GET;
+        IDM_request.asyncHandle = &CPEInterface_AsyncMethodHandler; //pointer to callback
+
+        WanMgr_IDM_Invoke(&IDM_request);
+    }
+
+    return ANSC_STATUS_SUCCESS;
+}
+
+static void CPEInterface_AsyncMethodHandler(
+    rbusHandle_t handle,
+    char const* methodName,
+    rbusError_t error,
+    rbusObject_t params)
+{
+    (void)handle;
+    int cpeInterfaceIndex = -1;
+
+    CcspTraceInfo(("%s %d - asyncMethodHandler called: %s  error=%d\n", __FUNCTION__, __LINE__, methodName, error));
+    if(error == RBUS_ERROR_SUCCESS)
+    {
+        CcspTraceInfo(("%s %d - asyncMethodHandler request success\n", __FUNCTION__, __LINE__));
+        rbusObject_fwrite(params, 1, stdout);
+    }else
+    {
+        CcspTraceInfo(("%s %d - asyncMethodHandler request failed\n", __FUNCTION__, __LINE__));
+        return;
+    }
+
+    if(strcmp(methodName, "Device.X_RDK_Remote.Invoke()") == 0)
+    {
+        /* get the return values from IDM */
+        rbusValue_t value;
+
+        value = rbusObject_GetValue(params, "Mac_source");
+        char *pMac = rbusValue_GetString(value, NULL);
+        CcspTraceInfo(("%s %d - from source MAC %s\n", __FUNCTION__, __LINE__, pMac));
+
+        cpeInterfaceIndex =  WanMgr_Remote_IfaceData_index(pMac);
+
+        if (cpeInterfaceIndex >= 0)
+        {
+            value = rbusObject_GetValue(params, "param_name");
+            char *pParamName = rbusValue_GetString(value, NULL);
+            CcspTraceInfo(("%s %d - param_name %s\n", __FUNCTION__, __LINE__, pParamName));
+
+            value = rbusObject_GetValue(params, "param_value");
+            char *pValue = rbusValue_GetString(value, NULL);
+            CcspTraceInfo(("%s %d - param_value %s\n", __FUNCTION__, __LINE__, pValue));
+
+            WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(cpeInterfaceIndex);
+            if(pWanDmlIfaceData != NULL)
+            {
+                DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
+
+                if( strstr(pParamName, ".Name") != NULL)
+                {
+                    strcpy( pWanIfaceData->Name, pValue );
+                }
+
+                if( strstr(pParamName, ".Phy.Status") != NULL )
+                {
+                    WanMgr_StringToEnum(&pWanIfaceData->Phy.Status, ENUM_PHY, pValue);
+                }
+
+                if( strstr(pParamName, ".Wan.LinkStatus") != NULL )
+                {
+                    WanMgr_StringToEnum(&pWanIfaceData->Wan.LinkStatus, ENUM_WAN_LINKSTATUS, pValue);
+                }
+                if( strstr(pParamName, ".Wan.Status") != NULL )
+                {
+                    WanMgr_StringToEnum(&pWanIfaceData->Wan.Status, ENUM_WAN_STATUS, pValue);
+                }
+            }
+            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+        }
+        else
+        {
+            CcspTraceInfo(("%s %d - Remote Interface Not found \n", __FUNCTION__, __LINE__));
+        }
+    }
+}
+
+static int WanMgr_Remote_IfaceData_index(char *macAddress)
+{
+    int cpeInterfaceIndex = -1;
+    UINT uiTotalIfaces = 0;
+    UINT uiLoopCount   = 0;
+
+    CcspTraceInfo(("%s %d - index search for macAddress=[%s]\n", __FUNCTION__, __LINE__, macAddress));
+
+    //Get uiTotalIfaces
+    uiTotalIfaces = WanMgr_IfaceData_GetTotalWanIface();
+
+    if(uiTotalIfaces > 0)
+    {
+        for( uiLoopCount = 0; uiLoopCount < uiTotalIfaces; uiLoopCount++ )
+        {
+
+            WanMgr_Iface_Data_t*   pWanDmlIfaceData = WanMgr_GetIfaceData_locked(uiLoopCount);
+            if(pWanDmlIfaceData != NULL)
+            {
+                DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
+                if((0 == strncasecmp(pWanIfaceData->RemoteCPEMac, macAddress, BUFLEN_128)) && (pWanIfaceData->Wan.IfaceType == REMOTE_IFACE))
+                {
+                    cpeInterfaceIndex = uiLoopCount ;
+                }
+
+                WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+            }
+            if(cpeInterfaceIndex >= 0)
+            {
+                break;
+            }
+        }
+    }
+    CcspTraceInfo(("%s %d - End cpeInterfaceIndex=[%d]\n", __FUNCTION__, __LINE__, cpeInterfaceIndex));
+    return cpeInterfaceIndex;
+}
+
 #endif //RBUS_BUILD_FLAG_ENABLE

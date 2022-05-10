@@ -58,6 +58,8 @@
 ***********************************************************************/
 ULONG WanIf_GetEntryCount(ANSC_HANDLE);
 ANSC_HANDLE WanIf_GetEntry(ANSC_HANDLE hInsContext, ULONG nIndex, ULONG* pInsNumber);
+BOOL WanIf_IsUpdated(ANSC_HANDLE hInsContext);
+ULONG WanIf_Synchronize(ANSC_HANDLE hInsContext);
 ANSC_HANDLE WanIf_AddEntry(ANSC_HANDLE hInsContext, ULONG* pInsNumber);
 ULONG WanIf_DelEntry(ANSC_HANDLE hInsContext, ANSC_HANDLE hInstance);
 ULONG WanIf_GetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, char* pValue, ULONG* pUlSize);
