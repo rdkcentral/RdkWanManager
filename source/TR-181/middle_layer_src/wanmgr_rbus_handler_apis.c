@@ -103,6 +103,8 @@ ANSC_STATUS WanMgr_Rbus_getUintParamValue (char * param, UINT * value)
         return ANSC_STATUS_FAILURE;
     }
 
+    CcspTraceInfo(("%s %d: %s = %d\n", __FUNCTION__, __LINE__, param, *value));
+
     return ANSC_STATUS_SUCCESS;
 }
 
@@ -153,6 +155,33 @@ static void WanMgr_Rbus_EventReceiveHandler(rbusHandle_t handle, rbusEvent_t con
     }
 }
 
+void WanMgr_Rbus_UpdateLocalWanDb(void)
+{
+    UINT ret = 0;
+
+    // get DeviceNetworking Mode
+    if (WanMgr_Rbus_getUintParamValue(WANMGR_DEVICE_NETWORKING_MODE, &ret) != ANSC_STATUS_SUCCESS)
+    {
+        CcspTraceError(("%s %d: unable to fetch %s\n", __FUNCTION__, __LINE__, WANMGR_DEVICE_NETWORKING_MODE));
+        return;
+    }
+
+    //Update Wan config
+    WanMgr_Config_Data_t*   pWanConfigData = WanMgr_GetConfigData_locked();
+    if(pWanConfigData != NULL)
+    {
+        if (ret == 1)
+        {
+            pWanConfigData->data.DeviceNwMode = MODEM_MODE;
+        }
+        else
+        {
+            pWanConfigData->data.DeviceNwMode = GATEWAY_MODE;
+        }
+        WanMgrDml_GetConfigData_release(pWanConfigData);
+    }
+
+}
 
 void WanMgr_Rbus_SubscribeDML(void)
 {

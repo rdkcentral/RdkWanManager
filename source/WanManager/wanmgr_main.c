@@ -315,6 +315,8 @@ int main(int argc, char* argv[])
 
     pComponentName          = COMPONENT_NAME_WANMANAGER;
 
+    rdk_logger_init(DEBUG_INI_NAME);
+
     //DATA INIT
     WanMgr_Data_Init();
 
@@ -364,8 +366,6 @@ int main(int argc, char* argv[])
         fprintf(stderr, "Cdm_Init: %s\n", Cdm_StrError(err));
         exit(1);
     }
-    //rdk_logger_init("/fss/gw/lib/debug.ini");
-    rdk_logger_init(DEBUG_INI_NAME);
 
 #ifdef ENABLE_SD_NOTIFY
     sd_notifyf(0, "READY=1\n"

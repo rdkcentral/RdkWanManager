@@ -81,5 +81,8 @@ ANSC_STATUS WanMgr_Rbus_Init();
 ANSC_STATUS WanMgr_Rbus_Exit();
 ANSC_STATUS WanMgr_Rbus_String_EventPublish(char *dm_event, char *dm_value);
 ANSC_STATUS WanMgr_Rbus_getUintParamValue(char * param, UINT * value);
+void WanMgr_Rbus_UpdateLocalWanDb(void);
+void WanMgr_Rbus_SubscribeDML(void);
+void WanMgr_Rbus_UnSubscribeDML(void);
 #endif //RBUS_BUILD_FLAG_ENABLE
 #endif

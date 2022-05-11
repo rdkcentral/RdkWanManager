@@ -64,6 +64,7 @@ ANSC_STATUS WanMgr_Core_Start(void)
 {
     ANSC_STATUS retStatus = ANSC_STATUS_SUCCESS;
 #ifdef RBUS_BUILD_FLAG_ENABLE
+    WanMgr_Rbus_UpdateLocalWanDb();
     WanMgr_Rbus_SubscribeDML();
 #endif // RBUS_BUILD_FLAG_ENABLE
     //Initialise Policy State Machine
