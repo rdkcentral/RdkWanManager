@@ -642,11 +642,13 @@ BOOL WanIfCfg_GetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG
                 *puLong = pWanDmlIface->Wan.SelectionTimeout;
                 ret = TRUE;
             }
+#if !RBUS_BUILD_FLAG_ENABLE
             if (strcmp(ParamName, "Status") == 0)
             {
                 *puLong = pWanDmlIface->Wan.Status;
                 ret = TRUE;
             }
+#endif
             if (strcmp(ParamName, "Type") == 0)
             {
                 *puLong = pWanDmlIface->Wan.Type;
@@ -657,18 +659,20 @@ BOOL WanIfCfg_GetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG
                 *puLong = pWanDmlIface->Wan.Priority;
                 ret = TRUE;
             }
+#if !RBUS_BUILD_FLAG_ENABLE
             if (strcmp(ParamName, "LinkStatus") == 0)
             {
                 *puLong = pWanDmlIface->Wan.LinkStatus;
                 ret = TRUE;
             }
 
+#endif
             if (strcmp(ParamName, "OperationalStatus") == 0)
             {
                 *puLong = pWanDmlIface->Wan.OperationalStatus;
                 ret = TRUE;
             }
-            if( AnscEqualString(ParamName, "Group", TRUE))
+	    if( AnscEqualString(ParamName, "Group", TRUE))
             {
                 *puLong = pWanDmlIface->Wan.Group;
                 ret = TRUE;
@@ -755,12 +759,14 @@ BOOL WanIfCfg_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG
                     return FALSE;
                 }
             }
+#if !RBUS_BUILD_FLAG_ENABLE
             if (strcmp(ParamName, "LinkStatus") == 0)
             {
                 pWanDmlIface->Wan.LinkStatus = uValue;
                 ret = TRUE;
             }
 
+#endif
             if (strcmp(ParamName, "OperationalStatus") == 0)
             {
                 pWanDmlIface->Wan.OperationalStatus = uValue;
@@ -1298,12 +1304,13 @@ BOOL WanIfPhy_GetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG
             DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
 
             /* check the parameter name and set the corresponding value */
+#if !RBUS_BUILD_FLAG_ENABLE
             if (strcmp(ParamName, "Status") == 0)
             {
                 *puLong = pWanDmlIface->Phy.Status;
                 ret = TRUE;
             }
-
+#endif
 
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
         }
@@ -1348,14 +1355,14 @@ BOOL WanIfPhy_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG
         if(pWanDmlIfaceData != NULL)
         {
             DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
-
+#if !RBUS_BUILD_FLAG_ENABLE
             /* check the parameter name and set the corresponding value */
             if (strcmp(ParamName, "Status") == 0)
             {
                 pWanDmlIface->Phy.Status = uValue;
                 ret = TRUE;
             }
-
+#endif
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
         }
     }

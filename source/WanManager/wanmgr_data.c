@@ -285,6 +285,10 @@ void WanMgr_IfaceData_Init(WanMgr_Iface_Data_t* pIfaceData, UINT iface_index)
         pWanDmlIface->PPP.IPCPStatus = WAN_IFACE_IPCP_STATUS_DOWN;
         pWanDmlIface->PPP.IPV6CPStatus = WAN_IFACE_IPV6CP_STATUS_DOWN;
         pWanDmlIface->InterfaceScanStatus = WAN_IFACE_STATUS_NOT_SCANNED;
+
+        pWanDmlIface->Sub.PhyStatusSub = 0;
+	pWanDmlIface->Sub.WanStatusSub = 0;
+	pWanDmlIface->Sub.WanLinkStatusSub = 0;
     }
 }
 

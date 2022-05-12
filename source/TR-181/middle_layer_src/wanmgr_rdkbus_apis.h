@@ -47,6 +47,8 @@
 #define PPP_IPCP_DNS_SERVERS         "Device.PPP.Interface.%d.IPCP.DNSServers"
 #define PPP_IPV6CP_REMOTE_IDENTIFIER "Device.PPP.Interface.%d.IPv6CP.RemoteInterfaceIdentifier"
 
+#define WANMGR_IFACE_WAN_STATUS                      "Device.X_RDK_WanManager.CPEInterface.%d.Wan.Status"
+
 struct IFACE_INFO
 {
     INT     Priority;
@@ -63,6 +65,7 @@ ANSC_STATUS DmlSetMarking(ANSC_HANDLE hContext, DML_MARKING*   pMarking);
 ANSC_STATUS WanMgr_WanIfaceConfInit(WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl);
 ANSC_STATUS WanMgr_WanIfaceMarkingInit (WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl);
 
+ANSC_STATUS WanMgr_Publish_WanStatus(UINT IfaceIndex);
 ANSC_STATUS DmlSetWanActiveLinkInPSMDB( UINT uiInterfaceIdx, bool flag );
 ANSC_STATUS WanController_ClearWanConfigurationsInPSM();
 ANSC_STATUS Update_Iface_Status();

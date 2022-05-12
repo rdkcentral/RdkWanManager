@@ -355,6 +355,14 @@ typedef struct _DML_WANIFACE_DSLITE
     BOOL                        Changed;
 } DML_WANIFACE_DSLITE;
 
+
+typedef struct _DML_WANIFACE_SUBSCRIBE
+{
+    UINT PhyStatusSub;
+    UINT WanStatusSub;
+    UINT WanLinkStatusSub;
+} DML_WANIFACE_SUBSCRIBE;
+
 typedef struct _DML_WAN_INTERFACE
 {
     UINT                        uiIfaceIdx;
@@ -374,6 +382,7 @@ typedef struct _DML_WAN_INTERFACE
     DML_WANIFACE_MAP            MAP;
     DML_WANIFACE_DSLITE         DSLite;
     DATAMODEL_MARKING           Marking;
+    DML_WANIFACE_SUBSCRIBE      Sub;
 } DML_WAN_IFACE;
 
 

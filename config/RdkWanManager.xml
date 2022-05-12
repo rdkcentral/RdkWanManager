@@ -159,12 +159,14 @@
                                     <syntax>string</syntax>
                                     <writable>true</writable>
                                 </parameter>
+<?ifndef RBUS_BUILD_FLAG_ENABLE?>
                                 <parameter>
                                     <name>Status</name>
                                     <type>string: Down(1),Initializing(2),Up(3)</type>
                                     <syntax>uint32/mapped</syntax>
                                     <writable>true</writable>
                                 </parameter>
+<?endif?>
                             </parameters>
                         </object>
 
@@ -245,12 +247,14 @@
                                     <syntax>int</syntax>
                                     <writable>true</writable>
                                 </parameter>
+<?ifndef RBUS_BUILD_FLAG_ENABLE?>
                                 <parameter>
                                     <name>Status</name>
                                     <type>string: Disabled(1),Initialising(2),Validating(3),Up(4),Invalid(5)</type>
                                     <syntax>uint32/mapped</syntax>
                                     <writable>false</writable>
                                 </parameter>
+<?endif?>
                                 <parameter>
                                     <name>Refresh</name>
                                     <type>boolean</type>
@@ -269,12 +273,14 @@
                                     <syntax>bool</syntax>
                                     <writable>true</writable>
                                 </parameter>
+<?ifndef RBUS_BUILD_FLAG_ENABLE?>
                                 <parameter>
                                     <name>LinkStatus</name>
                                     <type>string: Down(1),Configuring(2),Up(3)</type>
                                     <syntax>uint32/mapped</syntax>
                                     <writable>true</writable>
                                 </parameter>
+<?endif?>
                                 <parameter>
                                     <name>Group</name>
                                     <type>unsignedInt[1:2]</type>

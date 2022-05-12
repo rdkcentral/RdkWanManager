@@ -46,15 +46,6 @@ ANSC_STATUS WanMgr_Core_Init(void)
         CcspTraceInfo(("%s %d - IPC Thread failed to start!\n", __FUNCTION__, __LINE__ ));
     }
 
-#ifdef RBUS_BUILD_FLAG_ENABLE
-    //Starts the Rbus Initialize
-    retStatus = WanMgr_Rbus_Init();
-    if(retStatus != ANSC_STATUS_SUCCESS)
-    {
-        CcspTraceError(("%s %d - Rbus Init failed !\n", __FUNCTION__, __LINE__ ));
-    }
-#endif //RBUS_BUILD_FLAG_ENABLE
-
     system("netmonitor &");
 
     return retStatus;

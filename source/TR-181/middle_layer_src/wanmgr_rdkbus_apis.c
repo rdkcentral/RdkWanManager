@@ -1673,3 +1673,28 @@ ANSC_STATUS Update_Current_Iface_Status()
 #endif //RBUS_BUILD_FLAG_ENABLE
     return ANSC_STATUS_SUCCESS;
 }
+
+ANSC_STATUS WanMgr_Publish_WanStatus(UINT IfaceIndex)
+{
+    char param_name[256] = {0};
+    static UINT PrevWanStatus = 0;
+    WanMgr_Iface_Data_t*   pWanDmlIfaceData = WanMgr_GetIfaceData_locked(IfaceIndex);
+    if(pWanDmlIfaceData != NULL)
+    {
+        DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
+        if (pWanIfaceData->Wan.Status != PrevWanStatus)
+        {
+            PrevWanStatus = pWanIfaceData->Wan.Status;
+            if (pWanIfaceData->Sub.WanStatusSub)
+            {
+                memset(param_name, 0, sizeof(param_name));
+                _ansc_sprintf(param_name, WANMGR_IFACE_WAN_STATUS, (IfaceIndex+1));
+#ifdef RBUS_BUILD_FLAG_ENABLE
+                WanMgr_Rbus_String_EventPublish(param_name, &PrevWanStatus);
+#endif
+            }
+        }
+        WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+    }
+    return ANSC_STATUS_SUCCESS;
+}

@@ -31,6 +31,11 @@
 #define WANMGR_CONFIG_WAN_INTERFACEACTIVESTATUS      "Device.X_RDK_WanManager.InterfaceActiveStatus"
 #define WANMGR_DEVICE_NETWORKING_MODE                "Device.X_RDKCENTRAL-COM_DeviceControl.DeviceNetworkingMode"
 
+#define WANMGR_INFACE                                 "Device.X_RDK_WanManager.CPEInterface.{i}."
+#define WANMGR_INFACE_TABLE                           "Device.X_RDK_WanManager.CPEInterface"
+#define WANMGR_INFACE_PHY_STATUS                      "Device.X_RDK_WanManager.CPEInterface.{i}.Phy.Status"
+#define WANMGR_INFACE_WAN_STATUS                      "Device.X_RDK_WanManager.CPEInterface.{i}.Wan.Status"
+#define WANMGR_INFACE_WAN_LINKSTATUS                  "Device.X_RDK_WanManager.CPEInterface.{i}.Wan.LinkStatus"
 
 typedef enum _IDM_MSG_OPERATION
 {
@@ -79,7 +84,7 @@ ANSC_STATUS WanMgr_IDM_Invoke(idm_invoke_method_Params_t *IDM_request);
 
 ANSC_STATUS WanMgr_Rbus_Init();
 ANSC_STATUS WanMgr_Rbus_Exit();
-ANSC_STATUS WanMgr_Rbus_String_EventPublish(char *dm_event, char *dm_value);
+ANSC_STATUS WanMgr_Rbus_String_EventPublish(char *dm_event, void *dm_value);
 ANSC_STATUS WanMgr_Rbus_getUintParamValue(char * param, UINT * value);
 void WanMgr_Rbus_UpdateLocalWanDb(void);
 void WanMgr_Rbus_SubscribeDML(void);

@@ -180,6 +180,14 @@ ANSC_STATUS BackEndManagerInitialize(ANSC_HANDLE hThisObject)
     //Wan Manager Configuration
     WanMgr_WanConfigInit();
 
+#ifdef RBUS_BUILD_FLAG_ENABLE
+    //Starts the Rbus Initialize
+    if(WanMgr_Rbus_Init() != ANSC_STATUS_SUCCESS)
+    {
+        CcspTraceError(("%s %d - Rbus Init failed !\n", __FUNCTION__, __LINE__ ));
+    }
+#endif //RBUS_BUILD_FLAG_ENABLE
+
     pMyObject->hDhcpv4        = (ANSC_HANDLE)WanMgr_Dhcpv4Create();
     AnscTraceWarning(("  WanMgr_Dhcpv4Create done!\n"));
 
