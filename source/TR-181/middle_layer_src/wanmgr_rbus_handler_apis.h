@@ -31,6 +31,7 @@
 #define WANMGR_CONFIG_WAN_INTERFACEACTIVESTATUS      "Device.X_RDK_WanManager.InterfaceActiveStatus"
 #define WANMGR_DEVICE_NETWORKING_MODE                "Device.X_RDKCENTRAL-COM_DeviceControl.DeviceNetworkingMode"
 #define X_RDK_REMOTE_DEVICECHANGE                    "Device.X_RDK_Remote.DeviceChange"
+#define X_RDK_REMOTE_INVOKE                          "Device.X_RDK_Remote.Invoke()"
 
 #define WANMGR_INFACE                                 "Device.X_RDK_WanManager.CPEInterface.{i}."
 #define WANMGR_INFACE_TABLE                           "Device.X_RDK_WanManager.CPEInterface"

@@ -248,8 +248,6 @@ static void WanMgr_Policy_Auto_GetHighPriorityIface(WanMgr_Policy_Controller_t *
     {
         if (!(pWanController->GroupIfaceList & (1 << uiLoopCount)))
         {
-            CcspTraceError(("%s-%d: Interface(%d) not present in GroupIfaceList(%x) \n",
-                             __FUNCTION__, __LINE__, (uiLoopCount+1), pWanController->GroupIfaceList));
             continue;
         }
         WanMgr_Iface_Data_t*   pWanDmlIfaceData = WanMgr_GetIfaceData_locked(uiLoopCount);
@@ -393,8 +391,6 @@ static void WanMgr_ResetIfaceTable (WanMgr_Policy_Controller_t* pWanController)
     {
         if (!(pWanController->GroupIfaceList & (1 << uiLoopCount)))
         {
-            CcspTraceError(("%s-%d: Interface(%d) not present in GroupIfaceList(%x) \n",
-                             __FUNCTION__, __LINE__, (uiLoopCount+1), pWanController->GroupIfaceList));
             continue;
         }
         WanMgr_Iface_Data_t*   pWanDmlIfaceData = WanMgr_GetIfaceData_locked(uiLoopCount);
@@ -797,11 +793,8 @@ static WcAwPolicyState_t Transition_TryingNextInterface (WanMgr_Policy_Controlle
 
     if (pWanController->activeInterfaceIdx == -1)
     {
-        CcspTraceInfo(("%s %d: No interface available to select. So resetting interface table\n", __FUNCTION__, __LINE__));
         WanMgr_ResetIfaceTable(pWanController);
     }
-
-    CcspTraceInfo(("%s %d: selected interface %d\n", __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
 
     return STATE_AUTO_WAN_INTERFACE_SELECTING;
 }

@@ -288,7 +288,7 @@ rbusError_t WanMgr_Interface_SetHandler(rbusHandle_t handle, rbusProperty_t prop
                 if (pWanDmlIface->Sub.PhyStatusSub)
                 {
                     CcspTraceInfo(("%s-%d : PhyStatus Publish Event, SubCount(%d)\n", __FUNCTION__, __LINE__, pWanDmlIface->Sub.PhyStatusSub));
-                    WanMgr_Rbus_EventPublishHandler(name, &pWanDmlIface->Phy.Status, type);
+                    WanMgr_Rbus_EventPublishHandler(name, &String, type);
                 }
             }
             else
@@ -306,7 +306,7 @@ rbusError_t WanMgr_Interface_SetHandler(rbusHandle_t handle, rbusProperty_t prop
                 if (pWanDmlIface->Sub.WanStatusSub)
                 {
                     CcspTraceInfo(("%s-%d : WanStatus Publish Event, SubCount(%d)\n", __FUNCTION__, __LINE__, pWanDmlIface->Sub.WanStatusSub));
-                    WanMgr_Rbus_EventPublishHandler(name, &pWanDmlIface->Wan.Status, type);
+                    WanMgr_Rbus_EventPublishHandler(name, &String, type);
                 }
             }
             else
@@ -324,7 +324,7 @@ rbusError_t WanMgr_Interface_SetHandler(rbusHandle_t handle, rbusProperty_t prop
                 if (pWanDmlIface->Sub.WanLinkStatusSub)
                 {
                     CcspTraceInfo(("%s-%d : WanLinkStatus Publish Event, SubCount(%d)\n", __FUNCTION__, __LINE__, pWanDmlIface->Sub.WanLinkStatusSub));
-                    WanMgr_Rbus_EventPublishHandler(name, &pWanDmlIface->Wan.LinkStatus, type);
+                    WanMgr_Rbus_EventPublishHandler(name, &String, type);
                 }
             }
             else
@@ -409,6 +409,7 @@ static void WanMgr_Rbus_EventReceiveHandler(rbusHandle_t handle, rbusEvent_t con
     (void)subscription;
 
     const char* eventName = event->name;
+    int  cpeInterfaceIndex   = -1;
 
     if((eventName == NULL))
     {
@@ -460,6 +461,53 @@ static void WanMgr_Rbus_EventReceiveHandler(rbusHandle_t handle, rbusEvent_t con
         }
 
     }
+    else if(strcmp(eventName, X_RDK_REMOTE_INVOKE) == 0)
+    {
+        CcspTraceInfo(("%s:%d Received [%s] \n",__FUNCTION__, __LINE__,eventName));
+
+        rbusValue_t value;
+        value = rbusObject_GetValue(event->data, "Mac_source");
+        char *pMac = rbusValue_GetString(value, NULL);
+        CcspTraceInfo(("%s %d - from source MAC %s\n", __FUNCTION__, __LINE__, pMac));
+
+        cpeInterfaceIndex =  WanMgr_Remote_IfaceData_index(pMac);
+
+        if (cpeInterfaceIndex >= 0)
+        {
+            value = rbusObject_GetValue(event->data, "param_name");
+            char *pParamName = rbusValue_GetString(value, NULL);
+            CcspTraceInfo(("%s %d - param_name %s\n", __FUNCTION__, __LINE__, pParamName));
+
+            value = rbusObject_GetValue(event->data, "param_value");
+            char *pValue = rbusValue_GetString(value, NULL);
+            CcspTraceInfo(("%s %d - param_value %s\n", __FUNCTION__, __LINE__, pValue));
+
+            WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(cpeInterfaceIndex);
+            if(pWanDmlIfaceData != NULL)
+            {
+                DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
+
+                if( strstr(pParamName, ".Phy.Status") != NULL )
+                {
+                    WanMgr_StringToEnum(&pWanIfaceData->Phy.Status, ENUM_PHY, pValue);
+                }
+
+                if( strstr(pParamName, ".Wan.LinkStatus") != NULL )
+                {
+                    WanMgr_StringToEnum(&pWanIfaceData->Wan.LinkStatus, ENUM_WAN_LINKSTATUS, pValue);
+                }
+                if( strstr(pParamName, ".Wan.Status") != NULL )
+                {
+                    WanMgr_StringToEnum(&pWanIfaceData->Wan.Status, ENUM_WAN_STATUS, pValue);
+                }
+            }
+            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+        }
+        else
+        {
+            CcspTraceInfo(("%s %d - Remote Interface Not found \n", __FUNCTION__, __LINE__));
+        }
+    }
     else
     {
         CcspTraceError(("%s:%d Unexpected Event Received [%s:%s]\n",__FUNCTION__, __LINE__,eventName));
@@ -510,6 +558,12 @@ void WanMgr_Rbus_SubscribeDML(void)
         CcspTraceError(("%s %d - Failed to Subscribe %s, Error=%s \n", __FUNCTION__, __LINE__, rbusError_ToString(ret), X_RDK_REMOTE_DEVICECHANGE));
     }
 
+    ret = rbusEvent_Subscribe(rbusHandle, X_RDK_REMOTE_INVOKE, WanMgr_Rbus_EventReceiveHandler, NULL, 0);
+    if(ret != RBUS_ERROR_SUCCESS)
+    {
+        CcspTraceError(("%s %d - Failed to Subscribe %s, Error=%s \n", __FUNCTION__, __LINE__, rbusError_ToString(ret), X_RDK_REMOTE_INVOKE));
+    }
+
     CcspTraceInfo(("WanMgr_Rbus_SubscribeDML done\n"));
 }
 
@@ -527,6 +581,12 @@ void WanMgr_Rbus_UnSubscribeDML(void)
     if(ret != RBUS_ERROR_SUCCESS)
     {
         CcspTraceError(("%s %d - Failed to Subscribe %s, Error=%s \n", __FUNCTION__, __LINE__, X_RDK_REMOTE_DEVICECHANGE, rbusError_ToString(ret)));
+    }
+
+    ret = rbusEvent_Unsubscribe(rbusHandle, X_RDK_REMOTE_INVOKE);
+    if(ret != RBUS_ERROR_SUCCESS)
+    {
+        CcspTraceError(("%s %d - Failed to Subscribe %s, Error=%s \n", __FUNCTION__, __LINE__, X_RDK_REMOTE_INVOKE, rbusError_ToString(ret)));
     }
 
     CcspTraceInfo(("WanMgr_Rbus_UnSubscribeDML done\n"));
@@ -604,7 +664,7 @@ ANSC_STATUS WanMgr_IDM_Invoke(idm_invoke_method_Params_t *IDM_request)
     rbusObject_SetValue(inParams, "Operation", value);
     rbusValue_Release(value);
 
-    rc = rbusMethod_InvokeAsync(rbusHandle, "Device.X_RDK_Remote.Invoke()", inParams, IDM_request->asyncHandle, IDM_request->timeout);
+    rc = rbusMethod_InvokeAsync(rbusHandle, X_RDK_REMOTE_INVOKE, inParams, IDM_request->asyncHandle, IDM_request->timeout);
 
     rbusObject_Release(inParams);
     if(rc == RBUS_ERROR_SUCCESS)
@@ -618,208 +678,6 @@ ANSC_STATUS WanMgr_IDM_Invoke(idm_invoke_method_Params_t *IDM_request)
     }
 }
 
-#if 0
-//********************************* <sample code start > **************************/
-/* sample code for IDM Subscription call back */
-#define RM_REMOTE_INVOKE "Device.X_RDK_Remote.Invoke()"
-#define RM_NEW_DEVICE_FOUND "Device.X_RDK_Remote.DeviceChange"
-int deviceFound = 0, Index;
-static void WanMgr_IDM_InvokeSubsEventHandler(rbusHandle_t handle, rbusEvent_t const* event, rbusEventSubscription_t* subscription)
-{
-    (void)handle;
-    (void)subscription;
-
-    const char* eventName = event->name;
-    if(strcmp(eventName,RM_REMOTE_INVOKE)==0)
-    {
-        /* All subscription events from remote device will be published using RM_REMOTE_INVOKE event. Check for source mac and parameter name in event->data */
-        CcspTraceInfo(("%s %d - event %s received \n", __FUNCTION__, __LINE__, eventName));
-        rbusValue_t value;
-        value = rbusObject_GetValue(event->data, "Mac_source");
-        CcspTraceInfo(("%s %d - from source MAC %s\n", __FUNCTION__, __LINE__,rbusValue_GetString(value, NULL)));
-
-        value = rbusObject_GetValue(event->data, "param_name");
-        CcspTraceInfo(("%s %d - param_name %s\n", __FUNCTION__, __LINE__,rbusValue_GetString(value, NULL)));
-
-        value = rbusObject_GetValue(event->data, "operation");
-        CcspTraceInfo(("%s %d - operation %d\n", __FUNCTION__, __LINE__,rbusValue_GetInt32(value)));
-
-        value = rbusObject_GetValue(event->data, "param_value");
-        CcspTraceInfo(("%s %d - param_value %s\n", __FUNCTION__, __LINE__,rbusValue_GetString(value, NULL)));
-    }else if(strcmp(eventName, RM_NEW_DEVICE_FOUND)==0)
-    {
-        rbusValue_t value;
-        value = rbusObject_GetValue(event->data, "Capabilities");
-        CcspTraceInfo(("%s %d - from source MAC %s\n", __FUNCTION__, __LINE__,rbusValue_GetString(value, NULL)));
-
-        value = rbusObject_GetValue(event->data, "Index");
-        Index = rbusValue_GetUInt32(value);
-        CcspTraceInfo(("%s %d - Index %d\n", __FUNCTION__, __LINE__,Index));
-        deviceFound = 1;
-    }
-
-}
-
-/* sample code for IDM Async call back */
-static void TestAsyncMethodHandler(
-        rbusHandle_t handle,
-        char const* methodName,
-        rbusError_t error,
-        rbusObject_t params)
-{
-    (void)handle;
-
-
-    CcspTraceInfo(("asyncMethodHandler called: %s  error=%d\n", methodName, error));
-    if(error == RBUS_ERROR_SUCCESS)
-    {
-        CcspTraceInfo(("%s %d - asyncMethodHandler request success\n", __FUNCTION__, __LINE__));
-        rbusObject_fwrite(params, 1, stdout);
-    }else
-    {
-        CcspTraceInfo(("%s %d - asyncMethodHandler request failed\n", __FUNCTION__, __LINE__));
-        return;
-    }
-
-    if(strcmp(methodName, "Device.X_RDK_Remote.Invoke()") == 0)
-    {
-        /* get the return values from IDM */
-        rbusValue_t value;
-        value = rbusObject_GetValue(params, "Mac_source");
-        CcspTraceInfo(("%s %d - from source MAC %s\n", __FUNCTION__, __LINE__,rbusValue_GetString(value, NULL)));
-
-        value = rbusObject_GetValue(params, "param_name");
-        CcspTraceInfo(("%s %d - param_name %s\n", __FUNCTION__, __LINE__,rbusValue_GetString(value, NULL)));
-
-        value = rbusObject_GetValue(params, "operation");
-        CcspTraceInfo(("%s %d - operation %d\n", __FUNCTION__, __LINE__,rbusValue_GetInt32(value)));
-
-        value = rbusObject_GetValue(params, "param_value");
-        CcspTraceInfo(("%s %d - param_value %s\n", __FUNCTION__, __LINE__,rbusValue_GetString(value, NULL)));
-    }
-
-}
-
-/* sample code for IDM get */
-void IDM_Sample_code(void *arg)
-{
-
-    pthread_detach(pthread_self());
-
-        CcspTraceInfo(("%s %d - wait for 30 sec \n", __FUNCTION__, __LINE__));
-        sleep(30);
-
-    //Subscribe to RM_REMOTE_INVOKE method. All subscription events from remote device will be published using RM_REMOTE_INVOKE event.
-    rbusError_t ret = RBUS_ERROR_SUCCESS;
-    ret = rbusEvent_Subscribe(rbusHandle,RM_REMOTE_INVOKE , WanMgr_IDM_InvokeSubsEventHandler, NULL, 0);
-    if(ret != RBUS_ERROR_SUCCESS)
-    {
-        CcspTraceError(("%s %d - Failed to Subscribe %s, Error=%s \n", __FUNCTION__, __LINE__, rbusError_ToString(ret), RM_REMOTE_INVOKE));
-    }
-
-    CcspTraceInfo(("%s %d - Subscribed %s,\n", __FUNCTION__, __LINE__,RM_REMOTE_INVOKE));
-
-    ret = rbusEvent_Subscribe(rbusHandle,RM_NEW_DEVICE_FOUND , WanMgr_IDM_InvokeSubsEventHandler, NULL, 0);
-    if(ret != RBUS_ERROR_SUCCESS)
-    {
-        CcspTraceError(("%s %d - Failed to Subscribe %s, Error=%s \n", __FUNCTION__, __LINE__, rbusError_ToString(ret), RM_NEW_DEVICE_FOUND));
-    }
-
-    CcspTraceInfo(("%s %d - Subscribed %s,\n", __FUNCTION__, __LINE__,RM_NEW_DEVICE_FOUND));
-
-    //wait for device change
-    while(!deviceFound)
-    {
-        CcspTraceInfo(("%s %d - wait for deviceFound \n", __FUNCTION__, __LINE__));
-        sleep(5);       
-    }
-    
-    deviceFound = 1;
-
-    /* get remote device MAC address */
-    char dmQuery[BUFLEN_256] = {0};
-    char dmValue[BUFLEN_256] = {0};
-
-    //TODO: Hardcoded remote device index. Get it from device change event
-    snprintf(dmQuery, sizeof(dmQuery)-1, "Device.X_RDK_Remote.Device.%d.MAC",Index);
-    if ( ANSC_STATUS_FAILURE == WanMgr_RdkBus_GetParamValueFromAnyComp (dmQuery, dmValue))
-    {
-        CcspTraceError(("%s-%d: %s, Failed to get param value\n", __FUNCTION__, __LINE__, dmQuery));
-    }
-
-    CcspTraceInfo(("%s %d - dmValue %s \n", __FUNCTION__, __LINE__,dmValue));
-
-    /* IDM get request*/
-    idm_invoke_method_Params_t IDM_request;
-    memset(&IDM_request,0, sizeof(idm_invoke_method_Params_t));
-    /* Update request parameters */
-    strcpy(IDM_request.Mac_dest,dmValue);
-    strcpy(IDM_request.param_name, "Device.X_RDK_WanManager.InterfaceAvailableStatus");
-    strcpy(IDM_request.pComponent_name, "eRT.com.cisco.spvtg.ccsp.wanmanager");
-    strcpy(IDM_request.pBus_path, "/com/cisco/spvtg/ccsp/wanmanager");
-    IDM_request.timeout = 20;
-    IDM_request.operation = IDM_GET;
-    IDM_request.asyncHandle = &TestAsyncMethodHandler; //pointer to callback
-    WanMgr_IDM_Invoke(&IDM_request);
-
-    sleep(5);
-    /*IDM subcribe request */
-    CcspTraceInfo(("%s %d - sendind rbus subscribe request: \n", __FUNCTION__, __LINE__));
-    memset(&IDM_request,0, sizeof(idm_invoke_method_Params_t));
-    /* Update request parameters */
-    strcpy(IDM_request.Mac_dest,dmValue);
-    strcpy(IDM_request.param_name, WANMGR_CONFIG_WAN_CURRENTACTIVEINTERFACE);
-    //Subscription events are notified using RM_REMOTE_INVOKE. IDM_request.asyncHandle and IDM_request.timeout are passed to avoid rbus error.
-    IDM_request.timeout = 600;
-    IDM_request.operation = IDM_SUBS;
-    IDM_request.asyncHandle = &TestAsyncMethodHandler; //pointer to callback
-    WanMgr_IDM_Invoke(&IDM_request);
-
-    sleep(30);
-
-    /* Publish WANMGR_CONFIG_WAN_CURRENTACTIVEINTERFACE event */
-    CcspTraceInfo(("%s %d - publish \n", __FUNCTION__, __LINE__));
-    WanMgr_Rbus_String_EventPublish(WANMGR_CONFIG_WAN_CURRENTACTIVEINTERFACE, "DSL,1|WANOE,0|");
-
-    sleep(10);
-
-    /* IDM set request*/
-    CcspTraceInfo(("%s %d - sendind rbus set request: \n", __FUNCTION__, __LINE__));
-    memset(&IDM_request,0, sizeof(idm_invoke_method_Params_t));
-    char setString1[64]={0};
-    snprintf(setString1,64,"from_tid_%lu-%d_WM",pthread_self(),getpid());
-    /* Update request parameters */
-    strcpy(IDM_request.Mac_dest,dmValue);
-    strcpy(IDM_request.param_name, "Device.X_RDK_WanManager.CPEInterface.2.Name");
-    strcpy(IDM_request.param_value, setString1);
-    strcpy(IDM_request.pComponent_name, "eRT.com.cisco.spvtg.ccsp.wanmanager");
-    strcpy(IDM_request.pBus_path, "/com/cisco/spvtg/ccsp/wanmanager");
-    IDM_request.timeout = 20;
-    IDM_request.type = ccsp_string;
-    IDM_request.operation = IDM_SET;
-    IDM_request.asyncHandle = &TestAsyncMethodHandler;
-    WanMgr_IDM_Invoke(&IDM_request);
-
-    /* Publish multiple WANMGR_CONFIG_WAN_CURRENTACTIVEINTERFACE event */
-    for(int i =0; i<=100; i++)
-    {
-        char setString[64]={0};
-        //publish random string to remote device
-        snprintf(setString,64,"Publish_%d == >%lu-_WM", i ,pthread_self());
-        CcspTraceInfo(("%s %d - publish %s \n", __FUNCTION__, __LINE__,setString));
-
-        WanMgr_Rbus_String_EventPublish(WANMGR_CONFIG_WAN_CURRENTACTIVEINTERFACE, setString);
-
-        sleep(15);
-    }
-
-    pthread_exit(NULL);
-
-    return 0;
-
-}
-//********************************* <sample code end> **************************/
-#endif
 
 /***********************************************************************
   WanMgr_Rbus_Init(): Initialize Rbus and data elements
@@ -1022,6 +880,7 @@ rbusError_t WanMgr_Rbus_SubscribeHandler(rbusHandle_t handle, rbusEventSubAction
     return RBUS_ERROR_SUCCESS;
 }
 char *RemoteDMs[]  = { "Device.X_RDK_WanManager.CPEInterface.1.Name",
+    "Device.X_RDK_WanManager.CPEInterface.1.DisplayName",
     "Device.X_RDK_WanManager.CPEInterface.1.Phy.Status",
     "Device.X_RDK_WanManager.CPEInterface.1.Wan.Status",
     "Device.X_RDK_WanManager.CPEInterface.1.Wan.LinkStatus"
@@ -1076,7 +935,7 @@ ANSC_STATUS WanMgr_WanRemoteIfaceConfigure(UINT RemoteDeviceIndex)
 
     idm_invoke_method_Params_t IDM_request;
     /* IDM get request*/
-    for (int i =0; i<4; i++)
+    for (int i =0; i<5; i++)
     {
         /* IDM get request*/
         CcspTraceInfo(("%s %d - Requesting  %s \n", __FUNCTION__, __LINE__,RemoteDMs[i]));
@@ -1087,8 +946,26 @@ ANSC_STATUS WanMgr_WanRemoteIfaceConfigure(UINT RemoteDeviceIndex)
         strcpy(IDM_request.param_name, RemoteDMs[i]);
         strcpy(IDM_request.pComponent_name, "eRT.com.cisco.spvtg.ccsp.wanmanager");
         strcpy(IDM_request.pBus_path, "/com/cisco/spvtg/ccsp/wanmanager");
-        IDM_request.timeout = 20;
+        IDM_request.timeout = 30;
         IDM_request.operation = IDM_GET;
+        IDM_request.asyncHandle = &CPEInterface_AsyncMethodHandler; //pointer to callback
+
+        WanMgr_IDM_Invoke(&IDM_request);
+    }
+
+    sleep(3);
+    /* IDM subscription request*/
+    for (int i =2; i<5; i++)
+    {
+        /* IDM get request*/
+        CcspTraceInfo(("%s %d - Requesting  subscription %s \n", __FUNCTION__, __LINE__,RemoteDMs[i]));
+        memset(&IDM_request,0, sizeof(idm_invoke_method_Params_t));
+
+        /* Update request parameters */
+        strcpy(IDM_request.Mac_dest,dmValue);
+        strcpy(IDM_request.param_name, RemoteDMs[i]);
+        IDM_request.timeout = 600;
+        IDM_request.operation = IDM_SUBS;
         IDM_request.asyncHandle = &CPEInterface_AsyncMethodHandler; //pointer to callback
 
         WanMgr_IDM_Invoke(&IDM_request);
@@ -1146,6 +1023,13 @@ static void CPEInterface_AsyncMethodHandler(
                 if( strstr(pParamName, ".Name") != NULL)
                 {
                     strcpy( pWanIfaceData->Name, pValue );
+                }
+
+                if( strstr(pParamName, ".DisplayName") != NULL)
+                {
+                    char DisplayName[64] = {0};
+                    snprintf(DisplayName, sizeof(DisplayName), "REMOTE_%s" , pValue);
+                    strcpy( pWanIfaceData->DisplayName, DisplayName );
                 }
 
                 if( strstr(pParamName, ".Phy.Status") != NULL )

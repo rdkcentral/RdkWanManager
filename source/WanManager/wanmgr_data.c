@@ -331,7 +331,7 @@ void WanMgr_Remote_IfaceData_Init(WanMgr_Iface_Data_t* pIfaceData, UINT iface_in
         pWanDmlIface->Wan.LinkStatus = WAN_IFACE_LINKSTATUS_DOWN;
         pWanDmlIface->Wan.Refresh = FALSE;
         pWanDmlIface->Wan.RebootOnConfiguration = FALSE;
-     pWanDmlIface->Wan.Group = 1;
+        pWanDmlIface->Wan.Group = 2;
         memset(pWanDmlIface->IP.Path, 0, 64);
         pWanDmlIface->IP.Ipv4Status = WAN_IFACE_IPV4_STATE_DOWN;
         pWanDmlIface->IP.Ipv6Status = WAN_IFACE_IPV6_STATE_DOWN;
