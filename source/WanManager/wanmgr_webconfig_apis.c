@@ -77,133 +77,145 @@ pErr WanMgr_Process_Webconfig_Request(void *Data)
     }
 
     memset(execRetVal,0,(sizeof(Err)));
+
+    // update wanmanager global config
+    if (pWebConfig->pWanFailOverData != NULL)
+    {
+        WanManager_SetParamBoolValue(NULL, PARAM_NAME_ALLOW_REMOTE_IFACE, pWebConfig->pWanFailOverData->AllowRemoteIface);
+        CcspTraceInfo(("%s %d: Set %s value to %d\n", __FUNCTION__, __LINE__, PARAM_NAME_ALLOW_REMOTE_IFACE, pWebConfig->pWanFailOverData->AllowRemoteIface));
+    }
+
+    if (pWebConfig->ifTable != NULL)
+    {
+    // update interface specific config
     uiTotalIfaces = WanIf_GetEntryCount(NULL);
 
-    for( i = 0; i < pWebConfig->ifCount; i++ ) // Iterate for each interface in blob
-    {
-        WebConfig_Wan_Interface_Table_t *pIfCfg = &(pWebConfig->ifTable[i]);
-        CcspTraceInfo(("%s : Processing Interface: %s..\n",__FUNCTION__, pWebConfig->ifTable[i].name));
-
-        for(j = 0; j < uiTotalIfaces; j++) // Find the interface in dml with same name of the current blob entry
+        for( i = 0; i < pWebConfig->ifCount; i++ ) // Iterate for each interface in blob
         {
-           pWanDmlIfaceData = WanIf_GetEntry(NULL, j, &ifInsNum);
-           if(pWanDmlIfaceData != NULL)
-           {
-               memset(dmlIfName, 0, sizeof(dmlIfName));
-               nameLength = sizeof(dmlIfName);
-               if(ANSC_STATUS_SUCCESS == WanIf_GetParamStringValue((ANSC_HANDLE)pWanDmlIfaceData,
-                                                   PARAM_NAME_IF_NAME, dmlIfName, &nameLength))
-               {
-                    if(!strncmp(pWebConfig->ifTable[i].name, dmlIfName, sizeof(dmlIfName)))
-                    {
-                        CcspTraceInfo(("%s : Found dml entry for Interface: %s..\n",
-                                                        __FUNCTION__, pWebConfig->ifTable[i].name));
-                        break;
-                    }
-               }
-           }
-        }
+            WebConfig_Wan_Interface_Table_t *pIfCfg = &(pWebConfig->ifTable[i]);
+            CcspTraceInfo(("%s : Processing Interface: %s..\n",__FUNCTION__, pWebConfig->ifTable[i].name));
 
-        if(j < uiTotalIfaces)
-        {
-            for (j = 0; j < pWebConfig->ifTable[i].markingCount; j++)  // Iterate for each new marking entry
+            for(j = 0; j < uiTotalIfaces; j++) // Find the interface in dml with same name of the current blob entry
             {
-                ULONG markIdx;
-                PSINGLE_LINK_ENTRY pSListEntry = NULL;
-                CONTEXT_MARKING_LINK_OBJECT* pCxtLink = NULL;
-
-                CcspTraceInfo(("%s : Processing Marking Entry: %s..\n",__FUNCTION__,
-                                             pWebConfig->ifTable[i].markingTable[j].alias));
-
-                ULONG markingCount = Marking_GetEntryCount((ANSC_HANDLE)pWanDmlIfaceData);
-                if (strncmp(pWebConfig->ifTable[i].markingTable[j].alias, "network_control",
-                                                    sizeof(pWebConfig->ifTable[i].markingTable[j].alias)))
+                pWanDmlIfaceData = WanIf_GetEntry(NULL, j, &ifInsNum);
+                if(pWanDmlIfaceData != NULL)
                 {
-                    strncpy(alias, pWebConfig->ifTable[i].markingTable[j].alias, sizeof(alias)-1);
-                }
-                else
-                {
-                    strncpy(alias, "DATA", sizeof(alias)-1);
-                }
-                for(markIdx = 0; markIdx < markingCount; markIdx++)
-                {
-                    pCxtLink = Marking_GetEntry((ANSC_HANDLE)pWanDmlIfaceData, markIdx, &insNum);
-                    if (pCxtLink)
+                    memset(dmlIfName, 0, sizeof(dmlIfName));
+                    nameLength = sizeof(dmlIfName);
+                    if(ANSC_STATUS_SUCCESS == WanIf_GetParamStringValue((ANSC_HANDLE)pWanDmlIfaceData,
+                                PARAM_NAME_IF_NAME, dmlIfName, &nameLength))
                     {
-                        memset(dmlAlias, 0, sizeof(dmlAlias));
-                        nameLength = sizeof(dmlAlias);
-                        if(ANSC_STATUS_SUCCESS == Marking_GetParamStringValue((ANSC_HANDLE)pCxtLink,
-                                                                PARAM_NAME_MARK_ALIAS, dmlAlias, &nameLength))
+                        if(!strncmp(pWebConfig->ifTable[i].name, dmlIfName, sizeof(dmlIfName)))
                         {
-                            if(!strncmp(alias, dmlAlias, sizeof(alias)))
+                            CcspTraceInfo(("%s : Found dml entry for Interface: %s..\n",
+                                        __FUNCTION__, pWebConfig->ifTable[i].name));
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if(j < uiTotalIfaces)
+            {
+                for (j = 0; j < pWebConfig->ifTable[i].markingCount; j++)  // Iterate for each new marking entry
+                {
+                    ULONG markIdx;
+                    PSINGLE_LINK_ENTRY pSListEntry = NULL;
+                    CONTEXT_MARKING_LINK_OBJECT* pCxtLink = NULL;
+
+                    CcspTraceInfo(("%s : Processing Marking Entry: %s..\n",__FUNCTION__,
+                                pWebConfig->ifTable[i].markingTable[j].alias));
+
+                    ULONG markingCount = Marking_GetEntryCount((ANSC_HANDLE)pWanDmlIfaceData);
+                    if (strncmp(pWebConfig->ifTable[i].markingTable[j].alias, "network_control",
+                                sizeof(pWebConfig->ifTable[i].markingTable[j].alias)))
+                    {
+                        strncpy(alias, pWebConfig->ifTable[i].markingTable[j].alias, sizeof(alias)-1);
+                    }
+                    else
+                    {
+                        strncpy(alias, "DATA", sizeof(alias)-1);
+                    }
+                    for(markIdx = 0; markIdx < markingCount; markIdx++)
+                    {
+                        pCxtLink = Marking_GetEntry((ANSC_HANDLE)pWanDmlIfaceData, markIdx, &insNum);
+                        if (pCxtLink)
+                        {
+                            memset(dmlAlias, 0, sizeof(dmlAlias));
+                            nameLength = sizeof(dmlAlias);
+                            if(ANSC_STATUS_SUCCESS == Marking_GetParamStringValue((ANSC_HANDLE)pCxtLink,
+                                        PARAM_NAME_MARK_ALIAS, dmlAlias, &nameLength))
                             {
-                                //Alias already present, update the entry
-                                CcspTraceInfo(("%s : Alias already present, Entry would be updated ..\n",
-                                                                                            __FUNCTION__));
-                                Marking_SetParamIntValue((ANSC_HANDLE) pCxtLink, PARAM_NAME_ETHERNET_PRIORITY_MARK,
-                                                    pWebConfig->ifTable[i].markingTable[j].ethernetPriorityMark);
-                                pCxtLink->bNew = false;
-                                CcspTraceInfo(("%s : Committing marking entry instance: %d..\n",
-                                                                                        __FUNCTION__, insNum));
-                                Marking_Commit((ANSC_HANDLE)pCxtLink);
-                                break;
+                                if(!strncmp(alias, dmlAlias, sizeof(alias)))
+                                {
+                                    //Alias already present, update the entry
+                                    CcspTraceInfo(("%s : Alias already present, Entry would be updated ..\n",
+                                                __FUNCTION__));
+                                    Marking_SetParamIntValue((ANSC_HANDLE) pCxtLink, PARAM_NAME_ETHERNET_PRIORITY_MARK,
+                                            pWebConfig->ifTable[i].markingTable[j].ethernetPriorityMark);
+                                    pCxtLink->bNew = false;
+                                    CcspTraceInfo(("%s : Committing marking entry instance: %d..\n",
+                                                __FUNCTION__, insNum));
+                                    Marking_Commit((ANSC_HANDLE)pCxtLink);
+                                    break;
+                                }
+                            }
+                            else
+                            {
+                                CcspTraceError(("%s : Failed to read Alias for marking entry: %d..\n",
+                                            __FUNCTION__, markIdx));
                             }
                         }
                         else
                         {
-                            CcspTraceError(("%s : Failed to read Alias for marking entry: %d..\n",
-                                                                            __FUNCTION__, markIdx));
+                            CcspTraceError(("%s : Failed to fetch entry at index: %d..\n",
+                                        __FUNCTION__, markIdx));
                         }
                     }
-                    else
+                    if(markIdx >= markingCount)
                     {
-                        CcspTraceError(("%s : Failed to fetch entry at index: %d..\n",
-                                                                            __FUNCTION__, markIdx));
+                        // Matching entry not found, add a new entry with new Alias and EthernetPriorityMark
+                        snprintf(markingPath,sizeof(markingPath),"%s%d.%s", TABLE_NAME_WAN_INTERFACE,
+                                ifInsNum, TABLE_NAME_WAN_MARKING);
+                        if (CCSP_SUCCESS == CcspCcMbi_AddTblRow( 0, markingPath, &insNum, NULL) )
+                        {
+                            CcspTraceInfo(("%s : Added new entry at %s, instnce-number: %d..\n", __FUNCTION__,
+                                        markingPath, insNum));
+                            pCxtLink = Marking_GetEntry((ANSC_HANDLE)pWanDmlIfaceData, markingCount, &insNum);
+
+                            if(pCxtLink)
+                            {
+                                CcspTraceInfo(("%s : Fetched new entry , instnce-number: %d..\n", __FUNCTION__, insNum));
+                                Marking_SetParamStringValue((ANSC_HANDLE)pCxtLink, PARAM_NAME_MARK_ALIAS, alias);
+                                Marking_SetParamIntValue((ANSC_HANDLE)pCxtLink, PARAM_NAME_ETHERNET_PRIORITY_MARK,
+                                        pWebConfig->ifTable[i].markingTable[j].ethernetPriorityMark);
+                                pCxtLink->bNew = true;
+                                CcspTraceInfo(("%s : Committing marking entry instance: %d ..\n", __FUNCTION__, insNum));
+                                Marking_Commit((ANSC_HANDLE)pCxtLink);
+                            }
+                            else
+                            {
+                                CcspTraceError(("%s : Failed to fetch new entry at index: %d..\n",
+                                            __FUNCTION__, markingCount));
+                            }
+                        }
+                        else
+                        {
+                            CcspTraceError(("%s : Failed to create new table row on path: %s..\n",
+                                        __FUNCTION__, markingPath));
+                        }
+
                     }
                 }
-                if(markIdx >= markingCount)
-                {
-                  // Matching entry not found, add a new entry with new Alias and EthernetPriorityMark
-                  snprintf(markingPath,sizeof(markingPath),"%s%d.%s", TABLE_NAME_WAN_INTERFACE,
-                                                                        ifInsNum, TABLE_NAME_WAN_MARKING);
-                  if (CCSP_SUCCESS == CcspCcMbi_AddTblRow( 0, markingPath, &insNum, NULL) )
-                  {
-                    CcspTraceInfo(("%s : Added new entry at %s, instnce-number: %d..\n", __FUNCTION__,
-                                                                                       markingPath, insNum));
-                    pCxtLink = Marking_GetEntry((ANSC_HANDLE)pWanDmlIfaceData, markingCount, &insNum);
-
-                    if(pCxtLink)
-                    {
-                        CcspTraceInfo(("%s : Fetched new entry , instnce-number: %d..\n", __FUNCTION__, insNum));
-                        Marking_SetParamStringValue((ANSC_HANDLE)pCxtLink, PARAM_NAME_MARK_ALIAS, alias);
-                        Marking_SetParamIntValue((ANSC_HANDLE)pCxtLink, PARAM_NAME_ETHERNET_PRIORITY_MARK,
-                                                        pWebConfig->ifTable[i].markingTable[j].ethernetPriorityMark);
-                        pCxtLink->bNew = true;
-                        CcspTraceInfo(("%s : Committing marking entry instance: %d ..\n", __FUNCTION__, insNum));
-                        Marking_Commit((ANSC_HANDLE)pCxtLink);
-                    }
-                    else
-                    {
-                        CcspTraceError(("%s : Failed to fetch new entry at index: %d..\n",
-                                                                             __FUNCTION__, markingCount));
-                    }
-                  }
-                  else
-                  {
-                        CcspTraceError(("%s : Failed to create new table row on path: %s..\n",
-                                                                                __FUNCTION__, markingPath));
-                  }
-
-                }
+                WanIfCfg_SetParamBoolValue((ANSC_HANDLE)pWanDmlIfaceData, PARAM_NAME_WAN_REFRESH, true);
             }
-            WanIfCfg_SetParamBoolValue((ANSC_HANDLE)pWanDmlIfaceData, PARAM_NAME_WAN_REFRESH, true);
-        }
-        else
-        {
-            CcspTraceInfo(("%s : Failed to find dml entry for Interface: %s..\n",
-                                                   __FUNCTION__, pWebConfig->ifTable[i].name));
-            execRetVal->ErrorCode = BLOB_EXEC_FAILURE;
-            return execRetVal;
+            else
+            {
+                CcspTraceInfo(("%s : Failed to find dml entry for Interface: %s..\n",
+                            __FUNCTION__, pWebConfig->ifTable[i].name));
+                execRetVal->ErrorCode = BLOB_EXEC_FAILURE;
+                return execRetVal;
+            }
         }
     }
 
@@ -274,6 +286,10 @@ void WanMgr_WanData_Free_Resources(void *arg)
 
     if ( NULL != pWebConfig )
     {
+        if (NULL != pWebConfig->pWanFailOverData)
+        {
+            free(pWebConfig->pWanFailOverData);
+        }
         if( NULL != pWebConfig->ifTable )
         {
             for (i = 0;i < pWebConfig->ifCount; i++)
@@ -294,6 +310,123 @@ void WanMgr_WanData_Free_Resources(void *arg)
 
         CcspTraceInfo(("%s:Success in clearing WAN webconfig resources\n",__FUNCTION__));
     }
+}
+
+ANSC_STATUS WanMgrDmlWanFailOverDataSet (const void * pData, size_t len)
+{
+    size_t offset = 0;
+    int i = 0;
+    msgpack_object_map *map = NULL;
+    msgpack_object_kv *map_ptr  = NULL;
+    WanMgr_WebConfig_t *pWebConfig = NULL;
+    execData * execDataPf = NULL;
+    msgpack_unpacked msg;
+    msgpack_unpack_return mp_rv;
+
+    msgpack_unpacked_init( &msg );
+    len +=  1;
+
+    /* The outermost wrapper MUST be a map. */
+    mp_rv = msgpack_unpack_next( &msg, (const char*) pData, len, &offset );
+    if (mp_rv != MSGPACK_UNPACK_SUCCESS) {
+        CcspTraceError(("%s: Failed to unpack WAN msg blob. Error %d",__FUNCTION__,mp_rv));
+        msgpack_unpacked_destroy( &msg );
+        return ANSC_STATUS_FAILURE;
+    }
+
+    CcspTraceInfo(("%s:Msg unpack success. Offset is %lu\n", __FUNCTION__,offset));
+    msgpack_object obj = msg.data;
+
+    map = &msg.data.via.map;
+
+    map_ptr = obj.via.map.ptr;
+    if ((!map) || (!map_ptr)) {
+        CcspTraceError(("Failed to get object map\n"));
+        msgpack_unpacked_destroy( &msg );
+        return ANSC_STATUS_FAILURE;
+    }
+
+    if (msg.data.type != MSGPACK_OBJECT_MAP) {
+        CcspTraceError(("%s: Invalid msgpack type",__FUNCTION__));
+        msgpack_unpacked_destroy( &msg );
+        return ANSC_STATUS_FAILURE;
+    }
+
+    /* Allocate memory for WAN structure */
+    pWebConfig = (WanMgr_WebConfig_t *) malloc(sizeof(WanMgr_WebConfig_t));
+    if ( pWebConfig == NULL )
+    {
+        CcspTraceError(("%s: WAN Struct malloc error\n",__FUNCTION__));
+        msgpack_unpacked_destroy( &msg );
+        return ANSC_STATUS_FAILURE;
+    }
+
+    memset( pWebConfig, 0, sizeof(WanMgr_WebConfig_t) );
+
+    for (i = 0; i < map->size; i++)
+    {
+        if (strncmp(map_ptr->key.via.str.ptr, "wanfailover", map_ptr->key.via.str.size) == 0) 
+        {
+            if (WanMgr_WebConfig_Process_WanFailOver_Params(map_ptr->val, pWebConfig) != ANSC_STATUS_SUCCESS) 
+            {
+                CcspTraceError(("%s:Failed to copy wanfailover params",__FUNCTION__));
+                msgpack_unpacked_destroy( &msg );
+                if ( NULL != pWebConfig ) {
+                    free(pWebConfig);
+                    pWebConfig = NULL;
+                }
+
+                return ANSC_STATUS_FAILURE;
+            }
+        }
+        else if (strncmp(map_ptr->key.via.str.ptr, "subdoc_name",map_ptr->key.via.str.size) == 0)
+        {
+            if (map_ptr->val.type == MSGPACK_OBJECT_STR) {
+                strncpy(pWebConfig->subdocName, map_ptr->val.via.str.ptr, map_ptr->val.via.str.size);
+                pWebConfig->subdocName[map_ptr->val.via.str.size] = '\0';
+                CcspTraceInfo(("subdoc name :%s\n", pWebConfig->subdocName));
+            }
+        }
+        else if (strncmp(map_ptr->key.via.str.ptr, "version",map_ptr->key.via.str.size) == 0)
+        {
+            if (map_ptr->val.type == MSGPACK_OBJECT_POSITIVE_INTEGER) {
+                pWebConfig->version = (unsigned long) map_ptr->val.via.u64;
+                CcspTraceInfo(("Version :%lu\n",pWebConfig->version));
+            }
+        }
+        else if (strncmp(map_ptr->key.via.str.ptr, "transaction_id",map_ptr->key.via.str.size) == 0)
+        {
+            if (map_ptr->val.type == MSGPACK_OBJECT_POSITIVE_INTEGER) {
+                pWebConfig->transactionId = (unsigned short) map_ptr->val.via.u64;
+                CcspTraceInfo(("Tx id :%d\n",pWebConfig->transactionId));
+            }
+        }
+
+        ++map_ptr;
+    }
+
+    //Free allocated resource
+    msgpack_unpacked_destroy( &msg );
+
+    //Push blob request after collection
+    execDataPf = (execData*) malloc (sizeof(execData));
+    if ( execDataPf != NULL )
+    {
+        memset(execDataPf, 0, sizeof(execData));
+        execDataPf->txid = pWebConfig->transactionId;
+        execDataPf->version = pWebConfig->version;
+        execDataPf->numOfEntries = 1;
+        strncpy(execDataPf->subdoc_name,pWebConfig->subdocName, sizeof(execDataPf->subdoc_name)-1);
+        execDataPf->user_data = (void*) pWebConfig;
+        execDataPf->calcTimeout = WanMgr_WanData_Timeout_Handler;
+        execDataPf->executeBlobRequest = WanMgr_Process_Webconfig_Request;
+        execDataPf->rollbackFunc = WanMgr_WanData_Rollback_Handler;
+        execDataPf->freeResources = WanMgr_WanData_Free_Resources;
+        PushBlobRequest(execDataPf);
+        CcspTraceInfo(("%s PushBlobRequest Complete\n",__FUNCTION__));
+    }
+
+    return ANSC_STATUS_SUCCESS;
 }
 
 /* WanMgrDmlWanDataSet: */
@@ -516,7 +649,7 @@ static int setWanDataBlobVersion(char *pSubDoc, unsigned int version)
 */
 ANSC_STATUS WanMgrDmlWanWebConfigInit( void )
 {
-    char *sub_docs[WANDATA_SUBDOC_COUNT+1]= {"wanmanager",(char *) 0 };
+    char *sub_docs[WANDATA_SUBDOC_COUNT+1]= {"wanmanager", "wanfailover", (char *) 0 };
     blobRegInfo *blobData        = NULL,
                 *blobDataPointer = NULL;
     int i;

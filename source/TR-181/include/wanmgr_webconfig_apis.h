@@ -45,6 +45,7 @@
 #define PARAM_NAME_MARK_ALIAS              "Alias"
 #define PARAM_NAME_IF_NAME                 "Name"
 #define PARAM_NAME_ETHERNET_PRIORITY_MARK  "EthernetPriorityMark"
+#define PARAM_NAME_ALLOW_REMOTE_IFACE      "AllowRemoteInterfaces"
 
 ANSC_STATUS WanMgrDmlWanDataSet(const void *pData, size_t len);
 ANSC_STATUS WanMgrDmlWanWebConfigInit( void );

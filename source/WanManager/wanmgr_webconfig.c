@@ -176,6 +176,41 @@ ANSC_STATUS WanMgr_WebConfig_Process_ifParams( WebConfig_Wan_Interface_Table_t *
     return ANSC_STATUS_SUCCESS;
 }
 
+ANSC_STATUS WanMgr_WebConfig_Process_WanFailOver_Params(msgpack_object obj, WanMgr_WebConfig_t *pWebConfig)
+{
+    int i, j;
+    msgpack_object_kv* p = obj.via.map.ptr;
+
+    //Validate param
+    if( (NULL == p) || (NULL == pWebConfig))
+    {
+        CcspTraceError(("%s %d: Invalid Pointer\n", __FUNCTION__, __LINE__));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    CcspTraceInfo(("*************** WAN manager wanfailover Data *******************\n"));
+
+    pWebConfig->pWanFailOverData = malloc (sizeof(WebConfig_Wan_FailOverData_t));
+    if (NULL == pWebConfig->pWanFailOverData)
+    {
+        CcspTraceInfo(("%s %d: malloc() failure\n", __FUNCTION__, __LINE__));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    for(i = 0; i < obj.via.map.size; i++) 
+    {
+        if (MSGPACK_OBJECT_BOOLEAN == p->val.type)
+        {
+            if ( 0 == match(p, "allow_remote_interfaces"))
+            {
+                pWebConfig->pWanFailOverData->AllowRemoteIface =  p->val.via.boolean;
+                CcspTraceInfo(("%s %d: pWanFailOverData->AllowRemoteIface = %d\n", __FUNCTION__, __LINE__, pWebConfig->pWanFailOverData->AllowRemoteIface));
+            }
+        }
+        ++p;
+    }
+    return ANSC_STATUS_SUCCESS;
+}
 
 /*
  * Function to deserialize wan manager params from msgpack object

@@ -183,6 +183,31 @@ BOOL WanManager_SetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, ch
             AnscFreeMemory(webConf);
         }
 
+        else if( AnscEqualString(ParamName, "WanFailoverData", TRUE) )
+        {
+            char *webConf = NULL;
+            int webSize = 0;
+
+            webConf = AnscBase64Decode(pString, &webSize);
+            if(!webConf)
+            {
+                CcspTraceError(("%s: Failed to decode webconfig blob..\n",__FUNCTION__));
+                WanMgrDml_GetConfigData_release(pWanConfigData);
+                return ret;
+            }
+            if ( ANSC_STATUS_SUCCESS == WanMgrDmlWanFailOverDataSet(webConf,webSize) )
+            {
+                CcspTraceInfo(("%s Success in parsing web config blob..\n",__FUNCTION__));
+                ret = TRUE;
+            }
+            else
+            {
+                CcspTraceError(("%s Failed to parse webconfig blob..\n",__FUNCTION__));
+            }
+            AnscFreeMemory(webConf);
+
+        }
+
         WanMgrDml_GetConfigData_release(pWanConfigData);
     }
 

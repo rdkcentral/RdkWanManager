@@ -84,6 +84,12 @@
                     <syntax>uint32</syntax>
                     <writable>true</writable>
                 </parameter>
+                <parameter>
+                    <name>WanFailoverData</name>
+                    <type>string</type>
+                    <syntax>string</syntax>
+                    <writable>true</writable>
+                </parameter>
            </parameters>
             <objects>
                 <object>

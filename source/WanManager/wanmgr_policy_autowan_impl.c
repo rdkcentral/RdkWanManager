@@ -2576,7 +2576,7 @@ static WcBWanPolicyState_t State_BackupWanInterfaceDown(WanMgr_Policy_Controller
     if ( 0 == access( "/nvram/fixLinkstatusAlways" , F_OK ) )
     {
         pFixedInterface->Phy.Status = WAN_IFACE_PHY_STATUS_UP;
-        pFixedInterface->Wan.LinkStatus == WAN_IFACE_LINKSTATUS_UP;
+        pFixedInterface->Wan.LinkStatus = WAN_IFACE_LINKSTATUS_UP;
     }
 
     return STATE_BACKUP_WAN_INTERFACE_DOWN;

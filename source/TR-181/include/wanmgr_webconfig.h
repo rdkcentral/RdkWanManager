@@ -50,7 +50,7 @@
 
 #define WANDATA_DEFAULT_TIMEOUT  15
 
-#define WANDATA_SUBDOC_COUNT     1
+#define WANDATA_SUBDOC_COUNT     2
  /***********************************
      Actual definition declaration
  ************************************/
@@ -76,12 +76,18 @@ typedef struct
     WebConfig_Wan_Marking_Table_t   *markingTable;
 } WebConfig_Wan_Interface_Table_t;
 
+typedef struct 
+{
+    bool                    AllowRemoteIface;
+} WebConfig_Wan_FailOverData_t;
+
 typedef struct {
     char                              subdocName[BUFFER_LENGTH_64];
     unsigned int                      version;
     unsigned short int                transactionId;
     unsigned int                      ifCount;
     WebConfig_Wan_Interface_Table_t   *ifTable;
+    WebConfig_Wan_FailOverData_t      *pWanFailOverData;
 } WanMgr_WebConfig_t;
 
 ANSC_STATUS WanMgr_WebConfig_Process_Wanmanager_Params(msgpack_object obj, WanMgr_WebConfig_t *pWebConfig);
