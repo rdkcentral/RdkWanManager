@@ -40,6 +40,7 @@
 #include "dhcp_client_utils.h"
 #include "wanmgr_sysevents.h"
 #include <sysevent/sysevent.h>
+#include "secure_wrapper.h"
 
 #define BROADCAST_IP "255.255.255.255"
 /* To ignore link local addresses configured as DNS servers,
@@ -161,9 +162,8 @@ static int WanManager_CalculatePsidAndV4Index(char *pdIPv6Prefix, int v6PrefixLe
  **************************************************************************************/
 int isModuleLoaded(char *moduleName)
 {
-    char cmd[BUFLEN_128] = {0};
     char line[BUFLEN_64] = {0};
-    int  ret = RETURN_ERR;
+    int  ret = RETURN_ERR,pclose_ret = 0;
     FILE *file = NULL;
 
     if (moduleName == NULL)
@@ -171,9 +171,9 @@ int isModuleLoaded(char *moduleName)
         return ret;
     }
 
-    snprintf(cmd, BUFLEN_128, "cat /proc/modules | grep %s", moduleName);
+  
 
-    file = popen(cmd, "r");
+    file = v_secure_popen("r","cat /proc/modules | grep %s", moduleName);
 
     if(file == NULL)
     {
@@ -189,7 +189,12 @@ int isModuleLoaded(char *moduleName)
                 CcspTraceInfo(("[%s][%d] %s module is loaded \n", __FUNCTION__, __LINE__, moduleName));
             }
         }
-        pclose(file);
+        pclose_ret = v_secure_pclose(file);
+	if(pclose_ret !=0)
+	{
+	    CcspTraceError(("Failed in closing the pipe ret %d\n",pclose_ret));
+	}
+
     }
 
     return ret;
@@ -988,15 +993,12 @@ int WanManager_ProcessMAPTConfiguration(ipc_mapt_data_t *dhcp6cMAPTMsgBody, cons
 #ifdef NAT46_KERNEL_SUPPORT
 static int get_V6_defgateway_wan_interface(char *defGateway)
 {
-    int ret = RETURN_OK;
-    char command[BUFLEN_128] = {0};
+    int ret = RETURN_OK,pclose_ret = 0;
     char line[BUFLEN_1024] = {0};
     struct in6_addr in6Addr;
     FILE *fp;
 
-    snprintf(command, sizeof(command), "ip -6 route show default | grep default | awk '{print $3}'");
-
-    fp = popen(command, "r");
+    fp = v_secure_popen("r","ip -6 route show default | grep default | awk '{print $3}'");
 
     if (fp)
     {
@@ -1025,7 +1027,12 @@ static int get_V6_defgateway_wan_interface(char *defGateway)
             CcspTraceError(("Could not read ipv6 gw addr \n"));
             ret = RETURN_ERR;
         }
-        pclose(fp);
+        pclose_ret = v_secure_pclose(fp);
+	if(pclose_ret !=0)
+        {
+            CcspTraceError(("Failed in closing the pipe ret %d\n",pclose_ret));
+        }
+
     }
     else
     {
@@ -2064,7 +2071,6 @@ static ANSC_STATUS GetAdslUsernameAndPassword(char *Username, char *Password)
 
 static void createDummyWanBridge(char * iface_name)
 {
-    char syscmd[256] = {'\0'};
     char wan_mac[64] = {'\0'};
     char file_path[64] = {0};
     FILE *fp_mac_addr_table = NULL;
@@ -2082,29 +2088,26 @@ static void createDummyWanBridge(char * iface_name)
         fclose(fp_mac_addr_table);
     }
 
-    memset(syscmd, '\0', sizeof(syscmd));
-    snprintf(syscmd, sizeof(syscmd), "brctl addbr %s", iface_name);
-    system(syscmd);
+    ret = v_secure_system("brctl addbr %s", iface_name);
+    if(ret != 0) {
+          CcspTraceWarning(("%s: Failure in executing command via v_secure_system. ret:[%d] \n", __FUNCTION__,ret));
+    }
 
-    memset(syscmd, '\0', sizeof(syscmd));
-    snprintf(syscmd, sizeof(syscmd), "ip link set dev %s address %s", iface_name, wan_mac);
-    system(syscmd);
+    ret = v_secure_system("ip link set dev %s address %s", iface_name, wan_mac);
+    if(ret != 0) {
+          CcspTraceWarning(("%s:Failure in executing command via v_secure_system. ret:[%d] \n",__FUNCTION__,ret));
+    }
 
     return;
 }
 
 static void deleteDummyWanBridgeIfExist(char * iface_name)
 {
-    char syscmd[256] = {'\0'};
-    char resultBuff[256] = {'\0'};
-    char cmd[256] = {'\0'};
+    char resultBuff[1024] = {'\0'};
     FILE *fp = NULL;
-
+    int ret = 0;
     memset(resultBuff, '\0', sizeof(resultBuff));
-    memset(cmd, '\0', sizeof(cmd));
-    memset(syscmd, '\0', sizeof(syscmd));
-    snprintf(cmd, sizeof(cmd), "ip -d link show %s | tail -n +2 | grep bridge", iface_name);
-    fp = popen(cmd, "r");
+    fp = v_secure_popen("r","ip -d link show %s | tail -n +2 | grep bridge", iface_name);
     if (fp != NULL)
     {
         fgets(resultBuff, 1024, fp);
@@ -2117,13 +2120,21 @@ static void deleteDummyWanBridgeIfExist(char * iface_name)
         {
             CcspTraceInfo(("%s bridge interface is found in the system, so delete it \n", iface_name));
             /* Down the interface before we delete it. */
-            snprintf(syscmd, sizeof(syscmd), "ifconfig %s down", iface_name);
-            system(syscmd);
-            memset(syscmd, '\0', sizeof(syscmd));
-            snprintf(syscmd, sizeof(syscmd), "brctl delbr %s", iface_name);
-            system(syscmd);
+            ret = v_secure_system("ifconfig %s down", iface_name);
+	    if(ret != 0) {
+                CcspTraceWarning(("%s:Failure in executing command via v_secure_system. ret:[%d] \n",__FUNCTION__,ret));
+            }
+            ret = v_secure_system("brctl delbr %s", iface_name);
+	    if(ret != 0) {
+                CcspTraceWarning(("%s:Failure in executing command via v_secure_system. ret:[%d] \n",__FUNCTION__,ret));
+            }
+
         }
-        pclose(fp);
+        ret = v_secure_pclose(fp);
+	if(ret !=0)
+	{
+	    CcspTraceError(("%s: Failed in closing pipe ret %d \n",__FUNCTION__,ret));
+	}
     }
 
     return;
@@ -2207,21 +2218,19 @@ ANSC_STATUS WanManager_CheckGivenTypeExists(INT IfIndex, UINT uiTotalIfaces, DML
 
 static INT IsIPObtained(char *pInterfaceName)
 {
-    char command[256] = {0};
     char buff[256] = {0};
     FILE *fp = NULL;
+    int pclose_ret = 0;
     if (!pInterfaceName)
     {
         return 0;
     }
 
     /* Validate IPv4 Connection on WAN interface */
-    memset(command,0,sizeof(command));
-    snprintf(command, sizeof(command), "ip addr show %s |grep -i 'inet ' |awk '{print $2}' |cut -f2 -d:", pInterfaceName);
     memset(buff,0,sizeof(buff));
 
     /* Open the command for reading. */
-    fp = popen(command, "r");
+    fp = v_secure_popen("r","ip addr show %s |grep -i 'inet ' |awk '{print $2}' |cut -f2 -d:", pInterfaceName);
     if (fp == NULL)
     {
         printf("<%s>:<%d> Error popen\n", __FUNCTION__, __LINE__);
@@ -2235,7 +2244,12 @@ static INT IsIPObtained(char *pInterfaceName)
             printf("IP :%s", buff);
         }
         /* close */
-        pclose(fp);
+        pclose_ret = v_secure_pclose(fp);
+	if(pclose_ret !=0)
+        {
+            CcspTraceError(("Failed in closing the pipe ret %d\n",pclose_ret));
+        }
+
         if(buff[0] != 0)
         {
             CcspTraceInfo(("%s %d - IP obtained %s\n", __FUNCTION__, __LINE__,pInterfaceName));
@@ -2244,12 +2258,12 @@ static INT IsIPObtained(char *pInterfaceName)
     }
 
     /* Validate IPv6 Connection on WAN interface */
-    memset(command,0,sizeof(command));
-    snprintf(command,sizeof(command), "ip addr show %s |grep -i 'inet6 ' |grep -i 'Global' |awk '{print $2}'", pInterfaceName);
+    
+   
     memset(buff,0,sizeof(buff));
 
     /* Open the command for reading. */
-    fp = popen(command, "r");
+    fp = v_secure_popen("r","ip addr show %s |grep -i 'inet6 ' |grep -i 'Global' |awk '{print $2}'", pInterfaceName);
     if (fp == NULL)
     {
        printf("<%s>:<%d> Error popen\n", __FUNCTION__, __LINE__);
@@ -2262,7 +2276,12 @@ static INT IsIPObtained(char *pInterfaceName)
             printf("IP :%s", buff);
         }
         /* close */
-        pclose(fp);
+        pclose_ret = v_secure_pclose(fp);
+	if(pclose_ret !=0)
+        {
+            CcspTraceError(("Failed in closing the pipe ret %d\n",pclose_ret));
+        }
+
         if(buff[0] != 0)
         {
             CcspTraceInfo(("%s %d - IP obtained %s \n", __FUNCTION__, __LINE__,pInterfaceName));

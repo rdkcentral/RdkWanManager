@@ -24,6 +24,7 @@
 #include "wanmgr_sysevents.h"
 #include "wanmgr_rdkbus_utils.h"
 #include "wanmgr_ipc.h"
+#include "secure_wrapper.h"
 
 int sysevent_fd = -1;
 token_t sysevent_token;
@@ -398,18 +399,20 @@ ANSC_STATUS maptInfo_reset()
 
 static int set_default_conf_entry()
 {
-    char command[BUFLEN_64];
+    
     char result[BUFLEN_128];
     FILE *fp;
 
-    memset(command, 0, sizeof(command));
     memset(result, 0, sizeof(result));
 
-    snprintf(command, sizeof(command), "cat %s", WAN_PHY_ADDRESS);
-    fp = popen(command, "r");
+    fp = fopen(WAN_PHY_ADDRESS,"r");
+    if (! fp) {
+        CcspTraceError(("%s %d cannot open file \n", __FUNCTION__, __LINE__));
+        return 0;
+    }
     fgets(result, sizeof(result), fp);
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_ETH_WAN_MAC, result, 0);
-    pclose(fp);
+    fclose(fp);
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_BRIDGE_MODE, "0", 0); // to boot in router mode
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_TOPOLOGY_MODE, "1", 0);
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_MULTINET_INSTANCES, LAN_BRIDGE_NAME, 0);
@@ -573,7 +576,7 @@ static void *WanManagerSyseventHandler(void *args)
                         CcspTraceError(("%s %d - SetDataModelParameter failed on ipv6_enable request \n", __FUNCTION__, __LINE__ ));
                     }
                     free(datamodel_value);
-                    system("sysevent set zebra-restart");
+                    v_secure_system("sysevent set zebra-restart");
                 }
             }
             else if ((strcmp(name, SYSEVENT_WAN_STATUS) == 0) && (strcmp(val, SYSEVENT_VALUE_STARTED) == 0))
@@ -582,7 +585,7 @@ static void *WanManagerSyseventHandler(void *args)
                 {
                     check_lan_wan_ready();
                 }
-                system("touch /tmp/phylink_wan_state_up");
+                creat("/tmp/phylink_wan_state_up",S_IRUSR| S_IWUSR| S_IRGRP| S_IROTH);
             }
 #if defined (RDKB_EXTENDER_ENABLED)
             else if ((strcmp(name, SYSEVENT_MESH_WAN_LINK_STATUS) == 0))
@@ -635,7 +638,7 @@ static void *WanManagerSyseventHandler(void *args)
                 {
                     pnm_inited = 1;
                     lan_start();
-                    system("execute_dir /etc/utopia/post.d/ restart");
+                    v_secure_system("execute_dir /etc/utopia/post.d/ restart");
                     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, NULL, 0);
                 }
             }
@@ -679,7 +682,7 @@ static void *WanManagerSyseventHandler(void *args)
                         sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_LAN_ULA_ADDRESS, buf, 0);
                     }
                     set_vendor_spec_conf();
-                    system("gw_lan_refresh &");
+                    v_secure_system("gw_lan_refresh &");
 #if defined(FEATURE_MAPT) && defined(IVI_KERNEL_SUPPORT)
                     memset(buf, '\0', sizeof(buf));
                     sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_MAP_TRANSPORT_MODE, buf, sizeof(buf));
@@ -698,7 +701,7 @@ static void *WanManagerSyseventHandler(void *args)
             else if (strcmp(name, SYSEVENT_RADVD_RESTART) == 0)
             {
                 sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_SERVICE_ROUTED_STATUS, "", 0);
-                system("service_routed radv-restart");
+                v_secure_system("service_routed radv-restart");
             }
             else if (strcmp(name, SYSEVENT_GLOBAL_IPV6_PREFIX_CLEAR) == 0)
             {
@@ -757,13 +760,13 @@ static void check_lan_wan_ready()
 }
 static int CheckV6DefaultRule()
 {
-    int ret = FALSE;
+    int ret = FALSE,pclose_ret = 0;
     FILE *fp = NULL;
-    char buf[256] = {0};
+ 
     char output[256] = {0};
 
-    snprintf(buf, sizeof(buf), " ip -6 ro | grep default | grep via | grep erouter0");
-    if(!(fp = popen(buf, "r")))
+  
+    if(!(fp = v_secure_popen("r"," ip -6 ro | grep default | grep via | grep erouter0")))
     {
         return -1;
     }
@@ -772,22 +775,31 @@ static int CheckV6DefaultRule()
         ret = TRUE; // Default rout entry exist
     }
 
-    pclose(fp);
+    pclose_ret = v_secure_pclose(fp);
+    if(pclose_ret !=0)
+    {
+        CcspTraceInfo(("Failed in closing the pipe ret %d \n",pclose_ret));
+    }
     return ret;
 }
 
 static void do_toggle_v6_status()
 {
-    char cmdLine[BUFLEN_128] = {0};
     bool isV6DefaultRoutePresent = FALSE;
+	    int ret = 0;
     isV6DefaultRoutePresent = CheckV6DefaultRule();
     if ( isV6DefaultRoutePresent != TRUE)
     {
         CcspTraceInfo(("%s %d toggle initiated \n", __FUNCTION__, __LINE__));
-        snprintf(cmdLine, sizeof(cmdLine), "echo 1 > /proc/sys/net/ipv6/conf/erouter0/disable_ipv6");
-        system(cmdLine);
-        snprintf(cmdLine, sizeof(cmdLine), "echo 0 > /proc/sys/net/ipv6/conf/erouter0/disable_ipv6");
-        system(cmdLine);
+        ret = v_secure_system("echo 1 > /proc/sys/net/ipv6/conf/erouter0/disable_ipv6");
+	if(ret != 0) {
+            CcspTraceWarning(("%s: Failure in executing command via v_secure_system. ret:[%d] \n",__FUNCTION__,ret));
+        } 
+        ret = v_secure_system("echo 0 > /proc/sys/net/ipv6/conf/erouter0/disable_ipv6");
+        if(ret != 0) {
+            CcspTraceWarning(("%s: Failure in executing command via v_secure_system. ret:[%d] \n", __FUNCTION__,ret));
+        }
+
     }
     return;
 }

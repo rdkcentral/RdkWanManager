@@ -30,6 +30,7 @@
 #include <sys/ioctl.h>
 #include <ctype.h>
 #include <syscfg/syscfg.h>
+#include "secure_wrapper.h"
 
 extern int sysevent_fd;
 extern token_t sysevent_token;
@@ -106,7 +107,7 @@ typedef struct ipv6_prefix {
 static char v6addr_prev[IPV6_PREF_MAXLEN] = {0};
 #endif
 
-void _get_shell_output(char * cmd, char * out, int len);
+void _get_shell_output(FILE *fp, char * out, int len);
 int _get_shell_output2(char * cmd, char * dststr);
 static int _prepare_client_conf(PDML_DHCPCV6_CFG       pCfg);
 static int _dibbler_client_operation(char * arg);
@@ -118,24 +119,17 @@ void _cosa_dhcpsv6_refresh_config();
 
 static int DHCPv6sDmlTriggerRestart(BOOL OnlyTrigger);
 
-void _get_shell_output(char * cmd, char * out, int len)
+void _get_shell_output(FILE *fp, char * out, int len)
 {
-    FILE * fp;
-    char   buf[256];
     char * p;
-
-    fp = popen(cmd, "r");
-
     if (fp)
     {
-        fgets(buf, sizeof(buf), fp);
-
+        fgets(out, len, fp);
         /*we need to remove the \n char in buf*/
-        if ((p = strchr(buf, '\n'))) *p = 0;
-
-        strncpy(out, buf, len-1);
-
-        pclose(fp);
+        if ((p = strchr(out, '\n'))) 
+        {
+            *p = '\0';
+        }
     }
 
 }
@@ -434,8 +428,9 @@ static int _prepare_client_conf(PDML_DHCPCV6_CFG       pCfg)
 
 static int _dibbler_client_operation(char * arg)
 {
-    char cmd[256] = {0};
     char out[256] = {0};
+    FILE *fp = NULL;
+    int ret =0;
 #if defined (INTEL_PUMA7)
     int watchdog = NO_OF_RETRY;
 #endif
@@ -451,26 +446,35 @@ static int _dibbler_client_operation(char * arg)
         system("/usr/bin/service_dhcpv6_client dhcpv6_client_service_disable");
         CcspTraceInfo(("%s  Calling service_dhcpv6_client.c with dhcpv6_client_service_disable from wanmgr_dhcpv6_apis.c\n", __func__));
 #else
-        system("/etc/utopia/service.d/service_dhcpv6_client.sh disable");
+        v_secure_system("/etc/utopia/service.d/service_dhcpv6_client.sh disable");
 #endif
 
 #ifdef _COSA_BCM_ARM_
         if (TRUE == WanManager_IsApplicationRunning (CLIENT_BIN))
         {
             CcspTraceInfo(("%s-%d [%s] is already running, killing it \n", __FUNCTION__,__LINE__,CLIENT_BIN));
-            snprintf(cmd, sizeof(cmd)-1, "killall %s", CLIENT_BIN);
-            system(cmd);
+            v_secure_system("killall " CLIENT_BIN);
             sleep(2);
 #ifdef _HUB4_PRODUCT_REQ_
-            snprintf(cmd, sizeof(cmd)-1, "ps | grep %s | grep -v grep", CLIENT_BIN);
+            fp = v_secure_popen("r", "ps | grep "CLIENT_BIN " | grep -v grep");
 #else
-            sprintf(cmd, "ps -A|grep %s", CLIENT_BIN);
+            fp = v_secure_popen("r", "ps -A|grep "CLIENT_BIN);
 #endif // _HUB4_PRODUCT_REQ_
-            _get_shell_output(cmd, out, sizeof(out));
+            if(!fp)
+            {
+                CcspTraceError(("%s %d Error in opening pipe! \n",__FUNCTION__,__LINE__));
+            }
+            else
+            {
+                _get_shell_output(fp, out, sizeof(out));
+	        ret = v_secure_pclose(fp);
+	        if(ret !=0) {
+                    CcspTraceError(("[%s-%d] failed to closing  v_secure_pclose pipe ret [%d]!! \n", __FUNCTION__, __LINE__,ret));
+                }
+            }
             if (strstr(out, CLIENT_BIN))
             {
-                snprintf(cmd,sizeof(cmd)-1, "killall -9 %s", CLIENT_BIN);
-                system(cmd);
+                v_secure_system("killall -9 "CLIENT_BIN);
             }
         }
 #endif
@@ -486,8 +490,20 @@ static int _dibbler_client_operation(char * arg)
         /* Waiting for the TLV file to be parsed correctly so that the right erouter mode can be used in the code below.
         For ANYWAN please extend the below code to support the case of TLV config file not being there. */
       do{
-         sprintf(cmd, "sysevent get TLV202-status");
-         _get_shell_output(cmd, out, sizeof(out));
+         fp = v_secure_popen("r","sysevent get TLV202-status");
+	 if(!fp)
+	 {
+	     CcspTraceError(("[%s-%d] failed to opening v_secure_popen pipe !! \n", __FUNCTION__, __LINE__));
+	 }
+         else 
+         {
+             _get_shell_output(fp, out, sizeof(out));
+	     ret = v_secure_pclose(fp);
+	     if(ret !=0) {
+                 CcspTraceError(("[%s-%d] failed to closing v_secure_pclose() pipe ret [%d] !! \n", __FUNCTION__, __LINE__,ret));
+             }
+         }
+
          fprintf( stderr, "\n%s:%s(): Waiting for CcspGwProvApp to parse TLV config file\n", __FILE__, __FUNCTION__);
          sleep(1);//sleep(1) is to avoid lots of trace msgs when there is latency
          watchdog--;
@@ -501,8 +517,20 @@ static int _dibbler_client_operation(char * arg)
 #endif
 #ifndef _HUB4_PRODUCT_REQ_
         /* This wait loop is not required as we are not configuring IPv6 address on erouter0 interface */
-        sprintf(cmd, "syscfg get last_erouter_mode");
-        _get_shell_output(cmd, out, sizeof(out));
+        fp = v_secure_popen("r", "syscfg get last_erouter_mode");
+	if(!fp)
+        {
+             CcspTraceError(("[%s-%d] failed to opening v_secure_popen pipe !! \n", __FUNCTION__, __LINE__));
+        }
+        else
+        {
+            _get_shell_output(fp, out, sizeof(out));
+	    ret = v_secure_pclose(fp);
+            if(ret !=0) {
+                CcspTraceError(("[%s-%d] failed to closing v_secure_pclose() pipe ret [%d]!! \n", __FUNCTION__, __LINE__,ret));
+            }
+        }
+
     /* TODO: To be fixed by Comcast
              IPv6 address assigned to erouter0 gets deleted when erouter_mode=3(IPV4 and IPV6 both)
              Don't start v6 service in parallel. Wait for wan-status to be set to 'started' by IPv4 DHCP client.
@@ -510,10 +538,22 @@ static int _dibbler_client_operation(char * arg)
         if (strstr(out, "3"))// If last_erouter_mode is both IPV4/IPV6
     {
              do{
-                    sprintf(cmd, "sysevent get wan-status");
-                _get_shell_output(cmd, out, sizeof(out));
-                CcspTraceInfo(("%s waiting for wan-status to started\n", __func__));
-            sleep(1);//sleep(1) is to avoid lots of trace msgs when there is latency
+                   fp = v_secure_popen("r","sysevent get wan-status");
+		   if(!fp)
+                   {
+                      CcspTraceError(("[%s-%d] failed to opening v_secure_popen pipe !! \n", __FUNCTION__, __LINE__));
+                   }
+                   else
+                   {
+                       _get_shell_output(fp, out, sizeof(out));
+                       ret = v_secure_pclose(fp);
+                       if(ret !=0) {
+                           CcspTraceError(("[%s-%d] failed to closing v_secure_pclose() pipe ret [%d] !! \n", __FUNCTION__, __LINE__,ret));
+                       }
+                   }
+  
+                    CcspTraceInfo(("%s waiting for wan-status to started\n", __func__));
+                    sleep(1);//sleep(1) is to avoid lots of trace msgs when there is latency
         }while(!strstr(out,"started"));
     }
 #endif
@@ -528,17 +568,16 @@ static int _dibbler_client_operation(char * arg)
         system("/usr/bin/service_dhcpv6_client dhcpv6_client_service_enable");
         CcspTraceInfo(("%s  Calling service_dhcpv6_client.c with dhcpv6_client_service_enable from wanmgr_dhcpv6_apis.c\n", __func__));
 #else
-        system("/etc/utopia/service.d/service_dhcpv6_client.sh enable");
+        v_secure_system("/etc/utopia/service.d/service_dhcpv6_client.sh enable");
 #endif
 
 #ifdef _COSA_BCM_ARM_
         /* Dibbler-init is called to set the pre-configuration for dibbler */
         CcspTraceInfo(("%s dibbler-init.sh Called \n", __func__));
-        system("/lib/rdk/dibbler-init.sh");
+        v_secure_system("/lib/rdk/dibbler-init.sh");
         /*Start Dibber client for tchxb6*/
         CcspTraceInfo(("%s Dibbler Client Started \n", __func__));
-        snprintf(cmd, sizeof(cmd)-1, "%s start", CLIENT_BIN);
-        system(cmd);
+        v_secure_system(CLIENT_BIN " start");
 #endif
     }
     else if (!strncmp(arg, "restart", 7))
@@ -855,11 +894,7 @@ WanMgr_DmlDhcpv6cRenew
 {
     UNREFERENCED_PARAMETER(hContext);
     UNREFERENCED_PARAMETER(ulInstanceNumber);
-    char cmd[256] = {0};
-
-    snprintf(cmd, sizeof(cmd) - 1, "killall -SIGUSR2 %s", CLIENT_BIN);
-    system(cmd);
-
+    v_secure_system("killall -SIGUSR2 "CLIENT_BIN);
     return ANSC_STATUS_SUCCESS;
 }
 
@@ -1430,10 +1465,10 @@ int dhcpv6_assign_global_ip(char * prefix, char * intfName, char * ipAddr)
     char           *pMac             = NULL;
     unsigned int    prefixLen           = 0;
     unsigned int    iteratorI,iteratorJ = 0;
-    char            cmd[256]         = {0};
     char            out[256]         = {0};
     char            tmp[8]           = {0};
-
+    FILE *fp = NULL;
+    int ret =0;
 
     _ansc_strcpy( globalIP, prefix);
 
@@ -1482,8 +1517,20 @@ int dhcpv6_assign_global_ip(char * prefix, char * intfName, char * ipAddr)
 
 
     /* prepare second part */
-    snprintf(cmd, sizeof(cmd)-1, "ifconfig %s | grep HWaddr\n", intfName );
-    _get_shell_output(cmd, out, sizeof(out));
+    fp = v_secure_popen("r", "ifconfig %s | grep HWaddr\n", intfName );
+    if(!fp)
+    {
+        CcspTraceError(("[%s-%d] failed to opening v_secure_popen pipe !! \n", __FUNCTION__, __LINE__));
+    }
+    else
+    {
+        _get_shell_output(fp, out, sizeof(out));
+        ret = v_secure_pclose(fp);
+        if(ret !=0) {
+            CcspTraceError(("[%s-%d] failed to closing  v_secure_pclose pipe ret [%d]!! \n", __FUNCTION__, __LINE__,ret));
+        }
+    }
+
     pMac =_ansc_strstr(out, "HWaddr");
     if ( pMac == NULL ){
         AnscTrace("error, this interface has not a mac address .\n");
@@ -1625,13 +1672,14 @@ static void *InterfaceEventHandler_thrd(void *data)
          unsigned char name[25], val[42],buf[128],cmd[128];
          int namelen = sizeof(name);
          int vallen  = sizeof(val);
+	 int ret = 0;
         err = sysevent_getnotification(sysevent_fd_1, sysevent_token_1, name, &namelen,  val, &vallen, &getnotification_asyncid);
 
             if (err)
             {
                    CcspTraceWarning(("sysevent_getnotification failed with error: %d %s\n", err,__FUNCTION__));
                    CcspTraceWarning(("sysevent_getnotification failed name: %s val : %s\n", name,val));
-            if ( 0 != system("pidof syseventd")) {
+            if ( 0 != v_secure_system("pidof syseventd")) {
 
                        CcspTraceWarning(("%s syseventd not running ,breaking the receive notification loop \n",__FUNCTION__));
                 break;
@@ -1646,17 +1694,21 @@ static void *InterfaceEventHandler_thrd(void *data)
                 if(strcmp((const char*)val, "ready") == 0)
                 {
                                         sysevent_get(sysevent_fd, sysevent_token,"br106_ipaddr_v6", buf, sizeof(buf));
-                                        memset(cmd,0,sizeof(cmd));
-                                        snprintf(cmd, sizeof(cmd)-1, "ip -6 route add %s dev br106",buf);
-                    system(cmd);
+                    ret = v_secure_system("ip -6 route add %s dev br106",buf);
+		    if(ret != 0) {
+                       CcspTraceWarning(("%s: Failure in executing command via v_secure_system. ret:[%d] \n",__FUNCTION__,ret));
+                    }
+
                     #ifdef _COSA_INTEL_XB3_ARM_
-                                        memset(cmd,0,sizeof(cmd));
-                                        _ansc_sprintf(cmd, "ip -6 route add %s dev br106 table erouter",buf);
-                    system(cmd);
+                                        
+                   ret = v_secure_system("ip -6 route add %s dev br106 table erouter",buf);
+		   if(ret != 0) {
+                       CcspTraceWarning(("%s: Failure in executing command via v_secure_system. ret:[%d] \n",__FUNCTION__,ret));
+                   }
+                       
                     #endif
-                                        memset(cmd,0,sizeof(cmd));
-                                        snprintf(cmd,sizeof(cmd)-1, "ip -6 rule add iif br106 lookup erouter");
-                                        system(cmd);
+                                      
+                                        v_secure_system("ip -6 rule add iif br106 lookup erouter");
                 }
 
             }
@@ -1665,39 +1717,60 @@ static void *InterfaceEventHandler_thrd(void *data)
                 if(strcmp((const char*)val, "ready") == 0)
                 {
                     char *Inf_name = NULL;
+		    FILE *fp = NULL;
                     int retPsmGet = CCSP_SUCCESS;
                     retPsmGet = PSM_Get_Record_Value2(bus_handle,g_Subsystem, "dmsb.l2net.2.Port.1.Name", NULL, &Inf_name);
                             if (retPsmGet == CCSP_SUCCESS)
                     {
                         char tbuff[100];
-                                        memset(cmd,0,sizeof(cmd));
-                        memset(tbuff,0,sizeof(tbuff));
-                        snprintf(cmd, sizeof(cmd)-1,"sysctl net.ipv6.conf.%s.autoconf",Inf_name);
-                        _get_shell_output(cmd, tbuff, sizeof(tbuff));
+                                     
+                        tbuff[0] = '\0';
+                        fp = v_secure_popen("r","sysctl net.ipv6.conf.%s.autoconf",Inf_name);
+                        if(!fp)
+                        {
+                            CcspTraceError(("[%s-%d] failed to opening v_secure_popen pipe !! \n", __FUNCTION__, __LINE__));
+                        }
+                        else
+                        {
+                            _get_shell_output(fp, tbuff, sizeof(tbuff));
+			    ret = v_secure_pclose(fp);
+                            if(ret !=0) {
+                                CcspTraceError(("[%s-%d] failed to closing  v_secure_pclose pipe ret [%d]!! \n", __FUNCTION__, __LINE__,ret));
+                            }
+                        }
                         if(tbuff[strlen(tbuff)-1] == '0')
                         {
-                            memset(cmd,0,sizeof(cmd));
-                            snprintf(cmd, sizeof(cmd)-1, "sysctl -w net.ipv6.conf.%s.autoconf=1",Inf_name);
-                            system(cmd);
-                            memset(cmd,0,sizeof(cmd));
-                            snprintf(cmd, sizeof(cmd)-1,"ifconfig %s down;ifconfig %s up",Inf_name,Inf_name);
-                            system(cmd);
+                            ret = v_secure_system("sysctl -w net.ipv6.conf.%s.autoconf=1",Inf_name);
+			    if(ret != 0) {
+                                CcspTraceWarning(("%s: Failure in executing command via v_secure_system. ret:[%d] \n",__FUNCTION__,ret));
+                            }             
+                            ret = v_secure_system("ifconfig %s down;ifconfig %s up",Inf_name,Inf_name);
+			    if(ret != 0) {
+                                CcspTraceWarning(("%s: Failure in executing command via v_secure_system. ret:[%d] \n",__FUNCTION__,ret));
+                            }       
                         }
 
                                         memset(cmd,0,sizeof(cmd));
                                         snprintf(cmd,sizeof(cmd)-1, "%s_ipaddr_v6",Inf_name);
                                         sysevent_get(sysevent_fd, sysevent_token,cmd, buf, sizeof(buf));
-                                        memset(cmd,0,sizeof(cmd));
-                                        snprintf(cmd,sizeof(cmd)-1, "ip -6 route add %s dev %s",buf,Inf_name);
-                        system(cmd);
+                        ret = v_secure_system("ip -6 route add %s dev %s",buf,Inf_name);
+			if(ret != 0) {
+                                CcspTraceWarning(("%s: Failure in executing command via v_secure_system. ret:[%d] \n",__FUNCTION__,ret));
+                        }
+
                         #ifdef _COSA_INTEL_XB3_ARM_
-                                        memset(cmd,0,sizeof(cmd));
-                                        _ansc_sprintf(cmd, "ip -6 route add %s dev %s table erouter",buf,Inf_name);
-                        system(cmd);
+                  
+                        ret = v_secure_system("ip -6 route add %s dev %s table erouter",buf,Inf_name);
+			if(ret != 0) {
+                                CcspTraceWarning(("%s: Failure in executing command via v_secure_system. ret:[%d] \n", __FUNCTION__,ret));
+                        }
+
                         #endif
-                                        memset(cmd,0,sizeof(cmd));
-                                        snprintf(cmd,sizeof(cmd)-1, "ip -6 rule add iif %s lookup erouter",Inf_name);
-                                        system(cmd);
+                                        ret = v_secure_system("ip -6 rule add iif %s lookup erouter",Inf_name);
+					if(ret != 0) {
+                                            CcspTraceWarning(("%s: Failure in executing command via v_secure_system. ret:[%d] \n",__FUNCTION__, ret));
+                                        }
+                 
                         ((CCSP_MESSAGE_BUS_INFO *)bus_handle)->freefunc(Inf_name);
                     }
                     else
@@ -1898,21 +1971,44 @@ dhcpv6c_dbg_thrd(void * in)
             char out1[100];
             char *token = NULL;char *pt;
             char s[2] = ",";
+	    FILE *fp = NULL;
             if(pref_len < 64)
             {
                 memset(out,0,sizeof(out));
-                memset(cmd,0,sizeof(cmd));
                 memset(out1,0,sizeof(out1));
-                snprintf(cmd,sizeof(cmd)-1, "syscfg get IPv6subPrefix");
-                      _get_shell_output(cmd, out, sizeof(out));
+                fp = v_secure_popen("r", "syscfg get IPv6subPrefix");
+		if(!fp)
+                {
+                     CcspTraceError(("[%s-%d] failed to opening v_secure_popen pipe !! \n", __FUNCTION__, __LINE__));
+                }
+                else
+                {
+                    _get_shell_output(fp, out, sizeof(out));
+                    ret = v_secure_pclose(fp);
+                    if(ret !=0) {
+                        CcspTraceError(("[%s-%d] failed to closing  v_secure_pclose pipe ret [%d]!! \n", __FUNCTION__, __LINE__,ret));
+                    }
+                }
+
                 if(!strcmp(out,"true"))
                 {
                                 static int first = 0;
 
                 memset(out,0,sizeof(out));
-                memset(cmd,0,sizeof(cmd));
-                snprintf(cmd,sizeof(cmd)-1, "syscfg get IPv6_Interface");
-                      _get_shell_output(cmd, out, sizeof(out));
+                fp = v_secure_popen("r", "syscfg get IPv6_Interface");
+		if(!fp)
+                {
+                     CcspTraceError(("[%s-%d] failed to opening v_secure_popen pipe !! \n", __FUNCTION__, __LINE__));
+                }
+                else
+                {
+                    _get_shell_output(fp, out, sizeof(out));
+		    ret = v_secure_pclose(fp);
+                    if(ret !=0) {
+                        CcspTraceError(("[%s-%d] failed to closing  v_secure_pclose pipe ret [%d]!! \n", __FUNCTION__, __LINE__,ret));
+                    }
+                }
+
                 pt = out;
                 while((token = strtok_r(pt, ",", &pt)))
                  {
@@ -1923,30 +2019,52 @@ dhcpv6c_dbg_thrd(void * in)
                         memset(cmd,0,sizeof(cmd));
                         _ansc_sprintf(cmd, "%s%s",token,"_ipaddr_v6");
                         sysevent_set(sysevent_fd, sysevent_token, cmd, out1 , 0);
-                        memset(cmd,0,sizeof(cmd));
                         memset(tbuff,0,sizeof(tbuff));
-                        sprintf(cmd,"sysctl net.ipv6.conf.%s.autoconf",token);
-                        _get_shell_output(cmd, tbuff, sizeof(tbuff));
+                        fp = v_secure_popen("r","sysctl net.ipv6.conf.%s.autoconf",token);
+ 			 if(!fp)
+                         {
+                             CcspTraceError(("[%s-%d] failed to opening v_secure_popen pipe !! \n", __FUNCTION__, __LINE__));
+                         }
+                         else
+                         {
+                             _get_shell_output(fp, tbuff, sizeof(tbuff));
+			     ret = v_secure_pclose(fp);
+                             if(ret !=0) {
+                                 CcspTraceError(("[%s-%d] failed to closing  v_secure_pclose pipe ret [%d]!! \n", __FUNCTION__, __LINE__,ret));
+                             }
+                         }
+
                         if(tbuff[strlen(tbuff)-1] == '0')
                         {
-                            memset(cmd,0,sizeof(cmd));
-                            snprintf(cmd, sizeof(cmd)-1, "sysctl -w net.ipv6.conf.%s.autoconf=1",token);
-                            system(cmd);
-                            memset(cmd,0,sizeof(cmd));
-                            sprintf(cmd,"ifconfig %s down;ifconfig %s up",token,token);
-                            system(cmd);
+                            ret = v_secure_system("sysctl -w net.ipv6.conf.%s.autoconf=1",token);
+			    if(ret != 0) {
+                            CcspTraceWarning(("%s: Failure in executing command via v_secure_system. ret:[%d] \n", __FUNCTION__,ret));
+                            }
+                            ret = v_secure_system("ifconfig %s down;ifconfig %s up",token,token);
+			    if(ret != 0) {
+                                CcspTraceWarning(("%s: Failure in executing command via v_secure_system. ret:[%d] \n",__FUNCTION__, ret));
+                            }
+
                         }
-                        memset(cmd,0,sizeof(cmd));
-                        sprintf(cmd, "ip -6 route add %s dev %s", out1, token);
-                                    system(cmd);
+                  
+                                    ret = v_secure_system("ip -6 route add %s dev %s", out1, token);
+				    if(ret != 0) {
+                                        CcspTraceWarning(("%s: Failure in executing command via v_secure_system. ret:[%d] \n", __FUNCTION__,ret));
+                                     }
+
                         #ifdef _COSA_INTEL_XB3_ARM_
-                        memset(cmd,0,sizeof(cmd));
-                        sprintf(cmd, "ip -6 route add %s dev %s table erouter", out1, token);
-                                    system(cmd);
+                       
+                                    ret = v_secure_system("ip -6 route add %s dev %s table erouter", out1, token);
+				    if(ret != 0) {
+                                        CcspTraceWarning(("%s: Failure in executing command via v_secure_system. ret:[%d] \n",__FUNCTION__, ret));
+                                    }
+
                         #endif
-                        memset(cmd,0,sizeof(cmd));
-                        sprintf(cmd, "ip -6 rule add iif %s lookup erouter",token);
-                        system(cmd);
+                 
+                        ret = v_secure_system("ip -6 rule add iif %s lookup erouter",token);
+			if(ret != 0) {
+                            CcspTraceWarning(("%s:Failure in executing command via v_secure_system. ret:[%d] \n",__FUNCTION__, ret));
+                        }
                         memset(out1,0,sizeof(out1));
                     }
                 }
@@ -1987,21 +2105,30 @@ dhcpv6c_dbg_thrd(void * in)
 #if !defined(INTEL_PUMA7) && !defined(_COSA_INTEL_XB3_ARM_)
                         // not the best place to add route, just to make it work
                         // delegated prefix need to route to LAN interface
-            memset(cmd,0,sizeof(cmd));
-                        sprintf(cmd, "ip -6 route add %s dev %s", v6pref, COSA_DML_DHCPV6_SERVER_IFNAME);
-                        system(cmd);
+            
+                        ret = v_secure_system("ip -6 route add %s dev "COSA_DML_DHCPV6_SERVER_IFNAME,v6pref);
+                        if(ret != 0) {
+                            CcspTraceWarning(("%s: Failure in executing command via v_secure_system. ret:[%d] \n",__FUNCTION__, ret));
+                        }
+
             #ifdef _COSA_INTEL_XB3_ARM_
-            memset(cmd,0,sizeof(cmd));
-                        sprintf(cmd, "ip -6 route add %s dev %s table erouter", v6pref, COSA_DML_DHCPV6_SERVER_IFNAME);
-                        system(cmd);
+                        ret = v_secure_system("ip -6 route add %s dev " COSA_DML_DHCPV6_SERVER_IFNAME " table erouter",v6pref);
+			if(ret != 0) {
+                             CcspTraceWarning(("%s: Failure in executing command via v_secure_system. ret:[%d] \n",__FUNCTION__, ret));
+                        }
+
             #endif
-            memset(cmd,0,sizeof(cmd));
+            
                         /* we need save this for zebra to send RA
                            ipv6_prefix           // xx:xx::/yy
                          */
-                        sprintf(cmd, "sysevent set ipv6_prefix %s \n",v6pref);
-                        system(cmd);
-                        CcspTraceWarning(("!run cmd1:%s", cmd));
+                        
+                        ret = v_secure_system("sysevent set ipv6_prefix %s \n",v6pref);
+			if(ret != 0) {
+                            CcspTraceWarning(("%s: Failure in executing command via v_secure_system. ret:[%d] \n",__FUNCTION__, ret));
+                        }
+
+                        CcspTraceWarning(("!run cmd1:sysevent set ipv6_prefix %s \n",v6pref));
 
                         DHCPv6sDmlTriggerRestart(FALSE);
 #if defined(_COSA_BCM_ARM_) || defined(INTEL_PUMA7)
@@ -2061,8 +2188,10 @@ dhcpv6c_dbg_thrd(void * in)
                         }
                         sysevent_get(sysevent_fd, sysevent_token,SYSEVENT_FIELD_IPV6_ULA_ADDRESS, ula_address, sizeof(ula_address));
                         if(ula_address[0] != '\0') {
-                            snprintf(cmd, sizeof(cmd)-1, "ip -6 addr add %s/64 dev %s", ula_address, COSA_DML_DHCPV6_SERVER_IFNAME);
-                            system(cmd);
+                            ret = v_secure_system("ip -6 addr add %s/64 dev "COSA_DML_DHCPV6_SERVER_IFNAME,ula_address);
+			    if(ret != 0) {
+                                CcspTraceWarning(("%s: Failure in executing command via v_secure_system. ret:[%d] \n",__FUNCTION__,ret));
+                            }
                         }
                         ret = dhcpv6_assign_global_ip(v6pref, COSA_DML_DHCPV6_SERVER_IFNAME, globalIP);
                         if(ret != 0) {
@@ -2070,18 +2199,22 @@ dhcpv6c_dbg_thrd(void * in)
                         }
                         else {
                             sysevent_set(sysevent_fd, sysevent_token,"lan_ipaddr_v6", globalIP, 0);
-                            snprintf(cmd, sizeof(cmd) -1, "ip -6 addr add %s/64 dev %s valid_lft %s preferred_lft %s",
-                                globalIP, COSA_DML_DHCPV6_SERVER_IFNAME, iapd_vldtm, iapd_pretm);
-                            CcspTraceInfo(("Going to execute: %s \n", cmd));
-                            system(cmd);
+                            CcspTraceInfo(("Going to execute: ip -6 addr add %s/64 dev %s valid_lft %s preferred_lft %s",
+                                globalIP, COSA_DML_DHCPV6_SERVER_IFNAME, iapd_vldtm, iapd_pretm));
+                            ret = v_secure_system("ip -6 addr add %s/64 dev " COSA_DML_DHCPV6_SERVER_IFNAME " valid_lft %s preferred_lft %s",globalIP,iapd_vldtm, iapd_pretm);
+			    if(ret != 0) {
+                                CcspTraceWarning(("%s: Failure in executing command via v_secure_system. ret:[%d] \n",__FUNCTION__,ret));
+                            }
                         }
                         if(strlen(v6pref) > 0) {
                             strncpy(v6pref_addr, v6pref, (strlen(v6pref)-5));
                             CcspTraceInfo(("Going to set ::1 address on brlan0 interface \n"));
-                            snprintf(cmd,sizeof(cmd) - 1,  "ip -6 addr add %s::1/64 dev %s valid_lft %s preferred_lft %s",
-                                v6pref_addr, COSA_DML_DHCPV6_SERVER_IFNAME, iapd_vldtm, iapd_pretm);
-                            CcspTraceInfo(("Going to execute: %s \n", cmd));
-                            system(cmd);
+                            CcspTraceInfo(("Going to execute: ip -6 addr add %s::1/64 dev %s valid_lft %s preferred_lft %s",
+                                v6pref_addr, COSA_DML_DHCPV6_SERVER_IFNAME, iapd_vldtm, iapd_pretm));
+                            ret = v_secure_system("ip -6 addr add %s::1/64 dev " COSA_DML_DHCPV6_SERVER_IFNAME " valid_lft %s preferred_lft %s",v6pref_addr,iapd_vldtm, iapd_pretm);
+			    if(ret != 0) {
+                                CcspTraceWarning(("%s: Failure in executing command via v_secure_system. ret:[%d] \n",__FUNCTION__,ret));
+                            }   
                         }
                         // send an event to Sky-pro app manager that Global-prefix is set
                         sysevent_set(sysevent_fd, sysevent_token,"lan_prefix_set", globalIP, 0);
@@ -2140,24 +2273,32 @@ dhcpv6c_dbg_thrd(void * in)
 #endif
                         // not the best place to add route, just to make it work
                         // delegated prefix need to route to LAN interface
-                        sprintf(cmd, "ip -6 route add %s dev %s", v6pref, COSA_DML_DHCPV6_SERVER_IFNAME);
-                        system(cmd);
+                      
+                        ret = v_secure_system("ip -6 route add %s dev " COSA_DML_DHCPV6_SERVER_IFNAME,v6pref);
+			if(ret != 0) {
+                            CcspTraceWarning(("%s: Failure in executing command via v_secure_system. ret:[%d] \n",__FUNCTION__,ret));
+                        }     
             #ifdef _COSA_INTEL_XB3_ARM_
-            memset(cmd,0,sizeof(cmd));
-                        sprintf(cmd, "ip -6 route add %s dev %s table erouter", v6pref, COSA_DML_DHCPV6_SERVER_IFNAME);
-                        system(cmd);
+            
+                        ret = v_secure_system("ip -6 route add %s dev "COSA_DML_DHCPV6_SERVER_IFNAME " table erouter");
+			if(ret != 0) {
+                           CcspTraceWarning(("%s: Failure in executing command via v_secure_system. ret:[%d] \n",__FUNCTION__,ret));
+                        }   
             #endif
                         /* we need save this for zebra to send RA
                            ipv6_prefix           // xx:xx::/yy
                          */
 #ifndef _HUB4_PRODUCT_REQ_
-                        sprintf(cmd, "sysevent set ipv6_prefix %s \n",v6pref);
-                        system(cmd);
+                      
+                        ret = v_secure_system("sysevent set ipv6_prefix %s \n",v6pref);
+			if(ret != 0) {
+                            CcspTraceWarning(("%s: Failure in executing command via v_secure_system. ret:[%d] \n",__FUNCTION__,ret));
+                        }
 #else
-                        sprintf(cmd, "sysevent set zebra-restart \n");
-                        system(cmd);
+                       
+                        v_secure_system("sysevent set zebra-restart \n");
 #endif
-                        CcspTraceWarning(("!run cmd1:%s", cmd));
+                        //CcspTraceWarning(("!run cmd1:%s", cmd));
 
                         DHCPv6sDmlTriggerRestart(FALSE);
 
@@ -2220,7 +2361,7 @@ dhcpv6c_dbg_thrd(void * in)
 #if defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) && (defined(_CBR_PRODUCT_REQ_) || defined(_BCI_FEATURE_REQ))
 
 #else
-        system("sysevent set zebra-restart");
+        v_secure_system("sysevent set zebra-restart");
 #endif
             }
 

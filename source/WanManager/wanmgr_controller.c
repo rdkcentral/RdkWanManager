@@ -21,33 +21,34 @@
 #include "wanmgr_controller.h"
 #include "wanmgr_rdkbus_utils.h"
 #include "wanmgr_data.h"
+#include "secure_wrapper.h"
 
 ANSC_STATUS WanController_Policy_Change(void)
 {
     /* Wan policy changed. Cpe needs a restart! */
     FILE *fp = NULL;
     char value[25] = {0};
-    char cmd[128] = {0};
     char acOutput[64] = {0};
     int seconds = 30;
     int rebootCount = 1;
-
+    int ret =0;
     WanController_ClearWanConfigurationsInPSM();
     memset(value, 0, sizeof(value));
-    fp = popen("syscfg get X_RDKCENTRAL-COM_LastRebootCounter", "r");
+    fp = v_secure_popen("r","syscfg get X_RDKCENTRAL-COM_LastRebootCounter");
     if (fp == NULL) {
         return ANSC_STATUS_FAILURE;
     }
-    pclose(fp);
+    v_secure_pclose(fp);
 
     rebootCount = atoi(value);
 
     CcspTraceInfo(("Updating the last reboot reason and last reboot counter\n"));
-    sprintf(cmd, "syscfg set X_RDKCENTRAL-COM_LastRebootReason Wan_Policy_Change ");
-    system(cmd);
-    sprintf(cmd, "syscfg set X_RDKCENTRAL-COM_LastRebootCounter %d ",rebootCount);
-    system(cmd);
-    system("syscfg commit");
+    v_secure_system("syscfg set X_RDKCENTRAL-COM_LastRebootReason Wan_Policy_Change ");
+    ret = v_secure_system("syscfg set X_RDKCENTRAL-COM_LastRebootCounter %d ",rebootCount);
+    if(ret != 0) {
+          CcspTraceWarning(("%s: Failure in executing command via v_secure_system. ret:[%d] \n", __FUNCTION__,ret));
+    }
+    v_secure_system("syscfg commit");
 
     while(seconds > 0)
     {
@@ -56,7 +57,7 @@ ANSC_STATUS WanController_Policy_Change(void)
         sleep(10);
     }
 
-    system("/rdklogger/backupLogs.sh true");
+    v_secure_system("/rdklogger/backupLogs.sh true");
 
     return ANSC_STATUS_SUCCESS;
 }

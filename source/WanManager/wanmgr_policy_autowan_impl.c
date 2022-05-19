@@ -31,6 +31,7 @@
 #include "wanmgr_sysevents.h"
 #include <time.h>
 #include <pthread.h>
+#include "secure_wrapper.h"
 
 /* ---- Global Constants -------------------------- */
 #define LOOP_TIMEOUT 500000 // timeout in milliseconds. This is the state machine loop interval
@@ -558,13 +559,12 @@ static INT StartWanClients(WanMgr_AutoWan_SMInfo_t *pSmInfo)
     DML_WAN_IFACE* pFixedInterface = NULL;
     char out_value[64] = {0};
     char wanPhyName[64] = {0};
-    char command[256] = {0};
     INT eRouterMode = ERT_MODE_IPV4;
+    int ret =0;
 #if defined(INTEL_PUMA7)
     char udhcpcEnable[20] = {0};
     char dibblerClientEnable[20] = {0};
 #endif
-
     if (!pSmInfo)
         return status;
 
@@ -621,29 +621,29 @@ static INT StartWanClients(WanMgr_AutoWan_SMInfo_t *pSmInfo)
                     if (WanMgr_GetWanInterfaceType(pSmInfo->previousActiveInterfaceIndex) != WAN_IFACE_TYPE_PRIMARY)
                     {
                         wanmgr_setwanstop();
-                        system("killall udhcpc");
+                        v_secure_system("killall udhcpc");
 #if defined(INTEL_PUMA7)
                         if(0 == strncmp(dibblerClientEnable, "yes", sizeof(dibblerClientEnable)))
                         {
 #endif
-                            system("killall dibbler-client");
+                            v_secure_system("killall dibbler-client");
 #if defined(INTEL_PUMA7)
                         }
                         else
                         {
-                            system("killall ti_dhcpv6c");
+                            v_secure_system("killall ti_dhcpv6c");
                         }
 #endif
 #if defined(INTEL_PUMA7)
                         if(0 == strncmp(udhcpcEnable, "yes", sizeof(udhcpcEnable)))
                         {
 #endif
-                            system("killall udhcpc");
+                            v_secure_system("killall udhcpc");
 #if defined(INTEL_PUMA7)
                         }
                         else
                         {
-                            system("killall ti_udhcpc");
+                            v_secure_system("killall ti_udhcpc");
                         }
 #endif
                     }
@@ -651,7 +651,6 @@ static INT StartWanClients(WanMgr_AutoWan_SMInfo_t *pSmInfo)
                     // start wan
                     wanmgr_setwanstart();
                     wanmgr_sshd_restart();
-
                 }
                 else
                 {
@@ -662,37 +661,36 @@ static INT StartWanClients(WanMgr_AutoWan_SMInfo_t *pSmInfo)
                         if(0 == strncmp(dibblerClientEnable, "yes", sizeof(dibblerClientEnable)))
                         {
 #endif
-                            system("killall dibbler-client");
-                            memset(command, 0, sizeof(command));
-                            snprintf(command,sizeof(command), "sh /etc/dibbler/dibbler-init.sh");
-                            system(command);
-                            memset(command, 0, sizeof(command));
-                            snprintf(command,sizeof(command), "/usr/sbin/dibbler-client start");
-                            system(command);
+                            v_secure_system("killall dibbler-client");
+                            v_secure_system("/etc/dibbler/dibbler-init.sh");
+                            v_secure_system("/usr/sbin/dibbler-client start");
                             CcspTraceInfo(("%s %d - dibbler client start\n", __FUNCTION__, __LINE__));
 
 #if defined(INTEL_PUMA7)
                         }
                         else
                         {
-                            system("killall ti_dhcpv6c");
-                            memset(command, 0, sizeof(command));
-                            snprintf(command,sizeof(command), "ti_dhcp6c -plugin /lib/libgw_dhcp6plg.so -i %s -p /var/run/erouter_dhcp6c.pid &",pFixedInterface->Wan.Name);
-                            system(command);	
+                            v_secure_system("killall ti_dhcpv6c");
+                            ret = v_secure_system("ti_dhcp6c -plugin /lib/libgw_dhcp6plg.so -i %s -p /var/run/erouter_dhcp6c.pid &",pFixedInterface->Wan.Name);
+                            if(ret != 0) {
+                                CcspTraceWarning(("%s : Failure in executing command via v_secure_system. ret:[%d] \n",__FUNCTION__, ret));
+                            }
                         }
 #endif
 
                     } // (eRouterMode == ERT_MODE_IPV6)
                     else if(eRouterMode == ERT_MODE_IPV4 || eRouterMode == ERT_MODE_DUAL)
                     {
-                        memset(command, 0, sizeof(command));
-                        snprintf(command,sizeof(command),"sysctl -w net.ipv6.conf.%s.accept_ra=2",pFixedInterface->Wan.Name);
-                        system(command);
+                        ret = v_secure_system("sysctl -w net.ipv6.conf.%s.accept_ra=2",pFixedInterface->Wan.Name);
+                        if(ret != 0) {
+                            CcspTraceWarning(("%s : Failure in executing command via v_secure_system. ret:[%d] \n",__FUNCTION__, ret));
+                        }
                         //system("sysctl -w net.ipv6.conf.eth3.accept_ra=2");
-                        system("killall udhcpc");
-                        memset(command, 0, sizeof(command));
-                        snprintf(command,sizeof(command), "udhcpc -i %s &", pFixedInterface->Wan.Name);
-                        system(command);
+                        v_secure_system("killall udhcpc");
+                        ret = v_secure_system("udhcpc -i %s &", pFixedInterface->Wan.Name);
+                        if(ret != 0) {
+                            CcspTraceWarning(("%s : Failure in executing command via v_secure_system. ret:[%d] \n",__FUNCTION__, ret));
+                        }
                         CcspTraceInfo(("%s %d - udhcpc start inf %s \n", __FUNCTION__, __LINE__,pFixedInterface->Wan.Name));
                     } // (eRouterMode == ERT_MODE_IPV4 || eRouterMode == ERT_MODE_DUAL)
 
@@ -706,22 +704,22 @@ static INT StartWanClients(WanMgr_AutoWan_SMInfo_t *pSmInfo)
                     if (WanMgr_GetWanInterfaceType(pSmInfo->previousActiveInterfaceIndex) != WAN_IFACE_TYPE_SECONDARY)
                     {
                         wanmgr_setwanstop();
-                        system("killall udhcpc");
+                        v_secure_system("killall udhcpc");
 #if defined(INTEL_PUMA7)
                         if(0 == strncmp(udhcpcEnable, "yes", sizeof(udhcpcEnable)))
                         {
-                            system("killall udhcpc");
+                            v_secure_system("killall udhcpc");
                         }
                         if(0 == strncmp(dibblerClientEnable, "yes", sizeof(dibblerClientEnable)))
                         {
-                            system("killall dibbler-client");
+                            v_secure_system("killall dibbler-client");
                         }
 
-                        system("killall ti_udhcpc");
-                        system("killall ti_dhcpv6c");
+                        v_secure_system("killall ti_udhcpc");
+                        v_secure_system("killall ti_dhcpv6c");
 #else
-                        system("killall udhcpc");
-                        system("killall dibbler-client");
+                        v_secure_system("killall udhcpc");
+                        v_secure_system("killall dibbler-client");
 #endif
                     }
 
@@ -731,33 +729,37 @@ static INT StartWanClients(WanMgr_AutoWan_SMInfo_t *pSmInfo)
                 }
                 else
                 {
-                    system("killall udhcpc");
-                    memset(command,0,sizeof(command));
-                    snprintf(command,sizeof(command),"sysctl -w net.ipv6.conf.%s.accept_ra=2",pFixedInterface->Wan.Name);
-                    system(command);
+                    v_secure_system("killall udhcpc");
+                    ret = v_secure_system("sysctl -w net.ipv6.conf.%s.accept_ra=2",pFixedInterface->Wan.Name);
+                    if(ret != 0) {
+                        CcspTraceWarning(("%s : Failure in executing command via v_secure_system. ret:[%d] \n",__FUNCTION__, ret));
+                    }
 #if defined(INTEL_PUMA7)
                     if(0 == strncmp(udhcpcEnable, "yes", sizeof(udhcpcEnable)))
                     {
-                        system("killall udhcpc");
-                        memset(command, 0, sizeof(command));
-                        snprintf(command,sizeof(command), "/sbin/udhcpc -i %s -p /tmp/udhcpc.erouter0.pid -s /etc/udhcpc.script &",pFixedInterface->Wan.Name);
-                        system(command);
+                        v_secure_system("killall udhcpc");
+                        ret = v_secure_system("/sbin/udhcpc -i %s -p /tmp/udhcpc.erouter0.pid -s /etc/udhcpc.script &",pFixedInterface->Wan.Name);
+                        if(ret != 0) {
+                            CcspTraceWarning(("%s : Failure in executing command via v_secure_system. ret:[%d] \n",__FUNCTION__, ret));
+                        }
                     }
                     else
                     {
-                        system("killall ti_udhcpc");
-                        memset(command, 0, sizeof(command));
-                        snprintf(command,sizeof(command), "ti_udhcpc -plugin /lib/libert_dhcpv4_plugin.so -i %s -H DocsisGateway -p /var/run/eRT_ti_udhcpc.pid -B -b 4 &",
+                        v_secure_system("killall ti_udhcpc");
+                        ret = v_secure_system("ti_udhcpc -plugin /lib/libert_dhcpv4_plugin.so -i %s -H DocsisGateway -p /var/run/eRT_ti_udhcpc.pid -B -b 4 &",
                                 pFixedInterface->Wan.Name);
-                        system(command);
+                        if(ret != 0) {
+                            CcspTraceWarning(("%s : Failure in executing command via v_secure_system. ret:[%d] \n",__FUNCTION__, ret));
+                        }
                     }
 #else
 
                     CcspTraceInfo(("%s - mode= %s wanPhyName= %s\n",__FUNCTION__,WanModeStr(WAN_MODE_PRIMARY),wanPhyName));
 
-                    memset(command,0,sizeof(command));
-                    snprintf(command,sizeof(command),"udhcpc -i %s &",pFixedInterface->Wan.Name);
-                    system(command);    
+                    ret = v_secure_system("udhcpc -i %s &",pFixedInterface->Wan.Name);  
+                    if(ret != 0) {
+                        CcspTraceWarning(("%s : Failure in executing command via v_secure_system. ret:[%d] \n",__FUNCTION__, ret));
+                    }
                     CcspTraceInfo(("%s %d - udhcpc start inf %s \n", __FUNCTION__, __LINE__,pFixedInterface->Wan.Name));
 #endif
                 }
@@ -958,8 +960,8 @@ static WcFmobPolicyState_t Transition_WanInterfaceTearDown(WanMgr_Policy_Control
     Update_Interface_Status();
 
     wanmgr_setwanstop();
-    system("killall dibbler-client");
-    system("killall udhcpc");
+    v_secure_system("killall dibbler-client");
+    v_secure_system("killall udhcpc");
     CcspTraceInfo(("%s %d - State changed to STATE_WAN_INTERFACE_TEARDOWN \n", __FUNCTION__, __LINE__));
     return retState;
 }

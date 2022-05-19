@@ -27,4 +27,4 @@ netmonitor_CPPFLAGS = -I$(top_srcdir)/source/TR-181/middle_layer_src \
 
 netmonitor_CFLAGS = -D_ANSC_LINUX -D_ANSC_USER -D_ANSC_LITTLE_ENDIAN_ -DFEATURE_SUPPORT_RDKLOG $(DBUS_CFLAGS) $(SYSTEMD_CFLAGS)
 netmonitor_SOURCES = network_route_monitor.c
-netmonitor_LDADD = -lccsp_common -lrdkloggers $(DBUS_LIBS) $(SYSTEMD_LDFLAGS) -lhal_platform -lapi_dhcpv4c -lwebconfig_framework -lmsgpackc -lbreakpadwrapper -lnanomsg -lsyscfg -lsysevent -lpthread
+netmonitor_LDADD = -lccsp_common -lrdkloggers $(DBUS_LIBS) $(SYSTEMD_LDFLAGS) -lhal_platform -lapi_dhcpv4c -lwebconfig_framework -lmsgpackc -lbreakpadwrapper -lnanomsg -lsyscfg -lsysevent -lpthread -lsecure_wrapper

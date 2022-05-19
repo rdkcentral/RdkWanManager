@@ -335,6 +335,6 @@ WanMgr_DmlStartDHCP6Client
 ANSC_STATUS wanmgr_handle_dchpv6_event_data(DML_WAN_IFACE* pIfaceData);
 void* IPV6CPStateChangeHandler (void *arg);
 
-void _get_shell_output(char * cmd, char * out, int len);
+void _get_shell_output(FILE *fp, char * out, int len);
 
 #endif //_WANMGR_DHCPV6_APIS_H_

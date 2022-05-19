@@ -6,6 +6,7 @@
 #include "ansc_platform.h"
 #include "ansc_string_util.h"
 #include <sysevent/sysevent.h>
+#include "secure_wrapper.h"
 /* ---- Global Variables ------------------------------------ */
 int sysevent_fd = -1;
 token_t sysevent_token;
@@ -45,15 +46,13 @@ static ANSC_STATUS isDefaultGatewaypresent(struct nlmsghdr* nlmsgHdr); // check 
 #if defined(FEATURE_MAPT) && defined(NAT46_KERNEL_SUPPORT)
 static int get_v6_default_gw_wan(char *defGateway, size_t length)
 {
-    int ret = ANSC_STATUS_SUCCESS;
-    char command[BUFLEN_128] = {0};
+    int ret = ANSC_STATUS_SUCCESS,pclose_ret = 0;
     char line[BUFLEN_1024] = {0};
     struct in6_addr in6Addr;
     FILE *fp;
 
-    snprintf(command, sizeof(command), "ip -6 route show default | grep default | awk '{print $3}'");
 
-    fp = popen(command, "r");
+    fp = v_secure_popen("r","ip -6 route show default | grep default | awk '{print $3}'");
 
     if (fp)
     {
@@ -82,7 +81,11 @@ static int get_v6_default_gw_wan(char *defGateway, size_t length)
             DBG_MONITOR_PRINT("Could not read ipv6 gw addr \n");
             ret = ANSC_STATUS_FAILURE;
         }
-        pclose(fp);
+        pclose_ret = v_secure_pclose(fp);
+	if(pclose_ret !=0)
+	{
+	    DBG_MONITOR_PRINT("Failed in closing the pipe ret %d \n",pclose_ret);
+	}
     }
     else
     {
@@ -97,11 +100,10 @@ static int WanManager_MaptRouteSetting()
 {
     DBG_MONITOR_PRINT("%s Enter \n", __FUNCTION__);
 
-    char cmd[BUFLEN_128] = {0};
     char brIPv6Prefix[BUFLEN_256] = {0};
     char vlanIf[BUFLEN_64] = {0};
     char defaultGatewayV6[BUFLEN_128] = {0};
-
+    int ret =0;
     sysevent_get(sysevent_fd, sysevent_token, MAP_WAN_IFACE, vlanIf, sizeof(vlanIf));
     if (!strcmp(vlanIf, "\0"))
     {
@@ -121,13 +123,14 @@ static int WanManager_MaptRouteSetting()
         return ANSC_STATUS_FAILURE;
     }
 
-    snprintf(cmd, sizeof(cmd), "ip -6 route change default via %s dev %s mtu %d", defaultGatewayV6, vlanIf, MTU_DEFAULT_SIZE);
-    system(cmd);
-
-    memset(cmd, 0, sizeof(cmd));
-
-    snprintf(cmd, sizeof(cmd), "ip -6 route replace %s via %s dev %s mtu %d", brIPv6Prefix, defaultGatewayV6, vlanIf, MAPT_MTU_SIZE);
-    system(cmd);
+    ret = v_secure_system("ip -6 route change default via %s dev %s mtu %d", defaultGatewayV6, vlanIf, MTU_DEFAULT_SIZE);
+    if(ret != 0) {
+         DBG_MONITOR_PRINT("%s %d: Failure in executing command via v_secure_system. ret:[%d] \n", __FUNCTION__,__LINE__,ret);
+    }
+    ret = v_secure_system("ip -6 route replace %s via %s dev %s mtu %d", brIPv6Prefix, defaultGatewayV6, vlanIf, MAPT_MTU_SIZE);
+    if(ret != 0) {
+          DBG_MONITOR_PRINT("%s %d: Failure in executing command via v_secure_system. ret:[%d] \n",__FUNCTION__,__LINE__,ret);
+    }
 }
 #endif // FEATURE_MAPT && NAT46_KERNEL_SUPPORT
 
