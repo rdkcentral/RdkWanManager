@@ -2559,8 +2559,10 @@ static eWanState_t wan_state_mapt_active(WanMgr_IfaceSM_Controller_t* pWanIfaceC
     else if (pInterface->Wan.EnableMAPT == FALSE ||
             pInterface->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_DOWN ||
             pInterface->MAP.MaptStatus == WAN_IFACE_MAPT_STATE_DOWN ||
+            pInterface->Wan.LinkStatus ==  WAN_IFACE_LINKSTATUS_DOWN ||
             pInterface->Wan.Refresh == TRUE )
     {
+        CcspTraceInfo(("%s %d - LinkStatus=[%d] \n", __FUNCTION__, __LINE__, pInterface->Wan.LinkStatus));
         return wan_transition_mapt_down(pWanIfaceCtrl);
     }
     else if (mapt_feature_enable_changed == TRUE)
