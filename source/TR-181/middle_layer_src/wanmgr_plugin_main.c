@@ -69,6 +69,8 @@ extern ANSC_HANDLE      g_MessageBusHandle_Irep;
 extern char             g_SubSysPrefix_Irep[32];
 extern COSARepopulateTableProc            g_COSARepopulateTable;
 
+WANMGR_BACKEND_OBJ* g_pWanMgrBE;
+
 #define THIS_PLUGIN_VERSION  1
 
 
