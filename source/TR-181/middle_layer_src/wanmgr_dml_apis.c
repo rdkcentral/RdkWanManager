@@ -155,7 +155,7 @@ BOOL WanManager_SetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, ch
     BOOL ret = FALSE;
     WanMgr_Config_Data_t*   pWanConfigData = WanMgr_GetConfigData_locked();
 
-    if(pWanConfigData =! NULL)
+    if(pWanConfigData != NULL)
     {
         DML_WANMGR_CONFIG* pWanDmlData = &(pWanConfigData->data);
 
