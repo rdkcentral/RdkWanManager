@@ -147,15 +147,20 @@ static int WanMgr_SetActiveLink (WanMgr_Policy_Controller_t * pWanController, bo
 static BOOL WanMgr_SetSelectionStatus (UINT IfaceInst, UINT SelStatus, BOOL State, BOOL flag)
 {
     BOOL ret = FALSE;
+
     WanMgr_Iface_Data_t* pWanIfaceData = WanMgr_GetIfaceData_locked((IfaceInst - 1));
     if (pWanIfaceData != NULL)
     {
         DML_WAN_IFACE* pWanIface = &(pWanIfaceData->data);
-        if ((flag == TRUE) || (State == FALSE && pWanIface->Wan.Status != WAN_IFACE_STATUS_UP))
+        if ((flag == TRUE) || (State == FALSE && pWanIface->Wan.Status != WAN_IFACE_STATUS_UP) ||
+            (State == TRUE && pWanIface->Wan.Status == WAN_IFACE_STATUS_STANDBY))
         {
-            if (pWanIface->SelectionStatus > WAN_IFACE_NOT_SELECTED)
+            if (SelStatus)
             {
-                pWanIface->SelectionStatus = SelStatus;
+                if (pWanIface->SelectionStatus > WAN_IFACE_NOT_SELECTED)
+                {
+                    pWanIface->SelectionStatus = SelStatus;
+                }
             }
             ret = TRUE;
         }
@@ -1442,41 +1447,43 @@ static FailOverState_t State_FailOver_ActiveUp_StandbyDown(UINT Active, BOOL Act
             }
         }
     }
-
+    if(ActiveStatus && !StandbyStatus)
+    {
+        if (WanMgr_SetSelectionStatus (Active, WAN_IFACE_SELECTED, FALSE, FALSE))
+        {
+            CcspTraceInfo(("%s-%d : Change state to STATE_FAILOVER_ACTIVE_DOWN_STANDBY_DOWN\n", __FUNCTION__, __LINE__));
+            return STATE_FAILOVER_ACTIVE_DOWN_STANDBY_DOWN;
+        }
+    }
     return STATE_FAILOVER_ACTIVE_UP_STANDBY_DOWN;
+}
+
+static BOOL wanMgr_RestorationDelay(UINT Inst)
+{
+    BOOL ret = FALSE;
+    if(RestorationDelayStart.tv_sec > 0)
+    {
+        clock_gettime( CLOCK_MONOTONIC_RAW, &(RestorationDelayEnd));
+        if(difftime(RestorationDelayEnd.tv_sec, RestorationDelayStart.tv_sec ) > 0)
+        {
+            memset(&(RestorationDelayStart), 0, sizeof(struct timespec));
+            CcspTraceInfo(("%s %d: Restoration Timer expired for Iface Inst:%d\n",__FUNCTION__, __LINE__, Inst));
+            ret = TRUE;
+        }
+    }
+    return ret;
 }
 
 static FailOverState_t State_FailOver_ActiveDown_StandbyUp(UINT Active, BOOL ActiveStatus, UINT Standby, BOOL StandbyStatus)
 {
-    BOOL SwitchOver = 0;
+    static BOOL SwitchOver = FALSE;
     static BOOL DoOnce = FALSE;
 
-    if(ActiveStatus)
-    {
-        if(RestorationDelayStart.tv_sec > 0)
-        {
-           clock_gettime( CLOCK_MONOTONIC_RAW, &(RestorationDelayEnd));
-           if(difftime(RestorationDelayEnd.tv_sec, RestorationDelayStart.tv_sec ) > 0)
-           {
-               SwitchOver = 1;
-               memset(&(RestorationDelayStart), 0, sizeof(struct timespec));
-               CcspTraceInfo(("%s %d: Restoration Timer expired for Iface index:%d So Switch From Standby(%d) to Active Iface(%d).\n",
-                               __FUNCTION__, __LINE__, Standby, Standby, Active));
-           }
-	   else
-	   {
-               return STATE_FAILOVER_ACTIVE_DOWN_STANDBY_UP;
-	   }
-        }
-    }
-    else
-    {
-        memset(&(RestorationDelayStart), 0, sizeof(struct timespec));
-    }
     if (ActiveStatus && StandbyStatus)
     {
         if (!SwitchOver)
         {
+            SwitchOver = TRUE;
             memset(&(RestorationDelayStart), 0, sizeof(struct timespec));
             clock_gettime(CLOCK_MONOTONIC_RAW, &(RestorationDelayStart));
             RestorationDelayStart.tv_sec += RestorationDelayTimeOut;
@@ -1487,19 +1494,29 @@ static FailOverState_t State_FailOver_ActiveDown_StandbyUp(UINT Active, BOOL Act
             //set ActiveLink false for standby Inst
             if (!DoOnce)
             {
-                if (WanMgr_SetSelectionStatus (Standby, WAN_IFACE_SELECTED, FALSE, TRUE))
+                if (wanMgr_RestorationDelay(Active))
                 {
-                    DoOnce = TRUE;
+                    SwitchOver = FALSE;
+                    if (WanMgr_SetSelectionStatus (Active, WAN_IFACE_UNKNOWN, TRUE, FALSE))
+                    {
+                        if (WanMgr_SetSelectionStatus (Standby, WAN_IFACE_SELECTED, FALSE, TRUE))
+                        {
+                            DoOnce = TRUE;
+                        }
+                    }
                 }
             }
-            //set ActiveLink true for Active Inst
-            if (WanMgr_SetSelectionStatus (Standby, WAN_IFACE_SELECTED, FALSE, FALSE))
+            else
             {
-                if (WanMgr_SetSelectionStatus (Active, WAN_IFACE_ACTIVE, TRUE, TRUE))
+                if (WanMgr_SetSelectionStatus (Standby, WAN_IFACE_SELECTED, FALSE, FALSE))
                 {
-                    DoOnce = FALSE;
-                    CcspTraceInfo(("%s-%d : Change state to STATE_FAILOVER_ACTIVE_UP_STANDBY_UP\n", __FUNCTION__, __LINE__));
-                    return STATE_FAILOVER_ACTIVE_UP_STANDBY_UP;
+                    if (WanMgr_SetSelectionStatus (Active, WAN_IFACE_ACTIVE, TRUE, TRUE))
+                    {
+                        DoOnce = FALSE;
+                        SwitchOver = FALSE;
+                        CcspTraceInfo(("%s-%d : Change state to STATE_FAILOVER_ACTIVE_UP_STANDBY_UP\n", __FUNCTION__, __LINE__));
+                        return STATE_FAILOVER_ACTIVE_UP_STANDBY_UP;
+                    }
                 }
             }
         }
@@ -1508,6 +1525,7 @@ static FailOverState_t State_FailOver_ActiveDown_StandbyUp(UINT Active, BOOL Act
     {
         if (!SwitchOver)
         {
+            SwitchOver = TRUE;
             memset(&(RestorationDelayStart), 0, sizeof(struct timespec));
             clock_gettime(CLOCK_MONOTONIC_RAW, &(RestorationDelayStart));
             RestorationDelayStart.tv_sec += RestorationDelayTimeOut;
@@ -1518,19 +1536,29 @@ static FailOverState_t State_FailOver_ActiveDown_StandbyUp(UINT Active, BOOL Act
             //set ActiveLink false for Standby Inst
             if (!DoOnce)
             {
-                if (WanMgr_SetSelectionStatus (Standby, WAN_IFACE_SELECTED, FALSE, TRUE))
+                if (wanMgr_RestorationDelay(Active))
                 {
-                    DoOnce = TRUE;
+                    SwitchOver = FALSE;
+                    if (WanMgr_SetSelectionStatus (Active, WAN_IFACE_UNKNOWN, TRUE, FALSE))
+                    {
+                        if (WanMgr_SetSelectionStatus (Standby, WAN_IFACE_SELECTED, FALSE, TRUE))
+                        {
+                            DoOnce = TRUE;
+                        }
+                    }
                 }
             }
-            //set ActiveLink true for Active Inst
-            if (WanMgr_SetSelectionStatus (Standby, WAN_IFACE_SELECTED, FALSE, FALSE))
-            {
-                if (WanMgr_SetSelectionStatus (Active, WAN_IFACE_ACTIVE, TRUE, TRUE))
+            else
+	    {
+                if (WanMgr_SetSelectionStatus (Standby, WAN_IFACE_SELECTED, FALSE, FALSE))
                 {
-                    DoOnce = FALSE;
-                    CcspTraceInfo(("%s-%d : Change state to STATE_FAILOVER_ACTIVE_UP_STANDBY_DOWN\n", __FUNCTION__, __LINE__));
-                    return STATE_FAILOVER_ACTIVE_UP_STANDBY_DOWN;
+                    if (WanMgr_SetSelectionStatus (Active, WAN_IFACE_ACTIVE, TRUE, TRUE))
+                    {
+                        DoOnce = FALSE;
+                        SwitchOver = FALSE;
+                        CcspTraceInfo(("%s-%d : Change state to STATE_FAILOVER_ACTIVE_UP_STANDBY_DOWN\n", __FUNCTION__, __LINE__));
+                        return STATE_FAILOVER_ACTIVE_UP_STANDBY_DOWN;
+                    }
                 }
             }
         }
@@ -1544,6 +1572,15 @@ static FailOverState_t State_FailOver_ActiveDown_StandbyUp(UINT Active, BOOL Act
             return STATE_FAILOVER_ACTIVE_DOWN_STANDBY_DOWN;
         }
     }
+    if(!ActiveStatus && StandbyStatus)
+    {
+        if (WanMgr_SetSelectionStatus (Standby, WAN_IFACE_SELECTED, FALSE, FALSE))
+        {
+            CcspTraceInfo(("%s-%d : Change state to STATE_FAILOVER_ACTIVE_DOWN_STANDBY_DOWN\n", __FUNCTION__, __LINE__));
+            return STATE_FAILOVER_ACTIVE_DOWN_STANDBY_DOWN;
+        }
+    }
+
     return STATE_FAILOVER_ACTIVE_DOWN_STANDBY_UP;
 }
 
@@ -1564,19 +1601,20 @@ static FailOverState_t State_FailOver_ActiveUp_StandbyUp(UINT Active, BOOL Activ
         CcspTraceInfo(("%s-%d : Change state to STATE_FAILOVER_ACTIVE_UP_STANDBY_DOWN\n", __FUNCTION__, __LINE__));
         return STATE_FAILOVER_ACTIVE_UP_STANDBY_DOWN;
     }
-    else if(!ActiveStatus && StandbyStatus)
+    else if(StandbyStatus)
     {
         //set ActiveLink false for Active Inst
         if (WanMgr_SetSelectionStatus (Active, WAN_IFACE_SELECTED, FALSE, FALSE))
         {
             //set ActiveLink true for Standby Inst
-            if (WanMgr_SetSelectionStatus (Standby, WAN_IFACE_ACTIVE, TRUE, TRUE) != ANSC_STATUS_SUCCESS)
+            if (WanMgr_SetSelectionStatus (Standby, WAN_IFACE_ACTIVE, TRUE, TRUE))
             {
                 CcspTraceInfo(("%s-%d : Change state to STATE_FAILOVER_ACTIVE_DOWN_STANDBY_UP\n", __FUNCTION__, __LINE__));
                 return STATE_FAILOVER_ACTIVE_DOWN_STANDBY_UP;
             }
         }
     }
+
     return STATE_FAILOVER_ACTIVE_UP_STANDBY_UP;
 }
 

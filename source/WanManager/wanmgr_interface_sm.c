@@ -308,7 +308,6 @@ void WanManager_UpdateInterfaceStatus(DML_WAN_IFACE* pIfaceData, wanmgr_iface_st
             pIfaceData->IP.Ipv4Renewed = FALSE;
 #endif
             strncpy(pIfaceData->IP.Ipv4Data.ip, "", sizeof(pIfaceData->IP.Ipv4Data.ip));
-            wanmgr_sysevents_ipv4Info_init(pIfaceData->Wan.Name); // reset the sysvent/syscfg fields
             break;
         }
         case WANMGR_IFACE_CONNECTION_IPV6_UP:
@@ -1491,8 +1490,10 @@ static eWanState_t wan_transition_ipv4_down(WanMgr_IfaceSM_Controller_t* pWanIfa
             }
         }
 #endif
-        wanmgr_sysevents_setWanState(WAN_IPV4_DOWN);
 
+    wanmgr_sysevents_ipv4Info_init(pInterface->Wan.Name); // reset the sysvent/syscfg fields
+
+    wanmgr_sysevents_setWanState(WAN_IPV4_DOWN);
     Update_Iface_Status();
     Update_Current_Iface_Status();
     sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_IPV6_CONNECTION_STATE, buf, sizeof(buf));
