@@ -712,19 +712,19 @@ void WanMgr_Rbus_SubscribeDML(void)
 {
     rbusError_t ret = RBUS_ERROR_SUCCESS;
 
-    ret = rbusEvent_Subscribe(rbusHandle, WANMGR_DEVICE_NETWORKING_MODE, WanMgr_Rbus_EventReceiveHandler, NULL, 0);
+    ret = rbusEvent_Subscribe(rbusHandle, WANMGR_DEVICE_NETWORKING_MODE, WanMgr_Rbus_EventReceiveHandler, NULL, 60);
     if(ret != RBUS_ERROR_SUCCESS)
     {
         CcspTraceError(("%s %d - Failed to Subscribe %s, Error=%s \n", __FUNCTION__, __LINE__, rbusError_ToString(ret), WANMGR_DEVICE_NETWORKING_MODE));
     }
 
-    ret = rbusEvent_Subscribe(rbusHandle, X_RDK_REMOTE_DEVICECHANGE, WanMgr_Rbus_EventReceiveHandler, NULL, 0);
+    ret = rbusEvent_Subscribe(rbusHandle, X_RDK_REMOTE_DEVICECHANGE, WanMgr_Rbus_EventReceiveHandler, NULL, 60);
     if(ret != RBUS_ERROR_SUCCESS)
     {
         CcspTraceError(("%s %d - Failed to Subscribe %s, Error=%s \n", __FUNCTION__, __LINE__, rbusError_ToString(ret), X_RDK_REMOTE_DEVICECHANGE));
     }
 
-    ret = rbusEvent_Subscribe(rbusHandle, X_RDK_REMOTE_INVOKE, WanMgr_Rbus_EventReceiveHandler, NULL, 0);
+    ret = rbusEvent_Subscribe(rbusHandle, X_RDK_REMOTE_INVOKE, WanMgr_Rbus_EventReceiveHandler, NULL, 60);
     if(ret != RBUS_ERROR_SUCCESS)
     {
         CcspTraceError(("%s %d - Failed to Subscribe %s, Error=%s \n", __FUNCTION__, __LINE__, rbusError_ToString(ret), X_RDK_REMOTE_INVOKE));
