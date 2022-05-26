@@ -2875,7 +2875,6 @@ void WanMgr_IfaceSM_Init(WanMgr_IfaceSM_Controller_t* pWanIfaceSMCtrl, INT iface
 #ifdef FEATURE_IPOE_HEALTH_CHECK
         WanMgr_IfaceSM_IHC_Init(pWanIfaceSMCtrl);
 #endif
-        pWanIfaceSMCtrl->pIfaceData = NULL;
-        pWanIfaceSMCtrl->DeviceMode = WanMgr_GetDeviceMode();
+        pWanIfaceSMCtrl->pIfaceData = NULL;        
     }
 }

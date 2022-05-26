@@ -169,20 +169,6 @@ WanMgr_Iface_Data_t* WanMgr_GetIfaceDataByName_locked(char* iface_name)
     return NULL;
 }
 
-DML_DEVICE_MODE WanMgr_GetDeviceMode ()
-{
-    DML_DEVICE_MODE DeviceMode;
-
-    WanMgr_Config_Data_t* pWanConfigData = WanMgr_GetConfigData_locked();
-    if(pWanConfigData != NULL)
-    {
-        DML_WANMGR_CONFIG* pWanConfig = &(pWanConfigData->data);
-        DeviceMode = pWanConfig->DeviceMode;
-
-        WanMgrDml_GetConfigData_release(pWanConfigData);
-    }
-    return DeviceMode;
-}
 
 void WanMgrDml_GetIfaceData_release(WanMgr_Iface_Data_t* pWanIfaceData)
 {
