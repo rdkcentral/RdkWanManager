@@ -296,6 +296,7 @@ void WanMgr_IfaceData_Init(WanMgr_Iface_Data_t* pIfaceData, UINT iface_index)
 
 void WanMgr_Remote_IfaceData_Init(WanMgr_Iface_Data_t* pIfaceData, UINT iface_index)
 {
+    static int remotePriority = 100;
     CcspTraceInfo(("%s %d - Enter \n", __FUNCTION__, __LINE__));
     if(pIfaceData != NULL)
     {
@@ -316,7 +317,7 @@ void WanMgr_Remote_IfaceData_Init(WanMgr_Iface_Data_t* pIfaceData, UINT iface_in
         memset(pWanDmlIface->Wan.Name, 0, 64);
         strcpy(pWanDmlIface->Wan.Name, "brRWAN"); // Remote wan name by default
         pWanDmlIface->Wan.Enable = TRUE; // Remote wan Enable by default
-        pWanDmlIface->Wan.Priority = -99;
+        pWanDmlIface->Wan.Priority = remotePriority;
         pWanDmlIface->Wan.Type = WAN_IFACE_TYPE_UNCONFIGURED;
         pWanDmlIface->Wan.SelectionTimeout = 0;
         pWanDmlIface->Wan.EnableMAPT = FALSE;
@@ -355,6 +356,7 @@ void WanMgr_Remote_IfaceData_Init(WanMgr_Iface_Data_t* pIfaceData, UINT iface_in
         pWanDmlIface->PPP.LCPStatus = WAN_IFACE_LCP_STATUS_DOWN;
         pWanDmlIface->PPP.IPCPStatus = WAN_IFACE_IPCP_STATUS_DOWN;
         pWanDmlIface->PPP.IPV6CPStatus = WAN_IFACE_IPV6CP_STATUS_DOWN;
+        remotePriority++;
     }
 }
 
