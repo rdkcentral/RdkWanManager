@@ -828,7 +828,14 @@ BOOL WanIfCfg_GetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL* 
             }
             if (strcmp(ParamName, "ActiveLink") == 0)
             {
-                *pBool = pWanDmlIface->Wan.ActiveLink;
+                if (pWanDmlIface->SelectionStatus == WAN_IFACE_ACTIVE)
+                {
+                    *pBool = TRUE;
+                }
+                else
+		{
+                    *pBool = FALSE;
+                }
                 ret = TRUE;
             }
             if (strcmp(ParamName, "EnableDSLite") == 0)
@@ -909,11 +916,6 @@ BOOL WanIfCfg_SetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL b
             if (strcmp(ParamName, "Refresh") == 0)
             {
                 pWanDmlIface->Wan.Refresh = bValue;
-                ret = TRUE;
-            }
-            if (strcmp(ParamName, "ActiveLink") == 0)
-            {
-                pWanDmlIface->Wan.ActiveLink = bValue;
                 ret = TRUE;
             }
             if (strcmp(ParamName, "EnableDSLite") == 0)
