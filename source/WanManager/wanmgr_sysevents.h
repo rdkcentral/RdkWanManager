@@ -232,6 +232,12 @@ ANSC_STATUS wanmgr_sysevents_ipv4Info_set(const ipc_dhcpv4_data_t* dhcp4Info, co
 */
 void wanmgr_sysevents_setWanState(const char * LedState);
 
+/*
+ * @brief Utility function used to set to reboot via selfheal.
+ * @return Returns NONE.
+*/
+void wanmgr_sysevent_hw_reconfig_reboot(void);
+
 #ifdef FEATURE_MAPT
 /*
  * @brief Utility function used to check mapt_feature enable status.

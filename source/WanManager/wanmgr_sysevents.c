@@ -893,3 +893,10 @@ ANSC_STATUS WanMgr_SysEvents_Finalise(void)
 
     return retStatus;
 }
+
+void wanmgr_sysevent_hw_reconfig_reboot(void)
+{
+    if (sysevent_fd == -1)      return;
+    CcspTraceInfo(("Setting hw reconfiguration reboot event.\n"));
+    sysevent_set(sysevent_fd, sysevent_token, "wanmanager_reboot_status", "1", 0);
+}

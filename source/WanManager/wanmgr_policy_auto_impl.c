@@ -1179,11 +1179,15 @@ static WcAwPolicyState_t State_RebootingPlatform (WanMgr_Policy_Controller_t * p
         CcspTraceInfo(("%s %d: Iface state machine still running..\n", __FUNCTION__, __LINE__));
         return STATE_AUTO_WAN_REBOOT_PLATFORM;
     }
+
+    wanmgr_sysevent_hw_reconfig_reboot();
+
     CcspTraceInfo(("%s %d: Iface state machine has exited\n", __FUNCTION__, __LINE__));
 
-    CcspTraceInfo(("%s %d: setting upstream for active interface:%d and going for a reboot\n", __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
+    CcspTraceInfo(("%s %d: setting upstream for active interface:%d \n", __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
     WanMgr_SetUpstreamOnlyForSelectedIntf (pWanController);
 
+    CcspTraceInfo(("%s %d: wanmanager triggered reboot. \n", __FUNCTION__, __LINE__));
     system ("reboot");
 
     return STATE_AUTO_WAN_REBOOT_PLATFORM;
