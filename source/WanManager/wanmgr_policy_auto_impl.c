@@ -28,9 +28,9 @@
 #include "wanmgr_rdkbus_apis.h"
 
 /* ---- Global Constants -------------------------- */
-#define SELECTION_PROCESS_LOOP_TIMEOUT 500000 // timeout in milliseconds. This is the state machine loop interval
-#define AUTO_POLICY_LOOP_TIMEOUT 5000000 // timeout in seconds. This is the Auto Policy Thread
-#define FAILOVER_PROCESS_LOOP_TIMEOUT 500000
+#define SELECTION_PROCESS_LOOP_TIMEOUT 50000 // timeout in milliseconds. This is the state machine loop interval
+#define AUTO_POLICY_LOOP_TIMEOUT 1000000 // timeout in seconds. This is the Auto Policy Thread
+#define FAILOVER_PROCESS_LOOP_TIMEOUT 10000
 
 extern WANMGR_DATA_ST gWanMgrDataBase;
 
@@ -1385,7 +1385,7 @@ static FailOverState_t State_FailOver_ActiveDown_StandbyDown(UINT Active, BOOL A
     if (ActiveStatus && StandbyStatus)
     {
         //Set ActiveLink true for Active Inst
-        if (WanMgr_SetSelectionStatus (Active, WAN_IFACE_ACTIVE, TRUE, TRUE))
+        if (WanMgr_SetSelectionStatus (Active, WAN_IFACE_ACTIVE, TRUE, FALSE))
         {
             CcspTraceInfo(("%s-%d : Change state to STATE_FAILOVER_ACTIVE_UP_STANDBY_UP\n", __FUNCTION__, __LINE__));
             return STATE_FAILOVER_ACTIVE_UP_STANDBY_UP;
@@ -1394,7 +1394,7 @@ static FailOverState_t State_FailOver_ActiveDown_StandbyDown(UINT Active, BOOL A
     else if (ActiveStatus && !StandbyStatus)
     {
         //set ActiveLink true for Active Inst
-        if (WanMgr_SetSelectionStatus (Active, WAN_IFACE_ACTIVE, TRUE, TRUE))
+        if (WanMgr_SetSelectionStatus (Active, WAN_IFACE_ACTIVE, TRUE, FALSE))
         {
             CcspTraceInfo(("%s-%d : Change state to STATE_FAILOVER_ACTIVE_UP_STANDBY_DOWN\n", __FUNCTION__, __LINE__));
             return STATE_FAILOVER_ACTIVE_UP_STANDBY_DOWN;
@@ -1403,7 +1403,7 @@ static FailOverState_t State_FailOver_ActiveDown_StandbyDown(UINT Active, BOOL A
     else if(!ActiveStatus && StandbyStatus)
     {
         //Set ActiveLink true for standby Inst
-        if (WanMgr_SetSelectionStatus (Standby, WAN_IFACE_ACTIVE, TRUE, TRUE))
+        if (WanMgr_SetSelectionStatus (Standby, WAN_IFACE_ACTIVE, TRUE, FALSE))
         {
             CcspTraceInfo(("%s-%d : Change state to STATE_FAILOVER_ACTIVE_DOWN_STANDBY_UP\n", __FUNCTION__, __LINE__));
             return STATE_FAILOVER_ACTIVE_DOWN_STANDBY_UP;
