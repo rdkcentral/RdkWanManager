@@ -37,8 +37,6 @@ char componentName[32] = "WANMANAGER";
 unsigned int gSubscribersCount = 0;
 UINT  uiTotalIfaces = 0;
 
-pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-
 rbusError_t WanMgr_Rbus_SubscribeHandler(rbusHandle_t handle, rbusEventSubAction_t action, const char *eventName, rbusFilter_t filter, int32_t interval, bool *autoPublish);
 rbusError_t WanMgr_Rbus_getHandler(rbusHandle_t handle, rbusProperty_t property, rbusGetHandlerOptions_t *opts);
 ANSC_STATUS WanMgr_Rbus_EventPublishHandler(char *dm_event, void *dm_value, rbusValueType_t valueType);

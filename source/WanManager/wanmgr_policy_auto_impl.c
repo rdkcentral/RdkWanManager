@@ -281,7 +281,7 @@ static void WanMgr_Policy_Auto_GetHighPriorityIface(WanMgr_Policy_Controller_t *
         pWanController->activeInterfaceIdx = iSelInterface;
         CcspTraceInfo(("%s %d: Current Selected iface index =%d \n", __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
     }
-    
+
     return;
 }
 
@@ -759,7 +759,7 @@ static WcAwPolicyState_t Transition_InterfaceInvalid (WanMgr_Policy_Controller_t
 
     // set ActiveLink = FALSE and save it to PSM
     CcspTraceInfo(("%s %d: setting Interface index:%d, ActiveLink = False and saving it in PSM \n", __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
-    
+
     if (WanMgr_SetActiveLink (pWanController, FALSE) != ANSC_STATUS_SUCCESS)
     {
         CcspTraceError(("%s %d: Failed to set ActiveLink in PSM, SelectedInterface %d \n",
@@ -915,12 +915,12 @@ static WcAwPolicyState_t Transition_RestartSelectionInterface (WanMgr_Policy_Con
 
     // reset ActiveLink to false for all interfaces and save it in PSM
     if (WanMgr_ResetActiveLinkOnAllIface(pWanController) != ANSC_STATUS_SUCCESS)
-    {   
+    {
         CcspTraceError(("%s %d: Unable to reset ActiveLink in all interfaces\n", __FUNCTION__, __LINE__));
         return STATE_AUTO_WAN_ERROR;
     }
     if (WanMgr_ResetGroupSelectedIface(pWanController) != ANSC_STATUS_SUCCESS)
-    {   
+    {
         CcspTraceError(("%s %d: Unable to reset GroupSelectedInterface \n", __FUNCTION__, __LINE__));
         return STATE_AUTO_WAN_ERROR;
     }
@@ -1342,7 +1342,7 @@ static WcAwPolicyState_t State_WanInterfaceDown (WanMgr_Policy_Controller_t * pW
         }
         return Transistion_WanInterfaceUp (pWanController);
     }
-    
+
     return STATE_AUTO_WAN_INTERFACE_DOWN;
 }
 
@@ -1546,7 +1546,7 @@ static FailOverState_t State_FailOver_ActiveDown_StandbyUp(UINT Active, BOOL Act
                 }
             }
             else
-	    {
+            {
                 if (WanMgr_SetSelectionStatus (Standby, WAN_IFACE_SELECTED, FALSE, FALSE))
                 {
                     if (WanMgr_SetSelectionStatus (Active, WAN_IFACE_ACTIVE, TRUE, TRUE))
@@ -1865,7 +1865,7 @@ static void WanMgr_SelectionProcess (void* arg)
         WanMgrDml_GetIfaceGroup_release();
     }
     CcspTraceInfo(("%s %d - Exit from SelectionProcess Group(%d) state machine\n", __FUNCTION__, __LINE__, WanController.GroupInst));
-    
+
     if(NULL != pWanGroupIfaceList)
     {
         free(pWanGroupIfaceList);
@@ -1879,23 +1879,19 @@ static BOOL WanMgr_IfaceGroupMonitor(void)
     UINT GroupIfaceList[MAX_INTERFACE_GROUP] = {0};
     BOOL ret = FALSE;
 
-    if(pthread_mutex_lock(&(gWanMgrDataBase.IfaceCtrl.mDataMutex)) == 0)
+    WanMgr_Config_Data_t*   pWanConfigData = WanMgr_GetConfigData_locked();
+    if(pWanConfigData != NULL)
     {
         WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl = &(gWanMgrDataBase.IfaceCtrl);
         for (int i = 0 ; i < pWanIfaceCtrl->ulTotalNumbWanInterfaces; i++)
         {
             WanMgr_Iface_Data_t*  pIfaceData  = &(pWanIfaceCtrl->pIface[i]);
-	    DML_WAN_IFACE* pWanDmlIface = &(pIfaceData->data);
+            DML_WAN_IFACE* pWanDmlIface = &(pIfaceData->data);
             if (pWanDmlIface->Wan.Group && pWanDmlIface->Wan.Group <= MAX_INTERFACE_GROUP)
             {
                 GroupIfaceList[(pWanDmlIface->Wan.Group - 1)] |= (1<<i);
             }
         }
-        WanMgrDml_GetIfaceData_release(NULL);
-    }
-
-    if(pthread_mutex_lock(&(gWanMgrDataBase.IfaceGroup.mGroupMutex)) == 0)
-    {
         WanMgr_IfaceGroup_t* pWanIfaceGroup = &(gWanMgrDataBase.IfaceGroup);
         for (int j = 0; j < MAX_INTERFACE_GROUP; j++)
         {
@@ -1906,7 +1902,7 @@ static BOOL WanMgr_IfaceGroupMonitor(void)
                 ret = TRUE;
             }
         }
-        WanMgrDml_GetIfaceGroup_release();
+        WanMgrDml_GetConfigData_release(pWanConfigData);
     }
     return ret;
 }
@@ -1915,7 +1911,8 @@ static BOOL WanMgr_UpdateIfaceGroupChange(void)
 {
     INT iErrorCode = -1;
 
-    if(pthread_mutex_lock(&(gWanMgrDataBase.IfaceGroup.mGroupMutex)) == 0)
+    WanMgr_Config_Data_t*   pWanConfigData = WanMgr_GetConfigData_locked();
+    if(pWanConfigData != NULL)
     {
         WanMgr_IfaceGroup_t* pWanIfaceGroup = &(gWanMgrDataBase.IfaceGroup);
         for (int j = 0; j < MAX_INTERFACE_GROUP; j++)
@@ -1923,10 +1920,10 @@ static BOOL WanMgr_UpdateIfaceGroupChange(void)
             if (pWanIfaceGroup->Group[j].GroupIfaceListChanged)
             {
                 if (pWanIfaceGroup->Group[j].GroupState != STATE_GROUP_RUNNING)
-		{
+                {
                     UINT* GroupIfaceList = (UINT*)malloc( sizeof( UINT ) );
 
-		    *GroupIfaceList = pWanIfaceGroup->Group[j].Interfaces;
+                    *GroupIfaceList = pWanIfaceGroup->Group[j].Interfaces;
                     if( NULL == GroupIfaceList )
                     {
                         CcspTraceError(("%s-%d : Failed to allocate memory\n", __FUNCTION__, __LINE__));
@@ -1939,12 +1936,12 @@ static BOOL WanMgr_UpdateIfaceGroupChange(void)
                         CcspTraceError(("%s %d - Failed to Create Group(%d) Thread\n", __FUNCTION__, __LINE__, (j+1)));
                         continue;
                     }
-		    CcspTraceInfo(("%s %d - Successfully Created Group(%d) Thread Id : %d \n", __FUNCTION__, __LINE__, (j+1), pWanIfaceGroup->Group[j].ThreadId));
+                    CcspTraceInfo(("%s %d - Successfully Created Group(%d) Thread Id : %d \n", __FUNCTION__, __LINE__, (j+1), pWanIfaceGroup->Group[j].ThreadId));
                     pWanIfaceGroup->Group[j].GroupState == STATE_GROUP_RUNNING;
-		}
+                }
             }
         }
-        WanMgrDml_GetIfaceGroup_release();
+        WanMgrDml_GetConfigData_release(pWanConfigData);
     }
     return(TRUE);
 }

@@ -34,7 +34,6 @@
 typedef struct _WANMGR_CONFIG_DATA_
 {
     DML_WANMGR_CONFIG       data;
-    pthread_mutex_t         mDataMutex;
 } WanMgr_Config_Data_t;
 
 
@@ -49,7 +48,6 @@ typedef struct _WANMGR_IFACECTRL_DATA_
 {
     UINT                        ulTotalNumbWanInterfaces;
     WanMgr_Iface_Data_t*        pIface;
-    pthread_mutex_t             mDataMutex;
     UINT                        update;
 }WanMgr_IfaceCtrl_Data_t;
 
@@ -67,11 +65,13 @@ typedef struct _WANMGR_IFACE_GROUP_
 {
     UINT                      ulTotalNumbWanIfaceGroup;
     WANMGR_IFACE_GROUP        Group[MAX_INTERFACE_GROUP];
-    pthread_mutex_t           mGroupMutex;
 }WanMgr_IfaceGroup_t;
 
 typedef struct _WANMGR_DATA_ST_
 {
+    //Mutex
+    pthread_mutex_t             gDataMutex;
+
     //WAN CONFIG
     WanMgr_Config_Data_t        Config;
 

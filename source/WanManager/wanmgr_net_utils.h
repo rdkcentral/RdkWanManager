@@ -75,14 +75,6 @@ typedef enum
 
 
 /* ---- Global Variables -------------------------- */
-//extern int sysevent_fd;
-//extern token_t sysevent_token;
-//extern eRouterRegion_t region;
-/* Global structure to hold wan interface data.
- * This structure object defined in ipc module and this
- * can be also may required in other area. */
-//extern WanData_t gWanData;
-//extern pthread_mutex_t gmWanDataMutex;
 
 /* ---- Global Prototypes -------------------------- */
 /***************************************************************************
