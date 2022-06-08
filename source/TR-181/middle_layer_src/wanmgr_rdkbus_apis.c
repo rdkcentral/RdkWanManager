@@ -1522,7 +1522,7 @@ ANSC_STATUS Update_Iface_Status()
                 }else
                     snprintf(newIface->AvailableStatus, sizeof(newIface->AvailableStatus), "%s,0|", pWanIfaceData->DisplayName);
 
-                if((pWanIfaceData->Wan.ActiveLink == TRUE) && (pWanIfaceData->Wan.Status == WAN_IFACE_STATUS_UP))
+                if((pWanIfaceData->SelectionStatus == WAN_IFACE_ACTIVE) && (pWanIfaceData->Wan.Status == WAN_IFACE_STATUS_UP))
                 {
                     snprintf(newIface->ActiveStatus, sizeof(newIface->ActiveStatus), "%s,1|", pWanIfaceData->DisplayName);
                 }else
