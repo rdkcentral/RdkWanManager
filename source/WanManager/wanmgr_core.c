@@ -17,7 +17,7 @@
  * limitations under the License.
 */
 
-#include <syscfg.h>
+#include <syscfg/syscfg.h>
 
 #include "wanmgr_core.h"
 #include "wanmgr_sysevents.h"
@@ -37,12 +37,6 @@ ANSC_STATUS WanMgr_Core_Init(void)
     if(retStatus != ANSC_STATUS_SUCCESS)
     {
         CcspTraceInfo(("%s %d - WanManager failed to initialise!\n", __FUNCTION__, __LINE__ ));
-    }
-
-    //Initialise syscfg database
-    if (syscfg_init() < 0)
-    {
-        CcspTraceError(("failed to initialise syscfg"));
     }
 
     //Starts the IPC thread

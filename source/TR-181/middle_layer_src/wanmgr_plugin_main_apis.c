@@ -64,6 +64,8 @@
 
 **********************************************************************/
 
+#include <syscfg/syscfg.h>
+
 //#include "dml_tr181_custom_cfg.h"
 #include "wanmgr_plugin_main_apis.h"
 
@@ -175,9 +177,6 @@ ANSC_STATUS BackEndManagerInitialize(ANSC_HANDLE hThisObject)
 
     AnscTraceWarning(("%s...\n", __FUNCTION__));
 
-    //syscfg DB Init
-    syscfg_init();
-    
     //Wan Manager Configuration
     WanMgr_WanConfigInit();
 

@@ -71,10 +71,6 @@
 #include "ccsp_trace.h"
 #include "dm_pack_create_func.h"
 
-
-#define  DATAMODEL_XML_FILE           "/usr/rdk/wanmanager/RdkWanManager.xml"
-
-
 PDSLH_CPE_CONTROLLER_OBJECT     pDslhCpeController        = NULL;
 PCOMPONENT_COMMON_WANMANAGER          g_pComponent_COMMON_wanmanager  = NULL;
 PCCSP_CCD_INTERFACE             pSsdCcdIf                 = (PCCSP_CCD_INTERFACE        )NULL;

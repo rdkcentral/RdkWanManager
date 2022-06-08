@@ -19,21 +19,12 @@
 
 bin_PROGRAMS = netmonitor
 
-AM_CFLAGS = -D_ANSC_LINUX
-AM_CFLAGS += -D_ANSC_USER
-AM_CFLAGS += -D_ANSC_LITTLE_ENDIAN_
-AM_LDFLAGS = -lccsp_common
-AM_LDFLAGS += -lcm_mgnt
-
-AM_CPPFLAGS = -Wall -Werror
 ACLOCAL_AMFLAGS = -I m4
-hardware_platform = i686-linux-gnu
 
-AM_CPPFLAGS = -I/var/tmp/pc-rdkb/include/dbus-1.0 -I$(top_srcdir)/../CcspCommonLibrary/source/ccsp/custom -I$(top_srcdir)/../CcspCommonLibrary/source/ccsp/include -I$(top_srcdir)/../CcspCommonLibrary/source/debug_api/include -I$(top_srcdir)/../CcspCommonLibrary/source/cosa/include -I$(top_srcdir)/../CcspCommonLibrary/source/cosa/include/linux -I$(top_srcdir)/../CcspCommonLibrary/source/ccsp/components/include -I$(top_srcdir)/../CcspCommonLibrary/source/cosa/package/slap/include -I$(top_srcdir)/../hal/include -I$(top_srcdir)/source/TR-181/board_sbapi -I$(top_srcdir)/../CcspCommonLibrary/source/util_api/http/include -I$(top_srcdir)/../CcspCommonLibrary/source/util_api/ansc/include -I$(top_srcdir)/source/TR-181/middle_layer_src -I$(top_srcdir)/../CcspCommonLibrary/source/ccsp/components/common/MessageBusHelper/include -I$(top_srcdir)/source/TR-181/include -I$(top_srcdir)/source/WanManager -I${PKG_CONFIG_SYSROOT_DIR}$(includedir) $(CPPFLAGS)
-
-AM_LDFLAGS = -lwebconfig_framework
+netmonitor_CPPFLAGS = -I$(top_srcdir)/source/TR-181/middle_layer_src \
+                      -I$(top_srcdir)/source/TR-181/include \
+                      -I$(top_srcdir)/source/WanManager
 
 netmonitor_CFLAGS = -D_ANSC_LINUX -D_ANSC_USER -D_ANSC_LITTLE_ENDIAN_ -DFEATURE_SUPPORT_RDKLOG $(DBUS_CFLAGS) $(SYSTEMD_CFLAGS)
-
 netmonitor_SOURCES = network_route_monitor.c
-netmonitor_LDFLAGS = -lccsp_common -lrdkloggers $(DBUS_LIBS) $(SYSTEMD_LDFLAGS) -lhal_platform -lapi_dhcpv4c -lwebconfig_framework -lmsgpackc -lbreakpadwrapper -lnanomsg -lsyscfg -lsysevent -lpthread
+netmonitor_LDADD = -lccsp_common -lrdkloggers $(DBUS_LIBS) $(SYSTEMD_LDFLAGS) -lhal_platform -lapi_dhcpv4c -lwebconfig_framework -lmsgpackc -lbreakpadwrapper -lnanomsg -lsyscfg -lsysevent -lpthread
