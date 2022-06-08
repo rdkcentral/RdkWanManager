@@ -91,6 +91,6 @@ ANSC_STATUS WanMgr_Rbus_getUintParamValue(char * param, UINT * value);
 void WanMgr_Rbus_UpdateLocalWanDb(void);
 void WanMgr_Rbus_SubscribeDML(void);
 void WanMgr_Rbus_UnSubscribeDML(void);
-ANSC_STATUS WanMgr_WanRemoteIfaceConfigure(UINT RemoteDeviceIndex);
+ANSC_STATUS WanMgr_WanRemoteIfaceConfigure(char *remoteMac);
 #endif //RBUS_BUILD_FLAG_ENABLE
 #endif

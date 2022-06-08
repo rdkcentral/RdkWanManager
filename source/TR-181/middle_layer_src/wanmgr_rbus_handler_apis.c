@@ -29,7 +29,7 @@ ENUM_WAN_LINKSTATUS
 };
 
 #define  ARRAY_SZ(x) (sizeof(x) / sizeof((x)[0]))
-
+#define  MAC_ADDR_SIZE 18
 static rbusHandle_t rbusHandle;
 
 char componentName[32] = "WANMANAGER";
@@ -449,15 +449,51 @@ static void WanMgr_Rbus_EventReceiveHandler(rbusHandle_t handle, rbusEvent_t con
 
         rbusValue_t value;
         value = rbusObject_GetValue(event->data, "Capabilities");
-        CcspTraceInfo(("%s %d - from source MAC %s\n", __FUNCTION__, __LINE__,rbusValue_GetString(value, NULL)));
+        CcspTraceInfo(("%s %d - Capabilities %s\n", __FUNCTION__, __LINE__,rbusValue_GetString(value, NULL)));
 
         value = rbusObject_GetValue(event->data, "Index");
         UINT Index = rbusValue_GetUInt32(value);
         CcspTraceInfo(("%s %d - Index %d\n", __FUNCTION__, __LINE__,Index));
 
+        value = rbusObject_GetValue(event->data, "Mac_addr");
+        char *remoteMac = malloc(MAC_ADDR_SIZE + 1);
+
+        if(remoteMac == NULL  )
+        {
+            CcspTraceInfo(("%s %d - Memory allocation failed \n", __FUNCTION__, __LINE__));
+            return;
+        }
+        char *Mac = rbusValue_GetString(value, NULL);
+        if(Mac != NULL)
+        {
+            strncpy(remoteMac,Mac,MAC_ADDR_SIZE);
+            CcspTraceInfo(("%s %d - from source MAC %s\n", __FUNCTION__, __LINE__, remoteMac));
+        }else
+        {
+            CcspTraceInfo(("%s %d - Mac_addr get failed \n", __FUNCTION__, __LINE__));
+            if(remoteMac != NULL)
+            {
+                free(remoteMac);
+            }
+            return;
+        }
+
         if (Index > 0)
         {
-            WanMgr_WanRemoteIfaceConfigure(Index);
+            DEVICE_NETWORKING_MODE  DeviceMode;
+            WanMgr_Config_Data_t*   pWanConfigData = WanMgr_GetConfigData_locked();
+            if(pWanConfigData != NULL)
+            {
+                DeviceMode = pWanConfigData->data.DeviceNwMode;
+                WanMgrDml_GetConfigData_release(pWanConfigData);
+
+                if (DeviceMode == GATEWAY_MODE)
+                {
+                    CcspTraceInfo(("%s %d -DeviceNwMode set to GATEWAY_MODE. Configure remote Iface\n", __FUNCTION__, __LINE__));
+                    WanMgr_WanRemoteIfaceConfigure(remoteMac);
+                }else
+                    CcspTraceInfo(("%s %d -DeviceNwMode is not GATEWAY_MODE. Do not configure remote Iface\n", __FUNCTION__, __LINE__));
+            }
         }
 
     }
@@ -886,39 +922,64 @@ char *RemoteDMs[]  = { "Device.X_RDK_WanManager.CPEInterface.1.Name",
     "Device.X_RDK_WanManager.CPEInterface.1.Wan.LinkStatus"
 };
 
-ANSC_STATUS WanMgr_WanRemoteIfaceConfigure(UINT RemoteDeviceIndex)
+void WanMgr_WanRemoteIfaceConfigure_thread(void *arg);
+
+ANSC_STATUS WanMgr_WanRemoteIfaceConfigure(char *remoteMac)
 {
-    char dmQuery[BUFLEN_256] = {0};
-    char dmValue[BUFLEN_256] = {0};
+    pthread_t                threadId;
+    int                      iErrorCode     = 0;
+
+    iErrorCode = pthread_create( &threadId, NULL, &WanMgr_WanRemoteIfaceConfigure_thread, remoteMac);
+    if( 0 != iErrorCode )
+    {
+        CcspTraceInfo(("%s %d - Failed to start WanMgr_WanRemoteIfaceConfigure_thread EC:%d\n", __FUNCTION__, __LINE__, iErrorCode ));
+        if(remoteMac != NULL)
+        {
+            free(remoteMac);
+        }
+        return ANSC_STATUS_FAILURE;
+    }
+    else
+    {
+        CcspTraceInfo(("%s %d - WanMgr_WanRemoteIfaceConfigure_thread Started Successfully\n", __FUNCTION__, __LINE__ ));
+    }
+        return ANSC_STATUS_SUCCESS;
+}
+void WanMgr_WanRemoteIfaceConfigure_thread(void *arg)
+{
     int  cpeInterfaceIndex   = -1;
     int  newInterfaceIndex   = -1;
     int  rc = ANSC_STATUS_FAILURE;
+    char *remoteMac =  (char*)arg;
 
     CcspTraceInfo(("%s %d - Enter \n", __FUNCTION__, __LINE__));
 
-    // get mac of connected remote CPE
-    snprintf(dmQuery, sizeof(dmQuery)-1, "Device.X_RDK_Remote.Device.%d.MAC", RemoteDeviceIndex);
-    if ( ANSC_STATUS_FAILURE == WanMgr_RdkBus_GetParamValueFromAnyComp (dmQuery, dmValue))
-    {
-        CcspTraceError(("%s-%d: %s, Failed to get param value\n", __FUNCTION__, __LINE__, dmQuery));
-    }
-    CcspTraceInfo(("%s %d - dmValue %s \n", __FUNCTION__, __LINE__,dmValue));
+    pthread_detach(pthread_self());
 
+    CcspTraceInfo(("%s %d - remoteMac %s \n", __FUNCTION__, __LINE__,remoteMac));
     // check the interface table and return index of the match
-    cpeInterfaceIndex =  WanMgr_Remote_IfaceData_index(dmValue);
+    cpeInterfaceIndex =  WanMgr_Remote_IfaceData_index(remoteMac);
 
     if(cpeInterfaceIndex >= 0)
     {
-        CcspTraceInfo(("%s %d - [%s] MAC  Already have an Entry \n", __FUNCTION__, __LINE__, dmValue));
+        CcspTraceInfo(("%s %d - [%s] MAC  Already have an Entry \n", __FUNCTION__, __LINE__, remoteMac));
+        if(remoteMac != NULL)
+        {
+            free(remoteMac);
+        }
         return ANSC_STATUS_SUCCESS;
     }
 
     // Initialise remote CPE's wan interface with default
-    WanMgr_Iface_Data_t * pIfaceData = WanMgr_Remote_IfaceData_configure(dmValue, &newInterfaceIndex);
+    WanMgr_Iface_Data_t * pIfaceData = WanMgr_Remote_IfaceData_configure(remoteMac, &newInterfaceIndex);
 
     if(pIfaceData == NULL)
     {
         CcspTraceInfo(("%s %d - Failed to configure remote Wan Interface Entry.\n", __FUNCTION__, __LINE__));
+        if(remoteMac != NULL)
+        {
+            free(remoteMac);
+        }
         return ANSC_STATUS_FAILURE;
     }
 
@@ -926,6 +987,10 @@ ANSC_STATUS WanMgr_WanRemoteIfaceConfigure(UINT RemoteDeviceIndex)
     if(rc != RBUS_ERROR_SUCCESS)
     {
         CcspTraceError(("%s %d - Iterface(%d) Table (%s) UnRegistartion failed, Error=%d \n", __FUNCTION__, __LINE__, (newInterfaceIndex+1), WANMGR_INFACE_TABLE, rc));
+        if(remoteMac != NULL)
+        {
+            free(remoteMac);
+        }
         return rc;
     }
     else
@@ -942,7 +1007,7 @@ ANSC_STATUS WanMgr_WanRemoteIfaceConfigure(UINT RemoteDeviceIndex)
         memset(&IDM_request,0, sizeof(idm_invoke_method_Params_t));
 
         /* Update request parameters */
-        strcpy(IDM_request.Mac_dest,dmValue);
+        strcpy(IDM_request.Mac_dest,remoteMac);
         strcpy(IDM_request.param_name, RemoteDMs[i]);
         strcpy(IDM_request.pComponent_name, "eRT.com.cisco.spvtg.ccsp.wanmanager");
         strcpy(IDM_request.pBus_path, "/com/cisco/spvtg/ccsp/wanmanager");
@@ -962,7 +1027,7 @@ ANSC_STATUS WanMgr_WanRemoteIfaceConfigure(UINT RemoteDeviceIndex)
         memset(&IDM_request,0, sizeof(idm_invoke_method_Params_t));
 
         /* Update request parameters */
-        strcpy(IDM_request.Mac_dest,dmValue);
+        strcpy(IDM_request.Mac_dest,remoteMac);
         strcpy(IDM_request.param_name, RemoteDMs[i]);
         IDM_request.timeout = 600;
         IDM_request.operation = IDM_SUBS;
@@ -971,6 +1036,11 @@ ANSC_STATUS WanMgr_WanRemoteIfaceConfigure(UINT RemoteDeviceIndex)
         WanMgr_IDM_Invoke(&IDM_request);
     }
 
+    if(remoteMac != NULL)
+    {
+        free(remoteMac);
+    }
+    pthread_exit(NULL);
     return ANSC_STATUS_SUCCESS;
 }
 
