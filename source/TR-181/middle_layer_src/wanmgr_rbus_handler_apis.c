@@ -973,18 +973,64 @@ ANSC_STATUS WanMgr_Rbus_EventPublishHandler(char *dm_event, void *dm_value, rbus
     return ANSC_STATUS_SUCCESS;
 }
 /*******************************************************************************
+  WanMgr_Rbus_String_EventPublish_OnValueChange(): publish rbus events on value change
+ ********************************************************************************/
+ANSC_STATUS WanMgr_Rbus_String_EventPublish_OnValueChange(char *dm_event, void *prev_dm_value, void *dm_value)
+{
+    rbusEvent_t event;
+    rbusObject_t rdata;
+    rbusValue_t Value, preValue, byVal;
+    int rc = ANSC_STATUS_FAILURE;
+
+    if(dm_event == NULL || dm_value == NULL)
+    {
+        CcspTraceInfo(("%s %d - Failed publishing\n", __FUNCTION__, __LINE__));
+        return rc;
+    }
+
+    rbusValue_Init(&Value);
+    rbusValue_SetString(Value, (char*)dm_value);
+
+    rbusValue_Init(&preValue);
+    rbusValue_SetString(preValue, (char*)prev_dm_value);
+
+    rbusValue_Init(&byVal);
+    rbusValue_SetString(byVal, componentName);
+
+    rbusObject_Init(&rdata, NULL);
+    rbusObject_SetValue(rdata, "value", Value);
+    rbusObject_SetValue(rdata, "oldValue", preValue);
+    rbusObject_SetValue(rdata, "by", byVal);
+
+    event.name = dm_event;
+    event.data = rdata;
+    event.type = RBUS_EVENT_VALUE_CHANGED;
+
+    CcspTraceInfo(("%s %d - dm_event[%s],prev_dm_value[%s],dm_value[%s]\n", __FUNCTION__, __LINE__, dm_event, prev_dm_value, dm_value));
+
+    if(rbusEvent_Publish(rbusHandle, &event) != RBUS_ERROR_SUCCESS) 
+    {
+        CcspTraceInfo(("%s %d - event publishing failed for type\n", __FUNCTION__, __LINE__));
+    }
+    else
+    {
+        CcspTraceInfo(("%s %d - Successfully Published event for event %s \n", __FUNCTION__, __LINE__, dm_event));
+        rc = ANSC_STATUS_SUCCESS;
+    }
+
+    rbusValue_Release(Value);
+    rbusValue_Release(preValue);
+    rbusValue_Release(byVal);
+    rbusObject_Release(rdata);
+    return rc;
+}
+
+/*******************************************************************************
   WanMgr_Rbus_String_EventPublish(): publish rbus string events
  ********************************************************************************/
 ANSC_STATUS WanMgr_Rbus_String_EventPublish(char *dm_event, void *dm_value)
 {
-    if ((strcmp(dm_event, WANMGR_CONFIG_WAN_CURRENTACTIVEINTERFACE) == 0) ||
-        (strcmp(dm_event, WANMGR_CONFIG_WAN_CURRENTSTANDBYINTERFACE) == 0) ||
-        (strcmp(dm_event, WANMGR_CONFIG_WAN_INTERFACEAVAILABLESTATUS) == 0) ||
-        (strcmp(dm_event, WANMGR_CONFIG_WAN_INTERFACEACTIVESTATUS) == 0))
-    {
-        return WanMgr_Rbus_EventPublishHandler(dm_event, dm_value, RBUS_STRING);
-    }
-    else if (strstr(dm_event, ".Wan.Status"))
+    if (strstr(dm_event, ".Wan.Status"))
     {
        char String[20] = {0};
        WanMgr_EnumToString((*(UINT *)dm_value), ENUM_WAN_STATUS, String);

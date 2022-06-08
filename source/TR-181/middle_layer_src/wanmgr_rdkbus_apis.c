@@ -1507,8 +1507,10 @@ void deleteList( struct IFACE_INFO* head)
 ANSC_STATUS Update_Iface_Status()
 {
     struct IFACE_INFO *head = NULL;
-    CHAR    local_InterfaceAvailableStatus[BUFLEN_64]  = {0};
-    CHAR    local_InterfaceActiveStatus[BUFLEN_64]     = {0};
+    CHAR    InterfaceAvailableStatus[BUFLEN_64]  = {0};
+    CHAR    InterfaceActiveStatus[BUFLEN_64]     = {0};
+    CHAR    prevInterfaceAvailableStatus[BUFLEN_64]  = {0};
+    CHAR    prevInterfaceActiveStatus[BUFLEN_64]     = {0};
 #ifdef RBUS_BUILD_FLAG_ENABLE
     bool    publishAvailableStatus  = FALSE;
     bool    publishActiveStatus = FALSE;
@@ -1553,8 +1555,8 @@ ANSC_STATUS Update_Iface_Status()
     struct IFACE_INFO* current = head;
     while(current!= NULL)
     {
-        strcat(local_InterfaceAvailableStatus,current->AvailableStatus);
-        strcat(local_InterfaceActiveStatus,current->ActiveStatus);
+        strcat(InterfaceAvailableStatus,current->AvailableStatus);
+        strcat(InterfaceActiveStatus,current->ActiveStatus);
         current = current->next;
     }
 
@@ -1567,34 +1569,36 @@ ANSC_STATUS Update_Iface_Status()
     if (pWanConfigData != NULL)
     {
         DML_WANMGR_CONFIG* pWanDmlData = &(pWanConfigData->data);
-        if(strcmp(pWanDmlData->InterfaceAvailableStatus,local_InterfaceAvailableStatus) != 0)
+        if(strcmp(pWanDmlData->InterfaceAvailableStatus,InterfaceAvailableStatus) != 0)
         {
+            strcpy(prevInterfaceAvailableStatus,pWanDmlData->InterfaceAvailableStatus);
             memset(pWanDmlData->InterfaceAvailableStatus,0, sizeof(pWanDmlData->InterfaceAvailableStatus));
-            strcpy(pWanDmlData->InterfaceAvailableStatus,local_InterfaceAvailableStatus);
+            strcpy(pWanDmlData->InterfaceAvailableStatus,InterfaceAvailableStatus);
 #ifdef RBUS_BUILD_FLAG_ENABLE
             publishAvailableStatus = TRUE;
-#endif 
+#endif
         }
-        if(strcmp(pWanDmlData->InterfaceActiveStatus,local_InterfaceActiveStatus) != 0)
+        if(strcmp(pWanDmlData->InterfaceActiveStatus,InterfaceActiveStatus) != 0)
         {
+            strcpy(prevInterfaceActiveStatus,pWanDmlData->InterfaceActiveStatus);
             memset(pWanDmlData->InterfaceActiveStatus,0, sizeof(pWanDmlData->InterfaceActiveStatus));
-            strcpy(pWanDmlData->InterfaceActiveStatus,local_InterfaceActiveStatus);
+            strcpy(pWanDmlData->InterfaceActiveStatus,InterfaceActiveStatus);
 #ifdef RBUS_BUILD_FLAG_ENABLE
             publishActiveStatus = TRUE;
-#endif 
+#endif
         }
         WanMgrDml_GetConfigData_release(pWanConfigData);
     }
 #ifdef RBUS_BUILD_FLAG_ENABLE
     if(publishAvailableStatus == TRUE)
     {
-        WanMgr_Rbus_String_EventPublish(WANMGR_CONFIG_WAN_INTERFACEAVAILABLESTATUS, local_InterfaceAvailableStatus);
+        WanMgr_Rbus_String_EventPublish_OnValueChange(WANMGR_CONFIG_WAN_INTERFACEAVAILABLESTATUS, prevInterfaceAvailableStatus, InterfaceAvailableStatus);
     }
     if(publishActiveStatus == TRUE)
     {
-        WanMgr_Rbus_String_EventPublish(WANMGR_CONFIG_WAN_INTERFACEACTIVESTATUS, local_InterfaceActiveStatus);
+        WanMgr_Rbus_String_EventPublish_OnValueChange(WANMGR_CONFIG_WAN_INTERFACEACTIVESTATUS, prevInterfaceActiveStatus, InterfaceActiveStatus);
     }
-#endif 
+#endif
     return ANSC_STATUS_SUCCESS;
 }
 
@@ -1604,6 +1608,8 @@ ANSC_STATUS Update_Current_Iface_Status()
     DEVICE_NETWORKING_MODE devMode = GATEWAY_MODE;
     CHAR    CurrentActiveInterface[BUFLEN_64] = {0};
     CHAR    CurrentStandbyInterface[BUFLEN_64] = {0};
+    CHAR    prevCurrentActiveInterface[BUFLEN_64] = {0};
+    CHAR    prevCurrentStandbyInterface[BUFLEN_64] = {0};
 #ifdef RBUS_BUILD_FLAG_ENABLE
     bool    publishCurrentActiveInf  = FALSE;
     bool    publishCurrentStandbyInf = FALSE;
@@ -1656,20 +1662,30 @@ ANSC_STATUS Update_Current_Iface_Status()
     if (pWanConfigData != NULL)
     {
         DML_WANMGR_CONFIG* pWanDmlData = &(pWanConfigData->data);
-        
+
         CcspTraceInfo(("%s %d -- [%s] [%s]\n",__FUNCTION__,__LINE__,pWanDmlData->CurrentActiveInterface,CurrentActiveInterface));
-        if(strcmp(pWanDmlData->CurrentActiveInterface,CurrentActiveInterface) != 0 )
+        if(strlen(CurrentActiveInterface) > 0)
         {
-            strcpy(pWanDmlData->CurrentActiveInterface,CurrentActiveInterface);
+
+            if(strcmp(pWanDmlData->CurrentActiveInterface,CurrentActiveInterface) != 0 )
+            {
+                strcpy(prevCurrentActiveInterface,pWanDmlData->CurrentActiveInterface);
+                strcpy(pWanDmlData->CurrentActiveInterface,CurrentActiveInterface);
 #ifdef RBUS_BUILD_FLAG_ENABLE
-            publishCurrentActiveInf = TRUE;
+                publishCurrentActiveInf = TRUE;
 #endif //RBUS_BUILD_FLAG_ENABLE
+            }
+        }
+        else
+        {
+            CcspTraceInfo(("%s %d -- No update\n",__FUNCTION__,__LINE__));
         }
 
         CcspTraceInfo(("%s %d -- [%s] [%s]\n",__FUNCTION__,__LINE__,pWanDmlData->CurrentStandbyInterface,CurrentStandbyInterface));
         if(strcmp(pWanDmlData->CurrentStandbyInterface,CurrentStandbyInterface) != 0)
         {
-            strcpy(pWanDmlData->CurrentStandbyInterface,CurrentStandbyInterface);
+            strcpy(prevCurrentStandbyInterface, pWanDmlData->CurrentStandbyInterface);
+            strcpy(pWanDmlData->CurrentStandbyInterface, CurrentStandbyInterface);
 #ifdef RBUS_BUILD_FLAG_ENABLE
             publishCurrentStandbyInf = TRUE;
 #endif //RBUS_BUILD_FLAG_ENABLE
@@ -1679,12 +1695,12 @@ ANSC_STATUS Update_Current_Iface_Status()
 #ifdef RBUS_BUILD_FLAG_ENABLE
     if(publishCurrentActiveInf == TRUE)
     {
-        WanMgr_Rbus_String_EventPublish(WANMGR_CONFIG_WAN_CURRENTACTIVEINTERFACE, CurrentActiveInterface);
+        WanMgr_Rbus_String_EventPublish_OnValueChange(WANMGR_CONFIG_WAN_CURRENTACTIVEINTERFACE, prevCurrentActiveInterface, CurrentActiveInterface);
     }
 
     if(publishCurrentStandbyInf == TRUE)
     {
-        WanMgr_Rbus_String_EventPublish(WANMGR_CONFIG_WAN_CURRENTSTANDBYINTERFACE, CurrentStandbyInterface);
+        WanMgr_Rbus_String_EventPublish_OnValueChange(WANMGR_CONFIG_WAN_CURRENTSTANDBYINTERFACE, prevCurrentStandbyInterface, CurrentStandbyInterface);
     }
 #endif //RBUS_BUILD_FLAG_ENABLE
     return ANSC_STATUS_SUCCESS;
