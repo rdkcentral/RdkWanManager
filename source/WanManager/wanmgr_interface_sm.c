@@ -1106,12 +1106,16 @@ static eWanState_t wan_transition_start(WanMgr_IfaceSM_Controller_t* pWanIfaceCt
     {
         WanMgr_Publish_WanStatus(pWanIfaceCtrl->interfaceIdx);
     }
-    if (WanMgr_RdkBus_updateInterfaceUpstreamFlag(pInterface->Phy.Path, TRUE) != ANSC_STATUS_SUCCESS)
-    {
-        CcspTraceInfo(("%s - Failed to set Upstream data model, exiting interface state machine\n", __FUNCTION__));
-        return WAN_STATE_EXIT;
-    }
 
+    /*TODO: Upstream should not be set for Remote Interface, for More info, refer RDKB-42676*/
+    if (pInterface->Wan.IfaceType != REMOTE_IFACE)
+    {
+        if (WanMgr_RdkBus_updateInterfaceUpstreamFlag(pInterface->Phy.Path, TRUE) != ANSC_STATUS_SUCCESS)
+        {
+            CcspTraceInfo(("%s - Failed to set Upstream data model, exiting interface state machine\n", __FUNCTION__));
+            return WAN_STATE_EXIT;
+        }
+    }
     CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION START\n", __FUNCTION__, __LINE__, pInterface->Name));
 
     WanManager_GetDateAndUptime( buffer, &uptime );
@@ -1184,8 +1188,10 @@ static eWanState_t wan_transition_physical_interface_down(WanMgr_IfaceSM_Control
 #endif  // FEATURE_IPOE_HEALTH_CHECK
     }
 
-    WanMgr_RdkBus_updateInterfaceUpstreamFlag(pInterface->Phy.Path, FALSE);
-
+    if (pInterface->Wan.IfaceType != REMOTE_IFACE)
+    {
+        WanMgr_RdkBus_updateInterfaceUpstreamFlag(pInterface->Phy.Path, FALSE);
+    }
     CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION DECONFIGURING WAN\n", __FUNCTION__, __LINE__, pInterface->Name));
 
     return WAN_STATE_DECONFIGURING_WAN;

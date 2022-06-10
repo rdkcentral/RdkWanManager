@@ -1215,10 +1215,14 @@ static WcAwPolicyState_t State_InterfaceReconfiguration (WanMgr_Policy_Controlle
         return STATE_AUTO_WAN_ERROR;
     }
 
-    if (WanMgr_CheckIfPlatformReconfiguringRequired (pWanController) == TRUE)
-    { 
-        CcspTraceInfo(("%s %d: Hardware reconfiguration required\n", __FUNCTION__, __LINE__));
-        return Transition_ReconfigurePlatform (pWanController);
+    DML_WAN_IFACE * pActiveInterface = &(pWanController->pWanActiveIfaceData->data);
+    if (pActiveInterface->Wan.IfaceType != REMOTE_IFACE)
+    {
+        if (WanMgr_CheckIfPlatformReconfiguringRequired (pWanController) == TRUE)
+        { 
+            CcspTraceInfo(("%s %d: Hardware reconfiguration required\n", __FUNCTION__, __LINE__));
+            return Transition_ReconfigurePlatform (pWanController);
+        }
     }
     CcspTraceInfo(("%s %d: Hardware reconfiguration not required\n", __FUNCTION__, __LINE__));
 
