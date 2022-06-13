@@ -52,15 +52,12 @@ static token_t sysevent_msg_token;
 #define WAN_PHY_ADDRESS "/sys/class/net/erouter0/address"
 #define LAN_BRIDGE_NAME "brlan0"
 
-static int pnm_inited = 0;
 static int lan_wan_started = 0;
 static int ipv4_connection_up = 0;
 static int ipv6_connection_up = 0;
 static void check_lan_wan_ready();
 static int CheckV6DefaultRule();
 static void do_toggle_v6_status();
-static void lan_start();
-static void set_vendor_spec_conf();
 static int getVendorClassInfo(char *buffer, int length);
 static int set_default_conf_entry();
 #ifdef FEATURE_MAPT
@@ -406,7 +403,6 @@ ANSC_STATUS maptInfo_reset()
 
 static int set_default_conf_entry()
 {
-    
     char result[BUFLEN_128];
     FILE *fp;
 #ifdef FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE
@@ -430,15 +426,8 @@ static int set_default_conf_entry()
     fgets(result, sizeof(result), fp);
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_ETH_WAN_MAC, result, 0);
     fclose(fp);
-    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_BRIDGE_MODE, "0", 0); // to boot in router mode
-    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_TOPOLOGY_MODE, "1", 0);
-    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_MULTINET_INSTANCES, LAN_BRIDGE_NAME, 0);
-    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_MULTINET_NAME, LAN_BRIDGE_NAME, 0);
     // By default unset dhcpv4 time offset. If dhcpv4 time offset is used, it will be set by function "wanmgr_sysevents_ipv4Info_set"
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_DHCPV4_TIME_OFFSET, UNSET, 0);
-    syscfg_set(NULL, SYSEVENT_LAN_PD_INTERFACES, LAN_BRIDGE_NAME); // sets the lan interface for prefix deligation
-    syscfg_set(NULL, SYSCFG_ETH_WAN_ENABLED, "false"); // to handle Factory reset case
-    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_ETHWAN_INITIALIZED, "0", 0);
     syscfg_set(NULL, SYSCFG_NTP_ENABLED, "1"); // Enable NTP in case of ETHWAN
 
     // set DHCPv4 Vendor specific option 43
@@ -466,9 +455,6 @@ static void *WanManagerSyseventHandler(void *args)
     async_id_t lan_ipv6_enable_asyncid;
     async_id_t wan_status_asyncid;
     async_id_t wan_service_status_asyncid;
-    async_id_t pnm_status_asyncid;
-    async_id_t lan_status_asyncid;
-    async_id_t primary_lan_l3net_asyncid;
     async_id_t radvd_restart_asyncid;
     async_id_t ipv6_down_asyncid;
 #ifdef NTP_STATUS_SYNC_EVENT
@@ -496,15 +482,6 @@ static void *WanManagerSyseventHandler(void *args)
     sysevent_set_options(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_WAN_SERVICE_STATUS, TUPLE_FLAG_EVENT);
     sysevent_setnotification(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_WAN_SERVICE_STATUS, &wan_service_status_asyncid);
 
-    sysevent_set_options(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_PNM_STATUS, TUPLE_FLAG_EVENT);
-    sysevent_setnotification(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_PNM_STATUS, &pnm_status_asyncid);
-
-    sysevent_set_options(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_LAN_STATUS, TUPLE_FLAG_EVENT);
-    sysevent_setnotification(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_LAN_STATUS,  &lan_status_asyncid);
-
-    sysevent_set_options(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_PRIMARY_LAN_L3NET, TUPLE_FLAG_EVENT);
-    sysevent_setnotification(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_PRIMARY_LAN_L3NET,  &primary_lan_l3net_asyncid);
-
     sysevent_set_options(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_RADVD_RESTART, TUPLE_FLAG_EVENT);
     sysevent_setnotification(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_RADVD_RESTART, &radvd_restart_asyncid);
 
@@ -529,7 +506,6 @@ static void *WanManagerSyseventHandler(void *args)
     {
         char name[BUFLEN_42] = {0};
         char val[BUFLEN_42] = {0};
-        char buf[BUF_SIZE] = {0};
         char cmd_str[BUF_SIZE] = {0};
         int namelen = sizeof(name);
         int vallen  = sizeof(val);
@@ -537,9 +513,6 @@ static void *WanManagerSyseventHandler(void *args)
         int err = 0;
         ANSC_STATUS result = 0;
         char *datamodel_value = NULL;
-        char brlan0_inst[BRG_INST_SIZE];
-        char* l3net_inst = NULL;
-        int l2net_inst_up = FALSE;
 
         err = sysevent_getnotification(sysevent_msg_fd, sysevent_msg_token, name, &namelen,  val, &vallen, &getnotification_asyncid);
 
@@ -634,6 +607,7 @@ static void *WanManagerSyseventHandler(void *args)
             {
                 CcspTraceInfo(("%s %d: Detected '%s' event value '%s'\n", __FUNCTION__, __LINE__,name,val));
 
+                char buf[BUF_SIZE] = {0};
                 memset(buf,0,sizeof(buf));
                 if( 0 == syscfg_get(NULL, SYSCFG_DEVICE_NETWORKING_MODE, buf, sizeof(buf)) ) 
                 { 
@@ -667,89 +641,6 @@ static void *WanManagerSyseventHandler(void *args)
                     do_toggle_v6_status();
                 }
             }
-/*  RDKB-38572
- *  For comcast platforms, lan start is handled in Gwprovapp.
- *  also ipv4-up event is updated in lanhandler service script.
- *  Hence below part of code is not needed for
- *  comcast platforms where wan manager is enabled.
- */
-#if !defined (_XB6_PRODUCT_REQ_) && !defined (_CBR2_PRODUCT_REQ_) && !defined(_PLATFORM_RASPBERRYPI_) && !defined(_PLATFORM_TURRIS_) && !defined(_WNXL11BWL_PRODUCT_REQ_)
-            else if (strcmp(name, SYSEVENT_PNM_STATUS) == 0)
-            {
-                if (strcmp(val, STATUS_UP_STRING)==0)
-                {
-                    pnm_inited = 1;
-                    lan_start();
-                    v_secure_system("execute_dir /etc/utopia/post.d/ restart");
-                    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, NULL, 0);
-                }
-            }
-            else if (strcmp(name, SYSEVENT_PRIMARY_LAN_L3NET) == 0)
-            {
-                if (pnm_inited)
-                {
-                    lan_start();
-                }
-            }
-            else if (strcmp(name, SYSEVENT_LAN_STATUS) == 0 )
-            {
-                char wanStatus[BUFLEN_16] = {0};
-                CcspTraceInfo(("%s %d SYSEVENT_LAN_STATUS : [%s]\n", __FUNCTION__, __LINE__, val));
-                if (strcmp(val, SYSEVENT_VALUE_STARTED) == 0)
-                {
-                    sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_PRIMARY_LAN_L3NET, buf, sizeof(buf));
-                    strncpy(brlan0_inst, buf, BRG_INST_SIZE-1);
-                    sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_L3NET_INSTANCES, buf, sizeof(buf));
-                    l3net_inst = strtok(buf, " ");
-                    while(l3net_inst != NULL)
-                    {
-                        if(!(strcmp(l3net_inst, brlan0_inst)==0))
-                        {
-                            sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV4_UP, l3net_inst, 0);
-                            l2net_inst_up = TRUE;
-                        }
-                        l3net_inst = strtok(NULL, " ");
-                    }
-                    if(l2net_inst_up == FALSE)
-                    {
-                        sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV4_UP, brlan0_inst, 0);
-                    }
-                    sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_WAN_SERVICE_STATUS, wanStatus, sizeof(wanStatus));
-                    if(strcmp(wanStatus, SYSEVENT_VALUE_STARTED) == 0)
-                    {
-                        do_toggle_v6_status();
-                    }
-                    memset(buf, '\0', sizeof(buf));
-                    sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_ULA_ADDRESS, buf, sizeof(buf));
-                    if(buf[0] != '\0') {
-                        sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_LAN_ULA_ADDRESS, buf, 0);
-                    }
-                    set_vendor_spec_conf();
-                    v_secure_system("gw_lan_refresh &");
-#if defined(FEATURE_MAPT) && defined(IVI_KERNEL_SUPPORT)
-                    memset(buf, '\0', sizeof(buf));
-                    sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_MAP_TRANSPORT_MODE, buf, sizeof(buf));
-                    if( !strcmp(buf, "MAPT") || !strcmp(buf, "MAPE") )  {
-                        set_mapt_rule();
-                    }
-#endif
-                    snprintf(cmd_str, sizeof(cmd_str), "ip -6 addr add %s/64 dev %s", buf, LAN_BRIDGE_NAME);
-                    if (WanManager_DoSystemActionWithStatus("wanmanager", cmd_str) != RETURN_OK)
-                    {
-                        CcspTraceError(("%s %d failed set command: %s\n", __FUNCTION__, __LINE__, cmd_str));
-                    }
-#if defined(FEATURE_IPOE_HEALTH_CHECK) && defined(IPOE_HEALTH_CHECK_LAN_SYNC_SUPPORT)
-                    lanState = LAN_STATE_STARTED;
-#endif
-                }
-                else if(strcmp(val, SYSEVENT_VALUE_STOPPED) == 0)
-                {
-#if defined(FEATURE_IPOE_HEALTH_CHECK) && defined(IPOE_HEALTH_CHECK_LAN_SYNC_SUPPORT)
-                    lanState = LAN_STATE_STOPPED;
-#endif
-                }
-            }
-#endif
             else if (strcmp(name, SYSEVENT_RADVD_RESTART) == 0)
             {
                 sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_SERVICE_ROUTED_STATUS, "", 0);
@@ -790,12 +681,6 @@ static void *WanManagerSyseventHandler(void *args)
     return 0;
 }
 
-static void lan_start()
-{
-    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_LAN_START, "", 0);
-    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_DHCP_SERVER_RESYNC, "", 0);
-    return;
-}
 static void check_lan_wan_ready()
 {
     char lan_st[BUFLEN_16];
@@ -891,21 +776,6 @@ void wanmgr_Ipv6Toggle()
         sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV6_TOGGLE, "FALSE", 0);
 
         do_toggle_v6_status();
-    }
-}
-static void set_vendor_spec_conf()
-{
-    char vendor_class[BUF_SIZE] = {0};
-    if(getVendorClassInfo(vendor_class, BUF_SIZE) == 0)
-    {
-        char vendor_spec_info[BUFLEN_512] = {0};
-        snprintf(vendor_spec_info, sizeof(vendor_spec_info)-1, "%d-%d-\"%s\"", ENTERPRISE_ID, OPTION_16, vendor_class);
-        CcspTraceInfo(("vendor_spec information = %s \n", vendor_spec_info));
-        sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_VENDOR_SPEC, vendor_spec_info, 0);
-    }
-    else
-    {
-        CcspTraceError(("getVendorClassInfo failed\n"));
     }
 }
 
