@@ -49,6 +49,13 @@ rbusError_t WanMgr_Interface_SetHandler(rbusHandle_t handle, rbusProperty_t prop
 static void CPEInterface_AsyncMethodHandler( rbusHandle_t handle, char const* methodName, rbusError_t error, rbusObject_t params);
 static int WanMgr_Remote_IfaceData_index(char *macAddress);
 
+typedef struct
+{
+    char* name;
+    bool  get_request;
+    bool  subscription_request;
+} RemoteDM_list;
+
 /***********************************************************************
 
   Data Elements declaration:
@@ -73,6 +80,14 @@ rbusDataElement_t wanMgrIfacePublishElements[] = {
     {WanMgr_Interface_GetHandler, WanMgr_Interface_SetHandler, NULL, NULL, wanMgrDmlPublishEventHandler, NULL}},
     {WANMGR_INFACE_WAN_LINKSTATUS, RBUS_ELEMENT_TYPE_EVENT | RBUS_ELEMENT_TYPE_PROPERTY,
     {WanMgr_Interface_GetHandler, WanMgr_Interface_SetHandler, NULL, NULL, wanMgrDmlPublishEventHandler, NULL}},
+};
+
+RemoteDM_list RemoteDMs[] = {
+    {"Device.X_RDK_WanManager.CPEInterface.1.Name", TRUE, FALSE},
+    {"Device.X_RDK_WanManager.CPEInterface.1.DisplayName",TRUE, FALSE},
+    {"Device.X_RDK_WanManager.CPEInterface.1.Phy.Status",TRUE,TRUE},
+    {"Device.X_RDK_WanManager.CPEInterface.1.Wan.Status",TRUE,TRUE},
+    {"Device.X_RDK_WanManager.CPEInterface.1.Wan.LinkStatus",TRUE,TRUE},
 };
 
 static void WanMgr_EnumToString(UINT Enum, UINT EnumType, char* String)
@@ -288,7 +303,13 @@ rbusError_t WanMgr_Interface_GetHandler(rbusHandle_t handle, rbusProperty_t prop
         else if(strstr(name, ".Wan.Status"))
         {
             char String[20] = {0};
-            WanMgr_EnumToString(pWanDmlIface->Wan.Status, ENUM_WAN_STATUS, String);
+            if(pWanDmlIface->Wan.IfaceType == REMOTE_IFACE && pWanDmlIface->Wan.RemoteStatus != WAN_IFACE_STATUS_UP)
+            {
+                WanMgr_EnumToString(pWanDmlIface->Wan.RemoteStatus, ENUM_WAN_STATUS, String);
+            }else
+            {
+                WanMgr_EnumToString(pWanDmlIface->Wan.Status, ENUM_WAN_STATUS, String);
+            }
             rbusValue_SetString(value, String);
         }
         else if(strstr(name, ".Wan.LinkStatus"))
@@ -632,7 +653,7 @@ static void WanMgr_Rbus_EventReceiveHandler(rbusHandle_t handle, rbusEvent_t con
                 }
                 if( strstr(pParamName, ".Wan.Status") != NULL )
                 {
-                    WanMgr_StringToEnum(&pWanIfaceData->Wan.Status, ENUM_WAN_STATUS, pValue);
+                    WanMgr_StringToEnum(&pWanIfaceData->Wan.RemoteStatus, ENUM_WAN_STATUS, pValue);
                 }
             }
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
@@ -1016,12 +1037,6 @@ rbusError_t WanMgr_Rbus_SubscribeHandler(rbusHandle_t handle, rbusEventSubAction
     }
     return RBUS_ERROR_SUCCESS;
 }
-char *RemoteDMs[]  = { "Device.X_RDK_WanManager.CPEInterface.1.Name",
-    "Device.X_RDK_WanManager.CPEInterface.1.DisplayName",
-    "Device.X_RDK_WanManager.CPEInterface.1.Phy.Status",
-    "Device.X_RDK_WanManager.CPEInterface.1.Wan.Status",
-    "Device.X_RDK_WanManager.CPEInterface.1.Wan.LinkStatus"
-};
 
 void WanMgr_WanRemoteIfaceConfigure_thread(void *arg);
 
@@ -1087,40 +1102,46 @@ void WanMgr_WanRemoteIfaceConfigure_thread(void *arg)
 
     idm_invoke_method_Params_t IDM_request;
     /* IDM get request*/
-    for (int i =0; i<5; i++)
+    for (int i =0; i< ARRAY_SZ(RemoteDMs); i++)
     {
-        /* IDM get request*/
-        CcspTraceInfo(("%s %d - Requesting  %s \n", __FUNCTION__, __LINE__,RemoteDMs[i]));
-        memset(&IDM_request,0, sizeof(idm_invoke_method_Params_t));
+        if(RemoteDMs[i].get_request)
+        {
+            /* IDM get request*/
+            CcspTraceInfo(("%s %d - Requesting  %s \n", __FUNCTION__, __LINE__,RemoteDMs[i]));
+            memset(&IDM_request,0, sizeof(idm_invoke_method_Params_t));
 
-        /* Update request parameters */
-        strcpy(IDM_request.Mac_dest,remoteMac);
-        strcpy(IDM_request.param_name, RemoteDMs[i]);
-        strcpy(IDM_request.pComponent_name, "eRT.com.cisco.spvtg.ccsp.wanmanager");
-        strcpy(IDM_request.pBus_path, "/com/cisco/spvtg/ccsp/wanmanager");
-        IDM_request.timeout = 30;
-        IDM_request.operation = IDM_GET;
-        IDM_request.asyncHandle = &CPEInterface_AsyncMethodHandler; //pointer to callback
+            /* Update request parameters */
+            strcpy(IDM_request.Mac_dest,remoteMac);
+            strcpy(IDM_request.param_name, RemoteDMs[i].name);
+            strcpy(IDM_request.pComponent_name, "eRT.com.cisco.spvtg.ccsp.wanmanager");
+            strcpy(IDM_request.pBus_path, "/com/cisco/spvtg/ccsp/wanmanager");
+            IDM_request.timeout = 30;
+            IDM_request.operation = IDM_GET;
+            IDM_request.asyncHandle = &CPEInterface_AsyncMethodHandler; //pointer to callback
 
-        WanMgr_IDM_Invoke(&IDM_request);
+            WanMgr_IDM_Invoke(&IDM_request);
+        }
     }
 
     sleep(3);
     /* IDM subscription request*/
-    for (int i =2; i<5; i++)
+    for (int i =0; i< ARRAY_SZ(RemoteDMs); i++)
     {
-        /* IDM get request*/
-        CcspTraceInfo(("%s %d - Requesting  subscription %s \n", __FUNCTION__, __LINE__,RemoteDMs[i]));
-        memset(&IDM_request,0, sizeof(idm_invoke_method_Params_t));
+        if(RemoteDMs[i].subscription_request)
+        {
+            /* IDM get request*/
+            CcspTraceInfo(("%s %d - Requesting  subscription %s \n", __FUNCTION__, __LINE__,RemoteDMs[i]));
+            memset(&IDM_request,0, sizeof(idm_invoke_method_Params_t));
 
-        /* Update request parameters */
-        strcpy(IDM_request.Mac_dest,remoteMac);
-        strcpy(IDM_request.param_name, RemoteDMs[i]);
-        IDM_request.timeout = 600;
-        IDM_request.operation = IDM_SUBS;
-        IDM_request.asyncHandle = &CPEInterface_AsyncMethodHandler; //pointer to callback
+            /* Update request parameters */
+            strcpy(IDM_request.Mac_dest,remoteMac);
+            strcpy(IDM_request.param_name, RemoteDMs[i].name);
+            IDM_request.timeout = 600;
+            IDM_request.operation = IDM_SUBS;
+            IDM_request.asyncHandle = &CPEInterface_AsyncMethodHandler; //pointer to callback
 
-        WanMgr_IDM_Invoke(&IDM_request);
+            WanMgr_IDM_Invoke(&IDM_request);
+        }
     }
 
     WanMgr_GetIfaceAliasNameByIndex(newInterfaceIndex,AliasName);
@@ -1227,7 +1248,7 @@ static void CPEInterface_AsyncMethodHandler(
                 }
                 if( strstr(pParamName, ".Wan.Status") != NULL )
                 {
-                    WanMgr_StringToEnum(&pWanIfaceData->Wan.Status, ENUM_WAN_STATUS, pValue);
+                    WanMgr_StringToEnum(&pWanIfaceData->Wan.RemoteStatus, ENUM_WAN_STATUS, pValue);
                 }
             }
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);

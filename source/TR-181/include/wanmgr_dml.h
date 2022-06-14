@@ -260,6 +260,7 @@ typedef struct _DML_WANIFACE_INFO
     BOOL                        EnableIPoE;
     BOOL                        ActiveLink;
     DML_WAN_IFACE_STATUS        Status;
+    DML_WAN_IFACE_STATUS        RemoteStatus;
     DML_WAN_IFACE_LINKSTATUS    LinkStatus;
     BOOL                        Refresh;
     DML_WAN_IFACE_OPER_STATUS   OperationalStatus;

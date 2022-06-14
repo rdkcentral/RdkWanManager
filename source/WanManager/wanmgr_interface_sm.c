@@ -1101,7 +1101,7 @@ static eWanState_t wan_transition_start(WanMgr_IfaceSM_Controller_t* pWanIfaceCt
     pInterface->DSLite.Status = WAN_IFACE_DSLITE_STATE_DOWN;
 
     pInterface->Wan.Status = WAN_IFACE_STATUS_INITIALISING;
-    pInterface->Wan.LinkStatus = WAN_IFACE_LINKSTATUS_CONFIGURING;
+
     if (pWanIfaceCtrl->interfaceIdx != -1)
     {
         WanMgr_Publish_WanStatus(pWanIfaceCtrl->interfaceIdx);
@@ -1110,6 +1110,7 @@ static eWanState_t wan_transition_start(WanMgr_IfaceSM_Controller_t* pWanIfaceCt
     /*TODO: Upstream should not be set for Remote Interface, for More info, refer RDKB-42676*/
     if (pInterface->Wan.IfaceType != REMOTE_IFACE)
     {
+        pInterface->Wan.LinkStatus = WAN_IFACE_LINKSTATUS_CONFIGURING;
         if (WanMgr_RdkBus_updateInterfaceUpstreamFlag(pInterface->Phy.Path, TRUE) != ANSC_STATUS_SUCCESS)
         {
             CcspTraceInfo(("%s - Failed to set Upstream data model, exiting interface state machine\n", __FUNCTION__));
@@ -1326,7 +1327,8 @@ static eWanState_t wan_transition_refreshing_wan(WanMgr_IfaceSM_Controller_t* pW
         CcspTraceError(("%s %d - Interface '%s' - Sending Refresh message failed\n", __FUNCTION__, __LINE__, pInterface->Name));
     }
 
-    pInterface->Wan.LinkStatus = WAN_IFACE_LINKSTATUS_CONFIGURING;
+    if (pInterface->Wan.IfaceType != REMOTE_IFACE)
+        pInterface->Wan.LinkStatus = WAN_IFACE_LINKSTATUS_CONFIGURING;
     }
     pInterface->Wan.Refresh = FALSE;
 
@@ -2025,7 +2027,8 @@ static eWanState_t wan_state_obtaining_ip_addresses(WanMgr_IfaceSM_Controller_t*
 
     if ( pInterface->Wan.LinkStatus ==  WAN_IFACE_LINKSTATUS_DOWN )
     {
-        pInterface->Wan.LinkStatus =  WAN_IFACE_LINKSTATUS_CONFIGURING;
+        if (pInterface->Wan.IfaceType != REMOTE_IFACE)
+            pInterface->Wan.LinkStatus =  WAN_IFACE_LINKSTATUS_CONFIGURING;
         Update_Iface_Status();
 	Update_Current_Iface_Status();
         return WAN_STATE_CONFIGURING_WAN;

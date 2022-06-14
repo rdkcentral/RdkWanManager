@@ -1676,6 +1676,29 @@ static void WanMgr_FailOverProcess (void)
             }
         }
 
+        WanMgr_Iface_Data_t* pWanIfaceData = WanMgr_GetIfaceData_locked((ActiveInterfaceInst - 1));
+        if (pWanIfaceData != NULL)
+        {
+            DML_WAN_IFACE* pWanIface = &(pWanIfaceData->data);
+            if(pWanIface->Wan.IfaceType == REMOTE_IFACE && pWanIface->Wan.RemoteStatus != WAN_IFACE_STATUS_UP)
+            {
+                ActiveInterfaceStatus = FALSE;
+            }
+            WanMgrDml_GetIfaceData_release(pWanIfaceData);
+            pWanIfaceData = NULL;
+        }
+
+        pWanIfaceData = WanMgr_GetIfaceData_locked((StandbyInterfaceInst - 1));
+        if (pWanIfaceData != NULL)
+        {
+            DML_WAN_IFACE* pWanIface = &(pWanIfaceData->data);
+            if(pWanIface->Wan.IfaceType == REMOTE_IFACE && pWanIface->Wan.RemoteStatus != WAN_IFACE_STATUS_UP)
+            {
+                StandbyInterfaceStatus = FALSE;
+            }
+            WanMgrDml_GetIfaceData_release(pWanIfaceData);
+        }
+
         // process states
         switch (fo_sm_state)
         {

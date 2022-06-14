@@ -302,6 +302,7 @@ void WanMgr_IfaceData_Init(WanMgr_Iface_Data_t* pIfaceData, UINT iface_index)
         pWanDmlIface->Wan.ActiveLink = FALSE;
 	pWanDmlIface->SelectionStatus = WAN_IFACE_NOT_SELECTED;
         pWanDmlIface->Wan.Status = WAN_IFACE_STATUS_DISABLED;
+        pWanDmlIface->Wan.RemoteStatus = WAN_IFACE_STATUS_DISABLED;
         pWanDmlIface->Wan.LinkStatus = WAN_IFACE_LINKSTATUS_DOWN;
         pWanDmlIface->Wan.Refresh = FALSE;
         pWanDmlIface->Wan.RebootOnConfiguration = FALSE;
