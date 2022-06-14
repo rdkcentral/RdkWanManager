@@ -188,6 +188,49 @@ WanMgr_Iface_Data_t* WanMgr_GetIfaceDataByName_locked(char* iface_name)
     return NULL;
 }
 
+void WanMgr_GetIfaceAliasNameByIndex(UINT iface_index, char *AliasName)
+{
+    if(pthread_mutex_lock(&(gWanMgrDataBase.IfaceCtrl.mDataMutex)) == 0)
+    {
+        WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl = &(gWanMgrDataBase.IfaceCtrl);
+        if(iface_index < pWanIfaceCtrl->ulTotalNumbWanInterfaces)
+        {
+            if(pWanIfaceCtrl->pIface != NULL)
+            {
+                WanMgr_Iface_Data_t* pWanIfaceData = &(pWanIfaceCtrl->pIface[iface_index]);
+                strcpy(AliasName,pWanIfaceData->data.AliasName);
+            }
+        }
+        WanMgrDml_GetIfaceData_release(NULL);
+    }
+    CcspTraceInfo(("%s-%d : AliasName[%s]\n", __FUNCTION__, __LINE__, AliasName));
+}
+
+UINT WanMgr_GetIfaceIndexByAliasName(char* AliasName)
+{
+   UINT index = -1;
+
+    if(pthread_mutex_lock(&(gWanMgrDataBase.IfaceCtrl.mDataMutex)) == 0)
+    {
+        WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl = &(gWanMgrDataBase.IfaceCtrl);
+        if(pWanIfaceCtrl->pIface != NULL)
+        {
+            for(int idx = 0; idx < pWanIfaceCtrl->ulTotalNumbWanInterfaces; idx++)
+            {
+                WanMgr_Iface_Data_t* pWanIfaceData = &(pWanIfaceCtrl->pIface[idx]);
+                if(strstr(AliasName, pWanIfaceData->data.AliasName) != NULL)
+                {
+                    index = idx + 1;
+                }
+            }
+        }
+        WanMgrDml_GetIfaceData_release(NULL);
+    }
+
+    CcspTraceInfo(("%s-%d : Alias(%s) index[%d]\n", __FUNCTION__, __LINE__, AliasName,index));
+    return index;
+}
+
 
 void WanMgrDml_GetIfaceData_release(WanMgr_Iface_Data_t* pWanIfaceData)
 {
@@ -242,6 +285,7 @@ void WanMgr_IfaceData_Init(WanMgr_Iface_Data_t* pIfaceData, UINT iface_index)
         pWanDmlIface->uiInstanceNumber = iface_index+1;
         memset(pWanDmlIface->Name, 0, 64);
         memset(pWanDmlIface->DisplayName, 0, 64);
+        memset(pWanDmlIface->AliasName, 0, 64);
         memset(pWanDmlIface->Phy.Path, 0, 64);
         pWanDmlIface->Phy.Status = WAN_IFACE_PHY_STATUS_DOWN;
         memset(pWanDmlIface->Wan.Name, 0, 64);
@@ -312,6 +356,7 @@ void WanMgr_Remote_IfaceData_Init(WanMgr_Iface_Data_t* pIfaceData, UINT iface_in
         pWanDmlIface->uiInstanceNumber = iface_index+1;
         memset(pWanDmlIface->Name, 0, 64);
         memset(pWanDmlIface->DisplayName, 0, 64);
+        memset(pWanDmlIface->AliasName, 0, 64);
         memset(pWanDmlIface->Phy.Path, 0, 64);
         pWanDmlIface->Phy.Status = WAN_IFACE_PHY_STATUS_DOWN;
         memset(pWanDmlIface->Wan.Name, 0, 64);

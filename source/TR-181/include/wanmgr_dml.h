@@ -363,6 +363,7 @@ typedef struct _DML_WANIFACE_SUBSCRIBE
     UINT PhyStatusSub;
     UINT WanStatusSub;
     UINT WanLinkStatusSub;
+    UINT WanEnableSub;
 } DML_WANIFACE_SUBSCRIBE;
 
 typedef struct _DML_WAN_INTERFACE
@@ -371,6 +372,7 @@ typedef struct _DML_WAN_INTERFACE
     UINT                        uiInstanceNumber;
     CHAR                        Name[BUFLEN_64];
     CHAR                        DisplayName[BUFLEN_64];
+    CHAR                        AliasName[BUFLEN_64];
     WANMGR_IFACE_SELECTION      SelectionStatus;
     BOOL                        MonitorOperStatus;
     BOOL                        WanConfigEnabled;

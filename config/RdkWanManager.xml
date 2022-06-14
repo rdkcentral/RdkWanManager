@@ -189,12 +189,14 @@
                                 <func_Rollback>WanIfCfg_Rollback</func_Rollback>
                             </functions>
                             <parameters>
+<?ifndef RBUS_BUILD_FLAG_ENABLE?>
                                 <parameter>
                                     <name>Enable</name>
                                     <type>boolean</type>
                                     <syntax>bool</syntax>
                                     <writable>true</writable>
                                 </parameter>
+<?endif?>
                                 <parameter>
                                     <name>Name</name>
                                     <type>string</type>

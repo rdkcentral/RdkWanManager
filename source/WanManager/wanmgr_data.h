@@ -95,6 +95,8 @@ WanMgr_Iface_Data_t* WanMgr_GetIfaceDataByName_locked(char* iface_name);
 void WanMgrDml_GetIfaceData_release(WanMgr_Iface_Data_t* pWanIfaceData);
 void WanMgr_IfaceData_Init(WanMgr_Iface_Data_t* pIfaceData, UINT uiInstNumber);
 ANSC_STATUS WanMgr_WanDataInit(void);
+void WanMgr_GetIfaceAliasNameByIndex(UINT iface_index, char *AliasName);
+UINT WanMgr_GetIfaceIndexByAliasName(char* AliasName);
 
 //WAN IFACE CTRL
 void WanMgr_SetIfaceCtrl_Default(WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl);

@@ -33,6 +33,7 @@
 #define PSM_WANMANAGER_IF_ACTIVELINK                        "dmsb.wanmanager.if.%d.ActiveLink"
 #define PSM_WANMANAGER_IF_NAME                              "dmsb.wanmanager.if.%d.Name"
 #define PSM_WANMANAGER_IF_DISPLAY_NAME                      "dmsb.wanmanager.if.%d.DisplayName"
+#define PSM_WANMANAGER_IF_ALIAS_NAME                        "dmsb.wanmanager.if.%d.AliasName"
 #define PSM_WANMANAGER_IF_TYPE                              "dmsb.wanmanager.if.%d.Type"
 #define PSM_WANMANAGER_IF_PRIORITY                          "dmsb.wanmanager.if.%d.Priority"
 #define PSM_WANMANAGER_IF_SELECTIONTIMEOUT                  "dmsb.wanmanager.if.%d.SelectionTimeout"

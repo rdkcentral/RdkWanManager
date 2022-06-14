@@ -21,7 +21,7 @@
 #include "wanmgr_data.h"
 #include "wanmgr_net_utils.h"
 #include "wanmgr_rbus_handler_apis.h"
-
+#include "dmsb_tr181_psm_definitions.h"
 enum {
 ENUM_PHY = 1,
 ENUM_WAN_STATUS,
@@ -63,6 +63,10 @@ rbusDataElement_t wanMgrRbusDataElements[NUM_OF_RBUS_PARAMS] = {
 
 rbusDataElement_t wanMgrIfacePublishElements[] = {
     {WANMGR_INFACE, RBUS_ELEMENT_TYPE_TABLE, {NULL, NULL, NULL, NULL, NULL, NULL}},
+    {WANMGR_INFACE_WAN_ENABLE, RBUS_ELEMENT_TYPE_EVENT | RBUS_ELEMENT_TYPE_PROPERTY,
+    {WanMgr_Interface_GetHandler, WanMgr_Interface_SetHandler, NULL, NULL, wanMgrDmlPublishEventHandler, NULL}},
+    {WANMGR_INFACE_ALIASNAME, RBUS_ELEMENT_TYPE_EVENT | RBUS_ELEMENT_TYPE_PROPERTY,
+    {WanMgr_Interface_GetHandler, WanMgr_Interface_SetHandler, NULL, NULL, wanMgrDmlPublishEventHandler, NULL}},
     {WANMGR_INFACE_PHY_STATUS, RBUS_ELEMENT_TYPE_EVENT | RBUS_ELEMENT_TYPE_PROPERTY,
     {WanMgr_Interface_GetHandler, WanMgr_Interface_SetHandler, NULL, NULL, wanMgrDmlPublishEventHandler, NULL}},
     {WANMGR_INFACE_WAN_STATUS, RBUS_ELEMENT_TYPE_EVENT | RBUS_ELEMENT_TYPE_PROPERTY,
@@ -125,7 +129,8 @@ static void WanMgr_StringToEnum(UINT *Enum, UINT EnumType, char* String)
 rbusError_t wanMgrDmlPublishEventHandler(rbusHandle_t handle, rbusEventSubAction_t action, const char* eventName, rbusFilter_t filter, int32_t interval, bool* autoPublish)
 {
     char *subscribe_action = NULL;
-    uint32_t index = 0;
+    UINT index = 0;
+    char AliasName[64] = {0};
 
     CcspTraceInfo(("%s %d - Event %s has been subscribed from subscribed\n", __FUNCTION__, __LINE__,eventName ));
     subscribe_action = action == RBUS_EVENT_ACTION_SUBSCRIBE ? "subscribe" : "unsubscribe";
@@ -136,7 +141,18 @@ rbusError_t wanMgrDmlPublishEventHandler(rbusHandle_t handle, rbusEventSubAction
         CcspTraceInfo(("%s %d - Property get name is NULL\n", __FUNCTION__, __LINE__));
         return RBUS_ERROR_BUS_ERROR;
     }
-    sscanf(eventName, "Device.X_RDK_WanManager.CPEInterface.%d.", &index);
+
+    CcspTraceInfo(("%s-%d : Input eventName(%s)\n", __FUNCTION__, __LINE__, eventName));
+
+    sscanf(eventName, "Device.X_RDK_WanManager.CPEInterface.%s.", &AliasName);
+    index = WanMgr_GetIfaceIndexByAliasName(AliasName);
+
+    if(index  == -1)
+    {
+        sscanf(eventName, "Device.X_RDK_WanManager.CPEInterface.%d.", &index);
+    }
+
+    CcspTraceInfo(("%s-%d : index(%d)\n", __FUNCTION__, __LINE__, index));
     WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked((index - 1));
     if(pWanDmlIfaceData != NULL)
     {
@@ -205,6 +221,27 @@ rbusError_t wanMgrDmlPublishEventHandler(rbusHandle_t handle, rbusEventSubAction
                 CcspTraceInfo(("%s-%d : WanLinkStatus UnSub(%d) \n", __FUNCTION__, __LINE__, pWanDmlIface->Sub.WanLinkStatusSub));
             }
         }
+        else if(strstr(eventName, ".Wan.Enable"))
+        {
+            if (action == RBUS_EVENT_ACTION_SUBSCRIBE)
+            {
+                if (pWanDmlIface->Sub.WanEnableSub == 0)
+                {
+                    pWanDmlIface->Sub.WanEnableSub = 1;
+                }
+                else
+                {
+                    pWanDmlIface->Sub.WanEnableSub++;
+                }
+                CcspTraceInfo(("%s-%d : WanEnable Sub(%d) \n", __FUNCTION__, __LINE__, pWanDmlIface->Sub.WanEnableSub));
+            }
+            else
+            {
+                if (pWanDmlIface->Sub.WanEnableSub)
+                    pWanDmlIface->Sub.WanEnableSub--;
+                CcspTraceInfo(("%s-%d : WanEnable UnSub(%d) \n", __FUNCTION__, __LINE__, pWanDmlIface->Sub.WanEnableSub));
+            }
+        }
         WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
     }
     return RBUS_ERROR_SUCCESS;
@@ -214,7 +251,8 @@ rbusError_t WanMgr_Interface_GetHandler(rbusHandle_t handle, rbusProperty_t prop
 {
     char const* name = rbusProperty_GetName(property);
     rbusValue_t value;
-    uint32_t index = 0;
+    UINT index = 0;
+    char AliasName[64] = {0};
     rbusError_t ret = RBUS_ERROR_SUCCESS;
 
     if(name == NULL)
@@ -225,7 +263,17 @@ rbusError_t WanMgr_Interface_GetHandler(rbusHandle_t handle, rbusProperty_t prop
 
     rbusValue_Init(&value);
 
-    sscanf(name, "Device.X_RDK_WanManager.CPEInterface.%d.", &index);
+    CcspTraceInfo(("%s-%d : Input name(%s)\n", __FUNCTION__, __LINE__, name));
+
+    sscanf(name, "Device.X_RDK_WanManager.CPEInterface.%s.", &AliasName);
+    index = WanMgr_GetIfaceIndexByAliasName(AliasName);
+
+    if(index  == -1)
+    {
+        sscanf(name, "Device.X_RDK_WanManager.CPEInterface.%d.", &index);
+    }
+
+    CcspTraceInfo(("%s-%d : index(%d)\n", __FUNCTION__, __LINE__, index));
     WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked((index - 1));
     if(pWanDmlIfaceData != NULL)
     {
@@ -249,6 +297,15 @@ rbusError_t WanMgr_Interface_GetHandler(rbusHandle_t handle, rbusProperty_t prop
             WanMgr_EnumToString(pWanDmlIface->Wan.LinkStatus, ENUM_WAN_LINKSTATUS, String);
             rbusValue_SetString(value, String);
         }
+        else if(strstr(name, ".Wan.Enable"))
+        {
+            BOOL Enable = pWanDmlIface->Wan.Enable;
+            rbusValue_SetBoolean(value, Enable);
+        }
+        else if(strstr(name, ".AliasName"))
+        {
+            rbusValue_SetString(value, pWanDmlIface->AliasName);
+        }
         WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
     }
     rbusProperty_SetValue(property, value);
@@ -265,7 +322,8 @@ rbusError_t WanMgr_Interface_SetHandler(rbusHandle_t handle, rbusProperty_t prop
     rbusValue_t value = rbusProperty_GetValue(prop);
     rbusValueType_t type = rbusValue_GetType(value);
     rbusError_t ret = RBUS_ERROR_SUCCESS;
-    uint32_t index = 0;
+    UINT index = 0;
+    char AliasName[64] = {0};
 
     if(name == NULL)
     {
@@ -273,7 +331,17 @@ rbusError_t WanMgr_Interface_SetHandler(rbusHandle_t handle, rbusProperty_t prop
         return RBUS_ERROR_BUS_ERROR;
     }
 
-    sscanf(name, "Device.X_RDK_WanManager.CPEInterface.%d.", &index);
+    CcspTraceInfo(("%s-%d : Input name(%s)\n", __FUNCTION__, __LINE__, name));
+
+    sscanf(name, "Device.X_RDK_WanManager.CPEInterface.%s.", &AliasName);
+    index = WanMgr_GetIfaceIndexByAliasName(AliasName);
+
+    if(index  == -1)
+    {
+        sscanf(name, "Device.X_RDK_WanManager.CPEInterface.%d.", &index);
+    }
+
+    CcspTraceInfo(("%s-%d : index(%d)\n", __FUNCTION__, __LINE__, index));
     WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked((index - 1));
     if(pWanDmlIfaceData != NULL)
     {
@@ -325,6 +393,36 @@ rbusError_t WanMgr_Interface_SetHandler(rbusHandle_t handle, rbusProperty_t prop
                 {
                     CcspTraceInfo(("%s-%d : WanLinkStatus Publish Event, SubCount(%d)\n", __FUNCTION__, __LINE__, pWanDmlIface->Sub.WanLinkStatusSub));
                     WanMgr_Rbus_EventPublishHandler(name, &String, type);
+                }
+            }
+            else
+            {
+                ret = RBUS_ERROR_INVALID_INPUT;
+            }
+        }
+        else if(strstr(name, ".Wan.Enable"))
+        {
+            if (type == RBUS_BOOLEAN)
+            {
+                BOOL Enable = FALSE;
+                char param_name[256] = {0};
+                _ansc_sprintf(param_name, PSM_WANMANAGER_IF_ENABLE, index);
+                if(rbusValue_GetBoolean(value))
+                {
+                    pWanDmlIface->Wan.Enable = TRUE;
+                    WanMgr_RdkBus_SetParamValuesToDB(param_name,"TRUE");
+                    Enable = TRUE;
+                }
+                else
+                {
+                    pWanDmlIface->Wan.Enable = FALSE;
+                    WanMgr_RdkBus_SetParamValuesToDB(param_name,"FALSE");
+                    Enable = FALSE;
+                }
+                if (pWanDmlIface->Sub.WanEnableSub)
+                {
+                    CcspTraceInfo(("%s-%d : WanEnable Publish Event, SubCount(%d)\n", __FUNCTION__, __LINE__, pWanDmlIface->Sub.WanEnableSub));
+                    WanMgr_Rbus_EventPublishHandler(name, &Enable, type);
                 }
             }
             else
@@ -723,6 +821,7 @@ ANSC_STATUS WanMgr_Rbus_Init()
 {
     int rc = ANSC_STATUS_FAILURE;
 
+    char AliasName[64] = {0};
     rc = rbus_open(&rbusHandle, componentName);
     if (rc != RBUS_ERROR_SUCCESS)
     {
@@ -753,7 +852,8 @@ ANSC_STATUS WanMgr_Rbus_Init()
 
     for (int i = 0; i < uiTotalIfaces; i++)
     {
-        rc = rbusTable_registerRow(rbusHandle, WANMGR_INFACE_TABLE, (i+1), NULL);
+        WanMgr_GetIfaceAliasNameByIndex(i,AliasName);
+        rc = rbusTable_registerRow(rbusHandle, WANMGR_INFACE_TABLE, (i+1), AliasName);
         if(rc != RBUS_ERROR_SUCCESS)
         {
             CcspTraceError(("%s %d - Iterface(%d) Table (%s) UnRegistartion failed, Error=%d \n", __FUNCTION__, __LINE__, i, WANMGR_INFACE_TABLE, rc));
@@ -761,8 +861,9 @@ ANSC_STATUS WanMgr_Rbus_Init()
         }
         else
         {
-             CcspTraceInfo(("%s %d - Iterface(%d) Table (%s) Registartion Successfully\n", __FUNCTION__, __LINE__, i, WANMGR_INFACE_TABLE));
+             CcspTraceInfo(("%s %d - Iterface(%d) Table (%s) Registartion Successfully, AliasName(%s)\n", __FUNCTION__, __LINE__, i, WANMGR_INFACE_TABLE, AliasName));
         }
+        memset(AliasName,0,64);
      }
 
     return ANSC_STATUS_SUCCESS;
@@ -826,7 +927,7 @@ ANSC_STATUS WanMgr_Rbus_EventPublishHandler(char *dm_event, void *dm_value, rbus
     {
         case RBUS_BOOLEAN:
             rbusValue_SetBoolean(value, (*(bool*)(dm_value)));
-            CcspTraceInfo(("%s %d - dm_value[%s]\n", __FUNCTION__, __LINE__, (dm_value)?"True":"False"));
+            CcspTraceInfo(("%s %d - dm_value[%s]\n", __FUNCTION__, __LINE__, (*(bool*)(dm_value))?"True":"False"));
             break;
         case RBUS_UINT64:
             rbusValue_SetUInt64(value, (*(int*)(dm_value)));
@@ -951,6 +1052,7 @@ void WanMgr_WanRemoteIfaceConfigure_thread(void *arg)
     int  newInterfaceIndex   = -1;
     int  rc = ANSC_STATUS_FAILURE;
     char *remoteMac =  (char*)arg;
+    char AliasName[64] = {0};
 
     CcspTraceInfo(("%s %d - Enter \n", __FUNCTION__, __LINE__));
 
@@ -981,21 +1083,6 @@ void WanMgr_WanRemoteIfaceConfigure_thread(void *arg)
             free(remoteMac);
         }
         return ANSC_STATUS_FAILURE;
-    }
-
-    rc = rbusTable_registerRow(rbusHandle, WANMGR_INFACE_TABLE, (newInterfaceIndex+1), NULL);
-    if(rc != RBUS_ERROR_SUCCESS)
-    {
-        CcspTraceError(("%s %d - Iterface(%d) Table (%s) UnRegistartion failed, Error=%d \n", __FUNCTION__, __LINE__, (newInterfaceIndex+1), WANMGR_INFACE_TABLE, rc));
-        if(remoteMac != NULL)
-        {
-            free(remoteMac);
-        }
-        return rc;
-    }
-    else
-    {
-        CcspTraceInfo(("%s %d - Iterface(%d) Table (%s) Registartion Successfully\n", __FUNCTION__, __LINE__, (newInterfaceIndex+1), WANMGR_INFACE_TABLE));
     }
 
     idm_invoke_method_Params_t IDM_request;
@@ -1036,11 +1123,31 @@ void WanMgr_WanRemoteIfaceConfigure_thread(void *arg)
         WanMgr_IDM_Invoke(&IDM_request);
     }
 
+    WanMgr_GetIfaceAliasNameByIndex(newInterfaceIndex,AliasName);
+
+    CcspTraceError(("%s %d - Iterface(%d) AliasName[%s]\n", __FUNCTION__, __LINE__, newInterfaceIndex, AliasName));
+    rc = rbusTable_registerRow(rbusHandle, WANMGR_INFACE_TABLE, (newInterfaceIndex+1), AliasName);
+
+    if(rc != RBUS_ERROR_SUCCESS)
+    {
+        CcspTraceError(("%s %d - Iterface(%d) Table (%s) UnRegistartion failed, Error=%d \n", __FUNCTION__, __LINE__, (newInterfaceIndex+1), WANMGR_INFACE_TABLE, rc));
+        if(remoteMac != NULL)
+        {
+            free(remoteMac);
+        }
+        return rc;
+    }
+    else
+    {
+        CcspTraceInfo(("%s %d - Iterface(%d) Table (%s) Registartion Successfully AliasName[%s]\n", __FUNCTION__, __LINE__, (newInterfaceIndex+1), WANMGR_INFACE_TABLE,AliasName));
+    }
+
     if(remoteMac != NULL)
     {
         free(remoteMac);
     }
     pthread_exit(NULL);
+
     return ANSC_STATUS_SUCCESS;
 }
 
@@ -1100,6 +1207,13 @@ static void CPEInterface_AsyncMethodHandler(
                     char DisplayName[64] = {0};
                     snprintf(DisplayName, sizeof(DisplayName), "REMOTE_%s" , pValue);
                     strcpy( pWanIfaceData->DisplayName, DisplayName );
+                }
+
+                if( strstr(pParamName, ".AliasName") != NULL)
+                {
+                    char AliasName[64] = {0};
+                    snprintf(AliasName, sizeof(AliasName), "REMOTE_%s" , pValue);
+                    strcpy( pWanIfaceData->AliasName, AliasName );
                 }
 
                 if( strstr(pParamName, ".Phy.Status") != NULL )

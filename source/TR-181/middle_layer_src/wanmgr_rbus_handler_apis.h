@@ -38,6 +38,8 @@
 #define WANMGR_INFACE_PHY_STATUS                      "Device.X_RDK_WanManager.CPEInterface.{i}.Phy.Status"
 #define WANMGR_INFACE_WAN_STATUS                      "Device.X_RDK_WanManager.CPEInterface.{i}.Wan.Status"
 #define WANMGR_INFACE_WAN_LINKSTATUS                  "Device.X_RDK_WanManager.CPEInterface.{i}.Wan.LinkStatus"
+#define WANMGR_INFACE_WAN_ENABLE                      "Device.X_RDK_WanManager.CPEInterface.{i}.Wan.Enable"
+#define WANMGR_INFACE_ALIASNAME                       "Device.X_RDK_WanManager.CPEInterface.{i}.AliasName"
 
 typedef enum _IDM_MSG_OPERATION
 {

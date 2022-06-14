@@ -886,11 +886,13 @@ BOOL WanIfCfg_GetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL* 
             DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
 
             //* check the parameter name and return the corresponding value */
+#ifndef RBUS_BUILD_FLAG_ENABLE
             if (strcmp(ParamName, "Enable") == 0)
             {
                 *pBool = pWanDmlIface->Wan.Enable;
                 ret = TRUE;
             }
+#endif //RBUS_BUILD_FLAG_ENABLE
             if (strcmp(ParamName, "Refresh") == 0)
             {
                 *pBool = pWanDmlIface->Wan.Refresh;
@@ -978,11 +980,13 @@ BOOL WanIfCfg_SetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL b
             DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
 
             /* check the parameter name and set the corresponding value */
+#ifndef RBUS_BUILD_FLAG_ENABLE
             if (strcmp(ParamName, "Enable") == 0)
             {
                 pWanDmlIface->Wan.Enable  = bValue;
                 ret = TRUE;
             }
+#endif //RBUS_BUILD_FLAG_ENABLE
             if (strcmp(ParamName, "Refresh") == 0)
             {
                 pWanDmlIface->Wan.Refresh = bValue;
