@@ -53,6 +53,8 @@
 #define DHCP6C_RENEW_PREFIX_FILE    "/tmp/erouter0.dhcpc6c_renew_prefix.conf"
 #endif /* FEATURE_IPOE_HEALTH_CHECK */
 
+#define WANMGR_RESTART_INFO_FILE          "/tmp/rdkwanmanager.db"
+#define WANMGR_RESTART_INFO_TMP_FILE      "/tmp/rdkwanmanager_tmp.db"
 
 /***************************************************************************
  * @brief Utility function used to start application
@@ -154,4 +156,5 @@ int util_runCommandInShellBlocking(char *command);
 int util_getZombiePidByName(char * name);
 void WanManager_Util_GetShell_output(char *cmd, char *out, int len);
 
+ANSC_STATUS WanMgr_RestartUpdatePhyPath (const char * param, int idx, char * output, int size);
 #endif /* _WANMGR_UTILS_H_ */

@@ -467,3 +467,34 @@ WanMgr_Iface_Data_t* WanMgr_Remote_IfaceData_configure(char *remoteCPEMac, int  
         return pIfaceData;
     }
 }
+
+ANSC_STATUS WanMgr_UpdatePrevData ()
+{
+    if (access(WANMGR_RESTART_INFO_FILE, F_OK) != 0)
+    {
+        return ANSC_STATUS_FAILURE;
+    }
+
+    UINT uiLoopCount;
+    int uiInterfaceIdx = -1;
+
+    UINT TotalIfaces = WanMgr_IfaceData_GetTotalWanIface();
+    for( uiLoopCount = 0; uiLoopCount < TotalIfaces; uiLoopCount++ )
+    {
+        WanMgr_Iface_Data_t*   pWanDmlIfaceData = WanMgr_GetIfaceData_locked(uiLoopCount);
+        if(pWanDmlIfaceData != NULL)
+        {
+            DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
+            
+            WanMgr_RestartUpdatePhyPath (WAN_PHY_PATH_PARAM_NAME, uiLoopCount, pWanIfaceData->Phy.Path, sizeof(pWanIfaceData->Phy.Path));
+            #if !defined(AUTOWAN_ENABLE)
+            WanMgr_RestartGetPhyStatus(pWanIfaceData);
+            #endif
+            
+            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+        }
+    }   
+
+    return ANSC_STATUS_SUCCESS;
+
+}

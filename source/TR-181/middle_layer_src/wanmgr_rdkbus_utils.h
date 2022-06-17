@@ -67,11 +67,17 @@
 #define UPSTREAM_DM_SUFFIX                  ".Upstream"
 #define WAN_CONFIG_PORT_DM_SUFFIX           ".WanConfigPort"
 
+#define WAN_PHY_PATH_PARAM_NAME             "Device.X_RDK_WanManager.CPEInterface.%d.Phy.Path"
+#define STATUS_DM_SUFFIX                    ".Status"
+#define VLAN_ETHLINK_STATUS_PARAM_NAME      "Device.X_RDK_Ethernet.Link.%d.Status"
+#define VLAN_ETHLINK_NAME_PARAM_NAME        "Device.X_RDK_Ethernet.Link.%d.Name"
+
 //VLAN Agent
 #define VLAN_DBUS_PATH                     "/com/cisco/spvtg/ccsp/vlanmanager"
 #define VLAN_COMPONENT_NAME                "eRT.com.cisco.spvtg.ccsp.vlanmanager"
 #define VLAN_ETHLINK_NOE_PARAM_NAME        "Device.X_RDK_Ethernet.LinkNumberOfEntries"
 #define VLAN_ETHLINK_TABLE_NAME            "Device.X_RDK_Ethernet.Link."
+#define VLAN_ETHLINK_TABLE_FORMAT          "Device.X_RDK_Ethernet.Link.%d."
 #define VLAN_ETHLINK_REFRESH_PARAM_NAME    "Device.X_RDK_Ethernet.Link.%d.X_RDK_Refresh"
 //XDSL Manager
 #define DSL_COMPONENT_NAME "eRT.com.cisco.spvtg.ccsp.xdslmanager"
@@ -122,6 +128,10 @@ ANSC_STATUS DmlGetInstanceByKeywordFromPandM(char *ifname, int *piInstanceNumber
 ANSC_STATUS WanMgr_RdkBus_SetRequestIfComponent(char *pPhyPath, char *pInputparamName, char *pInputParamValue, enum dataType_e type);
 ANSC_STATUS WaitForInterfaceComponentReady(char *pPhyPath);
 ANSC_STATUS WanMgr_RdkBus_Get_InterfaceRebootRequired(UINT IfaceIndex, BOOL *RebootRequired);
+
+ANSC_STATUS WanMgr_RestartGetPhyStatus (DML_WAN_IFACE *pWanIfaceData);
+ANSC_STATUS WanMgr_RestartGetLinkStatus (DML_WAN_IFACE *pWanIfaceData);
+
 #ifdef FEATURE_RDKB_AUTO_PORT_SWITCH
 void WanMgr_SetPortCapabilityForEthIntf(DML_WAN_POLICY eWanPolicy);
 #endif  //FEATURE_RDKB_AUTO_PORT_SWITCH

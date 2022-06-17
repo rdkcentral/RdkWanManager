@@ -1332,6 +1332,7 @@ BOOL WanIfPhy_SetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, char
             if (strcmp(ParamName, "Path") == 0)
             {
                 AnscCopyString(pWanDmlIface->Phy.Path, pString);
+                WanMgr_SetRestartWanInfo(WAN_PHY_PATH_PARAM_NAME, pWanDmlIface->uiIfaceIdx, pString);
                 ret = TRUE;
             }
 

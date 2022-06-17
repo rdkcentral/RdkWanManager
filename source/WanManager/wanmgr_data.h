@@ -25,6 +25,8 @@
 #include "ansc_string_util.h"
 #include "wanmgr_dml.h"
 #include "wanmgr_rbus_handler_apis.h"
+#include "wanmgr_rdkbus_utils.h"
+#include "wanmgr_utils.h"
 
 //Minimum SelectionTimeOut Value
 #define SELECTION_TIMEOUT_DEFAULT_MIN 20

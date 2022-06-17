@@ -1159,7 +1159,10 @@ static eWanState_t wan_transition_start(WanMgr_IfaceSM_Controller_t* pWanIfaceCt
             CcspTraceInfo(("%s - Failed to set Upstream data model, exiting interface state machine\n", __FUNCTION__));
             return WAN_STATE_EXIT;
         }
+        //Update Link status if wanmanager restarted.
+        WanMgr_RestartGetLinkStatus(pInterface);
     }
+
     CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION START\n", __FUNCTION__, __LINE__, pInterface->Name));
 
     WanMgr_Set_ISM_RunningStatus(TRUE);

@@ -685,9 +685,7 @@ static ANSC_STATUS WanMgr_RdkBus_GetInterfaceInstanceInOtherAgent( WAN_NOTIFY_EN
                     snprintf( tmpTableParam, sizeof(tmpTableParam), "%s", a2cTmpTableParams[ iLoopCount ] );
 
                     //Get last two chareters from return value and cut the instance
-                    last_two = &tmpTableParam[strlen(tmpTableParam) - 2];
-
-                    *piInstanceNumber   = atoi(last_two);
+                    sscanf(tmpTableParam, VLAN_ETHLINK_TABLE_FORMAT , piInstanceNumber);
                     break;
                 }
             }
@@ -859,4 +857,80 @@ int WanMgr_RdkBus_SetParamValuesToDB( char *pParamName, char *pParamVal )
 #endif
 
     return retPsmSet;
+}
+ANSC_STATUS WanMgr_RestartGetPhyStatus (DML_WAN_IFACE *pWanIfaceData)
+{
+    //get PHY status
+    char dmQuery[BUFLEN_256] = {0};
+    char dmValue[BUFLEN_256] = {0};
+
+    if(pWanIfaceData->Phy.Path == NULL)
+    {
+        CcspTraceError(("%s %d: Invalid args\n", __FUNCTION__, __LINE__));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    snprintf(dmQuery, sizeof(dmQuery)-1, "%s%s", pWanIfaceData->Phy.Path, STATUS_DM_SUFFIX);
+    if ( ANSC_STATUS_FAILURE == WanMgr_RdkBus_GetParamValueFromAnyComp (dmQuery, dmValue))
+    {
+        CcspTraceError(("%s-%d: %s, Failed to get param value\n", __FUNCTION__, __LINE__, dmQuery));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    if(strcmp(dmValue,"Up") == 0)
+    {
+        pWanIfaceData->Phy.Status = WAN_IFACE_PHY_STATUS_UP;
+    }
+
+    return ANSC_STATUS_SUCCESS;
+}
+
+ANSC_STATUS WanMgr_RestartGetLinkStatus (DML_WAN_IFACE *pWanIfaceData)
+{
+    //get PHY status
+    char dmQuery[BUFLEN_256] = {0};
+    char dmValue[BUFLEN_256] = {0};
+
+    //get Vlan status
+
+    INT     iVLANInstance   = -1;
+    WanMgr_RdkBus_GetInterfaceInstanceInOtherAgent( NOTIFY_TO_VLAN_AGENT, pWanIfaceData->Name, &iVLANInstance );
+
+    //Index is not present. so no need to do anything any VLAN instance
+    if( -1 != iVLANInstance )
+    {
+        CcspTraceInfo(("%s %d VLAN Instance:%d\n",__FUNCTION__, __LINE__,iVLANInstance));
+
+        snprintf(dmQuery, sizeof(dmQuery)-1,VLAN_ETHLINK_STATUS_PARAM_NAME, iVLANInstance);
+
+        if ( ANSC_STATUS_FAILURE == WanMgr_RdkBus_GetParamValueFromAnyComp (dmQuery, dmValue))
+        {
+            CcspTraceError(("%s-%d: %s, Failed to get param value\n", __FUNCTION__, __LINE__, dmQuery));
+            return ANSC_STATUS_FAILURE;
+        }
+
+        if(strcmp(dmValue,"Up") == 0)
+        {
+            pWanIfaceData->Wan.LinkStatus = WAN_IFACE_LINKSTATUS_UP;
+        }
+
+        //Get Vlan interface name
+        memset(dmQuery, 0, sizeof(dmQuery));
+        memset(dmValue, 0, sizeof(dmValue));
+
+        snprintf(dmQuery, sizeof(dmQuery)-1,VLAN_ETHLINK_NAME_PARAM_NAME, iVLANInstance);
+
+        if ( ANSC_STATUS_FAILURE == WanMgr_RdkBus_GetParamValueFromAnyComp (dmQuery, dmValue))
+        {
+            CcspTraceError(("%s-%d: %s, Failed to get param value\n", __FUNCTION__, __LINE__, dmQuery));
+            return ANSC_STATUS_FAILURE;
+        }
+
+        if(dmValue != NULL)
+        {
+            strncpy(pWanIfaceData->Wan.Name, dmValue, sizeof(pWanIfaceData->Wan.Name));  
+        }
+    }
+
+    return ANSC_STATUS_SUCCESS;
 }

@@ -939,3 +939,118 @@ void WanManager_Util_GetShell_output(char *cmd, char *out, int len)
         pclose(fp);
     }
 }
+
+ANSC_STATUS WanMgr_RestartUpdatePhyPath (const char * param, int idx, char * output, int size)
+{
+    if ((param == NULL))
+    {
+        CcspTraceError(("%s %d: Invalid args\n", __FUNCTION__, __LINE__));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    FILE * orig_fp = NULL;
+    orig_fp = fopen(WANMGR_RESTART_INFO_FILE, "r");
+
+    if (orig_fp == NULL)
+    {
+        CcspTraceError(("%s %d: unable to open file %s", __FUNCTION__, __LINE__, strerror(errno)));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    char key[256] = {0};
+    memset (output, 0, size);
+
+    if (idx > -1)
+    {
+        // key has a index
+        snprintf(key, sizeof(key), param, idx);
+    }
+    else
+        strncpy(key, param, sizeof(key)-1);
+
+    if (orig_fp != NULL)
+    {
+        ssize_t nread;
+        size_t len = 0;
+        char *line = NULL;
+        char *c = NULL;
+        char *val = NULL;
+
+        while ((nread = getline(&line, &len, orig_fp)) != -1)
+        {
+            c = strstr(line, key);
+            if (c == NULL)  continue;
+            val = c + strlen(key) + 1;
+            strncpy(output, val, size - 1);
+            if (output[strlen(output) - 1] == '\n') output[strlen(output) - 1] = 0;
+            break;
+        }
+
+        if (line)
+        {
+            free(line);
+        }
+        fclose (orig_fp);
+    }
+    return ANSC_STATUS_SUCCESS;
+}
+
+int WanMgr_SetRestartWanInfo (const char * param, int idx, char * value)
+{
+    if ((param == NULL) || (value == NULL))
+    {
+        CcspTraceError(("%s %d: Invalid args\n", __FUNCTION__, __LINE__));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    FILE * orig_fp = NULL, * tmp_fp = NULL;
+
+    orig_fp = fopen(WANMGR_RESTART_INFO_FILE, "r");
+    tmp_fp = fopen(WANMGR_RESTART_INFO_TMP_FILE, "w");
+
+    if (tmp_fp == NULL)
+    {
+        CcspTraceError(("%s %d: unable to open file %s", __FUNCTION__, __LINE__, strerror(errno)));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    char key[256] = {0};
+    
+    if (idx > -1)
+    {
+        // key has a index
+        snprintf(key, sizeof(key), param, idx);
+    }
+    else
+        strncpy(key, param, sizeof(key)-1);
+
+    if (orig_fp != NULL)
+    {
+        ssize_t nread;
+        size_t len = 0;
+        char *line = NULL;
+
+        while ((nread = getline(&line, &len, orig_fp)) != -1)
+        {
+            if (strstr(line, key))  continue;
+            fwrite(line, nread, 1, tmp_fp);
+        }
+
+        if (line)
+        {
+            free(line);
+        }
+        fclose (orig_fp);
+    }
+
+    char key_value[512] = {0};
+
+    snprintf (key_value, sizeof(key_value), "%s=%s\n", key, value);
+    fwrite (key_value, strlen(key_value), 1, tmp_fp);
+    CcspTraceInfo(("%s %d: saving %s\n", __FUNCTION__, __LINE__, key_value));
+    fclose (tmp_fp);
+
+    rename (WANMGR_RESTART_INFO_TMP_FILE, WANMGR_RESTART_INFO_FILE);
+
+    return ANSC_STATUS_SUCCESS;
+}
