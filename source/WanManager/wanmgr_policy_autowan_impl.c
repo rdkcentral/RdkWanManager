@@ -2677,7 +2677,8 @@ static WcBWanPolicyState_t State_BackupWanInterfaceUp(WanMgr_Policy_Controller_t
         return Transition_BackupWanInterfaceDown(pWanController);
     }
 
-    if( ( -1 == WanMgr_Policy_BackupWan_CheckAnyLocalWANIsPhysicallyActive( pWanController ) ) && 
+    if( ( WAN_IFACE_STATUS_UP == pFixedInterface->Wan.RemoteStatus ) && 
+        ( -1 == WanMgr_Policy_BackupWan_CheckAnyLocalWANIsPhysicallyActive( pWanController ) ) && 
         ( TRUE == WanMgr_Policy_BackupWan_CheckLocalWANsScannedOnce( pWanController ) ) )
     {
         return Transition_BackupWanInterfaceActive(pWanController);
@@ -2710,7 +2711,8 @@ static WcBWanPolicyState_t State_BackupWanInterfaceActive(WanMgr_Policy_Controll
         return Transition_BackupWanInterfaceDown(pWanController);
     }
 
-    if( -1 != WanMgr_Policy_BackupWan_CheckAnyLocalWANIsPhysicallyActive( pWanController ) )
+    if( ( WAN_IFACE_STATUS_UP != pFixedInterface->Wan.RemoteStatus ) ||
+        (-1 != WanMgr_Policy_BackupWan_CheckAnyLocalWANIsPhysicallyActive( pWanController ) ) )
     {
         return Transition_BackupWanInterfaceInActive(pWanController);
     }
@@ -2742,7 +2744,8 @@ static WcBWanPolicyState_t State_BackupWanInterfaceInActive(WanMgr_Policy_Contro
         return Transition_BackupWanInterfaceDown(pWanController);
     }
 
-    if( -1 == WanMgr_Policy_BackupWan_CheckAnyLocalWANIsPhysicallyActive( pWanController ) )
+    if( ( WAN_IFACE_STATUS_UP == pFixedInterface->Wan.RemoteStatus ) && 
+        (-1 == WanMgr_Policy_BackupWan_CheckAnyLocalWANIsPhysicallyActive( pWanController ) ) )
     {
         return Transition_BackupWanInterfaceActive(pWanController);
     }
