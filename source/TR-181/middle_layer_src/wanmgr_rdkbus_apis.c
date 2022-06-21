@@ -1533,7 +1533,12 @@ ANSC_STATUS Update_Iface_Status()
                 }else
                     snprintf(newIface->AvailableStatus, sizeof(newIface->AvailableStatus), "%s,0|", pWanIfaceData->DisplayName);
 
-                if((pWanIfaceData->SelectionStatus == WAN_IFACE_ACTIVE) && (pWanIfaceData->Wan.Status == WAN_IFACE_STATUS_UP))
+                if((pWanIfaceData->SelectionStatus == WAN_IFACE_ACTIVE) &&
+                   ((pWanIfaceData->Wan.IfaceType == REMOTE_IFACE &&
+                     pWanIfaceData->Wan.Status == WAN_IFACE_STATUS_UP &&
+                     pWanIfaceData->Wan.RemoteStatus == WAN_IFACE_STATUS_UP) ||
+                    (pWanIfaceData->Wan.IfaceType == LOCAL_IFACE &&
+                     pWanIfaceData->Wan.Status == WAN_IFACE_STATUS_UP)) )
                 {
                     snprintf(newIface->ActiveStatus, sizeof(newIface->ActiveStatus), "%s,1|", pWanIfaceData->DisplayName);
                 }else
