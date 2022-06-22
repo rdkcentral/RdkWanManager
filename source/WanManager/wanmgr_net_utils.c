@@ -1234,7 +1234,7 @@ void WanManager_UpdateMaptLogFile(ipc_mapt_data_t *dhcp6cMAPTMsgBody)
 
 int IsValidDnsServer(int32_t af, const char *nameServer)
 {
-    if (nameServer == NULL)
+    if ((nameServer == NULL) || (nameServer[0] == '\0'))
     {
         CcspTraceError(("%s %d - invalid argument \n",__FUNCTION__,__LINE__));
         return ANSC_STATUS_FAILURE;
@@ -1242,7 +1242,7 @@ int IsValidDnsServer(int32_t af, const char *nameServer)
 
     if(af == AF_INET)
     {
-        if(!(IsValidIpv4Address(nameServer)))
+        if(!(IsValidIpAddress(af, nameServer)))
         {
             CcspTraceError(("%s %d - invalid nameserver: %s \n",__FUNCTION__,__LINE__, nameServer));
             return RETURN_ERR;
@@ -1374,7 +1374,7 @@ static BOOL IsValidIpv4Address(const char* input)
    BOOL ret = TRUE;
    char *pToken = NULL;
    char *pLast = NULL;
-   char buf[BUFLEN_16];
+   char buf[BUFLEN_32];
    uint32_t i, num;
 
    if (input == NULL || strlen(input) < 7 || strlen(input) > 15)
@@ -1383,6 +1383,7 @@ static BOOL IsValidIpv4Address(const char* input)
    }
 
    /* need to copy since strtok_r updates string */
+   memset(buf, '\0', BUFLEN_32);
    strncpy(buf, input, sizeof(buf)-1);
 
    /* IP address has the following format
