@@ -81,7 +81,6 @@ rbusDataElement_t wanMgrIfacePublishElements[] = {
 };
 
 RemoteDM_list RemoteDMs[] = {
-    {"Device.X_RDK_WanManager.CPEInterface.1.Name", TRUE, FALSE},
     {"Device.X_RDK_WanManager.CPEInterface.1.DisplayName",TRUE, FALSE},
     {"Device.X_RDK_WanManager.CPEInterface.1.AliasName",TRUE, FALSE},
     {"Device.X_RDK_WanManager.CPEInterface.1.Phy.Status",TRUE,TRUE},
@@ -643,6 +642,10 @@ static void WanMgr_Rbus_EventReceiveHandler(rbusHandle_t handle, rbusEvent_t con
                 if( strstr(pParamName, ".Wan.LinkStatus") != NULL )
                 {
                     WanMgr_StringToEnum(&pWanIfaceData->Wan.LinkStatus, ENUM_WAN_LINKSTATUS, pValue);
+                    if(pWanIfaceData->Wan.LinkStatus == WAN_IFACE_LINKSTATUS_UP)
+                    {
+                        strncpy(pWanIfaceData->Wan.Name,REMOTE_INTERFACE_NAME,sizeof(pWanIfaceData->Wan.Name));
+                    }
                 }
                 if( strstr(pParamName, ".Wan.Status") != NULL )
                 {
@@ -1238,6 +1241,10 @@ static void CPEInterface_AsyncMethodHandler(
                 if( strstr(pParamName, ".Wan.LinkStatus") != NULL )
                 {
                     WanMgr_StringToEnum(&pWanIfaceData->Wan.LinkStatus, ENUM_WAN_LINKSTATUS, pValue);
+                    if(pWanIfaceData->Wan.LinkStatus == WAN_IFACE_LINKSTATUS_UP)
+                    {
+                        strncpy(pWanIfaceData->Wan.Name, REMOTE_INTERFACE_NAME, sizeof(pWanIfaceData->Wan.Name));
+                    }
                 }
                 if( strstr(pParamName, ".Wan.Status") != NULL )
                 {

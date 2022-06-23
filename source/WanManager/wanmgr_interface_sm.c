@@ -2861,7 +2861,6 @@ static eWanState_t wan_state_exit(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
 
     //Clear WAN Name
     memset(pWanIfaceCtrl->pIfaceData->Wan.Name, 0, sizeof(pWanIfaceCtrl->pIfaceData->Wan.Name));
-    memcpy(pWanIfaceCtrl->pIfaceData->Wan.Name, pWanIfaceCtrl->pIfaceData->Name, sizeof(pWanIfaceCtrl->pIfaceData->Name));
     /* Clear DHCP data */
     WanManager_ClearDHCPData(pWanIfaceCtrl->pIfaceData);
 

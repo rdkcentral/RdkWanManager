@@ -28,6 +28,7 @@
 #define PAM_IF_TABLE_OBJECT         "Device.IP.Interface.%d."
 #define PAM_IF_PARAM_NAME           "Device.IP.Interface.%d.Name"
 #define DML_WAN_IFACE_PRIORITY_MAX  255
+#define REMOTE_INTERFACE_NAME       "brRWAN"
 
 typedef enum _WANMGR_IFACE_SELECTION_STATUS
 {

@@ -360,12 +360,12 @@ void WanMgr_Remote_IfaceData_Init(WanMgr_Iface_Data_t* pIfaceData, UINT iface_in
         pWanDmlIface->uiIfaceIdx = iface_index;
         pWanDmlIface->uiInstanceNumber = iface_index+1;
         memset(pWanDmlIface->Name, 0, 64);
+        strcpy(pWanDmlIface->Name, REMOTE_INTERFACE_NAME); // Remote name by default
         memset(pWanDmlIface->DisplayName, 0, 64);
         memset(pWanDmlIface->AliasName, 0, 64);
         memset(pWanDmlIface->Phy.Path, 0, 64);
         pWanDmlIface->Phy.Status = WAN_IFACE_PHY_STATUS_DOWN;
         memset(pWanDmlIface->Wan.Name, 0, 64);
-        strcpy(pWanDmlIface->Wan.Name, "brRWAN"); // Remote wan name by default
         pWanDmlIface->Wan.Enable = TRUE; // Remote wan Enable by default
         pWanDmlIface->Wan.Priority = remotePriority;
         pWanDmlIface->Wan.Type = WAN_IFACE_TYPE_UNCONFIGURED;
