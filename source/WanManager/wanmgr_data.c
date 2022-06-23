@@ -209,6 +209,11 @@ UINT WanMgr_GetIfaceIndexByAliasName(char* AliasName)
 {
    UINT index = -1;
 
+    if (strlen(AliasName) <= 0)
+    {
+       return index;
+    }
+
     if(pthread_mutex_lock(&(gWanMgrDataBase.gDataMutex)) == 0)
     {
         WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl = &(gWanMgrDataBase.IfaceCtrl);
@@ -217,7 +222,7 @@ UINT WanMgr_GetIfaceIndexByAliasName(char* AliasName)
             for(int idx = 0; idx < pWanIfaceCtrl->ulTotalNumbWanInterfaces; idx++)
             {
                 WanMgr_Iface_Data_t* pWanIfaceData = &(pWanIfaceCtrl->pIface[idx]);
-                if(strstr(AliasName, pWanIfaceData->data.AliasName) != NULL)
+                if((strlen(pWanIfaceData->data.AliasName) > 0) && (strstr(AliasName, pWanIfaceData->data.AliasName) != NULL))
                 {
                     index = idx + 1;
                 }

@@ -83,6 +83,7 @@ rbusDataElement_t wanMgrIfacePublishElements[] = {
 RemoteDM_list RemoteDMs[] = {
     {"Device.X_RDK_WanManager.CPEInterface.1.Name", TRUE, FALSE},
     {"Device.X_RDK_WanManager.CPEInterface.1.DisplayName",TRUE, FALSE},
+    {"Device.X_RDK_WanManager.CPEInterface.1.AliasName",TRUE, FALSE},
     {"Device.X_RDK_WanManager.CPEInterface.1.Phy.Status",TRUE,TRUE},
     {"Device.X_RDK_WanManager.CPEInterface.1.Wan.Status",TRUE,TRUE},
     {"Device.X_RDK_WanManager.CPEInterface.1.Wan.LinkStatus",TRUE,TRUE},
@@ -155,7 +156,6 @@ rbusError_t wanMgrDmlPublishEventHandler(rbusHandle_t handle, rbusEventSubAction
         return RBUS_ERROR_BUS_ERROR;
     }
 
-    CcspTraceInfo(("%s-%d : Input eventName(%s)\n", __FUNCTION__, __LINE__, eventName));
 
     sscanf(eventName, "Device.X_RDK_WanManager.CPEInterface.%s.", &AliasName);
     index = WanMgr_GetIfaceIndexByAliasName(AliasName);
@@ -165,7 +165,6 @@ rbusError_t wanMgrDmlPublishEventHandler(rbusHandle_t handle, rbusEventSubAction
         sscanf(eventName, "Device.X_RDK_WanManager.CPEInterface.%d.", &index);
     }
 
-    CcspTraceInfo(("%s-%d : index(%d)\n", __FUNCTION__, __LINE__, index));
     WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked((index - 1));
     if(pWanDmlIfaceData != NULL)
     {
@@ -276,7 +275,6 @@ rbusError_t WanMgr_Interface_GetHandler(rbusHandle_t handle, rbusProperty_t prop
 
     rbusValue_Init(&value);
 
-    CcspTraceInfo(("%s-%d : Input name(%s)\n", __FUNCTION__, __LINE__, name));
 
     sscanf(name, "Device.X_RDK_WanManager.CPEInterface.%s.", &AliasName);
     index = WanMgr_GetIfaceIndexByAliasName(AliasName);
@@ -286,7 +284,6 @@ rbusError_t WanMgr_Interface_GetHandler(rbusHandle_t handle, rbusProperty_t prop
         sscanf(name, "Device.X_RDK_WanManager.CPEInterface.%d.", &index);
     }
 
-    CcspTraceInfo(("%s-%d : index(%d)\n", __FUNCTION__, __LINE__, index));
     WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked((index - 1));
     if(pWanDmlIfaceData != NULL)
     {
@@ -350,7 +347,6 @@ rbusError_t WanMgr_Interface_SetHandler(rbusHandle_t handle, rbusProperty_t prop
         return RBUS_ERROR_BUS_ERROR;
     }
 
-    CcspTraceInfo(("%s-%d : Input name(%s)\n", __FUNCTION__, __LINE__, name));
 
     sscanf(name, "Device.X_RDK_WanManager.CPEInterface.%s.", &AliasName);
     index = WanMgr_GetIfaceIndexByAliasName(AliasName);
@@ -360,7 +356,6 @@ rbusError_t WanMgr_Interface_SetHandler(rbusHandle_t handle, rbusProperty_t prop
         sscanf(name, "Device.X_RDK_WanManager.CPEInterface.%d.", &index);
     }
 
-    CcspTraceInfo(("%s-%d : index(%d)\n", __FUNCTION__, __LINE__, index));
     WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked((index - 1));
     if(pWanDmlIfaceData != NULL)
     {
