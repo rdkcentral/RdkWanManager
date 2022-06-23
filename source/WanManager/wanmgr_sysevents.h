@@ -127,6 +127,7 @@
 #define SYSEVENT_MULTINET_NAME        "multinet_1-name"
 #define SYSEVENT_MULTINET_INSTANCES   "multinet-instances"
 #define SYSEVENT_TOPOLOGY_MODE        "erouter_topology-mode"
+#define SYSCFG_WAN_INTERFACE_NAME     "wan_physical_ifname"
 
 //firewall restart
 #define SYSEVENT_FIREWALL_RESTART "firewall-restart"

@@ -83,7 +83,6 @@ extern token_t sysevent_token;
 
 #define DATAMODEL_PARAM_LENGTH 256
 
-#define SYSCFG_WAN_INTERFACE_NAME "wan_physical_ifname"
 
 #if defined (DUID_UUID_ENABLE)
 #define DUID_TYPE "0004"  /* duid-type duid-uuid 4 */

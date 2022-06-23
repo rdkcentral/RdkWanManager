@@ -801,6 +801,10 @@ static int wan_setUpIPv4(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
         sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_WAN_STATUS, WAN_STATUS_STARTED, 0);
         CcspTraceInfo(("%s %d - wan-status event set to started \n", __FUNCTION__, __LINE__));
 
+        if(pInterface->IP.Ipv4Data.ifname[0] != '\0')
+        {
+            syscfg_set_string(SYSCFG_WAN_INTERFACE_NAME, pInterface->IP.Ipv4Data.ifname);
+        }
         //Get WAN uptime
         WanManager_GetDateAndUptime( buffer, &uptime );
         LOG_CONSOLE("%s Wan_init_complete:%d\n",buffer,uptime);
@@ -936,6 +940,10 @@ static int wan_setUpIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
 
         /* Set the current WAN Interface name */
         sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_CURRENT_WAN_IFNAME, pInterface->IP.Ipv6Data.ifname, 0);
+        if(pInterface->IP.Ipv6Data.ifname[0] != '\0')
+        {
+            syscfg_set_string(SYSCFG_WAN_INTERFACE_NAME, pInterface->IP.Ipv6Data.ifname);
+        }
     }
 
     return ret;
