@@ -876,7 +876,7 @@ static int wan_tearDownIPv4(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
     }
 
     sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_WAN_STATUS, buf, sizeof(buf));
-    if (strcmp(buf, WAN_STATUS_STOPPED))
+    if ((strcmp(buf, WAN_STATUS_STOPPED) != 0) && (pInterface->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_DOWN))
     {
         sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_WAN_STATUS, WAN_STATUS_STOPPED, 0);
         CcspTraceInfo(("%s %d - wan-status event set to stopped \n", __FUNCTION__, __LINE__));
@@ -1001,7 +1001,7 @@ static int wan_tearDownIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, NULL, 0);
 
     sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_WAN_STATUS, buf, sizeof(buf));
-    if (strcmp(buf, WAN_STATUS_STOPPED))
+    if ((strcmp(buf, WAN_STATUS_STOPPED) != 0) && (pInterface->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_DOWN))
     {
         sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_WAN_STATUS, WAN_STATUS_STOPPED, 0);
         CcspTraceInfo(("%s %d - wan-status event set to stopped \n", __FUNCTION__, __LINE__));
