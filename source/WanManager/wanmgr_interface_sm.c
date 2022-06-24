@@ -1429,8 +1429,7 @@ static eWanState_t wan_transition_ipv4_up(WanMgr_IfaceSM_Controller_t* pWanIface
     pInterface->IP.Ipv4Renewed = FALSE;
 #endif
 
-    Update_Iface_Status();
-    Update_Current_Iface_Status();
+    Update_Interface_Status();
     sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_WAN_SERVICE_STATUS, buf, sizeof(buf));
     if (strcmp(buf, WAN_STATUS_STARTED))
     {
@@ -1510,8 +1509,7 @@ static eWanState_t wan_transition_ipv4_down(WanMgr_IfaceSM_Controller_t* pWanIfa
     wanmgr_sysevents_ipv4Info_init(pInterface->Wan.Name); // reset the sysvent/syscfg fields
 
     wanmgr_sysevents_setWanState(WAN_IPV4_DOWN);
-    Update_Iface_Status();
-    Update_Current_Iface_Status();
+    Update_Interface_Status();
     sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_IPV6_CONNECTION_STATE, buf, sizeof(buf));
 
     if(pInterface->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_UP && !strcmp(buf, WAN_STATUS_UP))
@@ -1566,9 +1564,8 @@ static eWanState_t wan_transition_ipv6_up(WanMgr_IfaceSM_Controller_t* pWanIface
            }
         }
 #endif
-    Update_Iface_Status();
+    Update_Interface_Status();
     wanmgr_sysevents_setWanState(WAN_IPV6_UP);
-    Update_Current_Iface_Status();
     sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_WAN_SERVICE_STATUS, buf, sizeof(buf));
     if (strcmp(buf, WAN_STATUS_STARTED))
     {
@@ -1645,8 +1642,7 @@ static eWanState_t wan_transition_ipv6_down(WanMgr_IfaceSM_Controller_t* pWanIfa
 #endif
         wanmgr_sysevents_setWanState(WAN_IPV6_DOWN);
 
-    Update_Iface_Status();
-    Update_Current_Iface_Status();
+    Update_Interface_Status();
     sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_IPV4_CONNECTION_STATE, buf, sizeof(buf));
 
     if(pInterface->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_UP && !strcmp(buf, WAN_STATUS_UP))
@@ -1892,9 +1888,7 @@ static eWanState_t wan_transition_exit(WanMgr_IfaceSM_Controller_t* pWanIfaceCtr
     }
 
     wanmgr_sysevents_setWanState(WAN_LINK_DOWN_STATE);
-    Update_Iface_Status();
-    Update_Current_Iface_Status();
-
+    Update_Interface_Status();
     CcspTraceInfo(("%s %d - Interface '%s' - EXITING STATE MACHINE\n", __FUNCTION__, __LINE__, pInterface->Name));
     return WAN_STATE_EXIT;
 }
@@ -1924,8 +1918,7 @@ static eWanState_t wan_transition_standby(WanMgr_IfaceSM_Controller_t* pWanIface
         WanMgr_Publish_WanStatus(pWanIfaceCtrl->interfaceIdx);
     }
 
-    Update_Iface_Status();
-    Update_Current_Iface_Status();
+    Update_Interface_Status();
     CcspTraceInfo(("%s %d - TRANSITION WAN_STATE_STANDBY\n", __FUNCTION__, __LINE__));
     return WAN_STATE_STANDBY;
 }
@@ -1953,8 +1946,7 @@ static eWanState_t wan_transition_standby_deconfig_ips(WanMgr_IfaceSM_Controller
         }
     }
     pInterface->Wan.Status = WAN_IFACE_STATUS_STANDBY;
-    Update_Iface_Status();
-    Update_Current_Iface_Status();
+    Update_Interface_Status();
      CcspTraceInfo(("%s %d - TRANSITION WAN_STATE_STANDBY\n", __FUNCTION__, __LINE__));
     return WAN_STATE_STANDBY;
 }
@@ -2037,8 +2029,7 @@ static eWanState_t wan_state_obtaining_ip_addresses(WanMgr_IfaceSM_Controller_t*
     {
         if (pInterface->Wan.IfaceType != REMOTE_IFACE)
             pInterface->Wan.LinkStatus =  WAN_IFACE_LINKSTATUS_CONFIGURING;
-        Update_Iface_Status();
-	Update_Current_Iface_Status();
+        Update_Interface_Status();
         return WAN_STATE_CONFIGURING_WAN;
     }
 

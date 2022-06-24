@@ -52,8 +52,10 @@
 struct IFACE_INFO
 {
     INT     Priority;
-    CHAR    AvailableStatus[BUFLEN_32];
-    CHAR    ActiveStatus[BUFLEN_32];
+    CHAR    AvailableStatus[BUFLEN_64];
+    CHAR    ActiveStatus[BUFLEN_64];
+    CHAR    CurrentActive[BUFLEN_64];
+    CHAR    CurrentStandby[BUFLEN_64];
     struct IFACE_INFO *next;
 };
 
@@ -68,5 +70,5 @@ ANSC_STATUS WanMgr_WanIfaceMarkingInit (WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl);
 ANSC_STATUS WanMgr_Publish_WanStatus(UINT IfaceIndex);
 ANSC_STATUS DmlSetWanActiveLinkInPSMDB( UINT uiInterfaceIdx, bool flag );
 ANSC_STATUS WanController_ClearWanConfigurationsInPSM();
-ANSC_STATUS Update_Iface_Status();
+ANSC_STATUS Update_Interface_Status();
 #endif /* _WANMGR_RDKBUS_APIS_H_ */

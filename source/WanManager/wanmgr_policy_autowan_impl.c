@@ -408,8 +408,7 @@ static WcFmobPolicyState_t Transition_WanInterfaceSelected(WanMgr_Policy_Control
     pFixedInterface->Wan.Status =  WAN_IFACE_STATUS_DISABLED;
 
     //Update current active interface variable
-    Update_Current_Iface_Status();
-    Update_Iface_Status();
+    Update_Interface_Status();
 
     CcspTraceInfo(("%s %d - State changed to STATE_WAN_INTERFACE_DOWN \n", __FUNCTION__, __LINE__));
     return STATE_WAN_INTERFACE_DOWN;
@@ -435,8 +434,7 @@ static WcFmobPolicyState_t Transition_FixedWanInterfaceDown(WanMgr_Policy_Contro
     pFixedInterface->Wan.Status =  WAN_IFACE_STATUS_DISABLED;
 
     //Update current active interface variable
-    Update_Current_Iface_Status();
-    Update_Iface_Status();
+    Update_Interface_Status();
 
     // wan stop
     wanmgr_setwanstop();
@@ -462,8 +460,7 @@ static WcFmobPolicyState_t Transition_FixedWanInterfaceUp(WanMgr_Policy_Controll
     pFixedInterface->Wan.Status =  WAN_IFACE_STATUS_UP;
 
     //Update current active interface variable
-    Update_Current_Iface_Status();
-    Update_Iface_Status();
+    Update_Interface_Status();
 
      // start wan
      wanmgr_setwanstart();
@@ -863,8 +860,7 @@ static WcFmobPolicyState_t Transition_WanInterfacePhyUp(WanMgr_AutoWan_SMInfo_t 
     pFixedInterface->Wan.Status =  WAN_IFACE_STATUS_UP;
 
     //Update current active interface variable
-    Update_Current_Iface_Status();
-    Update_Iface_Status();
+    Update_Interface_Status();
 
     StartWanClients(pSmInfo);
     if (pFixedInterface->MonitorOperStatus == TRUE)
@@ -910,8 +906,7 @@ static WcFmobPolicyState_t Transition_WaitingForInterface(WanMgr_Iface_Data_t *p
     pFixedInterface->Wan.Status =  WAN_IFACE_STATUS_DISABLED;
 
     //Update current active interface variable
-    Update_Current_Iface_Status();
-    Update_Iface_Status();
+    Update_Interface_Status();
 
     pFixedInterface->Phy.Status = WAN_IFACE_PHY_STATUS_UNKNOWN;
     if (strlen(pFixedInterface->Phy.Path) > 0)
@@ -957,8 +952,7 @@ static WcFmobPolicyState_t Transition_WanInterfaceTearDown(WanMgr_Policy_Control
     pFixedInterface->Wan.Status =  WAN_IFACE_STATUS_DISABLED;
 
     //Update current active interface variable
-    Update_Current_Iface_Status();
-    Update_Iface_Status();
+    Update_Interface_Status();
 
     wanmgr_setwanstop();
     system("killall dibbler-client");
@@ -1046,8 +1040,7 @@ static WcFmobPolicyState_t Transition_WanInterfaceConfigured(WanMgr_AutoWan_SMIn
     pFixedInterface->Wan.Status =  WAN_IFACE_STATUS_DISABLED;
 
     //Update current active interface variable
-    Update_Current_Iface_Status();
-    Update_Iface_Status();
+    Update_Interface_Status();
 
     StartWanClients(pSmInfo);
     if (pFixedInterface->MonitorOperStatus == TRUE)
@@ -2326,8 +2319,7 @@ static WcBWanPolicyState_t Transition_BackupWanInterfaceSelected(WanMgr_Policy_C
     pFixedInterface->Wan.Status = WAN_IFACE_STATUS_DISABLED;
 
     //Update current active interface variable
-    Update_Current_Iface_Status();
-    Update_Iface_Status();
+    Update_Interface_Status();
 
     CcspTraceInfo(("%s %d - State changed to STATE_BACKUP_WAN_INTERFACE_DOWN \n", __FUNCTION__, __LINE__));
     return STATE_BACKUP_WAN_INTERFACE_DOWN;
@@ -2361,8 +2353,7 @@ static WcBWanPolicyState_t Transition_BackupWanAvailable(WanMgr_Policy_Controlle
     pFixedInterface->Wan.Status =  WAN_IFACE_STATUS_DISABLED;
 
     //Update current active interface variable
-    Update_Current_Iface_Status();
-    Update_Iface_Status();
+    Update_Interface_Status();
 
     return STATE_BACKUP_WAN_AVAILABLE;
 }
@@ -2387,7 +2378,7 @@ static WcBWanPolicyState_t Transition_BackupWanInterfaceUp(WanMgr_Policy_Control
 
     pFixedInterface->Wan.LinkStatus = WAN_IFACE_LINKSTATUS_UP;
     pFixedInterface->Wan.Status = WAN_IFACE_STATUS_UP;
-    Update_Iface_Status();
+    Update_Interface_Status();
 
     //WAN UDHCPC Start
     WanMgr_Policy_BackupWan_CheckAndStartUDHCPClientOverBackupWanInterface( pWanController, WAN_START_FOR_BACKUP_WAN );
@@ -2418,8 +2409,7 @@ static WcBWanPolicyState_t Transition_BackupWanInterfaceActive(WanMgr_Policy_Con
     pFixedInterface->Wan.Status =  WAN_IFACE_STATUS_UP;
 
     //Update current active interface variable
-    Update_Current_Iface_Status();
-    Update_Iface_Status();
+    Update_Interface_Status();
 
     /*
      * 1. Configure current_wan_ifname and wan_ifname event
@@ -2457,8 +2447,7 @@ static WcBWanPolicyState_t Transition_BackupWanInterfaceInActive(WanMgr_Policy_C
     pFixedInterface->Wan.Status =  WAN_IFACE_STATUS_DISABLED;
 
     //Update current active interface variable
-    Update_Current_Iface_Status();
-    Update_Iface_Status();
+    Update_Interface_Status();
 
     /*
      * 1. Configure current_wan_ifname and wan_ifname event as erouter0 since we are reverting from backup
@@ -2502,8 +2491,7 @@ static WcBWanPolicyState_t Transition_BackupWanInterfaceDown(WanMgr_Policy_Contr
     pFixedInterface->IP.Ipv6Status = WAN_IFACE_IPV6_STATE_UNKNOWN;
 
     //Update current active interface variable
-    Update_Current_Iface_Status();
-    Update_Iface_Status();
+    Update_Interface_Status();
 
     /*
      * 1. Configure current_wan_ifname and wan_ifname event as erouter0 since we are reverting from backup

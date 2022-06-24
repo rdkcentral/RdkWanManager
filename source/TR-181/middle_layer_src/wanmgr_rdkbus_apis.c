@@ -100,7 +100,7 @@ static int get_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFACE*
     {
         p_Interface->Wan.ActiveLink = FALSE;
     }
-    
+
     _ansc_memset(param_name, 0, sizeof(param_name));
     _ansc_memset(param_value, 0, sizeof(param_value));
     _ansc_sprintf(param_name, PSM_WANMANAGER_IF_NAME, instancenum);
@@ -1492,30 +1492,35 @@ void SortedInsert( struct IFACE_INFO** head_ref,  struct IFACE_INFO *new_node)
     }
 }
 
-void deleteList( struct IFACE_INFO* head)
-{
-    struct IFACE_INFO* next;
-    while(head  != NULL)
-    {
-        next = head->next;
-        free(head);
-        head = next;
-    }
-}
-
-
-ANSC_STATUS Update_Iface_Status()
+ANSC_STATUS Update_Interface_Status()
 {
     struct IFACE_INFO *head = NULL;
+    DEVICE_NETWORKING_MODE devMode = GATEWAY_MODE;
     CHAR    InterfaceAvailableStatus[BUFLEN_64]  = {0};
     CHAR    InterfaceActiveStatus[BUFLEN_64]     = {0};
+    CHAR    CurrentActiveInterface[BUFLEN_64] = {0};
+    CHAR    CurrentStandbyInterface[BUFLEN_64] = {0};
+
     CHAR    prevInterfaceAvailableStatus[BUFLEN_64]  = {0};
     CHAR    prevInterfaceActiveStatus[BUFLEN_64]     = {0};
+    CHAR    prevCurrentActiveInterface[BUFLEN_64] = {0};
+    CHAR    prevCurrentStandbyInterface[BUFLEN_64] = {0};
+
 #ifdef RBUS_BUILD_FLAG_ENABLE
     bool    publishAvailableStatus  = FALSE;
     bool    publishActiveStatus = FALSE;
+    bool    publishCurrentActiveInf  = FALSE;
+    bool    publishCurrentStandbyInf = FALSE;
 #endif
     int uiLoopCount;
+
+    WanMgr_Config_Data_t*   pWanConfigData = WanMgr_GetConfigData_locked();
+    if (pWanConfigData != NULL)
+    {
+        DML_WANMGR_CONFIG* pWanDmlData = &(pWanConfigData->data);
+        devMode = pWanDmlData->DeviceNwMode;
+        WanMgrDml_GetConfigData_release(pWanConfigData);
+    }
 
     int TotalIfaces = WanMgr_IfaceData_GetTotalWanIface();
     for (uiLoopCount = 0; uiLoopCount < TotalIfaces; uiLoopCount++)
@@ -1526,8 +1531,9 @@ ANSC_STATUS Update_Iface_Status()
             DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
             if(pWanIfaceData->Wan.Enable == TRUE)
             {
-                struct IFACE_INFO *newIface = malloc(sizeof( struct IFACE_INFO));
+                struct IFACE_INFO *newIface = calloc(1, sizeof( struct IFACE_INFO));
                 newIface->next = NULL;
+
                 newIface->Priority = pWanIfaceData->Wan.Priority;
                 if(pWanIfaceData->Phy.Status == WAN_IFACE_PHY_STATUS_UP)
                 {
@@ -1545,27 +1551,46 @@ ANSC_STATUS Update_Iface_Status()
                     snprintf(newIface->ActiveStatus, sizeof(newIface->ActiveStatus), "%s,1|", pWanIfaceData->DisplayName);
                 }else
                     snprintf(newIface->ActiveStatus, sizeof(newIface->ActiveStatus), "%s,0|", pWanIfaceData->DisplayName);
-                SortedInsert(&head, newIface);
 
+                if(devMode  == GATEWAY_MODE)
+                {
+                    if(pWanIfaceData->SelectionStatus == WAN_IFACE_ACTIVE)
+                    {
+                        snprintf(newIface->CurrentActive, sizeof(newIface->CurrentActive), "%s,", pWanIfaceData->Wan.Name);
+                    }
+                    else if(pWanIfaceData->SelectionStatus == WAN_IFACE_SELECTED)
+                    {
+                        snprintf(newIface->CurrentStandby, sizeof(newIface->CurrentStandby), "%s,", pWanIfaceData->Wan.Name);
+                    }
+                }
+                else // MODEM_MODE
+                {
+                    if(pWanIfaceData->SelectionStatus == WAN_IFACE_ACTIVE)
+                    {
+                        strncpy(newIface->CurrentActive, MESH_IFNAME, sizeof(MESH_IFNAME));
+                    }
+                }
+                /* Sort the link list based on priority */
+                SortedInsert(&head, newIface);
             }
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
         }
     }
 
-    struct IFACE_INFO* current = head;
-    while(current!= NULL)
+    struct IFACE_INFO* pHead = head;
+    struct IFACE_INFO* tmp = NULL;
+    while(pHead!= NULL)
     {
-        strcat(InterfaceAvailableStatus,current->AvailableStatus);
-        strcat(InterfaceActiveStatus,current->ActiveStatus);
-        current = current->next;
+        strcat(CurrentActiveInterface,pHead->CurrentActive);
+        strcat(CurrentStandbyInterface,pHead->CurrentStandby);
+        strcat(InterfaceAvailableStatus,pHead->AvailableStatus);
+        strcat(InterfaceActiveStatus,pHead->ActiveStatus);
+        tmp = pHead->next;
+        free(pHead);
+        pHead = tmp;
     }
 
-    if(head != NULL)
-    {
-        deleteList(head);
-    }
-
-    WanMgr_Config_Data_t*   pWanConfigData = WanMgr_GetConfigData_locked();
+    pWanConfigData = WanMgr_GetConfigData_locked();
     if (pWanConfigData != NULL)
     {
         DML_WANMGR_CONFIG* pWanDmlData = &(pWanConfigData->data);
@@ -1587,81 +1612,6 @@ ANSC_STATUS Update_Iface_Status()
             publishActiveStatus = TRUE;
 #endif
         }
-        WanMgrDml_GetConfigData_release(pWanConfigData);
-    }
-#ifdef RBUS_BUILD_FLAG_ENABLE
-    if(publishAvailableStatus == TRUE)
-    {
-        WanMgr_Rbus_String_EventPublish_OnValueChange(WANMGR_CONFIG_WAN_INTERFACEAVAILABLESTATUS, prevInterfaceAvailableStatus, InterfaceAvailableStatus);
-    }
-    if(publishActiveStatus == TRUE)
-    {
-        WanMgr_Rbus_String_EventPublish_OnValueChange(WANMGR_CONFIG_WAN_INTERFACEACTIVESTATUS, prevInterfaceActiveStatus, InterfaceActiveStatus);
-    }
-#endif
-    return ANSC_STATUS_SUCCESS;
-}
-
-ANSC_STATUS Update_Current_Iface_Status()
-{
-    int uiLoopCount;
-    DEVICE_NETWORKING_MODE devMode = GATEWAY_MODE;
-    CHAR    CurrentActiveInterface[BUFLEN_64] = {0};
-    CHAR    CurrentStandbyInterface[BUFLEN_64] = {0};
-    CHAR    prevCurrentActiveInterface[BUFLEN_64] = {0};
-    CHAR    prevCurrentStandbyInterface[BUFLEN_64] = {0};
-#ifdef RBUS_BUILD_FLAG_ENABLE
-    bool    publishCurrentActiveInf  = FALSE;
-    bool    publishCurrentStandbyInf = FALSE;
-#endif //RBUS_BUILD_FLAG_ENABLE
-
-    WanMgr_Config_Data_t*   pWanConfigData = WanMgr_GetConfigData_locked();
-    if (pWanConfigData != NULL)
-    {
-        DML_WANMGR_CONFIG* pWanDmlData = &(pWanConfigData->data);
-        devMode = pWanDmlData->DeviceNwMode;
-        WanMgrDml_GetConfigData_release(pWanConfigData);
-    }
-
-    int TotalIfaces = WanMgr_IfaceData_GetTotalWanIface();
-
-    for (uiLoopCount = 0; uiLoopCount < TotalIfaces; uiLoopCount++)
-    {
-        WanMgr_Iface_Data_t*   pWanDmlIfaceData = WanMgr_GetIfaceData_locked(uiLoopCount);
-        if(pWanDmlIfaceData != NULL)
-        {
-            DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
-            if(pWanIfaceData->Wan.Enable == TRUE)
-            {
-                if(devMode  == GATEWAY_MODE)
-                {
-                    if(pWanIfaceData->SelectionStatus == WAN_IFACE_ACTIVE)
-                    {
-                        snprintf(CurrentActiveInterface, sizeof(CurrentActiveInterface), "%s", pWanIfaceData->Wan.Name);
-                    }
-                    else if(pWanIfaceData->SelectionStatus == WAN_IFACE_SELECTED)
-                    {
-                        snprintf(CurrentStandbyInterface, sizeof(CurrentStandbyInterface), "%s", pWanIfaceData->Wan.Name);
-                    }
-                }
-                else // MODEM_MODE
-                {
-                    if(pWanIfaceData->SelectionStatus == WAN_IFACE_ACTIVE)
-                    {
-                        strncpy(CurrentActiveInterface, MESH_IFNAME, sizeof(MESH_IFNAME));
-                        WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
-                        break;
-                    }
-                }
-            }
-            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
-        }
-    }
-
-    pWanConfigData = WanMgr_GetConfigData_locked();
-    if (pWanConfigData != NULL)
-    {
-        DML_WANMGR_CONFIG* pWanDmlData = &(pWanConfigData->data);
 
         CcspTraceInfo(("%s %d -- [%s] [%s]\n",__FUNCTION__,__LINE__,pWanDmlData->CurrentActiveInterface,CurrentActiveInterface));
         if(strlen(CurrentActiveInterface) > 0)
@@ -1702,6 +1652,15 @@ ANSC_STATUS Update_Current_Iface_Status()
     {
         WanMgr_Rbus_String_EventPublish_OnValueChange(WANMGR_CONFIG_WAN_CURRENTSTANDBYINTERFACE, prevCurrentStandbyInterface, CurrentStandbyInterface);
     }
+    if(publishAvailableStatus == TRUE)
+    {
+        WanMgr_Rbus_String_EventPublish_OnValueChange(WANMGR_CONFIG_WAN_INTERFACEAVAILABLESTATUS, prevInterfaceAvailableStatus, InterfaceAvailableStatus);
+    }
+    if(publishActiveStatus == TRUE)
+    {
+        WanMgr_Rbus_String_EventPublish_OnValueChange(WANMGR_CONFIG_WAN_INTERFACEACTIVESTATUS, prevInterfaceActiveStatus, InterfaceActiveStatus);
+    }
+
 #endif //RBUS_BUILD_FLAG_ENABLE
     return ANSC_STATUS_SUCCESS;
 }
