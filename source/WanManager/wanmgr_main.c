@@ -63,7 +63,9 @@
 #include "ccsp_dm_api.h"
 
 #include "webconfig_framework.h"
-
+#ifdef _HUB4_PRODUCT_REQ_
+#include "wanmgr_rbus_handler_apis.h"
+#endif
 #define DEBUG_INI_NAME "/etc/debug.ini"
 
 #ifdef ENABLE_SD_NOTIFY
@@ -84,37 +86,55 @@ char                                        g_Subsystem[32]         = {0};
 #if !defined(AUTOWAN_ENABLE) && !defined(_PLATFORM_RASPBERRYPI_) && !defined(INTEL_PUMA7)// This is not needed when auto wan is enabled for TCXBX platforms
 extern ANSC_HANDLE bus_handle;
 
-static int checkIfSystemReady(void);
-static void waitUntilSystemReady(void);
+#ifdef _HUB4_PRODUCT_REQ_
+#define  ARRAY_SZ(x) (sizeof(x) / sizeof((x)[0]))
 
-static int checkIfSystemReady()
+typedef struct
 {
-    char str[256] = {0};
-    int val, ret;
-    snprintf(str, sizeof(str), "eRT.%s", CCSP_DBUS_INTERFACE_CR);
-    // Query CR for system ready
-    ret = CcspBaseIf_isSystemReady(bus_handle, str, (dbus_bool *)&val);
-    CcspTraceError(("checkIfSystemReady(): ret %d, val %d\n", ret, val));
-    return val;
-}
+    char binaryLocation[64];  // binary path.
+    char rbusName[64];        // their rbus name.
+}Rbus_Module;
 
 static void waitUntilSystemReady()
 {
     int wait_time = 0;
+    char pModule[1024] = {0};
+    /* list of dependency modules should get registered before wanmgr start */
+    Rbus_Module pModuleNames[] = {{"/usr/bin/PsmSsp",    "rbusPsmSsp"},
+                               {"/usr/bin/VlanManager", "eRT.com.cisco.spvtg.ccsp.vlanmanager"},
+                               {"/usr/bin/xdslmanager",   "eRT.com.cisco.spvtg.ccsp.xdslmanager"},
+                               {"/usr/bin/pppmanager",    "eRT.com.cisco.spvtg.ccsp.pppmanager"},
+                               {"/usr/bin/CcspCMAgentSsp","eRT.com.cisco.spvtg.ccsp.cm"},
+                               {"/usr/bin/rdkledmanager", "eRT.com.cisco.spvtg.ccsp.ledmanager"},
+                               {"/usr/bin/CcspEthAgent",  "RbusEthAgent"},
+                               {"/usr/bin/CcspPandMSsp",  "CcspPandMSsp"}};
 
-    /* Check CR is ready in every 5 seconds. This needs
-    to be continued upto 3 mins (36 * 5 = 180s) */
-    while(wait_time <= 180)
+    int elementCnt = ARRAY_SZ(pModuleNames);
+
+    /* prepare dependency module name list, if binary exists     */
+    /* Example: pModule = "rbusPsmSsp RbusEthAgent CcspPandMSsp" */
+    for(int i=0; i<elementCnt;i++)
     {
-        if(checkIfSystemReady()) {
+        if (util_isFilePresent(pModuleNames[i].binaryLocation))
+        {
+            strcat(pModule,pModuleNames[i].rbusName);
+            strcat(pModule," ");
+        }
+    }
+
+    /* Check System (CR / Rbus) is ready.*/
+    while(wait_time <= 90)
+    {
+        /* check  dependency modules get registered */
+        if(WanMgr_Rbus_discover_components(pModule)){
+            /* all dependency modules registered - exit loop */
             break;
         }
-
         wait_time++;
-        sleep(1);
+        sleep(2);
     }
 }
-
+#endif //_HUB4_PRODUCT_REQ_
 #endif
 #endif //#if defined (FEATURE_RDKB_WAN_MANAGER)
 
@@ -391,7 +411,9 @@ int main(int argc, char* argv[])
 
 #if defined (FEATURE_RDKB_WAN_MANAGER)
 #if !defined(AUTOWAN_ENABLE) && !defined(_PLATFORM_RASPBERRYPI_) && !defined(INTEL_PUMA7)// This is not needed when auto wan is enabled for TCXBX platforms
+#ifdef _HUB4_PRODUCT_REQ_
     waitUntilSystemReady();
+#endif //_HUB4_PRODUCT_REQ_
 #endif
 #endif //#if defined (FEATURE_RDKB_WAN_MANAGER)
     if ( bRunAsDaemon )

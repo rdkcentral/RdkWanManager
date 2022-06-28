@@ -1442,4 +1442,64 @@ ANSC_STATUS WanMgr_RestartUpdateRemoteIface()
     }
     return ANSC_STATUS_SUCCESS;
 }
-#endif //RBUS_BUILD_FLAG_ENABLE
+#endif
+
+#ifdef _HUB4_PRODUCT_REQ_
+BOOL WanMgr_Rbus_discover_components(char const *pModuleList)
+{
+    rbusError_t rc = RBUS_ERROR_SUCCESS;
+    int componentCnt = 0;
+    char **pComponentNames;
+    BOOL ret = FALSE;
+    char ModuleList[1024] = {0};
+    char const *rbusModuleList[7];
+    int count = 0;
+    const char delimit[2] = " ";
+    char *token;
+
+    strcpy(ModuleList,pModuleList);
+
+    /* get the first token */
+    token = strtok(ModuleList, delimit);
+
+    /* walk through other tokens */
+    while( token != NULL ) {
+        printf( " %s\n", token );
+        rbusModuleList[count]=token;
+        count++;
+        token = strtok(NULL, delimit);
+    }
+    /* print list of dependency modules name */
+    for(int i=0; i<count;i++)
+    {
+        CcspTraceInfo(("WanMgr_Rbus_discover_components rbusModuleList[%s]\n", rbusModuleList[i]));
+    }
+
+    /* Check list of rbus_components get registered. using rbus_api */
+    rc = rbus_discoverComponentName (rbusHandle, count, rbusModuleList, &componentCnt, &pComponentNames);
+
+    if(RBUS_ERROR_SUCCESS != rc)
+    {
+        CcspTraceInfo(("Failed to discover components. Error Code = %d\n", rc));
+        return ret;
+    }
+
+    for (int i = 0; i < componentCnt; i++)
+    {
+        free(pComponentNames[i]);
+    }
+
+    free(pComponentNames);
+
+    /* check number of registered components is equal to input count */
+    if(componentCnt == count)
+    {
+        ret = TRUE;
+    }
+
+    CcspTraceInfo( ("WanMgr_Rbus_discover_components (%d-%d)ret[%s]\n",componentCnt,count,(ret)?"TRUE":"FALSE"));
+
+    return ret;
+}
+
+#endif //_HUB4_PRODUCT_REQ_
