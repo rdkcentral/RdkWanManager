@@ -405,6 +405,7 @@ static WcFmobPolicyState_t Transition_WanInterfaceSelected(WanMgr_Policy_Control
     pFixedInterface->Wan.ActiveLink = TRUE;
     pFixedInterface->SelectionStatus = WAN_IFACE_SELECTED;
     pFixedInterface->InterfaceScanStatus = WAN_IFACE_STATUS_SCANNED;
+    pFixedInterface->Wan.Status =  WAN_IFACE_STATUS_DISABLED;
 
     //Update current active interface variable
     Update_Current_Iface_Status();
@@ -431,6 +432,7 @@ static WcFmobPolicyState_t Transition_FixedWanInterfaceDown(WanMgr_Policy_Contro
     CcspTraceInfo(("%s %d - State changed to STATE_WAN_INTERFACE_DOWN \n", __FUNCTION__, __LINE__));
 
     pFixedInterface->SelectionStatus = WAN_IFACE_NOT_SELECTED;
+    pFixedInterface->Wan.Status =  WAN_IFACE_STATUS_DISABLED;
 
     //Update current active interface variable
     Update_Current_Iface_Status();
@@ -457,6 +459,7 @@ static WcFmobPolicyState_t Transition_FixedWanInterfaceUp(WanMgr_Policy_Controll
     }
 
     pFixedInterface->SelectionStatus = WAN_IFACE_ACTIVE;
+    pFixedInterface->Wan.Status =  WAN_IFACE_STATUS_UP;
 
     //Update current active interface variable
     Update_Current_Iface_Status();
@@ -857,6 +860,7 @@ static WcFmobPolicyState_t Transition_WanInterfacePhyUp(WanMgr_AutoWan_SMInfo_t 
     pFixedInterface->IP.Ipv4Status = WAN_IFACE_IPV4_STATE_UNKNOWN;
     pFixedInterface->IP.Ipv6Status = WAN_IFACE_IPV6_STATE_UNKNOWN;
     pFixedInterface->SelectionStatus = WAN_IFACE_ACTIVE;
+    pFixedInterface->Wan.Status =  WAN_IFACE_STATUS_UP;
 
     //Update current active interface variable
     Update_Current_Iface_Status();
@@ -903,6 +907,7 @@ static WcFmobPolicyState_t Transition_WaitingForInterface(WanMgr_Iface_Data_t *p
        //ActiveLink
     pFixedInterface->Wan.ActiveLink = TRUE;
     pFixedInterface->SelectionStatus = WAN_IFACE_NOT_SELECTED;
+    pFixedInterface->Wan.Status =  WAN_IFACE_STATUS_DISABLED;
 
     //Update current active interface variable
     Update_Current_Iface_Status();
@@ -949,6 +954,7 @@ static WcFmobPolicyState_t Transition_WanInterfaceTearDown(WanMgr_Policy_Control
     // Reset Physical link status when state machine is teardown
     pFixedInterface->Phy.Status = WAN_IFACE_PHY_STATUS_UNKNOWN;
     pFixedInterface->SelectionStatus = WAN_IFACE_NOT_SELECTED;
+    pFixedInterface->Wan.Status =  WAN_IFACE_STATUS_DISABLED;
 
     //Update current active interface variable
     Update_Current_Iface_Status();
@@ -1037,6 +1043,7 @@ static WcFmobPolicyState_t Transition_WanInterfaceConfigured(WanMgr_AutoWan_SMIn
     pFixedInterface->IP.Ipv4Status = WAN_IFACE_IPV4_STATE_UNKNOWN;
     pFixedInterface->IP.Ipv6Status = WAN_IFACE_IPV6_STATE_UNKNOWN;
     pFixedInterface->SelectionStatus = WAN_IFACE_SELECTED;
+    pFixedInterface->Wan.Status =  WAN_IFACE_STATUS_DISABLED;
 
     //Update current active interface variable
     Update_Current_Iface_Status();
@@ -2351,6 +2358,7 @@ static WcBWanPolicyState_t Transition_BackupWanAvailable(WanMgr_Policy_Controlle
     //ActiveLink
     pFixedInterface->Wan.ActiveLink = TRUE;
     pFixedInterface->SelectionStatus = WAN_IFACE_SELECTED;
+    pFixedInterface->Wan.Status =  WAN_IFACE_STATUS_DISABLED;
 
     //Update current active interface variable
     Update_Current_Iface_Status();
@@ -2407,6 +2415,7 @@ static WcBWanPolicyState_t Transition_BackupWanInterfaceActive(WanMgr_Policy_Con
     }
 
     pFixedInterface->SelectionStatus = WAN_IFACE_ACTIVE;
+    pFixedInterface->Wan.Status =  WAN_IFACE_STATUS_UP;
 
     //Update current active interface variable
     Update_Current_Iface_Status();
@@ -2445,6 +2454,7 @@ static WcBWanPolicyState_t Transition_BackupWanInterfaceInActive(WanMgr_Policy_C
     }
 
     pFixedInterface->SelectionStatus = WAN_IFACE_SELECTED;
+    pFixedInterface->Wan.Status =  WAN_IFACE_STATUS_DISABLED;
 
     //Update current active interface variable
     Update_Current_Iface_Status();
