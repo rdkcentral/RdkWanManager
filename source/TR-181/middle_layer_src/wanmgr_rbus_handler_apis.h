@@ -32,6 +32,8 @@
 #define WANMGR_DEVICE_NETWORKING_MODE                "Device.X_RDKCENTRAL-COM_DeviceControl.DeviceNetworkingMode"
 #define X_RDK_REMOTE_DEVICECHANGE                    "Device.X_RDK_Remote.DeviceChange"
 #define X_RDK_REMOTE_INVOKE                          "Device.X_RDK_Remote.Invoke()"
+#define X_RDK_REMOTE_DEVICE_NUM_OF_ENTRIES           "Device.X_RDK_Remote.DeviceNumberOfEntries"
+#define X_RDK_REMOTE_DEVICE_MAC                      "Device.X_RDK_Remote.Device.%d.MAC"
 
 #define WANMGR_INFACE                                 "Device.X_RDK_WanManager.CPEInterface.{i}."
 #define WANMGR_INFACE_TABLE                           "Device.X_RDK_WanManager.CPEInterface"
@@ -95,5 +97,6 @@ void WanMgr_Rbus_UpdateLocalWanDb(void);
 void WanMgr_Rbus_SubscribeDML(void);
 void WanMgr_Rbus_UnSubscribeDML(void);
 ANSC_STATUS WanMgr_WanRemoteIfaceConfigure(char *remoteMac);
+ANSC_STATUS WanMgr_RestartUpdateRemoteIface();
 #endif //RBUS_BUILD_FLAG_ENABLE
 #endif

@@ -494,7 +494,9 @@ ANSC_STATUS WanMgr_UpdatePrevData ()
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
         }
     }   
-
+    #ifdef RBUS_BUILD_FLAG_ENABLE
+    WanMgr_RestartUpdateRemoteIface();
+    #endif
     return ANSC_STATUS_SUCCESS;
 
 }
