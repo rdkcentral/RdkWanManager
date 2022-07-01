@@ -877,7 +877,7 @@ ANSC_STATUS WanMgr_SysEvents_Init(void)
         CcspTraceError(("%s %d - WanMgr_SyseventInit failed \n", __FUNCTION__, __LINE__));
         return ANSC_STATUS_FAILURE;
     }
-#ifdef _HUB4_PRODUCT_REQ_
+#if defined(_HUB4_PRODUCT_REQ_) || defined(_WNXL11BWL_PRODUCT_REQ_)
     set_default_conf_entry();
 #endif
     //Init msg status handler
