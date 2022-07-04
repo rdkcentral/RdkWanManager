@@ -108,6 +108,6 @@ void WanMgr_Data_Init(void);
 ANSC_STATUS WanMgr_Data_Delete(void);
 
 // WAN MGR REMOTE INTERFACE
-WanMgr_Iface_Data_t* WanMgr_Remote_IfaceData_configure(char *remoteCPEMac, int *iface_index);
+ANSC_STATUS WanMgr_Remote_IfaceData_configure(char *remoteCPEMac, int *iface_index);
 void WanMgr_Remote_IfaceData_Init(WanMgr_Iface_Data_t* pIfaceData, UINT iface_index);
 #endif  //_WANMGR_DATA_H_

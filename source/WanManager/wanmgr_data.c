@@ -443,8 +443,9 @@ ANSC_STATUS WanMgr_Data_Delete(void)
     return result;
 }
 
-WanMgr_Iface_Data_t* WanMgr_Remote_IfaceData_configure(char *remoteCPEMac, int  *iface_index)
+ANSC_STATUS WanMgr_Remote_IfaceData_configure(char *remoteCPEMac, int  *iface_index)
 {
+    ANSC_STATUS ret = ANSC_STATUS_FAILURE;
     if(pthread_mutex_lock(&gWanMgrDataBase.gDataMutex) == 0)
     {
         WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl = &(gWanMgrDataBase.IfaceCtrl);
@@ -459,13 +460,14 @@ WanMgr_Iface_Data_t* WanMgr_Remote_IfaceData_configure(char *remoteCPEMac, int  
             pWanIfaceCtrl->ulTotalNumbWanInterfaces = pWanIfaceCtrl->ulTotalNumbWanInterfaces + 1;
             gWanMgrDataBase.IfaceCtrl.update = 0;
             WanMgrDml_GetIfaceData_release(NULL);
+            ret = ANSC_STATUS_SUCCESS;
         }
         else
         {
             CcspTraceInfo(("%s %d - Wan Interface Entries has reached its limit = [%d]\n", __FUNCTION__, __LINE__, MAX_WAN_INTERFACE_ENTRY));
         }
-        return pIfaceData;
     }
+    return ret;
 }
 
 ANSC_STATUS WanMgr_UpdatePrevData ()

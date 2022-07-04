@@ -616,7 +616,22 @@ static void WanMgr_Rbus_EventReceiveHandler(rbusHandle_t handle, rbusEvent_t con
                 if (DeviceMode == GATEWAY_MODE)
                 {
                     CcspTraceInfo(("%s %d -DeviceNwMode set to GATEWAY_MODE. Configure remote Iface\n", __FUNCTION__, __LINE__));
-                    WanMgr_WanRemoteIfaceConfigure(remoteMac);
+
+                    WanMgr_DeviceChangeEvent * pDeviceChangeEvent;
+                    pDeviceChangeEvent = malloc (sizeof(WanMgr_DeviceChangeEvent));
+                    if (pDeviceChangeEvent == NULL)
+                    {
+                        CcspTraceError(("%s %d: malloc failure:%s\n", __FUNCTION__, __LINE__, strerror(errno)));
+                        return;
+                    }
+                    memset(pDeviceChangeEvent, 0, sizeof(WanMgr_DeviceChangeEvent));
+                    strncpy(pDeviceChangeEvent->mac_addr, remoteMac, sizeof(pDeviceChangeEvent->mac_addr));
+                    value = rbusObject_GetValue(event->data, "available");
+                    pDeviceChangeEvent->available = rbusValue_GetBoolean(value);
+
+                    CcspTraceInfo(("%s %d: Received remote iface with MAC:%s available:%d\n", __FUNCTION__, __LINE__, pDeviceChangeEvent->mac_addr, pDeviceChangeEvent->available));
+
+                    WanMgr_WanRemoteIfaceConfigure(pDeviceChangeEvent);
                 }else
                     CcspTraceInfo(("%s %d -DeviceNwMode is not GATEWAY_MODE. Do not configure remote Iface\n", __FUNCTION__, __LINE__));
             }
@@ -1097,18 +1112,24 @@ rbusError_t WanMgr_Rbus_SubscribeHandler(rbusHandle_t handle, rbusEventSubAction
 
 void WanMgr_WanRemoteIfaceConfigure_thread(void *arg);
 
-ANSC_STATUS WanMgr_WanRemoteIfaceConfigure(char *remoteMac)
+ANSC_STATUS WanMgr_WanRemoteIfaceConfigure(WanMgr_DeviceChangeEvent * pDeviceChangeEvent)
 {
+    if (pDeviceChangeEvent == NULL)
+    {
+        CcspTraceInfo(("%s %d:Invalid args..\n", __FUNCTION__, __LINE__));
+        return ANSC_STATUS_FAILURE;
+    }
+
     pthread_t                threadId;
     int                      iErrorCode     = 0;
 
-    iErrorCode = pthread_create( &threadId, NULL, &WanMgr_WanRemoteIfaceConfigure_thread, remoteMac);
+    iErrorCode = pthread_create( &threadId, NULL, &WanMgr_WanRemoteIfaceConfigure_thread, pDeviceChangeEvent);
     if( 0 != iErrorCode )
     {
         CcspTraceInfo(("%s %d - Failed to start WanMgr_WanRemoteIfaceConfigure_thread EC:%d\n", __FUNCTION__, __LINE__, iErrorCode ));
-        if(remoteMac != NULL)
+        if(pDeviceChangeEvent != NULL)
         {
-            free(remoteMac);
+            free(pDeviceChangeEvent);
         }
         return ANSC_STATUS_FAILURE;
     }
@@ -1123,38 +1144,67 @@ void WanMgr_WanRemoteIfaceConfigure_thread(void *arg)
     int  cpeInterfaceIndex   = -1;
     int  newInterfaceIndex   = -1;
     int  rc = ANSC_STATUS_FAILURE;
-    char *remoteMac =  (char*)arg;
+    WanMgr_DeviceChangeEvent * pDeviceChangeEvent = (WanMgr_DeviceChangeEvent *) arg;
     char AliasName[64] = {0};
 
     CcspTraceInfo(("%s %d - Enter \n", __FUNCTION__, __LINE__));
 
     pthread_detach(pthread_self());
 
-    CcspTraceInfo(("%s %d - remoteMac %s \n", __FUNCTION__, __LINE__,remoteMac));
+    CcspTraceInfo(("%s %d - remoteMac %s \n", __FUNCTION__, __LINE__, pDeviceChangeEvent->mac_addr));
     // check the interface table and return index of the match
-    cpeInterfaceIndex =  WanMgr_Remote_IfaceData_index(remoteMac);
+    cpeInterfaceIndex =  WanMgr_Remote_IfaceData_index(pDeviceChangeEvent->mac_addr);
 
-    if(cpeInterfaceIndex >= 0)
+    if (cpeInterfaceIndex < 0)
     {
-        CcspTraceInfo(("%s %d - [%s] MAC  Already have an Entry \n", __FUNCTION__, __LINE__, remoteMac));
-        if(remoteMac != NULL)
+        if (pDeviceChangeEvent->available != true)
         {
-            free(remoteMac);
+            // No need to add new remote device if its not available
+            CcspTraceInfo(("%s %d - Remote device not conencted. So no need to add it in Interface table.\n", __FUNCTION__, __LINE__));
+            free(pDeviceChangeEvent);
+            return ANSC_STATUS_FAILURE;
         }
-        return ANSC_STATUS_SUCCESS;
+
+        // Initialise remote CPE's wan interface with default
+        if (WanMgr_Remote_IfaceData_configure(pDeviceChangeEvent->mac_addr, &newInterfaceIndex) != ANSC_STATUS_SUCCESS)
+        {
+            CcspTraceInfo(("%s %d - Failed to configure remote Wan Interface Entry.\n", __FUNCTION__, __LINE__));
+            free(pDeviceChangeEvent);
+            return ANSC_STATUS_FAILURE;
+        }
+
+        WanMgr_GetIfaceAliasNameByIndex(newInterfaceIndex,AliasName);
+        CcspTraceError(("%s %d - Iterface(%d) AliasName[%s]\n", __FUNCTION__, __LINE__, newInterfaceIndex, AliasName));
+
+        rc = rbusTable_registerRow(rbusHandle, WANMGR_INFACE_TABLE, (newInterfaceIndex+1), AliasName);
+        if(rc != RBUS_ERROR_SUCCESS)
+        {
+            CcspTraceError(("%s %d - Iterface(%d) Table (%s) UnRegistartion failed, Error=%d \n", __FUNCTION__, __LINE__, (newInterfaceIndex+1), WANMGR_INFACE_TABLE, rc));
+            free(pDeviceChangeEvent);
+            return rc;
+        }
+        CcspTraceInfo(("%s %d - Iterface(%d) Table (%s) Registartion Successfully AliasName[%s]\n", __FUNCTION__, __LINE__, (newInterfaceIndex+1), WANMGR_INFACE_TABLE,AliasName));
+
+        cpeInterfaceIndex = newInterfaceIndex;
     }
 
-    // Initialise remote CPE's wan interface with default
-    WanMgr_Iface_Data_t * pIfaceData = WanMgr_Remote_IfaceData_configure(remoteMac, &newInterfaceIndex);
-
-    if(pIfaceData == NULL)
+    WanMgr_Iface_Data_t * pWanDmlIfaceData = WanMgr_GetIfaceData_locked(cpeInterfaceIndex);
+    if (pWanDmlIfaceData != NULL)
     {
-        CcspTraceInfo(("%s %d - Failed to configure remote Wan Interface Entry.\n", __FUNCTION__, __LINE__));
-        if(remoteMac != NULL)
+        DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
+        if (pDeviceChangeEvent->available != true) 
         {
-            free(remoteMac);
+            CcspTraceInfo(("%s %d: Remote device is not available. so setting interface:%d to Wan.Enable = FALSE\n", __FUNCTION__, __LINE__, cpeInterfaceIndex));
+            pWanDmlIface->Wan.Enable = FALSE;
+
+            free(pDeviceChangeEvent);
+            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+            return ANSC_STATUS_SUCCESS;
         }
-        return ANSC_STATUS_FAILURE;
+
+        CcspTraceInfo(("%s %d: Setting interface:%d to Wan.Enable = TRUE\n", __FUNCTION__, __LINE__, cpeInterfaceIndex));
+        pWanDmlIface->Wan.Enable = TRUE;
+        WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
     }
 
     idm_invoke_method_Params_t IDM_request;
@@ -1168,7 +1218,7 @@ void WanMgr_WanRemoteIfaceConfigure_thread(void *arg)
             memset(&IDM_request,0, sizeof(idm_invoke_method_Params_t));
 
             /* Update request parameters */
-            strcpy(IDM_request.Mac_dest,remoteMac);
+            strcpy(IDM_request.Mac_dest, pDeviceChangeEvent->mac_addr);
             strcpy(IDM_request.param_name, RemoteDMs[i].name);
             strcpy(IDM_request.pComponent_name, "eRT.com.cisco.spvtg.ccsp.wanmanager");
             strcpy(IDM_request.pBus_path, "/com/cisco/spvtg/ccsp/wanmanager");
@@ -1191,7 +1241,7 @@ void WanMgr_WanRemoteIfaceConfigure_thread(void *arg)
             memset(&IDM_request,0, sizeof(idm_invoke_method_Params_t));
 
             /* Update request parameters */
-            strcpy(IDM_request.Mac_dest,remoteMac);
+            strcpy(IDM_request.Mac_dest, pDeviceChangeEvent->mac_addr);
             strcpy(IDM_request.param_name, RemoteDMs[i].name);
             IDM_request.timeout = 600;
             IDM_request.operation = IDM_SUBS;
@@ -1200,32 +1250,8 @@ void WanMgr_WanRemoteIfaceConfigure_thread(void *arg)
             WanMgr_IDM_Invoke(&IDM_request);
         }
     }
-
-    WanMgr_GetIfaceAliasNameByIndex(newInterfaceIndex,AliasName);
-
-    CcspTraceError(("%s %d - Iterface(%d) AliasName[%s]\n", __FUNCTION__, __LINE__, newInterfaceIndex, AliasName));
-    rc = rbusTable_registerRow(rbusHandle, WANMGR_INFACE_TABLE, (newInterfaceIndex+1), AliasName);
-
-    if(rc != RBUS_ERROR_SUCCESS)
-    {
-        CcspTraceError(("%s %d - Iterface(%d) Table (%s) UnRegistartion failed, Error=%d \n", __FUNCTION__, __LINE__, (newInterfaceIndex+1), WANMGR_INFACE_TABLE, rc));
-        if(remoteMac != NULL)
-        {
-            free(remoteMac);
-        }
-        return rc;
-    }
-    else
-    {
-        CcspTraceInfo(("%s %d - Iterface(%d) Table (%s) Registartion Successfully AliasName[%s]\n", __FUNCTION__, __LINE__, (newInterfaceIndex+1), WANMGR_INFACE_TABLE,AliasName));
-    }
-
-    if(remoteMac != NULL)
-    {
-        free(remoteMac);
-    }
+    free(pDeviceChangeEvent);
     pthread_exit(NULL);
-
     return ANSC_STATUS_SUCCESS;
 }
 

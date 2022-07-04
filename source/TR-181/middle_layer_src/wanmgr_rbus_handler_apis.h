@@ -52,6 +52,11 @@ typedef enum _IDM_MSG_OPERATION
 
 }IDM_MSG_OPERATION;
 
+typedef struct _DeviceChangeEvent {
+    char         mac_addr[64];
+    bool         available;
+} WanMgr_DeviceChangeEvent;
+
 typedef struct _idm_invoke_method_Params
 {
     IDM_MSG_OPERATION operation;
@@ -96,7 +101,7 @@ ANSC_STATUS WanMgr_Rbus_getUintParamValue(char * param, UINT * value);
 void WanMgr_Rbus_UpdateLocalWanDb(void);
 void WanMgr_Rbus_SubscribeDML(void);
 void WanMgr_Rbus_UnSubscribeDML(void);
-ANSC_STATUS WanMgr_WanRemoteIfaceConfigure(char *remoteMac);
 ANSC_STATUS WanMgr_RestartUpdateRemoteIface();
+ANSC_STATUS WanMgr_WanRemoteIfaceConfigure(WanMgr_DeviceChangeEvent * pDeviceChangeEvent);
 #endif //RBUS_BUILD_FLAG_ENABLE
 #endif
