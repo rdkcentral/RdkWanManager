@@ -487,6 +487,11 @@ ANSC_STATUS WanMgr_UpdatePrevData ()
             DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
             
             WanMgr_RestartUpdatePhyPath (WAN_PHY_PATH_PARAM_NAME, uiLoopCount, pWanIfaceData->Phy.Path, sizeof(pWanIfaceData->Phy.Path));
+            if(pWanIfaceData->PPP.Enable == TRUE)
+            {
+                CcspTraceInfo(("%s %d - Update PPP path\n", __FUNCTION__, __LINE__));
+                WanMgr_RestartUpdatePhyPath (WAN_PPP_PATH_PARAM_NAME, uiLoopCount, pWanIfaceData->PPP.Path, sizeof(pWanIfaceData->PPP.Path));
+            }
             #if !defined(AUTOWAN_ENABLE)
             WanMgr_RestartGetPhyStatus(pWanIfaceData);
             #endif

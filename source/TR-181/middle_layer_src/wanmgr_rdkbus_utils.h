@@ -72,6 +72,7 @@ extern token_t sysevent_token;
 #define WAN_CONFIG_PORT_DM_SUFFIX           ".WanConfigPort"
 
 #define WAN_PHY_PATH_PARAM_NAME             "Device.X_RDK_WanManager.CPEInterface.%d.Phy.Path"
+#define WAN_PPP_PATH_PARAM_NAME             "Device.X_RDK_WanManager.CPEInterface.%d.PPP.Path"
 #define STATUS_DM_SUFFIX                    ".Status"
 #define VLAN_ETHLINK_STATUS_PARAM_NAME      "Device.X_RDK_Ethernet.Link.%d.Status"
 #define VLAN_ETHLINK_NAME_PARAM_NAME        "Device.X_RDK_Ethernet.Link.%d.Name"
@@ -136,6 +137,7 @@ ANSC_STATUS WanMgr_RdkBus_Get_InterfaceRebootRequired(UINT IfaceIndex, BOOL *Reb
 ANSC_STATUS WanMgr_RestartGetPhyStatus (DML_WAN_IFACE *pWanIfaceData);
 ANSC_STATUS WanMgr_RestartGetLinkStatus (DML_WAN_IFACE *pWanIfaceData);
 ANSC_STATUS WanMgr_RdkBus_setDhcpv6DnsServerInfo(void);
+bool WanMgr_RestartUpdatePPPinfo(DML_WAN_IFACE *pWanIfaceData);
 
 #ifdef FEATURE_RDKB_AUTO_PORT_SWITCH
 void WanMgr_SetPortCapabilityForEthIntf(DML_WAN_POLICY eWanPolicy);

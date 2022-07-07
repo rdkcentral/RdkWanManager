@@ -1813,6 +1813,7 @@ static void* DmlHandlePPPCreateRequestThread( void *arg )
     snprintf( acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s%d.", PPP_INTERFACE_TABLE, iPPPInstance);
     CcspTraceInfo(("%s %d Set ppp path to %s \n", __FUNCTION__,__LINE__ ,acSetParamValue ));
     strncpy(pInterface->PPP.Path, acSetParamValue,sizeof(pInterface->PPP.Path)-1);
+    WanMgr_SetRestartWanInfo(WAN_PPP_PATH_PARAM_NAME, pInterface->uiIfaceIdx, acSetParamValue);
 
     //Set Lower Layer
     snprintf( acSetParamName, DATAMODEL_PARAM_LENGTH, PPP_INTERFACE_LOWERLAYERS, iPPPInstance );

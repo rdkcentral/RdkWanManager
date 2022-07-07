@@ -3398,6 +3398,7 @@ WanIfPPPCfg_SetParamStringValue
             if (strcmp(ParamName, "Path") == 0)
             {
                 AnscCopyString(pWanDmlIface->PPP.Path, pString);
+                WanMgr_SetRestartWanInfo(WAN_PPP_PATH_PARAM_NAME, pWanDmlIface->uiIfaceIdx, pString);
                 ret = TRUE;
             }
 

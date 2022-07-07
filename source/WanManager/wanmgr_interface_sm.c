@@ -1296,8 +1296,14 @@ static eWanState_t wan_transition_wan_validated(WanMgr_IfaceSM_Controller_t* pWa
 
     if( pInterface->PPP.Enable == TRUE )
     {
-        // PPP is enabled
-        WanManager_CreatePPPSession(pInterface);
+        if(WanMgr_RestartUpdatePPPinfo(pInterface) == TRUE)
+        {
+            CcspTraceInfo(("%s %d - Interface '%s' - Already PPP session is running. \n", __FUNCTION__, __LINE__, pInterface->Name));
+        }
+        else
+        {
+            WanManager_CreatePPPSession(pInterface);
+        }
     }
     else if (pInterface->Wan.EnableDHCP == TRUE)
     {

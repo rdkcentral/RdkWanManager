@@ -57,6 +57,8 @@
 #include "ansc_platform.h"
 #include "ccsp_psm_helper.h"
 #include "wanmgr_data.h"
+#include "wanmgr_dhcpv4_apis.h"
+#include "wanmgr_dhcpv6_apis.h"
 
 #define UPSTREAM_SET_MAX_RETRY_COUNT 10 // max. retry count for Upstream set requests
 
@@ -885,40 +887,116 @@ ANSC_STATUS WanMgr_RestartGetPhyStatus (DML_WAN_IFACE *pWanIfaceData)
     return ANSC_STATUS_SUCCESS;
 }
 
+/**************************************
+  WanMgr_RestartUpdatePPPinfo 
+  If already PPP session running.Updates PPP session details and returns TRUE.
+  else return FALSE.
+ ***************************************/
+bool WanMgr_RestartUpdatePPPinfo(DML_WAN_IFACE *pWanIfaceData)
+{
+    char dmQuery[BUFLEN_256] = {0};
+    char ppp_Status[BUFLEN_256]             = {0};
+    char ppp_ConnectionStatus[BUFLEN_256]   = {0};
+
+    if(pWanIfaceData->PPP.Enable == TRUE && (strlen(pWanIfaceData->PPP.Path) > 0))
+    {
+        snprintf(dmQuery, sizeof(dmQuery)-1, "%sStatus", pWanIfaceData->PPP.Path);
+        if ( ANSC_STATUS_FAILURE == WanMgr_RdkBus_GetParamValueFromAnyComp (dmQuery, ppp_Status))
+        {
+            CcspTraceError(("%s-%d: %s, Failed to get param value\n", __FUNCTION__, __LINE__, dmQuery));
+            return FALSE;
+        }
+
+        snprintf(dmQuery, sizeof(dmQuery)-1, "%sConnectionStatus", pWanIfaceData->PPP.Path);
+        if ( ANSC_STATUS_FAILURE == WanMgr_RdkBus_GetParamValueFromAnyComp (dmQuery, ppp_ConnectionStatus))
+        {
+            CcspTraceError(("%s-%d: %s, Failed to get param value\n", __FUNCTION__, __LINE__, dmQuery));
+            return FALSE;
+        }
+
+        CcspTraceInfo(("%s %d PPP entry Status: %s, ConnectionStatus: %s\n",__FUNCTION__, __LINE__, ppp_Status, ppp_ConnectionStatus));
+
+        if(!strcmp(ppp_Status, "Up") && !strcmp(ppp_ConnectionStatus, "Connected"))
+        {
+            pWanIfaceData->PPP.LinkStatus = WAN_IFACE_PPP_LINK_STATUS_UP;
+            pWanIfaceData->PPP.LCPStatus = WAN_IFACE_LCP_STATUS_UP;
+            pWanIfaceData->PPP.IPCPStatus = WAN_IFACE_IPCP_STATUS_UP;
+            pWanIfaceData->PPP.IPV6CPStatus = WAN_IFACE_IPV6CP_STATUS_UP;
+
+            //Start IPCP Status handler threads
+            {
+                pthread_t IPCPHandlerThread;
+                char *pInterface = NULL;
+                int iErrorCode = 0;
+                pInterface = (char *) malloc(64);
+
+                if (pInterface != NULL)
+                {
+                    strncpy(pInterface, pWanIfaceData->Wan.Name, 64);
+                    iErrorCode = pthread_create( &IPCPHandlerThread, NULL, &IPCPStateChangeHandler, (void*) pInterface );
+                    if( 0 != iErrorCode )
+                    {
+                        CcspTraceInfo(("%s %d - Failed to handle IPCP event change   %d\n", __FUNCTION__, __LINE__, iErrorCode ));
+                    }
+
+                }
+            }
+
+            //Start IPCPv6 Status handler threads
+            {
+                pthread_t IPV6CPHandlerThread;
+                char *pInterface = NULL;
+                int iErrorCode = 0;
+                pInterface = (char *) malloc(64);
+
+                if (pInterface != NULL)
+                {
+                    strncpy(pInterface, pWanIfaceData->Wan.Name, 64);
+                    iErrorCode = pthread_create( &IPV6CPHandlerThread, NULL, &IPV6CPStateChangeHandler, (void*) pInterface );
+                    if( 0 != iErrorCode )
+                    {
+                        CcspTraceInfo(("%s %d - Failed to handle IPCP event change   %d\n", __FUNCTION__, __LINE__, iErrorCode ));
+                    }
+
+                }
+            }
+            return TRUE;
+        }
+    }
+    return FALSE;
+
+}
+
 ANSC_STATUS WanMgr_RestartGetLinkStatus (DML_WAN_IFACE *pWanIfaceData)
 {
     //get PHY status
     char dmQuery[BUFLEN_256] = {0};
     char dmValue[BUFLEN_256] = {0};
 
-    //get Vlan status
-
-    INT     iVLANInstance   = -1;
-    WanMgr_RdkBus_GetInterfaceInstanceInOtherAgent( NOTIFY_TO_VLAN_AGENT, pWanIfaceData->Name, &iVLANInstance );
-
-    //Index is not present. so no need to do anything any VLAN instance
-    if( -1 != iVLANInstance )
+    if(pWanIfaceData->PPP.Enable == TRUE)
     {
-        CcspTraceInfo(("%s %d VLAN Instance:%d\n",__FUNCTION__, __LINE__,iVLANInstance));
+        if((strlen(pWanIfaceData->PPP.Path) <= 0))
+        {
+            return ANSC_STATUS_FAILURE;
+        }
 
-        snprintf(dmQuery, sizeof(dmQuery)-1,VLAN_ETHLINK_STATUS_PARAM_NAME, iVLANInstance);
-
+        snprintf(dmQuery, sizeof(dmQuery)-1, "%sEnable", pWanIfaceData->PPP.Path);
         if ( ANSC_STATUS_FAILURE == WanMgr_RdkBus_GetParamValueFromAnyComp (dmQuery, dmValue))
         {
             CcspTraceError(("%s-%d: %s, Failed to get param value\n", __FUNCTION__, __LINE__, dmQuery));
             return ANSC_STATUS_FAILURE;
         }
 
-        if(strcmp(dmValue,"Up") == 0)
+        if(!strcmp(dmValue, "true"))
         {
             pWanIfaceData->Wan.LinkStatus = WAN_IFACE_LINKSTATUS_UP;
         }
 
-        //Get Vlan interface name
+        //Get Wan.name
         memset(dmQuery, 0, sizeof(dmQuery));
         memset(dmValue, 0, sizeof(dmValue));
 
-        snprintf(dmQuery, sizeof(dmQuery)-1,VLAN_ETHLINK_NAME_PARAM_NAME, iVLANInstance);
+        snprintf(dmQuery, sizeof(dmQuery)-1,"%sAlias", pWanIfaceData->PPP.Path);
 
         if ( ANSC_STATUS_FAILURE == WanMgr_RdkBus_GetParamValueFromAnyComp (dmQuery, dmValue))
         {
@@ -928,10 +1006,51 @@ ANSC_STATUS WanMgr_RestartGetLinkStatus (DML_WAN_IFACE *pWanIfaceData)
 
         if(dmValue != NULL)
         {
-            strncpy(pWanIfaceData->Wan.Name, dmValue, sizeof(pWanIfaceData->Wan.Name));  
+            strncpy(pWanIfaceData->Wan.Name, dmValue, sizeof(pWanIfaceData->Wan.Name));
         }
     }
+    else
+    {
+        //get Vlan status
+        INT     iVLANInstance   = -1;
+        WanMgr_RdkBus_GetInterfaceInstanceInOtherAgent( NOTIFY_TO_VLAN_AGENT, pWanIfaceData->Name, &iVLANInstance );
 
+        //Index is not present. so no need to do anything any VLAN instance
+        if( -1 != iVLANInstance )
+        {
+            CcspTraceInfo(("%s %d VLAN Instance:%d\n",__FUNCTION__, __LINE__,iVLANInstance));
+
+            snprintf(dmQuery, sizeof(dmQuery)-1,VLAN_ETHLINK_STATUS_PARAM_NAME, iVLANInstance);
+
+            if ( ANSC_STATUS_FAILURE == WanMgr_RdkBus_GetParamValueFromAnyComp (dmQuery, dmValue))
+            {
+                CcspTraceError(("%s-%d: %s, Failed to get param value\n", __FUNCTION__, __LINE__, dmQuery));
+                return ANSC_STATUS_FAILURE;
+            }
+
+            if(strcmp(dmValue,"Up") == 0)
+            {
+                pWanIfaceData->Wan.LinkStatus = WAN_IFACE_LINKSTATUS_UP;
+            }
+
+            //Get Vlan interface name
+            memset(dmQuery, 0, sizeof(dmQuery));
+            memset(dmValue, 0, sizeof(dmValue));
+
+            snprintf(dmQuery, sizeof(dmQuery)-1,VLAN_ETHLINK_NAME_PARAM_NAME, iVLANInstance);
+
+            if ( ANSC_STATUS_FAILURE == WanMgr_RdkBus_GetParamValueFromAnyComp (dmQuery, dmValue))
+            {
+                CcspTraceError(("%s-%d: %s, Failed to get param value\n", __FUNCTION__, __LINE__, dmQuery));
+                return ANSC_STATUS_FAILURE;
+            }
+
+            if(dmValue != NULL)
+            {
+                strncpy(pWanIfaceData->Wan.Name, dmValue, sizeof(pWanIfaceData->Wan.Name));  
+            }
+        }
+    }
     return ANSC_STATUS_SUCCESS;
 }
 ANSC_STATUS WanMgr_RdkBus_setDhcpv6DnsServerInfo(void)
