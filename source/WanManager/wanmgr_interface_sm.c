@@ -1334,7 +1334,14 @@ static eWanState_t wan_transition_wan_validated(WanMgr_IfaceSM_Controller_t* pWa
         pInterface->IP.Dhcp6cPid = WanManager_StartDhcpv6Client(pInterface->Wan.Name);
         CcspTraceInfo(("%s %d - Started dhcpv6 client on interface %s, dhcpv6_pid %d \n", __FUNCTION__, __LINE__, pInterface->Wan.Name, pInterface->IP.Dhcp6cPid));
 
+    }else if(pInterface->Wan.EnableDHCP == FALSE)
+    {
+        if(strstr(pInterface->Phy.Path, "Cellular") != NULL)
+        {
+            WanMgr_UpdateIpFromCellularMgr(pInterface->Wan.Name);
+        }
     }
+
 
     CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION OBTAINING IP ADDRESSES\n", __FUNCTION__, __LINE__, pInterface->Name));
 

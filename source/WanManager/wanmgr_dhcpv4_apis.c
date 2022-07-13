@@ -205,6 +205,222 @@ ANSC_STATUS wanmgr_handle_dchpv4_event_data(DML_WAN_IFACE* pIfaceData)
     return ANSC_STATUS_SUCCESS;
 }
 
+void WanMgr_UpdateIpFromCellularMgr (char *dhcpcInterface)
+{
+    char acTmpReturnValue[256] = {0};
+    char acTmpQueryParam[256] = {0};
+
+    if(NULL == dhcpcInterface)
+    {
+        return;
+    }
+
+    //get iface data
+    WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceDataByName_locked(dhcpcInterface);
+    if(pWanDmlIfaceData != NULL)
+    {
+        DML_WAN_IFACE* pIfaceData = &(pWanDmlIfaceData->data);
+        //check if previously message was already handled
+        if(pIfaceData->IP.pIpcIpv4Data == NULL)
+        {
+            //allocate
+            pIfaceData->IP.pIpcIpv4Data = (ipc_dhcpv4_data_t*) malloc(sizeof(ipc_dhcpv4_data_t));
+            if(pIfaceData->IP.pIpcIpv4Data != NULL)
+            {
+                pIfaceData->IP.pIpcIpv4Data->isExpired = FALSE;
+                pIfaceData->IP.pIpcIpv4Data->addressAssigned = TRUE;
+
+                //GET IP address
+                snprintf( acTmpQueryParam, sizeof(acTmpQueryParam ),"%s%s", pIfaceData->Phy.Path, CELLULARMGR_IPADDRESS);
+                memset( acTmpReturnValue, 0, sizeof( acTmpReturnValue ) );
+                if ( ANSC_STATUS_FAILURE == WanMgr_RdkBus_GetParamValues( CELLULARMGR_COMPONENT_NAME, CELLULARMGR_DBUS_PATH, acTmpQueryParam, acTmpReturnValue ) )
+                {
+                    CcspTraceError(("%s %d Failed to get param value for paramname %s \n", __FUNCTION__, __LINE__, acTmpQueryParam));
+                    WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+                    return;
+                }
+                if (acTmpReturnValue[0] != '\0')
+                {
+                    strncpy (pIfaceData->IP.pIpcIpv4Data->ip, acTmpReturnValue, BUFLEN_32);
+                }
+                else
+                {
+                    strncpy (pIfaceData->IP.pIpcIpv4Data->dhcpState, DHCP_STATE_DOWN, BUFLEN_64);
+                    pIfaceData->IP.pIpcIpv4Data->addressAssigned = FALSE;
+                }
+                //get gateway IP
+                memset( acTmpReturnValue, 0, sizeof( acTmpReturnValue ) );
+                memset( acTmpQueryParam, 0, sizeof( acTmpQueryParam ) );
+                snprintf( acTmpQueryParam, sizeof(acTmpQueryParam ),"%s%s", pIfaceData->Phy.Path, CELLULARMGR_GATEWAY);
+
+                if ( ANSC_STATUS_FAILURE == WanMgr_RdkBus_GetParamValues( CELLULARMGR_COMPONENT_NAME, CELLULARMGR_DBUS_PATH, acTmpQueryParam, acTmpReturnValue ) )
+                {
+                    CcspTraceError(("%s %d Failed to get param value for paramname %s \n", __FUNCTION__, __LINE__, acTmpQueryParam));
+                    WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+                    return;
+                }
+                if (acTmpReturnValue[0] != '\0')
+                {
+                    strncpy (pIfaceData->IP.pIpcIpv4Data->gateway, acTmpReturnValue, BUFLEN_32);
+                }
+                else
+                {
+                    strncpy (pIfaceData->IP.pIpcIpv4Data->dhcpState, DHCP_STATE_DOWN, BUFLEN_64);
+                    pIfaceData->IP.pIpcIpv4Data->addressAssigned = FALSE;
+                }
+                //Query for DNS Servers
+                memset( acTmpReturnValue, 0, sizeof( acTmpReturnValue ) );
+                memset( acTmpQueryParam, 0, sizeof( acTmpQueryParam ) );
+                snprintf( acTmpQueryParam, sizeof(acTmpQueryParam ),"%s%s", pIfaceData->Phy.Path, CELLULARMGR_PRIMARY_DNS);
+
+                if ( ANSC_STATUS_FAILURE == WanMgr_RdkBus_GetParamValues( CELLULARMGR_COMPONENT_NAME, CELLULARMGR_DBUS_PATH, acTmpQueryParam, acTmpReturnValue ) )
+                {
+                    CcspTraceError(("%s %d Failed to get param value for paramname %s \n", __FUNCTION__, __LINE__, acTmpQueryParam));
+                    WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+                    return;
+                }
+                if (acTmpReturnValue[0] != '\0')
+                {
+                    strncpy (pIfaceData->IP.pIpcIpv4Data->dnsServer, acTmpReturnValue, BUFLEN_64);
+                }
+                else
+                {
+                    strncpy (pIfaceData->IP.pIpcIpv4Data->dhcpState, DHCP_STATE_DOWN, BUFLEN_64);
+                    pIfaceData->IP.pIpcIpv4Data->addressAssigned = FALSE;
+                }
+
+                memset( acTmpReturnValue, 0, sizeof( acTmpReturnValue ) );
+                memset( acTmpQueryParam, 0, sizeof( acTmpQueryParam ) );
+                snprintf( acTmpQueryParam, sizeof(acTmpQueryParam ),"%s%s", pIfaceData->Phy.Path, CELLULARMGR_SECONDARY_DNS);
+
+                if ( ANSC_STATUS_FAILURE == WanMgr_RdkBus_GetParamValues( CELLULARMGR_COMPONENT_NAME, CELLULARMGR_DBUS_PATH, acTmpQueryParam, acTmpReturnValue ) )
+                {
+                    CcspTraceError(("%s %d Failed to get param value for paramname %s \n", __FUNCTION__, __LINE__, acTmpQueryParam));
+                    WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+                    return;
+                }
+                if (acTmpReturnValue[0] != '\0')
+                {
+                    strncpy (pIfaceData->IP.pIpcIpv4Data->dnsServer1, acTmpReturnValue, BUFLEN_64);
+                }
+                else
+                {
+                    strncpy (pIfaceData->IP.pIpcIpv4Data->dhcpState, DHCP_STATE_DOWN, BUFLEN_64);
+                    pIfaceData->IP.pIpcIpv4Data->addressAssigned = FALSE;
+                }
+
+                //update iface name 
+                strncpy(pIfaceData->IP.pIpcIpv4Data->dhcpcInterface, dhcpcInterface, sizeof(pIfaceData->IP.pIpcIpv4Data->dhcpcInterface) - 1);
+
+                //query mask
+                memset( acTmpReturnValue, 0, sizeof( acTmpReturnValue ) );
+                memset( acTmpQueryParam, 0, sizeof( acTmpQueryParam ) );
+                snprintf( acTmpQueryParam, sizeof(acTmpQueryParam ),"%s%s", pIfaceData->Phy.Path, CELLULARMGR_SUBNET_MASK);
+
+                if ( ANSC_STATUS_FAILURE == WanMgr_RdkBus_GetParamValues( CELLULARMGR_COMPONENT_NAME, CELLULARMGR_DBUS_PATH, acTmpQueryParam, acTmpReturnValue ) )
+                {
+                    CcspTraceError(("%s %d Failed to get param value for paramname %s \n", __FUNCTION__, __LINE__, acTmpQueryParam));
+                    WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+                    return;
+                }
+                if (acTmpReturnValue[0] != '\0')
+                {
+                    strncpy (pIfaceData->IP.pIpcIpv4Data->mask, acTmpReturnValue, BUFLEN_32);
+                }
+                else
+                {
+                    strncpy (pIfaceData->IP.pIpcIpv4Data->dhcpState, DHCP_STATE_DOWN, BUFLEN_64);
+                    pIfaceData->IP.pIpcIpv4Data->addressAssigned = FALSE;
+                }
+
+                //query mtu size
+
+                memset( acTmpReturnValue, 0, sizeof( acTmpReturnValue ) );
+                memset( acTmpQueryParam, 0, sizeof( acTmpQueryParam ) );
+                snprintf( acTmpQueryParam, sizeof(acTmpQueryParam ),"%s%s", pIfaceData->Phy.Path, CELLULARMGR_MTU_SIZE);
+
+                if ( ANSC_STATUS_FAILURE == WanMgr_RdkBus_GetParamValues( CELLULARMGR_COMPONENT_NAME, CELLULARMGR_DBUS_PATH, acTmpQueryParam, acTmpReturnValue ) )
+                {
+                    CcspTraceError(("%s %d Failed to get param value for paramname %s \n", __FUNCTION__, __LINE__, acTmpQueryParam));
+                    WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+                    return;
+                }
+                if (acTmpReturnValue[0] != '\0')
+                {
+                    pIfaceData->IP.pIpcIpv4Data->mtuSize = atoi(acTmpReturnValue);
+                    pIfaceData->IP.pIpcIpv4Data->mtuAssigned = TRUE;
+                }
+                else
+                {
+                    strncpy (pIfaceData->IP.pIpcIpv4Data->dhcpState, DHCP_STATE_DOWN, BUFLEN_64);
+                    pIfaceData->IP.pIpcIpv4Data->addressAssigned = FALSE;
+                }
+
+                //update Ipv4 data
+                wanmgr_handle_dchpv4_event_data(pIfaceData);
+            }    
+        }
+
+        //IPv6 data
+
+        memset( acTmpReturnValue, 0, sizeof( acTmpReturnValue ) );
+        memset( acTmpQueryParam, 0, sizeof( acTmpQueryParam ) );
+        snprintf( acTmpQueryParam, sizeof(acTmpQueryParam ),"%s%s", pIfaceData->Phy.Path, CELLULARMGR_IPv6_ADDRESS);
+
+        if ( ANSC_STATUS_FAILURE == WanMgr_RdkBus_GetParamValues( CELLULARMGR_COMPONENT_NAME, CELLULARMGR_DBUS_PATH, acTmpQueryParam, acTmpReturnValue ) )
+        {
+            CcspTraceError(("%s %d Failed to get param value for paramname %s \n", __FUNCTION__, __LINE__, acTmpQueryParam));
+            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+            return;
+        }
+        if (acTmpReturnValue[0] != '\0')
+        {
+            //TODO: send ipv6 lease info via pandm. review and modify the code to directly update IPv6 from CellularManager.
+
+            // CELLULARMGR sends us only the ipv6 address, so assigning the default value for rest of the values
+            char * fifo_pattern = "dibbler-client add '%s' '1' '\\0' '\\0' '\\0' '\\0' '\\0' 0 '1' '\\0' '\\0' '3600' '7200' ''";
+            char ipv6_addr [128] = {0};
+            char buff [512] = {0};
+            int sock   = -1;
+            int bytes  = -1;
+
+            // copy the ipv6_addr to local buff
+            strncpy (ipv6_addr, acTmpReturnValue, sizeof(ipv6_addr) - 1);
+
+            // copy the ipv6_addr to string pattern so reading side can parse it
+            snprintf(buff, sizeof (buff), fifo_pattern,ipv6_addr);
+
+            // open fifo
+            sock = open(CCSP_COMMON_FIFO, O_WRONLY);
+            if (sock < 0)
+            {
+                CcspTraceInfo(("%s %d: Failed to create the socket , error = [%d][%s]\n", __FUNCTION__, __LINE__, errno, strerror(errno)));
+                WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+                return;
+            }
+
+            // write data
+            bytes = write(sock, buff, strlen(buff));
+            if (bytes == 0)
+            {
+                CcspTraceInfo(("%s %d: Failed to write in fifo , error = [%d][%s]\n", __FUNCTION__, __LINE__, errno, strerror(errno)));
+                close(sock);
+                WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+                return;
+            }
+
+            // close fifo
+            close(sock);
+        }
+    }
+
+    if(pWanDmlIfaceData != NULL)
+    {
+        WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+    }
+    return NULL;
+}
+
 void* IPCPStateChangeHandler (void *arg)
 {
     char acTmpReturnValue[256] = {0};

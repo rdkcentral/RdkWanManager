@@ -860,6 +860,7 @@ int WanMgr_RdkBus_SetParamValuesToDB( char *pParamName, char *pParamVal )
 
     return retPsmSet;
 }
+
 ANSC_STATUS WanMgr_RestartGetPhyStatus (DML_WAN_IFACE *pWanIfaceData)
 {
     //get PHY status
@@ -872,18 +873,35 @@ ANSC_STATUS WanMgr_RestartGetPhyStatus (DML_WAN_IFACE *pWanIfaceData)
         return ANSC_STATUS_FAILURE;
     }
 
-    snprintf(dmQuery, sizeof(dmQuery)-1, "%s%s", pWanIfaceData->Phy.Path, STATUS_DM_SUFFIX);
-    if ( ANSC_STATUS_FAILURE == WanMgr_RdkBus_GetParamValueFromAnyComp (dmQuery, dmValue))
+    if(strstr(pWanIfaceData->Phy.Path, "Cellular") != NULL)
     {
-        CcspTraceError(("%s-%d: %s, Failed to get param value\n", __FUNCTION__, __LINE__, dmQuery));
-        return ANSC_STATUS_FAILURE;
-    }
+        snprintf(dmQuery, sizeof(dmQuery)-1, "%s%s", pWanIfaceData->Phy.Path, CELLULARMGR_PHY_STATUS_DM_SUFFIX);
+        if ( ANSC_STATUS_FAILURE == WanMgr_RdkBus_GetParamValueFromAnyComp (dmQuery, dmValue))
+        {
+            CcspTraceError(("%s-%d: %s, Failed to get param value\n", __FUNCTION__, __LINE__, dmQuery));
+            return ANSC_STATUS_FAILURE;
+        }
 
-    if(strcmp(dmValue,"Up") == 0)
+        if(strcmp(dmValue,"true") == 0)
+        {
+            pWanIfaceData->Phy.Status = WAN_IFACE_PHY_STATUS_UP;
+        }
+
+    }
+    else
     {
-        pWanIfaceData->Phy.Status = WAN_IFACE_PHY_STATUS_UP;
-    }
+        snprintf(dmQuery, sizeof(dmQuery)-1, "%s%s", pWanIfaceData->Phy.Path, STATUS_DM_SUFFIX);
+        if ( ANSC_STATUS_FAILURE == WanMgr_RdkBus_GetParamValueFromAnyComp (dmQuery, dmValue))
+        {
+            CcspTraceError(("%s-%d: %s, Failed to get param value\n", __FUNCTION__, __LINE__, dmQuery));
+            return ANSC_STATUS_FAILURE;
+        }
 
+        if(strcmp(dmValue,"Up") == 0)
+        {
+            pWanIfaceData->Phy.Status = WAN_IFACE_PHY_STATUS_UP;
+        }
+    }
     return ANSC_STATUS_SUCCESS;
 }
 
@@ -1009,6 +1027,22 @@ ANSC_STATUS WanMgr_RestartGetLinkStatus (DML_WAN_IFACE *pWanIfaceData)
             strncpy(pWanIfaceData->Wan.Name, dmValue, sizeof(pWanIfaceData->Wan.Name));
         }
     }
+    else if(strstr(pWanIfaceData->Phy.Path, "Cellular") != NULL)
+    {
+        snprintf(dmQuery, sizeof(dmQuery)-1, "%s%s", pWanIfaceData->Phy.Path, CELLULARMGR_LINK_STATUS_DM_SUFFIX);
+        if ( ANSC_STATUS_FAILURE == WanMgr_RdkBus_GetParamValueFromAnyComp (dmQuery, dmValue))
+        {
+            CcspTraceError(("%s-%d: %s, Failed to get param value\n", __FUNCTION__, __LINE__, dmQuery));
+            return ANSC_STATUS_FAILURE;
+        }
+
+        if(strcmp(dmValue,"true") == 0)
+        {
+            pWanIfaceData->Wan.LinkStatus = WAN_IFACE_LINKSTATUS_UP;
+
+            strncpy(pWanIfaceData->Wan.Name, CELLULARMGR_WAN_NAME, sizeof(pWanIfaceData->Wan.Name));
+        }
+    }
     else
     {
         //get Vlan status
@@ -1074,7 +1108,7 @@ ANSC_STATUS WanMgr_RdkBus_setDhcpv6DnsServerInfo(void)
         {
             CcspTraceError(("%s %d - SetDataModelParameter() failed for X_RDKCENTRAL-COM_DNSServersEnabled parameter \n", __FUNCTION__, __LINE__));
         }
-    }
+    } 
     else
     {
         CcspTraceInfo(("%s %d - sysevent ula_address is empty \n", __FUNCTION__, __LINE__));

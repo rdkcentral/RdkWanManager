@@ -77,6 +77,21 @@ extern token_t sysevent_token;
 #define VLAN_ETHLINK_STATUS_PARAM_NAME      "Device.X_RDK_Ethernet.Link.%d.Status"
 #define VLAN_ETHLINK_NAME_PARAM_NAME        "Device.X_RDK_Ethernet.Link.%d.Name"
 
+//Cellular manager
+#define CELLULARMGR_WAN_NAME                         "wwan0"
+#define CELLULARMGR_PHY_STATUS_DM_SUFFIX             ".X_RDK_PhyConnectedStatus"
+#define CELLULARMGR_LINK_STATUS_DM_SUFFIX            ".X_RDK_LinkAvailableStatus"
+#define CELLULARMGR_IPADDRESS                        ".X_RDK_ContextProfile.1.Ipv4Adress"
+#define CELLULARMGR_SUBNET_MASK                      ".X_RDK_ContextProfile.1.Ipv4SubnetMask"
+#define CELLULARMGR_GATEWAY                          ".X_RDK_ContextProfile.1.Ipv4Gateway"
+#define CELLULARMGR_PRIMARY_DNS                      ".X_RDK_ContextProfile.1.Ipv4PrimaryDns"
+#define CELLULARMGR_SECONDARY_DNS                    ".X_RDK_ContextProfile.1.Ipv4SecondaryDns"
+#define CELLULARMGR_MTU_SIZE                         ".X_RDK_ContextProfile.1.MtuSize"
+#define CELLULARMGR_IPv6_ADDRESS                     ".X_RDK_ContextProfile.1.Ipv6Address"
+#define CELLULARMGR_COMPONENT_NAME                   "eRT.com.cisco.spvtg.ccsp.cellularmanager"
+#define CELLULARMGR_DBUS_PATH                        "/com/cisco/spvtg/ccsp/cellularmanager"
+#define CCSP_COMMON_FIFO                             "/tmp/ccsp_common_fifo"
+
 //VLAN Agent
 #define VLAN_DBUS_PATH                     "/com/cisco/spvtg/ccsp/vlanmanager"
 #define VLAN_COMPONENT_NAME                "eRT.com.cisco.spvtg.ccsp.vlanmanager"

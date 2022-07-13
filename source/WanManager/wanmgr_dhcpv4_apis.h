@@ -43,6 +43,7 @@
  */
 ANSC_STATUS wanmgr_handle_dchpv4_event_data(DML_WAN_IFACE* pIfaceData);
 void* IPCPStateChangeHandler (void *arg);
+void WanMgr_UpdateIpFromCellularMgr (char *dhcpcInterface);
 
 /**********************************************************************
                 STRUCTURE AND CONSTANT DEFINITIONS
