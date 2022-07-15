@@ -2015,10 +2015,11 @@ static int WanMgr_Policy_BackupWan_GetCurrentBackupWanInterfaceIndex( WanMgr_Pol
                 }
 
                 /* If WAN Interface Type is REMOTE then we need to return that index to proceed further */
-                CcspTraceInfo(("%s - Index:%d Type:%d\n", __FUNCTION__, uiWanIdx, pInterface->Wan.IfaceType));
-                if( REMOTE_IFACE == pInterface->Wan.IfaceType )
+                CcspTraceInfo(("%s - Index:%d Type:%d Enable:%d\n", __FUNCTION__, uiWanIdx, pInterface->Wan.IfaceType, pInterface->Wan.Enable));
+                if( ( TRUE == pInterface->Wan.Enable ) &&
+                    ( REMOTE_IFACE == pInterface->Wan.IfaceType ) )
                 {
-                    CcspTraceInfo(("%s - Matched Index:%d Type:%d\n", __FUNCTION__, uiWanIdx, pInterface->Wan.IfaceType));
+                    CcspTraceInfo(("%s - Matched Index:%d Type:%d Enable:%d\n", __FUNCTION__, uiWanIdx, pInterface->Wan.IfaceType, pInterface->Wan.Enable));
                     WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
                     return uiWanIdx;
                 }
@@ -2331,6 +2332,12 @@ static WcBWanPolicyState_t Transition_BackupWanInterfaceSelected(WanMgr_Policy_C
     pFixedInterface->IP.Ipv6Status = WAN_IFACE_IPV6_STATE_UNKNOWN;
     pFixedInterface->Wan.Status = WAN_IFACE_STATUS_DISABLED;
 
+    /* If WAN Interface Type is REMOTE then set Wan.Name to brRWAN */
+    if( REMOTE_IFACE == pFixedInterface->Wan.IfaceType )
+    {
+        strncpy(pFixedInterface->Wan.Name, REMOTE_INTERFACE_NAME, sizeof(pFixedInterface->Wan.Name));
+    }
+
     //Update current active interface variable
     Update_Interface_Status();
 
@@ -2559,6 +2566,7 @@ static WcBWanPolicyState_t State_BackupWanInterfaceDown(WanMgr_Policy_Controller
     }
 
     if( ( pFixedInterface == NULL ) || 
+        (pFixedInterface->Wan.Enable == FALSE) ||
         (pWanController->WanEnable == FALSE) ||
         ( pWanController->AllowRemoteInterfaces == FALSE ) )
     {
@@ -2570,13 +2578,6 @@ static WcBWanPolicyState_t State_BackupWanInterfaceDown(WanMgr_Policy_Controller
         (pFixedInterface->Wan.Status == WAN_IFACE_STATUS_DISABLED) )
     {
         return Transition_ValidatingBackupWanInterface(pWanController);
-    }
-
-    //This is just hack for WAN fail over validation. Originally this should be set via IDM
-    if ( 0 == access( "/nvram/fixLinkstatusAlways" , F_OK ) )
-    {
-        pFixedInterface->Phy.Status = WAN_IFACE_PHY_STATUS_UP;
-        pFixedInterface->Wan.LinkStatus = WAN_IFACE_LINKSTATUS_UP;
     }
 
     return STATE_BACKUP_WAN_INTERFACE_DOWN;
@@ -2598,6 +2599,7 @@ static WcBWanPolicyState_t State_ValidatingBackupWanInterface(WanMgr_Policy_Cont
     }
 
     if ( (pWanController->WanEnable == FALSE) ||
+         (pFixedInterface->Wan.Enable == FALSE) || 
          (pFixedInterface->Phy.Status == WAN_IFACE_PHY_STATUS_DOWN) )
     {
         return Transition_BackupWanInterfaceDown(pWanController);
@@ -2629,6 +2631,7 @@ static WcBWanPolicyState_t State_BackupWanAvailable(WanMgr_Policy_Controller_t* 
     }
 
     if ( (pWanController->WanEnable == FALSE) ||
+         (pFixedInterface->Wan.Enable == FALSE) ||
          (pWanController->AllowRemoteInterfaces == FALSE) ||
          (pFixedInterface->Phy.Status == WAN_IFACE_PHY_STATUS_DOWN) )
     {
@@ -2642,8 +2645,7 @@ static WcBWanPolicyState_t State_BackupWanAvailable(WanMgr_Policy_Controller_t* 
      */
     if ( (pWanController->WanEnable == TRUE) &&
          (pWanController->AllowRemoteInterfaces == TRUE) &&
-         (pFixedInterface->Phy.Status == WAN_IFACE_PHY_STATUS_UP) &&
-         (pFixedInterface->Wan.LinkStatus == WAN_IFACE_LINKSTATUS_UP) )
+         (pFixedInterface->Phy.Status == WAN_IFACE_PHY_STATUS_UP) )
     {
         return Transition_BackupWanInterfaceUp(pWanController);
     }
@@ -2667,6 +2669,7 @@ static WcBWanPolicyState_t State_BackupWanInterfaceUp(WanMgr_Policy_Controller_t
 
     if ( (pWanController->WanEnable == FALSE) ||
          (pWanController->AllowRemoteInterfaces == FALSE) ||
+         (pFixedInterface->Wan.Enable == FALSE) ||
          (pFixedInterface->Phy.Status == WAN_IFACE_PHY_STATUS_DOWN)||
          (pFixedInterface->Wan.LinkStatus != WAN_IFACE_LINKSTATUS_UP) ||
          ( WAN_IFACE_STATUS_UP != pFixedInterface->Wan.Status ) )
@@ -2699,6 +2702,7 @@ static WcBWanPolicyState_t State_BackupWanInterfaceActive(WanMgr_Policy_Controll
 
     if ( (pWanController->WanEnable == FALSE) ||
          (pWanController->AllowRemoteInterfaces == FALSE) ||
+         (pFixedInterface->Wan.Enable == FALSE) ||
          (pFixedInterface->Phy.Status == WAN_IFACE_PHY_STATUS_DOWN)||
          (pFixedInterface->Wan.LinkStatus != WAN_IFACE_LINKSTATUS_UP) ||
          (WAN_IFACE_STATUS_UP != pFixedInterface->Wan.Status) )
@@ -2730,6 +2734,7 @@ static WcBWanPolicyState_t State_BackupWanInterfaceInActive(WanMgr_Policy_Contro
 
     if ( (pWanController->WanEnable == FALSE) ||
          (pWanController->AllowRemoteInterfaces == FALSE) ||
+         (pFixedInterface->Wan.Enable == FALSE) ||
          (pFixedInterface->Phy.Status == WAN_IFACE_PHY_STATUS_DOWN)||
          (pFixedInterface->Wan.LinkStatus != WAN_IFACE_LINKSTATUS_UP) ||
          (WAN_IFACE_STATUS_UP != pFixedInterface->Wan.Status) )
