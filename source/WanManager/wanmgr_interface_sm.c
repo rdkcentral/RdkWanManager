@@ -268,6 +268,37 @@ static int wan_tearDownMapt()
 }
 #endif
 
+/************************************************************************************
+ * @brief Get the status of Interface State Machine.
+ * @return TRUE on running else FALSE
+ ************************************************************************************/
+BOOL WanMgr_Get_ISM_RunningStatus()
+{
+    BOOL status = FALSE;
+    WanMgr_Config_Data_t* pWanConfigData = WanMgr_GetConfigData_locked();
+    if(pWanConfigData != NULL)
+    {
+        DML_WANMGR_CONFIG* pWanConfig = &(pWanConfigData->data);
+        status = pWanConfig->Interface_SM_Running;
+        WanMgrDml_GetConfigData_release(pWanConfigData);
+    }
+    return status;
+}
+
+/************************************************************************************
+ * @brief Update the status of Interface State Machine.
+ ************************************************************************************/
+void WanMgr_Set_ISM_RunningStatus(bool status)
+{
+    WanMgr_Config_Data_t* pWanConfigData = WanMgr_GetConfigData_locked();
+    if(pWanConfigData != NULL)
+    {
+        DML_WANMGR_CONFIG* pWanConfig = &(pWanConfigData->data);
+        pWanConfig->Interface_SM_Running = status;
+        CcspTraceInfo(("%s %d - Status[%s]\n", __FUNCTION__, __LINE__, (status)?"TRUE":"FALSE"));
+        WanMgrDml_GetConfigData_release(pWanConfigData);
+    }
+}
 
 /*********************************************************************************/
 /**************************** ACTIONS ********************************************/
@@ -1127,6 +1158,8 @@ static eWanState_t wan_transition_start(WanMgr_IfaceSM_Controller_t* pWanIfaceCt
     }
     CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION START\n", __FUNCTION__, __LINE__, pInterface->Name));
 
+    WanMgr_Set_ISM_RunningStatus(TRUE);
+
     WanManager_GetDateAndUptime( buffer, &uptime );
     LOG_CONSOLE("%s Wan_init_start:%d\n",buffer,uptime);
 
@@ -1890,6 +1923,9 @@ static eWanState_t wan_transition_exit(WanMgr_IfaceSM_Controller_t* pWanIfaceCtr
     wanmgr_sysevents_setWanState(WAN_LINK_DOWN_STATE);
     Update_Interface_Status();
     CcspTraceInfo(("%s %d - Interface '%s' - EXITING STATE MACHINE\n", __FUNCTION__, __LINE__, pInterface->Name));
+
+    WanMgr_Set_ISM_RunningStatus(FALSE);
+    
     return WAN_STATE_EXIT;
 }
 

@@ -386,19 +386,19 @@ ANSC_STATUS WanMgr_SendMsgToIHC (ipoe_msg_type_t msgType, char *ifName)
         sysevent_get(sysevent_fd, sysevent_token, SYSCFG_FIELD_IPV6_PREFIX, ipv6_prefix, sizeof(ipv6_prefix));
         if(ipv6_prefix == NULL  || *ipv6_prefix == '\0'|| (0 == strncmp(ipv6_prefix, "(null)", strlen("(null)"))))
         {
-            CcspTraceError(("[%s-%d] Unable to get ipv6_prefix..",  __FUNCTION__, __LINE__));
+            CcspTraceError(("[%s-%d] Unable to get ipv6_prefix..\n",  __FUNCTION__, __LINE__));
             return ANSC_STATUS_FAILURE;
         }
 
         pattern = strstr(ipv6_prefix, "/");
         if (pattern == NULL)
         {
-            CcspTraceError(("[%s-%d] Invalid ipv6_prefix :%s", ipv6_prefix));
+            CcspTraceError(("[%s-%d] Invalid ipv6_prefix :%s\n", ipv6_prefix));
             return ANSC_STATUS_FAILURE;
         }
         sprintf(pattern, "%c%c", '1', '\0'); //Form the global address with ::1
         strncpy(msgBody.ipv6Address, ipv6_prefix, sizeof(ipv6_prefix));
-        CcspTraceInfo(("[%s-%d] Sending IPOE_MSG_WAN_CONNECTION_IPV6_UP msg with addr :%s", __FUNCTION__, __LINE__, msgBody.ipv6Address));
+        CcspTraceInfo(("[%s-%d] Sending IPOE_MSG_WAN_CONNECTION_IPV6_UP msg with addr :%s\n", __FUNCTION__, __LINE__, msgBody.ipv6Address));
     }
     else if (msgType == IPOE_MSG_WAN_CONNECTION_UP)
     {
@@ -408,11 +408,11 @@ ANSC_STATUS WanMgr_SendMsgToIHC (ipoe_msg_type_t msgType, char *ifName)
         sysevent_get(sysevent_fd, sysevent_token, sysevent_param_name, ipv4_wan_address, sizeof(ipv4_wan_address));
         if(ipv4_wan_address == NULL  || *ipv4_wan_address == '\0'|| (0 == strncmp(ipv4_wan_address, "(null)", strlen("(null)"))))
         {
-            CcspTraceError(("[%s-%d] Unable to get ipv4_erouter0_ipaddr..",  __FUNCTION__, __LINE__));
+            CcspTraceError(("[%s-%d] Unable to get ipv4_erouter0_ipaddr..\n",  __FUNCTION__, __LINE__));
             return ANSC_STATUS_FAILURE;
         }
         strncpy(msgBody.ipv4Address, ipv4_wan_address, sizeof(ipv4_wan_address));
-        CcspTraceInfo(("[%s-%d] Sending IPOE_MSG_WAN_CONNECTION_UP msg with addr :%s", __FUNCTION__, __LINE__, msgBody.ipv4Address));
+        CcspTraceInfo(("[%s-%d] Sending IPOE_MSG_WAN_CONNECTION_UP msg with addr :%s\n", __FUNCTION__, __LINE__, msgBody.ipv4Address));
     }
     strncpy(msgBody.ifName, ifName, IFNAME_LENGTH-1);
 
@@ -424,7 +424,7 @@ ANSC_STATUS WanMgr_SendMsgToIHC (ipoe_msg_type_t msgType, char *ifName)
     sock = nn_socket(AF_SP, NN_PUSH);
     if (sock < 0)
     {
-        CcspTraceError(("[%s-%d] nn_socket failed"));
+        CcspTraceError(("[%s-%d] nn_socket failed\n"));
         return ANSC_STATUS_FAILURE;
     }
 

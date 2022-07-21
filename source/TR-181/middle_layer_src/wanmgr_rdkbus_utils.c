@@ -374,7 +374,7 @@ ANSC_STATUS WanMgr_RdkBus_updateInterfaceUpstreamFlag(char *phyPath, BOOL flag)
 
     CCSP_MESSAGE_BUS_INFO *bus_info = (CCSP_MESSAGE_BUS_INFO *)bus_handle;
     parameterValStruct_t upstream_param[1] = {0};
-
+    CcspTraceInfo(("%s %d Upstream[%s]\n", __FUNCTION__, __LINE__, (flag)?"UP":"Down" ));
     if(phyPath == NULL) {
         CcspTraceInfo(("%s %d Error: phyPath is NULL \n", __FUNCTION__, __LINE__ ));
         return ANSC_STATUS_FAILURE;

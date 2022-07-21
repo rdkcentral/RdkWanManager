@@ -92,7 +92,7 @@ ANSC_STATUS WanController_Start_StateMachine(DML_WAN_POLICY swan_policy)
     int iErrorCode = 0;
     BOOLEAN WanEnable = TRUE;
     BOOLEAN WanPolicyChanged = FALSE;
-
+    BOOLEAN WanStateMachineRunning = FALSE;
     CcspTraceInfo(("%s %d \n", __FUNCTION__, __LINE__ ));
 
     // event handler
@@ -118,6 +118,7 @@ ANSC_STATUS WanController_Start_StateMachine(DML_WAN_POLICY swan_policy)
             DML_WANMGR_CONFIG* pWanConfig = &(pWanConfigData->data);
 
             WanEnable = pWanConfig->Enable;
+            WanStateMachineRunning = pWanConfig->Interface_SM_Running;
             wan_policy = pWanConfig->Policy;
             WanPolicyChanged = pWanConfig->PolicyChanged;
             if(pWanConfig->PolicyChanged)
@@ -128,7 +129,7 @@ ANSC_STATUS WanController_Start_StateMachine(DML_WAN_POLICY swan_policy)
             WanMgrDml_GetConfigData_release(pWanConfigData);
         }
 
-        if(WanEnable == FALSE)
+        if(WanEnable == FALSE || WanStateMachineRunning == TRUE)
         {
             continue;
         }

@@ -97,5 +97,5 @@ void WanManager_UpdateInterfaceStatus(DML_WAN_IFACE* pIfaceData, wanmgr_iface_st
 
 void WanMgr_IfaceSM_Init(WanMgr_IfaceSM_Controller_t* pWanIfaceSMCtrl, INT iface_idx);
 int WanMgr_StartInterfaceStateMachine(WanMgr_IfaceSM_Controller_t *wanIf);
-
+BOOL WanMgr_Get_ISM_RunningStatus ();
 #endif /*_WANMGR_INTERFACE_SM_H_*/
