@@ -207,7 +207,7 @@ void WanMgr_GetIfaceAliasNameByIndex(UINT iface_index, char *AliasName)
 
 UINT WanMgr_GetIfaceIndexByAliasName(char* AliasName)
 {
-   UINT index = -1;
+   UINT index = 0;
 
     if (strlen(AliasName) <= 0)
     {

@@ -156,12 +156,17 @@ rbusError_t wanMgrDmlPublishEventHandler(rbusHandle_t handle, rbusEventSubAction
     }
 
 
-    sscanf(eventName, "Device.X_RDK_WanManager.CPEInterface.%s.", &AliasName);
-    index = WanMgr_GetIfaceIndexByAliasName(AliasName);
+    sscanf(eventName, "Device.X_RDK_WanManager.CPEInterface.%d.", &index);
 
-    if(index  == -1)
+    if(index  == 0)
     {
-        sscanf(eventName, "Device.X_RDK_WanManager.CPEInterface.%d.", &index);
+        sscanf(eventName, "Device.X_RDK_WanManager.CPEInterface.%s.", &AliasName);
+        index = WanMgr_GetIfaceIndexByAliasName(AliasName);
+    }
+    if(index <= 0)
+    {
+        CcspTraceError(("%s %d - Invalid index\n", __FUNCTION__, __LINE__));
+        return RBUS_ERROR_INVALID_INPUT;
     }
 
     WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked((index - 1));
@@ -275,12 +280,17 @@ rbusError_t WanMgr_Interface_GetHandler(rbusHandle_t handle, rbusProperty_t prop
     rbusValue_Init(&value);
 
 
-    sscanf(name, "Device.X_RDK_WanManager.CPEInterface.%s.", &AliasName);
-    index = WanMgr_GetIfaceIndexByAliasName(AliasName);
+    sscanf(name, "Device.X_RDK_WanManager.CPEInterface.%d.", &index);
 
-    if(index  == -1)
+    if(index  == 0)
     {
-        sscanf(name, "Device.X_RDK_WanManager.CPEInterface.%d.", &index);
+        sscanf(name, "Device.X_RDK_WanManager.CPEInterface.%s.", &AliasName);
+        index = WanMgr_GetIfaceIndexByAliasName(AliasName);
+    }
+    if(index <= 0)
+    {
+        CcspTraceError(("%s %d - Invalid index\n", __FUNCTION__, __LINE__));
+        return RBUS_ERROR_INVALID_INPUT;
     }
 
     WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked((index - 1));
@@ -347,12 +357,17 @@ rbusError_t WanMgr_Interface_SetHandler(rbusHandle_t handle, rbusProperty_t prop
     }
 
 
-    sscanf(name, "Device.X_RDK_WanManager.CPEInterface.%s.", &AliasName);
-    index = WanMgr_GetIfaceIndexByAliasName(AliasName);
+    sscanf(name, "Device.X_RDK_WanManager.CPEInterface.%d.", &index);
 
-    if(index  == -1)
+    if(index  == 0)
     {
-        sscanf(name, "Device.X_RDK_WanManager.CPEInterface.%d.", &index);
+        sscanf(name, "Device.X_RDK_WanManager.CPEInterface.%s.", &AliasName);
+        index = WanMgr_GetIfaceIndexByAliasName(AliasName);
+    }
+    if(index <= 0)
+    {
+        CcspTraceError(("%s %d - Invalid index\n", __FUNCTION__, __LINE__));
+        return RBUS_ERROR_INVALID_INPUT;
     }
 
     WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked((index - 1));
