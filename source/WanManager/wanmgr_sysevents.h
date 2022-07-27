@@ -69,6 +69,7 @@
 #define SYSEVENT_IPV4_DS_CURRENT_RATE "ipv4_%s_ds_current_rate_0"
 #define SYSEVENT_FIELD_SERVICE_ROUTED_STATUS "routed-status"
 #define SYSEVENT_IPV4_MTU_SIZE "ipv4_%s_mtu"
+#define MESH_IFNAME        "br-home"
 
 /*dhcp server restart*/
 #define SYSEVENT_DHCP_SERVER_RESTART "dhcp_server-restart"
@@ -216,14 +217,14 @@ ANSC_STATUS wanmgr_sysevents_ipv6Info_init();
  * @param[in]
  * @return Returns ANSC_STATUS.
 */
-ANSC_STATUS wanmgr_sysevents_ipv4Info_init(const char *wanIfName);
+ANSC_STATUS wanmgr_sysevents_ipv4Info_init(const char *wanIfName, DEVICE_NETWORKING_MODE DeviceNwMode);
 
 /*
  * @brief Utility function used to store all dhcpv4_data_t values in sysevent
  * @param[in] dhcpv4_data_t *dhcp4Info
  * @return Returns ANSC_STATUS.
 */
-ANSC_STATUS wanmgr_set_Ipv4Sysevent(const WANMGR_IPV4_DATA* dhcp4Info);
+ANSC_STATUS wanmgr_set_Ipv4Sysevent(const WANMGR_IPV4_DATA* dhcp4Info, DEVICE_NETWORKING_MODE DeviceNwMode);
 ANSC_STATUS wanmgr_sysevents_ipv4Info_set(const ipc_dhcpv4_data_t* dhcp4Info, const char *wanIfName);
 
 /*
