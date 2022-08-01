@@ -2182,6 +2182,7 @@ static eWanState_t wan_state_obtaining_ip_addresses(WanMgr_IfaceSM_Controller_t*
 static eWanState_t wan_state_standby(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
 {
     eWanState_t ret;
+    static BOOL BridgeWait = FALSE;
     if((pWanIfaceCtrl == NULL) || (pWanIfaceCtrl->pIfaceData == NULL))
     {
         return ANSC_STATUS_FAILURE;
@@ -2205,31 +2206,40 @@ static eWanState_t wan_state_standby(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
     }
     else if (pInterface->SelectionStatus == WAN_IFACE_ACTIVE)
     {
-        if (pInterface->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_UP)
-        {
-            ret = wan_transition_ipv4_up(pWanIfaceCtrl);
-        }
         if (pInterface->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_UP)
         {
-            if (setUpLanPrefixIPv6(pInterface) != RETURN_OK)
+            if (!BridgeWait)
             {
-                CcspTraceError((" %s %d - Failed to configure IPv6 prefix \n", __FUNCTION__, __LINE__));
+                if (setUpLanPrefixIPv6(pInterface) == RETURN_OK)
+                {
+                    BridgeWait = TRUE;
+                    CcspTraceError((" %s %d - configure IPv6 prefix \n", __FUNCTION__, __LINE__));
+                }
             }
-            if (checkIpv6AddressAssignedToBridge() != RETURN_OK)
+            if (checkIpv6AddressAssignedToBridge() == RETURN_OK)
             {
-                CcspTraceError((" %s %d - IPv6 Address Not Assigned to Bridge Yet.\n", __FUNCTION__, __LINE__));
+                BridgeWait = FALSE;
+                ret = wan_transition_ipv6_up(pWanIfaceCtrl);
+                pInterface->IP.Ipv6Changed = FALSE;
+                CcspTraceError((" %s %d - IPv6 Address Assigned to Bridge Yet.\n", __FUNCTION__, __LINE__));
             }
             else
             {
                 wanmgr_Ipv6Toggle();
             }
-            ret = wan_transition_ipv6_up(pWanIfaceCtrl);
-            pInterface->IP.Ipv6Changed = FALSE;
         }
-        return ret;
+        if (pInterface->IP.Ipv6Status != WAN_IFACE_IPV6_STATE_UP || !BridgeWait)
+        {
+            if (pInterface->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_UP)
+            {
+                ret = wan_transition_ipv4_up(pWanIfaceCtrl);
+            }
+            return ret;
+        }
     }
     else
     {
+        BridgeWait = FALSE;
         if (pInterface->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_UP)
         {
             pInterface->IP.Ipv4Changed = FALSE;
