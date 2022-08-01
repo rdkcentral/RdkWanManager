@@ -1537,9 +1537,9 @@ ANSC_STATUS Update_Interface_Status()
                 newIface->Priority = pWanIfaceData->Wan.Priority;
                 if(pWanIfaceData->Phy.Status == WAN_IFACE_PHY_STATUS_UP)
                 {
-                    snprintf(newIface->AvailableStatus, sizeof(newIface->AvailableStatus), "%s,1|", pWanIfaceData->DisplayName);
+                    snprintf(newIface->AvailableStatus, sizeof(newIface->AvailableStatus), "%s,1", pWanIfaceData->DisplayName);
                 }else
-                    snprintf(newIface->AvailableStatus, sizeof(newIface->AvailableStatus), "%s,0|", pWanIfaceData->DisplayName);
+                    snprintf(newIface->AvailableStatus, sizeof(newIface->AvailableStatus), "%s,0", pWanIfaceData->DisplayName);
 
                 if((pWanIfaceData->SelectionStatus == WAN_IFACE_ACTIVE) &&
                    ((pWanIfaceData->Wan.IfaceType == REMOTE_IFACE &&
@@ -1548,19 +1548,19 @@ ANSC_STATUS Update_Interface_Status()
                     (pWanIfaceData->Wan.IfaceType == LOCAL_IFACE &&
                      pWanIfaceData->Wan.Status == WAN_IFACE_STATUS_UP)) )
                 {
-                    snprintf(newIface->ActiveStatus, sizeof(newIface->ActiveStatus), "%s,1|", pWanIfaceData->DisplayName);
+                    snprintf(newIface->ActiveStatus, sizeof(newIface->ActiveStatus), "%s,1", pWanIfaceData->DisplayName);
                 }else
-                    snprintf(newIface->ActiveStatus, sizeof(newIface->ActiveStatus), "%s,0|", pWanIfaceData->DisplayName);
+                    snprintf(newIface->ActiveStatus, sizeof(newIface->ActiveStatus), "%s,0", pWanIfaceData->DisplayName);
 
                 if(devMode  == GATEWAY_MODE)
                 {
                     if(pWanIfaceData->SelectionStatus == WAN_IFACE_ACTIVE)
                     {
-                        snprintf(newIface->CurrentActive, sizeof(newIface->CurrentActive), "%s,", pWanIfaceData->Wan.Name);
+                        snprintf(newIface->CurrentActive, sizeof(newIface->CurrentActive), "%s", pWanIfaceData->Wan.Name);
                     }
                     else if(pWanIfaceData->SelectionStatus == WAN_IFACE_SELECTED)
                     {
-                        snprintf(newIface->CurrentStandby, sizeof(newIface->CurrentStandby), "%s,", pWanIfaceData->Wan.Name);
+                        snprintf(newIface->CurrentStandby, sizeof(newIface->CurrentStandby), "%s", pWanIfaceData->Wan.Name);
                     }
                 }
                 else // MODEM_MODE
@@ -1581,10 +1581,30 @@ ANSC_STATUS Update_Interface_Status()
     struct IFACE_INFO* tmp = NULL;
     while(pHead!= NULL)
     {
+        if(strlen(CurrentActiveInterface)>0 && strlen(pHead->CurrentActive)>0)
+        {
+            strcat(CurrentActiveInterface,",");
+        }
         strcat(CurrentActiveInterface,pHead->CurrentActive);
+
+        if(strlen(CurrentStandbyInterface)>0 && strlen(pHead->CurrentStandby)>0)
+        {
+            strcat(CurrentStandbyInterface,",");
+        }
         strcat(CurrentStandbyInterface,pHead->CurrentStandby);
+
+        if(strlen(InterfaceAvailableStatus)>0 && strlen(pHead->AvailableStatus)>0)
+        {
+            strcat(InterfaceAvailableStatus,"|");
+        }
         strcat(InterfaceAvailableStatus,pHead->AvailableStatus);
+
+        if(strlen(InterfaceActiveStatus)>0 && strlen(pHead->ActiveStatus)>0)
+        {
+            strcat(InterfaceActiveStatus,"|");
+        }
         strcat(InterfaceActiveStatus,pHead->ActiveStatus);
+
         tmp = pHead->next;
         free(pHead);
         pHead = tmp;
