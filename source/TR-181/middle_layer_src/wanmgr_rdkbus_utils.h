@@ -105,6 +105,7 @@ extern token_t sysevent_token;
 #define VLAN_ETHLINK_TABLE_NAME            "Device.X_RDK_Ethernet.Link."
 #define VLAN_ETHLINK_TABLE_FORMAT          "Device.X_RDK_Ethernet.Link.%d."
 #define VLAN_ETHLINK_REFRESH_PARAM_NAME    "Device.X_RDK_Ethernet.Link.%d.X_RDK_Refresh"
+#define VLAN_ETHLINK_ENABLE_PARAM_NAME     "Device.X_RDK_Ethernet.Link.%d.Enable"
 //XDSL Manager
 #define DSL_COMPONENT_NAME "eRT.com.cisco.spvtg.ccsp.xdslmanager"
 #define DSL_COMPONENT_PATH "/com/cisco/spvtg/ccsp/xdslmanager"
@@ -172,5 +173,6 @@ ANSC_STATUS WanMgr_RdkBus_setWanIpInterfaceData(DML_WAN_IFACE *pWanIfaceData);
 #endif
 
 void WanMgr_RdkBus_setEthernetUpstream(bool setVal);
+ANSC_STATUS WanMgr_RdkBusDeleteVlanLink(DML_WAN_IFACE* pInterface );
 
 #endif /* _WANMGR_RDKBUS_UTILS_H_ */

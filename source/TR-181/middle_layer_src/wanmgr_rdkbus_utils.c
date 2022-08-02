@@ -728,6 +728,53 @@ void* WanMgr_RdkBus_WanIfRefreshThread( void *arg )
     return NULL;
 }
 
+ANSC_STATUS WanMgr_RdkBusDeleteVlanLink(DML_WAN_IFACE* pInterface )
+{
+    char    acSetParamName[BUFLEN_256];
+    INT     iVLANInstance   = -1;
+
+    //Get Instance for corresponding name
+    WanMgr_RdkBus_GetInterfaceInstanceInOtherAgent( NOTIFY_TO_VLAN_AGENT, pInterface->Name, &iVLANInstance );
+
+    //Index is not present. so no need to do anything any VLAN instance
+    if( -1 != iVLANInstance )
+    {
+        CcspTraceInfo(("%s %d VLAN Instance:%d\n",__FUNCTION__, __LINE__,iVLANInstance));
+
+        //Set VLAN EthLink Refresh
+        memset( acSetParamName, 0, sizeof(acSetParamName) );
+        snprintf( acSetParamName, sizeof(acSetParamName), VLAN_ETHLINK_ENABLE_PARAM_NAME, iVLANInstance );
+        WanMgr_RdkBus_SetParamValues( VLAN_COMPONENT_NAME, VLAN_DBUS_PATH, acSetParamName, "false", ccsp_boolean, TRUE );
+
+        CcspTraceInfo(("%s %d Successfully notified disable event to VLAN Agent for %s interface[%s]\n", __FUNCTION__, __LINE__, pInterface->Name,acSetParamName));
+
+        /*
+         * Delete Device.Ethernet.Link. Instance.
+         * VLANAgent will delete the vlan interface as part table deletion process.
+         */
+        memset(acSetParamName, 0, sizeof(acSetParamName));
+        snprintf(acSetParamName, sizeof(acSetParamName), "%s%d.", VLAN_ETHLINK_TABLE_NAME, iVLANInstance);
+        if (CCSP_SUCCESS != CcspBaseIf_DeleteTblRow(
+                    bus_handle,
+                    VLAN_COMPONENT_NAME,
+                    VLAN_DBUS_PATH,
+                    0, /* session id */
+                    acSetParamName))
+        {
+            CcspTraceError(("%s Failed to delete table %s\n", __FUNCTION__, acSetParamName));
+            return ANSC_STATUS_FAILURE;
+        }
+    }
+    else
+    {
+        CcspTraceError(("%s Vlan link entry not found. \n", __FUNCTION__ ));
+        return ANSC_STATUS_FAILURE;
+    }
+    CcspTraceInfo(("%s %d Successfully deleted vlan link %s \n", __FUNCTION__, __LINE__, acSetParamName));
+
+    return ANSC_STATUS_SUCCESS;
+}
+
 ANSC_STATUS DmlGetInstanceByKeywordFromPandM(char *ifname, int *piInstanceNumber)
 {
     char acTmpReturnValue[256] = {0};

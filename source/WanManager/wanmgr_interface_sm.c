@@ -1214,7 +1214,32 @@ static eWanState_t wan_transition_physical_interface_down(WanMgr_IfaceSM_Control
 
     if (pInterface->Wan.IfaceType != REMOTE_IFACE)
     {
-        WanMgr_RdkBus_updateInterfaceUpstreamFlag(pInterface->Phy.Path, FALSE);
+        //Check Upstream value
+        char dmQuery[BUFLEN_256] = {0};
+        char dmValue[BUFLEN_256] = {0};
+
+        snprintf(dmQuery, sizeof(dmQuery)-1, "%s%s",pInterface->Phy.Path, UPSTREAM_DM_SUFFIX);
+
+        if ( ANSC_STATUS_FAILURE == WanMgr_RdkBus_GetParamValueFromAnyComp (dmQuery, dmValue))
+        {
+            CcspTraceError(("%s-%d: %s, Failed to get param value\n", __FUNCTION__, __LINE__, dmQuery));
+        }
+
+        if(strncmp(dmValue, "false", sizeof(dmValue)))
+        {
+            CcspTraceInfo(("%s %d: Sending Upstream disbale to Interface %s\n", __FUNCTION__, __LINE__, pInterface->Name));
+            WanMgr_RdkBus_updateInterfaceUpstreamFlag(pInterface->Phy.Path, FALSE);
+        }
+        else
+        {
+            // Upstream is already false. WanInterface component could be restarted and not in current. Delete VLAN link and change the state.
+            if (pInterface->PPP.Enable != TRUE && (strstr(pInterface->Phy.Path, "Cellular") == NULL))
+            {
+                CcspTraceWarning(("%s %d: Upstream is already disabled. Delete VLAN link %s\n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
+                WanMgr_RdkBusDeleteVlanLink(pInterface);
+            }
+            pInterface->Wan.LinkStatus = WAN_IFACE_LINKSTATUS_DOWN;
+        }
     }
 
     /* VLAN link is not created yet if LinkStatus is CONFIGURING. Change it to down. */
@@ -1290,24 +1315,6 @@ static eWanState_t wan_transition_wan_validated(WanMgr_IfaceSM_Controller_t* pWa
     else if (pInterface->Wan.EnableDHCP == TRUE)
     {
         // DHCPv4v6 is enabled
-#ifdef FEATURE_IPOE_HEALTH_CHECK
-        if ( pInterface->Wan.EnableIPoE == TRUE )
-        {
-            // IHC is enabled, So Starting IHC
-            UINT IhcPid = 0;
-            IhcPid = WanManager_StartIpoeHealthCheckService(pInterface->Wan.Name);
-            if (IhcPid > 0)
-            {
-                pWanIfaceCtrl->IhcPid = IhcPid;
-                CcspTraceInfo(("%s %d - Starting IPoE Health Check pid - %u for interface %s \n", __FUNCTION__, __LINE__, pWanIfaceCtrl->IhcPid, pInterface->Wan.Name));
-            }
-            else
-            {
-                CcspTraceError(("%s %d - Failed to start IPoE Health Check for interface %s \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
-            }
-        }
-#endif // FEATURE_IPOE_HEALTH_CHECK
-
         /* Start DHCPv4 client */
         pInterface->IP.Dhcp4cPid = WanManager_StartDhcpv4Client(pInterface->Wan.Name);
         CcspTraceInfo(("%s %d - Started dhcpc on interface %s, dhcpv4_pid %d \n", __FUNCTION__, __LINE__, pInterface->Wan.Name, pInterface->IP.Dhcp4cPid));
@@ -1500,7 +1507,7 @@ static eWanState_t wan_transition_ipv4_down(WanMgr_IfaceSM_Controller_t* pWanIfa
     if (pWanIfaceCtrl->WanEnable == FALSE ||
         pInterface->Wan.Enable == FALSE ||
         pInterface->SelectionStatus == WAN_IFACE_NOT_SELECTED ||
-        pInterface->Phy.Status ==  WAN_IFACE_PHY_STATUS_DOWN ||
+        pInterface->Phy.Status !=  WAN_IFACE_PHY_STATUS_UP ||
         pInterface->Wan.LinkStatus ==  WAN_IFACE_LINKSTATUS_DOWN ||
         ((pInterface->Wan.RefreshDHCP == TRUE) && (pInterface->Wan.EnableDHCP == FALSE)))
     {
@@ -1643,7 +1650,7 @@ static eWanState_t wan_transition_ipv6_down(WanMgr_IfaceSM_Controller_t* pWanIfa
     if (pWanIfaceCtrl->WanEnable == FALSE ||
         pInterface->Wan.Enable == FALSE ||
         pInterface->SelectionStatus == WAN_IFACE_NOT_SELECTED ||
-        pInterface->Phy.Status ==  WAN_IFACE_PHY_STATUS_DOWN ||
+        pInterface->Phy.Status !=  WAN_IFACE_PHY_STATUS_UP ||
         pInterface->Wan.LinkStatus ==  WAN_IFACE_LINKSTATUS_DOWN ||
         ((pInterface->Wan.RefreshDHCP == TRUE) && (pInterface->Wan.EnableDHCP == FALSE)))
     {
@@ -1988,15 +1995,34 @@ static eWanState_t wan_transition_standby_deconfig_ips(WanMgr_IfaceSM_Controller
     }
 
     DML_WAN_IFACE* pInterface = pWanIfaceCtrl->pIfaceData;
+
+#ifdef FEATURE_MAPT
+    if(pInterface->MAP.MaptStatus == WAN_IFACE_MAPT_STATE_UP)
+    {
+        CcspTraceInfo(("%s %d - Deconfiguring MAP-T for %s \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
+        if (wan_tearDownMapt() != RETURN_OK)
+        {
+            CcspTraceError(("%s %d - Failed to tear down MAP-T for %s \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
+        }
+
+        if (WanManager_ResetMAPTConfiguration(pInterface->Name, pInterface->Wan.Name) != RETURN_OK)
+        {
+            CcspTraceError(("%s %d Error resetting MAP-T configuration", __FUNCTION__, __LINE__));
+        }
+    }
+#endif
     if (pInterface->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_UP)
     {
+        CcspTraceInfo(("%s %d - Deconfiguring Ipv4 for %s \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
         if (wan_tearDownIPv4(pWanIfaceCtrl) != RETURN_OK)
         {
             CcspTraceError(("%s %d - Failed to tear down IPv4 for %s Interface \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
         }
     }
+
     if (pInterface->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_UP)
     {
+        CcspTraceInfo(("%s %d - Deconfiguring Ipv6 for %s \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
         if (wan_tearDownIPv6(pWanIfaceCtrl) != RETURN_OK)
         {
             CcspTraceError(("%s %d - Failed to tear down IPv6 for %s Interface \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
@@ -2028,7 +2054,7 @@ static eWanState_t wan_state_configuring_wan(WanMgr_IfaceSM_Controller_t* pWanIf
     if (pWanIfaceCtrl->WanEnable == FALSE ||
         pInterface->Wan.Enable == FALSE ||
         pInterface->SelectionStatus == WAN_IFACE_NOT_SELECTED ||
-        pInterface->Phy.Status ==  WAN_IFACE_PHY_STATUS_DOWN)
+        pInterface->Phy.Status !=  WAN_IFACE_PHY_STATUS_UP)
     {
         return wan_transition_physical_interface_down(pWanIfaceCtrl);
     }
@@ -2053,7 +2079,7 @@ static eWanState_t wan_state_validating_wan(WanMgr_IfaceSM_Controller_t* pWanIfa
     if (pWanIfaceCtrl->WanEnable == FALSE ||
         pInterface->Wan.Enable == FALSE ||
         pInterface->SelectionStatus == WAN_IFACE_NOT_SELECTED ||
-        pInterface->Phy.Status ==  WAN_IFACE_PHY_STATUS_DOWN)
+        pInterface->Phy.Status !=  WAN_IFACE_PHY_STATUS_UP)
     {
         return wan_transition_physical_interface_down(pWanIfaceCtrl);
     }
@@ -2088,7 +2114,7 @@ static eWanState_t wan_state_obtaining_ip_addresses(WanMgr_IfaceSM_Controller_t*
     if (pWanIfaceCtrl->WanEnable == FALSE ||
         pInterface->Wan.Enable == FALSE ||
         pInterface->SelectionStatus == WAN_IFACE_NOT_SELECTED ||
-        pInterface->Phy.Status ==  WAN_IFACE_PHY_STATUS_DOWN)
+        pInterface->Phy.Status !=  WAN_IFACE_PHY_STATUS_UP)
     {
         return wan_transition_physical_interface_down(pWanIfaceCtrl);
     }
@@ -2225,7 +2251,7 @@ static eWanState_t wan_state_standby(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
     if (pWanIfaceCtrl->WanEnable == FALSE ||
         pInterface->Wan.Enable == FALSE ||
         pInterface->SelectionStatus == WAN_IFACE_NOT_SELECTED ||
-        pInterface->Phy.Status ==  WAN_IFACE_PHY_STATUS_DOWN)
+        pInterface->Phy.Status !=  WAN_IFACE_PHY_STATUS_UP)
     {
         return wan_transition_physical_interface_down(pWanIfaceCtrl);
     }
@@ -2331,7 +2357,7 @@ static eWanState_t wan_state_ipv4_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
 
     if (pWanIfaceCtrl->WanEnable == FALSE ||
         pInterface->Wan.Enable == FALSE ||
-        pInterface->Phy.Status ==  WAN_IFACE_PHY_STATUS_DOWN)
+        pInterface->Phy.Status !=  WAN_IFACE_PHY_STATUS_UP)
     {
         return wan_transition_physical_interface_down(pWanIfaceCtrl);
     }
@@ -2473,7 +2499,7 @@ static eWanState_t wan_state_ipv6_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
 
     if (pWanIfaceCtrl->WanEnable == FALSE ||
         pInterface->Wan.Enable == FALSE ||
-        pInterface->Phy.Status ==  WAN_IFACE_PHY_STATUS_DOWN)
+        pInterface->Phy.Status !=  WAN_IFACE_PHY_STATUS_UP)
     {
         return wan_transition_physical_interface_down(pWanIfaceCtrl);
     }
@@ -2635,7 +2661,7 @@ static eWanState_t wan_state_dual_stack_active(WanMgr_IfaceSM_Controller_t* pWan
 
     if (pWanIfaceCtrl->WanEnable == FALSE ||
         pInterface->Wan.Enable == FALSE ||
-        pInterface->Phy.Status ==  WAN_IFACE_PHY_STATUS_DOWN)
+        pInterface->Phy.Status !=  WAN_IFACE_PHY_STATUS_UP)
     {
         return wan_transition_physical_interface_down(pWanIfaceCtrl);
     }
@@ -2802,15 +2828,18 @@ static eWanState_t wan_state_mapt_active(WanMgr_IfaceSM_Controller_t* pWanIfaceC
 
     if (pWanIfaceCtrl->WanEnable == FALSE ||
         pInterface->Wan.Enable == FALSE ||
-        pInterface->Phy.Status ==  WAN_IFACE_PHY_STATUS_DOWN)
+        pInterface->Phy.Status !=  WAN_IFACE_PHY_STATUS_UP)
     {
         return wan_transition_physical_interface_down(pWanIfaceCtrl);
+    }
+    else if ((pInterface->SelectionStatus != WAN_IFACE_ACTIVE) || (pWanIfaceCtrl->DeviceNwModeChanged == TRUE))
+    {
+        return wan_transition_standby_deconfig_ips(pWanIfaceCtrl);
     }
     else if (pInterface->Wan.EnableMAPT == FALSE ||
             pInterface->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_DOWN ||
             pInterface->MAP.MaptStatus == WAN_IFACE_MAPT_STATE_DOWN ||
             pInterface->Wan.LinkStatus ==  WAN_IFACE_LINKSTATUS_DOWN ||
-            (pInterface->SelectionStatus != WAN_IFACE_ACTIVE) ||
             pInterface->Wan.Refresh == TRUE )
     {
         CcspTraceInfo(("%s %d - LinkStatus=[%d] \n", __FUNCTION__, __LINE__, pInterface->Wan.LinkStatus));
@@ -2943,7 +2972,7 @@ static eWanState_t wan_state_refreshing_wan(WanMgr_IfaceSM_Controller_t* pWanIfa
     if (pWanIfaceCtrl->WanEnable == FALSE ||
         pInterface->Wan.Enable == FALSE ||
         pInterface->SelectionStatus == WAN_IFACE_NOT_SELECTED ||
-        pInterface->Phy.Status ==  WAN_IFACE_PHY_STATUS_DOWN)
+        pInterface->Phy.Status !=  WAN_IFACE_PHY_STATUS_UP)
     {
         return wan_transition_physical_interface_down(pWanIfaceCtrl);
     }

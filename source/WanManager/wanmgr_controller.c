@@ -144,7 +144,7 @@ ANSC_STATUS WanController_Start_StateMachine(DML_WAN_POLICY swan_policy)
              * hardware configurations on its own. It is ineffective if we do not intend
              * to use those policies.
              */
-            if(wan_policy != AUTOWAN_MODE )  // Add policy that does not need reset hw configurations.
+            if(wan_policy != AUTOWAN_MODE && wan_policy != PARALLEL_SCAN)  // Add policy that does not need reset hw configurations.
             {
                 WanMgr_RdkBus_setEthernetUpstream(TRUE);
             }
@@ -182,6 +182,25 @@ ANSC_STATUS WanController_Start_StateMachine(DML_WAN_POLICY swan_policy)
 #else
                 retStatus = WanMgr_FailOverThread();
 #endif
+                break;
+
+            case PARALLEL_SCAN:
+#if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
+                retStatus = WanMgr_FailOverThread();
+                break;
+#else
+                CcspTraceError(("%s: PARALLEL_SCAN Not supported. Falling back to AUTOWAN \n",__FUNCTION__));
+#endif
+
+            default: //If policy is not recognised use AUTOWAN_MODE
+                pWanConfigData = WanMgr_GetConfigData_locked();
+                if(pWanConfigData != NULL)
+                {
+                    DML_WANMGR_CONFIG* pWanConfig = &(pWanConfigData->data);
+                    CcspTraceError(("%s: policy Not supported. Falling back to AUTOWAN \n",__FUNCTION__));
+                    pWanConfig->Policy = AUTOWAN_MODE;
+                    WanMgrDml_GetConfigData_release(pWanConfigData);
+                }
                 break;
         }
     }

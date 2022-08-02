@@ -216,4 +216,5 @@ ANSC_STATUS WanManager_CheckGivenTypeExists(INT IfIndex, UINT uiTotalIfaces, DML
 ANSC_STATUS WanManager_CheckGivenPriorityExists(INT IfIndex, UINT uiTotalIfaces, INT priority, BOOL *Status);
 INT WanMgr_StartIpMonitor(UINT iface_index);
 bool WanManager_IsNetworkInterfaceAvailable( char *IfaceName );
+int WanMgr_RdkBus_AddIntfToLanBridge (char * PhyPath, BOOL AddToBridge);
 #endif // _WANMGR_NET_UTILS_H_

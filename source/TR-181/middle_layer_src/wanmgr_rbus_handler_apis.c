@@ -380,6 +380,7 @@ rbusError_t WanMgr_Interface_SetHandler(rbusHandle_t handle, rbusProperty_t prop
             {
                 char String[20] = {0};
                 AnscCopyString(String , rbusValue_GetString(value, NULL));
+                CcspTraceInfo(("%s-%d : %s PhyStatus changed to %s\n", __FUNCTION__, __LINE__, pWanDmlIface->Name, String));
                 WanMgr_StringToEnum(&pWanDmlIface->Phy.Status, ENUM_PHY, String);
                 if (pWanDmlIface->Sub.PhyStatusSub)
                 {

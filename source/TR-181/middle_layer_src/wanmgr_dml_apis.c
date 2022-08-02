@@ -81,15 +81,24 @@ WanManager_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG uV
 
         if (strcmp(ParamName, "Policy") == 0)
         {
-            retStatus = WanMgr_RdkBus_setWanPolicy((DML_WAN_POLICY)uValue);
-            if(retStatus == ANSC_STATUS_SUCCESS)
+#if !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
+            if(uValue == PARALLEL_SCAN)
             {
-                if(pWanDmlData->Policy != uValue)
+                CcspTraceError(("%s: PARALLEL_SCAN Not supported \n",__FUNCTION__));
+                ret = FALSE;
+            }else
+#endif
+            {
+                retStatus = WanMgr_RdkBus_setWanPolicy((DML_WAN_POLICY)uValue);
+                if(retStatus == ANSC_STATUS_SUCCESS)
                 {
-                    pWanDmlData->Policy = uValue;
-                    pWanDmlData->PolicyChanged = TRUE;
+                    if(pWanDmlData->Policy != uValue)
+                    {
+                        pWanDmlData->Policy = uValue;
+                        pWanDmlData->PolicyChanged = TRUE;
+                    }
+                    ret = TRUE;
                 }
-                ret = TRUE;
             }
         }
         if (strcmp(ParamName, "RestorationDelay") == 0)

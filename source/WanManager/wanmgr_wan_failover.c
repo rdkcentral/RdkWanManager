@@ -25,6 +25,7 @@
 #define FAILOVER_SM_LOOP_TIMEOUT 300000 // timeout 
 
 extern void WanMgr_AutoWanSelectionProcess (void* arg);
+extern void WanMgr_ParallelScanSelectionProcess (void* arg);
 
 /* SELECTION STATES */
 static WcFailOverState_t State_ScanningGroup (WanMgr_FailOver_Controller_t * pFailOverController);
@@ -186,6 +187,15 @@ static ANSC_STATUS WanMgr_ActivateGroup(UINT groupId)
 
 static void WanMgr_FO_IfaceGroupMonitor()
 {
+    //get Policy details
+    DML_WAN_POLICY wan_policy = AUTOWAN_MODE;
+    WanMgr_Config_Data_t*   pWanConfigData = WanMgr_GetConfigData_locked();
+    if(pWanConfigData != NULL)
+    {
+        wan_policy = pWanConfigData->data.Policy;
+        WanMgrDml_GetConfigData_release(pWanConfigData);
+    }
+
     for(int i = 0; i < MAX_INTERFACE_GROUP; i++)
     {
         WANMGR_IFACE_GROUP* pWanIfaceGroup = WanMgr_GetIfaceGroup_locked((i));
@@ -213,7 +223,18 @@ static void WanMgr_FO_IfaceGroupMonitor()
                 }
 
                 pWanIfaceGroup->GroupIfaceListChanged = FALSE; 
-                if (pthread_create( &pWanIfaceGroup->ThreadId, NULL, &WanMgr_AutoWanSelectionProcess, (void *)(i+1) ) != 0)
+
+                int ret;
+                if(wan_policy == AUTOWAN_MODE)
+                {
+                    ret = pthread_create( &pWanIfaceGroup->ThreadId, NULL, &WanMgr_AutoWanSelectionProcess, (void *)(i+1));
+                }
+                else if (wan_policy == PARALLEL_SCAN)
+                {
+                    ret = pthread_create( &pWanIfaceGroup->ThreadId, NULL, &WanMgr_ParallelScanSelectionProcess, (void *)(i+1));
+                }
+
+                if (ret != 0)
                 {
                     CcspTraceError(("%s %d - Failed to Create Group(%d) Thread\n", __FUNCTION__, __LINE__, (i+1)));
                 }else

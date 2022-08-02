@@ -103,6 +103,7 @@ extern token_t sysevent_token;
 #define MODEM_TABLE_NAME "MODEM"
 #define WAN_BRIDGE       "brWAN"
 
+#define SET_MAX_RETRY_COUNT 10 // max. retry count for set requests
 /***************************************************************************
  * @brief API used to check the incoming ipv4 address is a valid ipv4 address
  * @param input string contains ipv4 address
@@ -2496,4 +2497,49 @@ bool WanManager_IsNetworkInterfaceAvailable( char *IfaceName )
 
     close(skfd);
     return TRUE;
+}
+
+int WanMgr_RdkBus_AddIntfToLanBridge (char * PhyPath, BOOL AddToBridge)
+{
+    if (PhyPath == NULL)
+    {
+        CcspTraceError(("%s %d: Invalid args...\n", __FUNCTION__, __LINE__));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    if (strstr(PhyPath, "Ethernet") == NULL)
+    {
+        CcspTraceInfo(("%s %d: Interface is not Ethernet based, so LAN Bridge operation required\n", __FUNCTION__, __LINE__));
+        return ANSC_STATUS_SUCCESS;
+    }
+
+    int retry_count = SET_MAX_RETRY_COUNT;
+    char param_name[BUFLEN_256] = {0};
+    char param_value[BUFLEN_256] = {0};
+    parameterValStruct_t varStruct[1] = {0};
+
+    strncpy(param_name, PhyPath, sizeof(param_name)-1);
+    strncat(param_name, ETH_ADDTOLANBRIDGE_DM_SUFFIX, sizeof(param_name) - strlen(param_name));
+    if (AddToBridge)
+    {
+        strncpy(param_value, "true", sizeof(param_value));
+    }
+    else
+    {
+        strncpy(param_value, "false", sizeof(param_value));
+    }
+
+    while (retry_count--)
+    {
+        if (WanMgr_RdkBus_SetParamValues(ETH_COMPONENT_NAME, ETH_COMPONENT_PATH, param_name, param_value, ccsp_boolean, TRUE ) == ANSC_STATUS_SUCCESS)
+        {
+            CcspTraceInfo(("%s %d: Succesfully set %s = %s\n", __FUNCTION__, __LINE__, param_name, param_value));
+            return ANSC_STATUS_SUCCESS;
+        }
+        usleep(500000);
+    }
+
+    CcspTraceError(("%s %d: unable to set %s as %s\n", __FUNCTION__, __LINE__, param_name, param_value));
+    return ANSC_STATUS_FAILURE;
+
 }
