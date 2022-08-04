@@ -1633,7 +1633,7 @@ ANSC_STATUS Update_Interface_Status()
 #endif
         }
 
-        CcspTraceInfo(("%s %d -- [%s] [%s]\n",__FUNCTION__,__LINE__,pWanDmlData->CurrentActiveInterface,CurrentActiveInterface));
+        CcspTraceInfo(("%s %d -CurrentActiveInterface- [%s] [%s]\n",__FUNCTION__,__LINE__,pWanDmlData->CurrentActiveInterface,CurrentActiveInterface));
         if(strlen(CurrentActiveInterface) > 0)
         {
 
@@ -1648,10 +1648,10 @@ ANSC_STATUS Update_Interface_Status()
         }
         else
         {
-            CcspTraceInfo(("%s %d -- No update\n",__FUNCTION__,__LINE__));
+            CcspTraceInfo(("%s %d -CurrentActiveInterface- No update\n",__FUNCTION__,__LINE__));
         }
 
-        CcspTraceInfo(("%s %d -- [%s] [%s]\n",__FUNCTION__,__LINE__,pWanDmlData->CurrentStandbyInterface,CurrentStandbyInterface));
+        CcspTraceInfo(("%s %d -CurrentStandbyInterface- [%s] [%s]\n",__FUNCTION__,__LINE__,pWanDmlData->CurrentStandbyInterface,CurrentStandbyInterface));
         if(strcmp(pWanDmlData->CurrentStandbyInterface,CurrentStandbyInterface) != 0)
         {
             strcpy(prevCurrentStandbyInterface, pWanDmlData->CurrentStandbyInterface);

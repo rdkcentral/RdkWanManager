@@ -784,6 +784,9 @@ static WcFmobPolicyState_t Transition_StartAuto(WanMgr_AutoWan_SMInfo_t *pSmInfo
     if (!pWanPolicyCtrl)
         return STATE_WAN_WAITING_FOR_INTERFACE;
 
+    //Update current active interface variable
+    Update_Interface_Status();
+
     while (1)
     {
         pWanActiveIfaceData = WanMgr_GetIfaceData_locked(pWanPolicyCtrl->activeInterfaceIdx);
@@ -1082,6 +1085,11 @@ static WcFmobPolicyState_t Transition_WanInterfaceActive(WanMgr_AutoWan_SMInfo_t
     {
         return retState;
     }
+
+    pFixedInterface->SelectionStatus = WAN_IFACE_ACTIVE;
+    pFixedInterface->Wan.Status = WAN_IFACE_STATUS_UP;
+    //Update current active interface variable
+    Update_Interface_Status();
 
     CcspTraceInfo(("%s %d - State changed to STATE_WAN_INTERFACE_ACTIVE if_name %s\n", __FUNCTION__, __LINE__,pFixedInterface->Wan.Name));
     CcspTraceInfo(("%s %d - LastKnownMode %d  Active index %d\n", __FUNCTION__, __LINE__,lastKnownMode,pWanController->activeInterfaceIdx));
@@ -1606,7 +1614,12 @@ static WcFmobPolicyState_t State_WanInterfaceActive(WanMgr_AutoWan_SMInfo_t *pSm
     }
     if (pFixedInterface->Phy.Status == WAN_IFACE_PHY_STATUS_DOWN)
     {
-        // wan stop
+        pFixedInterface->Wan.Status = WAN_IFACE_STATUS_DISABLED;
+        pFixedInterface->SelectionStatus = WAN_IFACE_NOT_SELECTED;
+        //Update current active interface variable
+	Update_Interface_Status();
+
+	// wan stop
         wanmgr_setwanstop();
         retState = STATE_WAN_INTERFACE_DOWN;
         CcspTraceInfo(("%s %d - RetState %d GOING DOWN if_name %s \n", __FUNCTION__, __LINE__,retState,pFixedInterface->Wan.Name));
@@ -2483,7 +2496,6 @@ static WcBWanPolicyState_t Transition_BackupWanInterfaceDown(WanMgr_Policy_Contr
 
     // Reset Physical link status when state machine is teardown
     pFixedInterface->Wan.ActiveLink = FALSE;
-    pFixedInterface->Phy.Status = WAN_IFACE_PHY_STATUS_UNKNOWN;
     pFixedInterface->Wan.LinkStatus = WAN_IFACE_LINKSTATUS_DOWN;
     pFixedInterface->SelectionStatus = WAN_IFACE_NOT_SELECTED;
     pFixedInterface->Wan.Status = WAN_IFACE_STATUS_DISABLED;
