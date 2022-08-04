@@ -556,27 +556,6 @@ static bool WanMgr_CheckIfPlatformReconfiguringRequired (WanMgr_Policy_Controlle
 }
 
 /*
- * WanMgr_CheckIfIntfStateMachineRunning()
- * - checks if Interface state machine is running
- * - if yes, returns TRUE, else returns FALSE
- */
-static bool WanMgr_CheckIfIntfStateMachineRunning (WanMgr_Policy_Controller_t* pWanController)
-{
-    if ((pWanController == NULL) || (pWanController->pWanActiveIfaceData == NULL))
-    {
-        CcspTraceError(("%s %d: Invalid args \n", __FUNCTION__, __LINE__));
-        return FALSE;
-    }
-
-    DML_WAN_IFACE * pActiveInterface = &(pWanController->pWanActiveIfaceData->data); 
-    if (pActiveInterface->Wan.Status != WAN_IFACE_STATUS_DISABLED)
-    {
-        return TRUE;
-    }
-    return FALSE;
-}
-
-/*
  * WanMgr_SetUpstreamOnlyForSelectedIntf()
  * - sets Upstream = TRUE for selected interface
  * - sets Upstream = FALSE for other interfaces
@@ -1000,7 +979,7 @@ static WcAwPolicyState_t Transistion_WanInterfaceUp (WanMgr_Policy_Controller_t 
         return STATE_AUTO_WAN_ERROR;
     }
 
-    if (WanMgr_CheckIfIntfStateMachineRunning(pWanController) == TRUE)
+    if (WanMgr_Get_ISM_RunningStatus() == TRUE)
     {
         CcspTraceInfo(("%s %d: Waiting to start new interface state machine \n", __FUNCTION__, __LINE__));
         return STATE_AUTO_WAN_INTERFACE_DOWN;
@@ -1186,7 +1165,7 @@ static WcAwPolicyState_t State_WaitingForIfaceTearDown (WanMgr_Policy_Controller
     }
 
     // check if iface sm is running
-    if (WanMgr_CheckIfIntfStateMachineRunning(pWanController) == TRUE)
+    if (WanMgr_Get_ISM_RunningStatus() == TRUE)
     {
         return STATE_AUTO_WAN_INTERFACE_TEARDOWN;
     }
@@ -1244,7 +1223,7 @@ static WcAwPolicyState_t State_RebootingPlatform (WanMgr_Policy_Controller_t * p
     }
 
     // check if interface state machine is still running
-    if (WanMgr_CheckIfIntfStateMachineRunning(pWanController) == TRUE)
+    if (WanMgr_Get_ISM_RunningStatus() == TRUE)
     {
         CcspTraceInfo(("%s %d: Iface state machine still running..\n", __FUNCTION__, __LINE__));
         return STATE_AUTO_WAN_REBOOT_PLATFORM;
@@ -1362,7 +1341,7 @@ static WcAwPolicyState_t State_WaitingForInterfaceSMExit(WanMgr_Policy_Controlle
 
     pFixedInterface->SelectionStatus = WAN_IFACE_NOT_SELECTED;
 
-    if(WanMgr_CheckIfIntfStateMachineRunning(pWanController) == TRUE)
+    if(WanMgr_Get_ISM_RunningStatus() == TRUE)
     {
         return STATE_AUTO_WAN_TEARING_DOWN;
     }
@@ -1936,7 +1915,7 @@ static BOOL WanMgr_UpdateIfaceGroupChange(void)
                         CcspTraceError(("%s %d - Failed to Create Group(%d) Thread\n", __FUNCTION__, __LINE__, (j+1)));
                         continue;
                     }
-                    CcspTraceInfo(("%s %d - Successfully Created Group(%d) Thread Id : %d \n", __FUNCTION__, __LINE__, (j+1), pWanIfaceGroup->Group[j].ThreadId));
+                    CcspTraceInfo(("%s %d - Successfully Created Group(%d) Thread Id : %ld\n", __FUNCTION__, __LINE__, (j+1), pWanIfaceGroup->Group[j].ThreadId));
                     pWanIfaceGroup->Group[j].GroupState == STATE_GROUP_RUNNING;
                 }
             }
@@ -1962,7 +1941,7 @@ ANSC_STATUS WanMgr_Policy_AutoWanPolicy (void)
     {
         CcspTraceError(("%s %d - Failed to Create FailOver Thread\n", __FUNCTION__, __LINE__));
     }
-    CcspTraceInfo(("%s %d - Successfully Created FailOver Thread Id : %d\n", __FUNCTION__, __LINE__, FailOver_ThreadId));
+    CcspTraceInfo(("%s %d - Successfully Created FailOver Thread Id : %ld\n", __FUNCTION__, __LINE__, FailOver_ThreadId));
 
     while (bRunning)
     {

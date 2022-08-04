@@ -407,6 +407,7 @@ typedef struct _DML_WANMGR_CONFIG_
     CHAR    CurrentActiveInterface[BUFLEN_64];
     CHAR    CurrentStandbyInterface[BUFLEN_64];
     UINT    RestorationDelay;
+    BOOLEAN Interface_SM_Running;  // flag to check whether Interface State machine is running
 } DML_WANMGR_CONFIG;
 
 #endif //_WANMGR_DML_H_
