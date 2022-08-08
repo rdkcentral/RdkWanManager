@@ -1769,6 +1769,7 @@ static eWanState_t wan_transition_mapt_feature_refresh(WanMgr_IfaceSM_Controller
     {
         int i = 0;
         /* Release and Stops DHCPv6 client */
+        system("touch /tmp/dhcpv6_release");
         WanManager_StopDhcpv6Client(pInterface->Wan.Name);
         pInterface->IP.Dhcp6cPid = 0;
 
