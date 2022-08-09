@@ -61,6 +61,10 @@
 #include "wanmgr_data.h"
 #include "ansc_platform.h"
 #include "platform_hal.h"
+#include "wanmgr_sysevents.h"
+#include <sysevent/sysevent.h>
+extern int sysevent_fd;
+extern token_t sysevent_token;
 
 #include <syscfg/syscfg.h>
 
@@ -131,6 +135,7 @@ ANSC_STATUS WanMgr_RdkBus_Get_InterfaceRebootRequired(UINT IfaceIndex, BOOL *Reb
 
 ANSC_STATUS WanMgr_RestartGetPhyStatus (DML_WAN_IFACE *pWanIfaceData);
 ANSC_STATUS WanMgr_RestartGetLinkStatus (DML_WAN_IFACE *pWanIfaceData);
+ANSC_STATUS WanMgr_RdkBus_setDhcpv6DnsServerInfo(void);
 
 #ifdef FEATURE_RDKB_AUTO_PORT_SWITCH
 void WanMgr_SetPortCapabilityForEthIntf(DML_WAN_POLICY eWanPolicy);

@@ -934,3 +934,31 @@ ANSC_STATUS WanMgr_RestartGetLinkStatus (DML_WAN_IFACE *pWanIfaceData)
 
     return ANSC_STATUS_SUCCESS;
 }
+ANSC_STATUS WanMgr_RdkBus_setDhcpv6DnsServerInfo(void)
+{
+    ANSC_STATUS retStatus = ANSC_STATUS_FAILURE;
+    char sysevent_buf[BUFLEN_128] = {'\0'};
+
+    sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_ULA_ADDRESS, sysevent_buf, BUFLEN_128);
+    if(sysevent_buf[0] != '\0')
+    {
+        retStatus = WanMgr_RdkBus_SetParamValues( PAM_COMPONENT_NAME, PAM_DBUS_PATH, "Device.DHCPv6.Server.Pool.1.X_RDKCENTRAL-COM_DNSServersEnabled", "true", ccsp_boolean, TRUE );
+        if(retStatus == ANSC_STATUS_SUCCESS)
+        {
+            retStatus = WanMgr_RdkBus_SetParamValues( PAM_COMPONENT_NAME, PAM_DBUS_PATH, "Device.DHCPv6.Server.Pool.1.X_RDKCENTRAL-COM_DNSServers", sysevent_buf, ccsp_string, TRUE );
+            if(retStatus != ANSC_STATUS_SUCCESS)
+            {
+                CcspTraceError(("%s %d - SetDataModelParameter() failed for X_RDKCENTRAL-COM_DNSServers parameter \n", __FUNCTION__, __LINE__));
+            }
+        }
+        else
+        {
+            CcspTraceError(("%s %d - SetDataModelParameter() failed for X_RDKCENTRAL-COM_DNSServersEnabled parameter \n", __FUNCTION__, __LINE__));
+        }
+    }
+    else
+    {
+        CcspTraceInfo(("%s %d - sysevent ula_address is empty \n", __FUNCTION__, __LINE__));
+    }
+    return retStatus;
+}
