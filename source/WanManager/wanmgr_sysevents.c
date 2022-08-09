@@ -449,6 +449,9 @@ static void *WanManagerSyseventHandler(void *args)
     async_id_t primary_lan_l3net_asyncid;
     async_id_t radvd_restart_asyncid;
     async_id_t ipv6_down_asyncid;
+#if defined (RDKB_EXTENDER_ENABLED)
+    async_id_t mesh_wan_link_status_asyncid;
+#endif /* RDKB_EXTENDER_ENABLED */
 
     sysevent_set_options(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_ULA_ADDRESS, TUPLE_FLAG_EVENT);
     sysevent_setnotification(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_ULA_ADDRESS, &lan_ula_address_event_asyncid);
@@ -484,6 +487,11 @@ static void *WanManagerSyseventHandler(void *args)
     sysevent_set_options(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_MAPT_FEATURE_ENABLE, TUPLE_FLAG_EVENT);
     sysevent_setnotification(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_MAPT_FEATURE_ENABLE, &ipv6_down_asyncid);
 #endif
+
+#if defined (RDKB_EXTENDER_ENABLED)
+    sysevent_set_options(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_MESH_WAN_LINK_STATUS, TUPLE_FLAG_EVENT);
+    sysevent_setnotification(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_MESH_WAN_LINK_STATUS, &mesh_wan_link_status_asyncid);
+#endif /* RDKB_EXTENDER_ENABLED */
 
     for(;;)
     {
@@ -576,6 +584,37 @@ static void *WanManagerSyseventHandler(void *args)
                 }
                 system("touch /tmp/phylink_wan_state_up");
             }
+#if defined (RDKB_EXTENDER_ENABLED)
+            else if ((strcmp(name, SYSEVENT_MESH_WAN_LINK_STATUS) == 0))
+            {
+                CcspTraceInfo(("%s %d: Detected '%s' event value '%s'\n", __FUNCTION__, __LINE__,name,val));
+
+                memset(buf,0,sizeof(buf));
+                if( 0 == syscfg_get(NULL, SYSCFG_DEVICE_NETWORKING_MODE, buf, sizeof(buf)) ) 
+                { 
+                    //1-Extender Mode 0-Gateway Mode
+                    if (strcmp(buf,"1") == 0)
+                    {
+                        CcspTraceInfo(("%s %d: DeviceNetworkMode is EXTENDER_MODE\n", __FUNCTION__, __LINE__));
+                        
+                        //When Device is in Extender Mode after mesh link status up then we need to configure wan if name
+                        if(strcmp(val, STATUS_UP_STRING) == 0)
+                        {
+                            sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_CURRENT_WAN_IFNAME, MESH_IFNAME, 0);
+                            sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_WAN_STATUS, WAN_STATUS_STARTED, 0);
+                        }
+                    }
+                    else
+                    {
+                        CcspTraceInfo(("%s %d: DeviceNetworkMode is GATEWAY_MODE\n", __FUNCTION__, __LINE__));
+                    }
+                }
+                else
+                {
+                    CcspTraceInfo(("%s %d: DeviceNetworkMode syscfg get fail\n", __FUNCTION__, __LINE__));
+                }
+            }
+#endif /* RDKB_EXTENDER_ENABLED */
             else if (strcmp(name, SYSEVENT_WAN_SERVICE_STATUS) == 0)
             {
                 CcspTraceInfo(("%s %d - received notification event %s:%s\n", __FUNCTION__, __LINE__, name, val ));

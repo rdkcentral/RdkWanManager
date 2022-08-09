@@ -70,6 +70,9 @@
 #define SYSEVENT_FIELD_SERVICE_ROUTED_STATUS "routed-status"
 #define SYSEVENT_IPV4_MTU_SIZE "ipv4_%s_mtu"
 #define MESH_IFNAME        "br-home"
+#if defined (RDKB_EXTENDER_ENABLED)
+#define SYSEVENT_MESH_WAN_LINK_STATUS "mesh_wan_linkstatus"
+#endif /* RDKB_EXTENDER_ENABLED */
 
 /*dhcp server restart*/
 #define SYSEVENT_DHCP_SERVER_RESTART "dhcp_server-restart"
@@ -129,6 +132,9 @@
 #define SYSEVENT_MULTINET_INSTANCES   "multinet-instances"
 #define SYSEVENT_TOPOLOGY_MODE        "erouter_topology-mode"
 #define SYSCFG_WAN_INTERFACE_NAME     "wan_physical_ifname"
+#if defined (RDKB_EXTENDER_ENABLED)
+#define SYSCFG_DEVICE_NETWORKING_MODE "Device_Mode"
+#endif /* RDKB_EXTENDER_ENABLED */
 
 //firewall restart
 #define SYSEVENT_FIREWALL_RESTART "firewall-restart"
