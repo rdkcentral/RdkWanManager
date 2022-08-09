@@ -350,6 +350,27 @@ static int get_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFACE*
     return ANSC_STATUS_SUCCESS;
 }
 
+void WanMgr_getRemoteWanIfName(char *IfaceName,int Size)
+{
+    char* val=NULL;
+    if (PSM_Get_Record_Value2(bus_handle, g_Subsystem,PSM_MESH_WAN_IFNAME , NULL, &val) != CCSP_SUCCESS )
+    {
+        CcspTraceError(("%s-%d :Failed to Read PSM %s , So Set Default Remote Wan Interface Name\n", __FUNCTION__, __LINE__, PSM_MESH_WAN_IFNAME));
+    }
+    if (val)
+    {
+        snprintf(IfaceName,Size,"%s",val);
+        ((CCSP_MESSAGE_BUS_INFO *)bus_handle)->freefunc(val);
+    }
+    else
+    {
+        snprintf(IfaceName,Size,"%s",REMOTE_INTERFACE_NAME);
+    }
+
+    CcspTraceWarning(("%s-%d :Remote WAN IfName is (%s)\n", __FUNCTION__, __LINE__, IfaceName));
+    return;
+}
+
 static int write_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFACE* p_Interface)
 {
     int retPsmSet = CCSP_SUCCESS;

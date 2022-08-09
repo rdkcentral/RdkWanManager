@@ -50,6 +50,8 @@
 #define PSM_WANMANAGER_IF_GROUP                             "dmsb.wanmanager.if.%d.Group"
 #define PSM_SELFHEAL_REBOOT_STATUS                          "dmsb.selfheal.rebootstatus"
 
+#define PSM_MESH_WAN_IFNAME                                     "dmsb.Mesh.WAN.Interface.Name"
+
 /**********************************************************************
                        Interface.{i}.Marking.{i}.
 **********************************************************************/

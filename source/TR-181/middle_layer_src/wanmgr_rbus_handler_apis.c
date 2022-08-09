@@ -679,7 +679,7 @@ static void WanMgr_Rbus_EventReceiveHandler(rbusHandle_t handle, rbusEvent_t con
                     WanMgr_StringToEnum(&pWanIfaceData->Wan.LinkStatus, ENUM_WAN_LINKSTATUS, pValue);
                     if(pWanIfaceData->Wan.LinkStatus == WAN_IFACE_LINKSTATUS_UP)
                     {
-                        strncpy(pWanIfaceData->Wan.Name,REMOTE_INTERFACE_NAME,sizeof(pWanIfaceData->Wan.Name));
+                        WanMgr_getRemoteWanIfName(pWanIfaceData->Wan.Name, sizeof(pWanIfaceData->Wan.Name));
                     }
                 }
                 if( strstr(pParamName, ".Wan.Status") != NULL )

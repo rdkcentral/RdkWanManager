@@ -43,10 +43,15 @@ typedef enum {
     STATE_WAN_INTERFACE_DOWN,
     STATE_WAN_INTERFACE_UP,
     STATE_WAN_WAITING_FOR_INTERFACE,
+#ifdef WAN_FAILOVER_SUPPORTED
+    STATE_AUTOWAN_VALIDATED_INTERFACE,
+    STATE_WAN_VALIDATED_INTERFACE,
+#endif
     STATE_WAN_CONFIGURING_INTERFACE,
     STATE_WAN_DECONFIGURING_INTERFACE,
     STATE_WAN_SCANNING_INTERFACE,
     STATE_WAN_INTERFACE_ACTIVE,
+
     STATE_WAN_INTERFACE_TEARDOWN,
     STATE_WAN_EXIT
 } WcFmobPolicyState_t;
@@ -82,8 +87,13 @@ typedef  struct _WANMGR_AUTOWAN__SMINFO_
 
 #ifdef WAN_FAILOVER_SUPPORTED
 /* Backup WAN Policy */
+
 #define BACKUP_WAN_DHCPC_PID_FILE         "/var/run/bkupwan_dhcpc.pid"
 #define BACKUP_WAN_DHCPC_SOURCE_FILE      "/etc/udhcpc_backupwan.script"
+#define BACKUP_WAN_DHCPC_SRC_RAMDOM_FILE  "/etc/udhcpc_backupwan_random.script"
+#define PRIMARY_WAN_DHCPC_PID_FILE        "/tmp/udhcpc.erouter0.pid"
+
+#define MESH_WAN_WAN_IPV6ADDR "MeshWANInterface_UlaAddr"
 
 extern int sysevent_fd;
 extern token_t sysevent_token;
@@ -112,6 +122,11 @@ typedef  struct _WANMGR_BACKUPWAN_SMINFO_
     ValidationStatus_t            ValidationStatus;
     INT                           ValidationRetries;
 }WanMgr_BackupWan_SMInfo_t;
+
+struct timespec RestorationDelayTimer;    // timer to delay switching of LOCAL interface once it comes up
+UINT RestorationDelayTimeout = 0;       // value in seconds to wait before we make LOCAL interface ACTIVE
+
+
 #endif /* WAN_FAILOVER_SUPPORTED */
 
 /* ---- Global Variables -------------------------- */
@@ -120,7 +135,10 @@ int g_LastKnowWanMode       = 0;
 int g_SelectedWanMode       = 0;
 
 static pthread_t  gBackupWanThread;
-
+#ifdef WAN_FAILOVER_SUPPORTED
+static int WanMgr_Policy_CheckAndStartUDHCPClientOverWanInterface(WanMgr_Policy_Controller_t* pWanController, WanStarCallSource_t enCallSource, char* pidfile, char* script);
+static int WanMgr_Policy_CheckAndStopUDHCPClientOverWanInterface(char *ifname, char *pidfile);
+#endif
 /* STATES */
 static WcFmobPolicyState_t State_SelectingWanInterface(WanMgr_Policy_Controller_t* pWanController);
 static WcFmobPolicyState_t State_FixedWanInterfaceDown(WanMgr_Policy_Controller_t* pWanController);
@@ -131,17 +149,27 @@ static WcFmobPolicyState_t Transition_Start(WanMgr_Policy_Controller_t* pWanCont
 static WcFmobPolicyState_t Transition_WanInterfaceSelected(WanMgr_Policy_Controller_t* pWanController);
 static WcFmobPolicyState_t Transition_FixedWanInterfaceUp(WanMgr_Policy_Controller_t* pWanController);
 static WcFmobPolicyState_t Transition_FixedWanInterfaceDown(WanMgr_Policy_Controller_t* pWanController);
-
+#ifdef WAN_FAILOVER_SUPPORTED
+static WcFmobPolicyState_t Transition_FixedWanInterfaceValidating(WanMgr_Policy_Controller_t* pWanController);
+static WcFmobPolicyState_t State_FixedWanInterfaceValidated(WanMgr_Policy_Controller_t* pWanController);
+#endif
 /* STATES */
 static WcFmobPolicyState_t State_WaitingForInterface(WanMgr_AutoWan_SMInfo_t *pSmInfo);
 static WcFmobPolicyState_t State_WanInterfaceTearDown(WanMgr_Policy_Controller_t* pWanController);
-
-
+#ifdef WAN_FAILOVER_SUPPORTED
+static WcFmobPolicyState_t State_AutoWanInterfaceValidated(WanMgr_AutoWan_SMInfo_t *pSmInfo);
+static WcFmobPolicyState_t State_WanInterfaceValidated(WanMgr_AutoWan_SMInfo_t *pSmInfo);
+#endif
 /* TRANSITIONS */
 static WcFmobPolicyState_t Transition_StartAuto(WanMgr_AutoWan_SMInfo_t *pSmInfo);
 static WcFmobPolicyState_t Transition_WanInterfaceActive(WanMgr_AutoWan_SMInfo_t *pSmInfo);
 static WcFmobPolicyState_t Transition_WaitingForInterface(WanMgr_Iface_Data_t *pWanActiveIfaceData);
 static WcFmobPolicyState_t Transition_WanInterfaceTearDown(WanMgr_Policy_Controller_t* pWanController);
+
+#ifdef WAN_FAILOVER_SUPPORTED
+static WcFmobPolicyState_t Transition_AutoWanInterfaceValidating(WanMgr_Policy_Controller_t* pWanController);
+static WcFmobPolicyState_t Transition_WanInterfaceValidating(WanMgr_Policy_Controller_t* pWanController);
+#endif
 
 #ifdef WAN_FAILOVER_SUPPORTED
 /* BackUp WAN Policy */
@@ -187,6 +215,25 @@ static void AutoWan_BkupAndReboot(void);
 /*********************************************************************************/
 /**************************** ACTIONS ********************************************/
 /*********************************************************************************/
+static void WanMgr_disable_ra(char *IfaceName)
+{
+
+    if ((strlen(IfaceName) <=0 ) || (IfaceName[0] == '\0'))
+    {
+        CcspTraceError(("%s-%d : Interface Name is Null\n", __FUNCTION__, __LINE__));
+        return;
+    }
+
+    char command[256] = {0};
+    int ret = 0;
+    memset(command, 0, sizeof(command));
+    snprintf(command, sizeof(command), "echo 0 > /proc/sys/net/ipv6/conf/%s/accept_ra ", IfaceName);
+    WanManager_DoSystemActionWithStatus("accept_ra:", command);
+    if(ret != RETURN_OK) {
+        CcspTraceWarning(("%s-%d : Failure in executing command via v_secure_system. ret:[%d] \n", __FUNCTION__, __LINE__, ret));
+    }
+}
+
 static DML_WAN_IFACE_TYPE WanMgr_GetWanInterfaceType(INT  iWanInterfaceIndex)
 {
     DML_WAN_IFACE_TYPE type = WAN_IFACE_TYPE_PRIMARY;
@@ -381,8 +428,46 @@ static INT WanMgr_Policy_AutoWan_GetLastKnownModeInterfaceIndex(void)
 
     return -1;
 }
+#ifdef WAN_FAILOVER_SUPPORTED
+static int isAnyRemoteInterfaceActive(void)
+{
+    INT  uiWanIdx      = 0;
+    INT ret = 0;
+    UINT uiTotalIfaces = -1;
 
+    //Get uiTotalIfaces
+    uiTotalIfaces = WanMgr_IfaceData_GetTotalWanIface();
 
+    if(uiTotalIfaces > 0)
+    {
+        // Check the policy to determine if any primary interface should be used for WAN
+        for(uiWanIdx = 0; uiWanIdx < uiTotalIfaces; ++uiWanIdx )
+        {
+            WanMgr_Iface_Data_t*   pWanDmlIfaceData = WanMgr_GetIfaceData_locked(uiWanIdx);
+            if(pWanDmlIfaceData != NULL)
+            {
+                DML_WAN_IFACE* pWanIfaceData = NULL;
+
+                pWanIfaceData = &(pWanDmlIfaceData->data);
+                if(pWanIfaceData == NULL)
+                {
+                    WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+                    return 0;
+                }
+                if ((pWanIfaceData->Wan.IfaceType == REMOTE_IFACE) && (pWanIfaceData->SelectionStatus == WAN_IFACE_ACTIVE)
+                    && (pWanIfaceData->Wan.Enable == TRUE))
+                {
+                    ret = 1;
+                    WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+                    break;
+                }
+                WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+            }
+        }
+    }
+    return ret;
+}
+#endif
 
 /*********************************************************************************/
 /************************** TRANSITIONS ******************************************/
@@ -407,14 +492,20 @@ static WcFmobPolicyState_t Transition_WanInterfaceSelected(WanMgr_Policy_Control
         return STATE_WAN_SELECTING_INTERFACE;
     }
 
-    //ActiveLink
-    pFixedInterface->Wan.ActiveLink = TRUE;
-    pFixedInterface->SelectionStatus = WAN_IFACE_SELECTED;
+    pFixedInterface->Wan.ActiveLink = FALSE;
+    pFixedInterface->Wan.LinkStatus = WAN_IFACE_LINKSTATUS_DOWN;
+    pFixedInterface->SelectionStatus = WAN_IFACE_NOT_SELECTED;
     pFixedInterface->InterfaceScanStatus = WAN_IFACE_STATUS_SCANNED;
-    pFixedInterface->Wan.Status =  WAN_IFACE_STATUS_DISABLED;
+    pFixedInterface->IP.Ipv4Status = WAN_IFACE_IPV4_STATE_UNKNOWN;
+    pFixedInterface->IP.Ipv6Status = WAN_IFACE_IPV6_STATE_UNKNOWN;
+    pFixedInterface->Wan.Status = WAN_IFACE_STATUS_DISABLED;
 
     //Update current active interface variable
     Update_Interface_Status();
+
+    // We are setting accept_ra to 0 to stop router advertise accept on erouter0 and to stop changing
+    // default route on eroter0 interface when backup is active and validating Primary Interface link.
+    WanMgr_disable_ra(pFixedInterface->Wan.Name);
 
     CcspTraceInfo(("%s %d - State changed to STATE_WAN_INTERFACE_DOWN \n", __FUNCTION__, __LINE__));
     return STATE_WAN_INTERFACE_DOWN;
@@ -444,6 +535,11 @@ static WcFmobPolicyState_t Transition_FixedWanInterfaceDown(WanMgr_Policy_Contro
 
     // wan stop
     wanmgr_setwanstop();
+
+    // We are setting accept_ra to 0 to stop router advertise accept on erouter0 and to stop changing
+    // default route on eroter0 interface when backup is active and validating Primary Interface link.
+    WanMgr_disable_ra(pFixedInterface->Wan.Name);
+
     return STATE_WAN_INTERFACE_DOWN;
 }
 
@@ -462,6 +558,7 @@ static WcFmobPolicyState_t Transition_FixedWanInterfaceUp(WanMgr_Policy_Controll
         return STATE_WAN_SELECTING_INTERFACE;
     }
 
+    pFixedInterface->Wan.ActiveLink = TRUE;
     pFixedInterface->SelectionStatus = WAN_IFACE_ACTIVE;
     pFixedInterface->Wan.Status =  WAN_IFACE_STATUS_UP;
 
@@ -475,7 +572,78 @@ static WcFmobPolicyState_t Transition_FixedWanInterfaceUp(WanMgr_Policy_Controll
     CcspTraceInfo(("%s %d - State changed to STATE_WAN_INTERFACE_UP \n", __FUNCTION__, __LINE__));
     return STATE_WAN_INTERFACE_UP;
 }
+#ifdef WAN_FAILOVER_SUPPORTED
+static WcFmobPolicyState_t Transition_FixedWanInterfaceValidating(WanMgr_Policy_Controller_t* pWanController)
+{
+    DML_WAN_IFACE* pFixedInterface = NULL;
 
+    if((pWanController != NULL) && (pWanController->pWanActiveIfaceData != NULL))
+    {
+        pFixedInterface = &(pWanController->pWanActiveIfaceData->data);
+    }
+
+    if(pFixedInterface == NULL)
+    {
+        return 0;
+    }
+
+    if (pWanController->WanEnable == FALSE)
+    {
+        return 0;
+    }
+
+    if ( (pWanController->WanEnable == FALSE) ||
+         (pFixedInterface->Wan.Enable == FALSE) ||
+         (pFixedInterface->Phy.Status == WAN_IFACE_PHY_STATUS_DOWN) )
+    {
+        return 0;
+    }
+
+    //Check if there is any IP leases is getting or not over Backup WAN
+    if( 0 == WanMgr_Policy_CheckAndStartUDHCPClientOverWanInterface( pWanController, WAN_START_FOR_VALIDATION, PRIMARY_WAN_DHCPC_PID_FILE, BACKUP_WAN_DHCPC_SRC_RAMDOM_FILE ) )
+    {
+        CcspTraceInfo(("%s %d - State changed to STATE_AUTOWAN_VALIDATED_INTERFACE \n", __FUNCTION__, __LINE__));
+        pFixedInterface->SelectionStatus = WAN_IFACE_SELECTED;
+        Update_Interface_Status();
+        return STATE_WAN_VALIDATED_INTERFACE;
+    }
+
+    return 0;
+}
+
+static WcFmobPolicyState_t State_FixedWanInterfaceValidated(WanMgr_Policy_Controller_t* pWanController)
+{
+    WcFmobPolicyState_t retState = STATE_WAN_VALIDATED_INTERFACE;
+    DML_WAN_IFACE* pFixedInterface = NULL;
+
+    if((pWanController != NULL) && (pWanController->pWanActiveIfaceData != NULL))
+    {
+        pFixedInterface = &(pWanController->pWanActiveIfaceData->data);
+    }
+
+    if(pFixedInterface == NULL)
+    {
+        return retState;
+    }
+
+    if (pWanController->WanEnable == FALSE)
+    {
+        return Transition_WanInterfaceTearDown(pWanController);
+    }
+
+    if (pFixedInterface->Phy.Status == WAN_IFACE_PHY_STATUS_DOWN)
+    {
+        return Transition_FixedWanInterfaceDown(pWanController);
+    }
+
+    if (isAnyRemoteInterfaceActive() == 0)
+    {
+        CcspTraceInfo(("%s %d - Remote Interface Down \n", __FUNCTION__, __LINE__));
+        retState = Transition_FixedWanInterfaceUp(pWanController);
+    }
+    return retState;
+}
+#endif
 /*********************************************************************************/
 /**************************** STATES *********************************************/
 /*********************************************************************************/
@@ -522,7 +690,26 @@ static WcFmobPolicyState_t State_FixedWanInterfaceDown(WanMgr_Policy_Controller_
          pFixedInterface->Phy.Status == WAN_IFACE_PHY_STATUS_INITIALIZING) &&
         pFixedInterface->Wan.Status == WAN_IFACE_STATUS_DISABLED)
     {
-        return Transition_FixedWanInterfaceUp(pWanController);
+#ifdef WAN_FAILOVER_SUPPORTED
+        if (isAnyRemoteInterfaceActive() == 1)
+        {
+            int ret = 0;
+            // There is already a REMOTE Interace configured as ACTIVE,  wait till it moves to SELECTED state
+            CcspTraceInfo(("%s %d - Waiting for Remote Interface to be Down \n", __FUNCTION__, __LINE__));
+            ret = Transition_FixedWanInterfaceValidating(pWanController);
+            if(ret)
+            {
+                CcspTraceInfo(("%s %d - ret=%d \n", __FUNCTION__, __LINE__, ret));
+                return ret;
+            }
+        }
+        else
+#endif
+        {
+            pFixedInterface->SelectionStatus = WAN_IFACE_SELECTED;
+            Update_Interface_Status();
+            return Transition_FixedWanInterfaceUp(pWanController);
+        }
     }
 
     return STATE_WAN_INTERFACE_DOWN;
@@ -777,6 +964,102 @@ static INT StartWanClients(WanMgr_AutoWan_SMInfo_t *pSmInfo)
     return status;
 
 }
+#ifdef WAN_FAILOVER_SUPPORTED
+static int WanMgr_Policy_CheckAndStopUDHCPClientOverWanInterface(char *ifname, char *pidfile)
+{
+
+    if ((strlen(ifname) <=0 ) || (ifname[0] == '\0'))
+    {
+        CcspTraceWarning(("%s-%d : Interface Name is Null\n", __FUNCTION__, __LINE__));
+    }
+
+    if (access(pidfile, F_OK) == 0)
+    {
+        char cmd[128] = {0},
+             output[16] = {0};
+        int iPIDofBackupWAN = -1;
+
+        snprintf(cmd, sizeof(cmd), "cat %s", pidfile);
+        WanManager_Util_GetShell_output(cmd, output, sizeof(output));
+
+        if( '\0' != output[0] )
+        {
+            iPIDofBackupWAN = atoi(output);
+
+            if ( iPIDofBackupWAN > 0 )
+            {
+                CcspTraceInfo(("%s: DHCP client has already running as PID %d\n",__FUNCTION__,iPIDofBackupWAN));
+                kill(iPIDofBackupWAN, SIGKILL);
+                CcspTraceInfo(("%s: Stopped local udhcpc client for '%s' interface\n",__FUNCTION__,ifname));
+            }
+        }
+
+        unlink(pidfile);
+    }
+}
+
+static int WanMgr_Policy_CheckAndStartUDHCPClientOverWanInterface(WanMgr_Policy_Controller_t* pWanController, WanStarCallSource_t enCallSource, char* pidfile, char* script)
+{
+    int iPIDofBackupWAN = -1;
+    unsigned char bPIDFileAvailable   = FALSE,
+                  bDHCPRunningAlready = FALSE;
+    DML_WAN_IFACE* pFixedInterface = NULL;
+    char command[256] = {0},
+         logPrefixString[256] = {0};
+
+    if((pWanController != NULL) && (pWanController->pWanActiveIfaceData != NULL))
+    {
+        pFixedInterface = &(pWanController->pWanActiveIfaceData->data);
+    }
+
+    if(pFixedInterface == NULL)
+    {
+        return -1;
+    }
+
+    //Log Purpose
+    if( WAN_START_FOR_VALIDATION == enCallSource )
+    {
+        snprintf(logPrefixString, sizeof(logPrefixString), "Validating");
+    }
+    else
+    {
+        snprintf(logPrefixString, sizeof(logPrefixString), "Effecting");
+    }
+
+    //Cleanup - Stop UDHCPC client before start another instance
+    WanMgr_Policy_CheckAndStopUDHCPClientOverWanInterface(pFixedInterface->Wan.Name, pidfile);
+
+    CcspTraceInfo(("%s-%d : %s : Starting udhcpc client locally for '%s' interface\n",__FUNCTION__, __LINE__, logPrefixString,pFixedInterface->Wan.Name));
+
+    /* To start local udhcpc server over interface to check whether it is getting leases or not */
+    memset(command, 0, sizeof(command));
+    snprintf(command, sizeof(command), "/sbin/udhcpc -t 5 -n -O 125 -i %s -p %s -s %s",pFixedInterface->Wan.Name, pidfile, script);
+    WanManager_DoSystemAction("StartingUDHCPCviaWAN:", command);
+
+    CcspTraceInfo(("%s-%d : %s WAN: Cmd Str[%s]\n",__FUNCTION__, __LINE__, logPrefixString,command));
+
+    /* DHCP client didn't able to get Ipv4 configurations */
+    if ( -1 == access(pidfile, F_OK) )
+    {
+        CcspTraceInfo(("%s-%d : %s WAN service not able to get IPv4 configuration\n",__FUNCTION__, __LINE__, logPrefixString));
+        return -1;
+    }
+    else
+    {
+        CcspTraceInfo(("%s-%d : %s WAN interface '%s' got leases\n", __FUNCTION__, __LINE__, logPrefixString,pFixedInterface->Wan.Name));
+    }
+
+    //Stop UDHCPC process after starting WAN
+    if( WAN_START_FOR_VALIDATION == enCallSource )
+    {
+        //Cleanup - Stop UDHCPC local client after start checking
+        WanMgr_Policy_CheckAndStopUDHCPClientOverWanInterface(pFixedInterface->Wan.Name, pidfile);
+    }
+
+    return 0;
+}
+#endif
 
 static WcFmobPolicyState_t Transition_StartAuto(WanMgr_AutoWan_SMInfo_t *pSmInfo)
 {
@@ -840,7 +1123,6 @@ static WcFmobPolicyState_t Transition_StartAuto(WanMgr_AutoWan_SMInfo_t *pSmInfo
     CcspTraceInfo(("%s %d - State changed to STATE_WAN_WAITING_FOR_INTERFACE \n", __FUNCTION__, __LINE__));
     return STATE_WAN_WAITING_FOR_INTERFACE;
 }
-
 
 static WcFmobPolicyState_t Transition_WanInterfacePhyUp(WanMgr_AutoWan_SMInfo_t *pSmInfo)
 {
@@ -965,6 +1247,11 @@ static WcFmobPolicyState_t Transition_WanInterfaceTearDown(WanMgr_Policy_Control
     Update_Interface_Status();
 
     wanmgr_setwanstop();
+
+    // We are setting accept_ra to 0 to stop router advertise accept on erouter0 and to stop changing
+    // default route on eroter0 interface when backup is active and validating Primary Interface link.
+    WanMgr_disable_ra(pFixedInterface->Wan.Name);
+
     v_secure_system("killall dibbler-client");
     v_secure_system("killall udhcpc");
     CcspTraceInfo(("%s %d - State changed to STATE_WAN_INTERFACE_TEARDOWN \n", __FUNCTION__, __LINE__));
@@ -1180,7 +1467,161 @@ static WcFmobPolicyState_t Transition_WanInterfaceActive(WanMgr_AutoWan_SMInfo_t
 
     return STATE_WAN_INTERFACE_ACTIVE;
 }
+#ifdef WAN_FAILOVER_SUPPORTED
+static WcFmobPolicyState_t Transition_AutoWanInterfaceValidating(WanMgr_Policy_Controller_t* pWanController)
+{
+    DML_WAN_IFACE* pFixedInterface = NULL;
 
+    if((pWanController != NULL) && (pWanController->pWanActiveIfaceData != NULL))
+    {
+        pFixedInterface = &(pWanController->pWanActiveIfaceData->data);
+    }
+
+    if(pFixedInterface == NULL)
+    {
+        return 0;
+    }
+
+    if ( (pWanController->WanEnable == FALSE) ||
+         (pFixedInterface->Wan.Enable == FALSE) ||
+         (pFixedInterface->Phy.Status == WAN_IFACE_PHY_STATUS_DOWN) )
+    {
+        return 0;
+    }
+
+    //Check if there is any IP leases is getting or not over Backup WAN
+    if( 0 == WanMgr_Policy_CheckAndStartUDHCPClientOverWanInterface( pWanController, WAN_START_FOR_VALIDATION, PRIMARY_WAN_DHCPC_PID_FILE, BACKUP_WAN_DHCPC_SRC_RAMDOM_FILE ) )
+    {
+        CcspTraceInfo(("%s %d - State changed to STATE_AUTOWAN_VALIDATED_INTERFACE \n", __FUNCTION__, __LINE__));
+        pFixedInterface->SelectionStatus = WAN_IFACE_SELECTED;
+        Update_Interface_Status();
+        return STATE_WAN_VALIDATED_INTERFACE;
+    }
+
+    return 0;
+}
+
+static WcFmobPolicyState_t State_AutoWanInterfaceValidated(WanMgr_AutoWan_SMInfo_t *pSmInfo)
+{
+    WcFmobPolicyState_t retState = STATE_AUTOWAN_VALIDATED_INTERFACE;
+    WanMgr_Policy_Controller_t    *pWanController = NULL;
+    DML_WAN_IFACE* pFixedInterface = NULL;
+
+    if (!pSmInfo)
+        return retState;
+
+    pWanController = &pSmInfo->wanPolicyCtrl;
+
+    if((pWanController != NULL) && (pWanController->pWanActiveIfaceData != NULL))
+    {
+        pFixedInterface = &(pWanController->pWanActiveIfaceData->data);
+    }
+
+    if(pFixedInterface == NULL)
+    {
+        return retState;
+    }
+
+    if (pWanController->WanEnable == FALSE)
+    {
+        return Transition_WanInterfaceTearDown(pWanController);
+    }
+
+    if (pFixedInterface->Phy.Status == WAN_IFACE_PHY_STATUS_DOWN)
+    {
+        pFixedInterface->Wan.Status = WAN_IFACE_STATUS_DISABLED;
+        pFixedInterface->SelectionStatus = WAN_IFACE_NOT_SELECTED;
+	Update_Interface_Status();
+        return STATE_WAN_INTERFACE_DOWN;
+    }
+
+    if (isAnyRemoteInterfaceActive() == 0)
+    {
+        CcspTraceInfo(("%s %d - Remote Down \n", __FUNCTION__, __LINE__));
+        retState = Transition_WanInterfacePhyUp(pSmInfo);
+    }
+    return retState;
+}
+
+
+static WcFmobPolicyState_t Transition_WanInterfaceValidating(WanMgr_Policy_Controller_t* pWanController)
+{
+    DML_WAN_IFACE* pFixedInterface = NULL;
+
+    if((pWanController != NULL) && (pWanController->pWanActiveIfaceData != NULL))
+    {
+        pFixedInterface = &(pWanController->pWanActiveIfaceData->data);
+    }
+
+    if(pFixedInterface == NULL)
+    {
+        return 0;
+    }
+
+    if ( (pWanController->WanEnable == FALSE) ||
+         (pFixedInterface->Wan.Enable == FALSE) ||
+         (pFixedInterface->Phy.Status == WAN_IFACE_PHY_STATUS_DOWN) )
+    {
+        return 0;
+    }
+
+    //Check if there is any IP leases is getting or not over Backup WAN
+    if( 0 == WanMgr_Policy_CheckAndStartUDHCPClientOverWanInterface( pWanController, WAN_START_FOR_VALIDATION, PRIMARY_WAN_DHCPC_PID_FILE, BACKUP_WAN_DHCPC_SRC_RAMDOM_FILE ) )
+    {
+        CcspTraceInfo(("%s %d - State changed to STATE_WAN_VALIDATED_INTERFACE \n", __FUNCTION__, __LINE__));
+        pFixedInterface->SelectionStatus = WAN_IFACE_SELECTED;
+        Update_Interface_Status();
+        return STATE_WAN_VALIDATED_INTERFACE;
+    }
+
+    return 0;
+}
+
+static WcFmobPolicyState_t State_WanInterfaceValidated(WanMgr_AutoWan_SMInfo_t *pSmInfo)
+{
+    WcFmobPolicyState_t retState = STATE_WAN_VALIDATED_INTERFACE;
+    WanMgr_Policy_Controller_t    *pWanController = NULL;
+    DML_WAN_IFACE* pFixedInterface = NULL;
+
+    if (!pSmInfo)
+        return retState;
+
+    pWanController = &pSmInfo->wanPolicyCtrl;
+
+    if((pWanController != NULL) && (pWanController->pWanActiveIfaceData != NULL))
+    {
+        pFixedInterface = &(pWanController->pWanActiveIfaceData->data);
+    }
+
+    if(pFixedInterface == NULL)
+    {
+        return retState;
+    }
+
+    if (pWanController->WanEnable == FALSE)
+    {
+        return Transition_WanInterfaceTearDown(pWanController);
+    }
+
+    if (pFixedInterface->Phy.Status == WAN_IFACE_PHY_STATUS_DOWN)
+    {
+        pFixedInterface->Wan.Status = WAN_IFACE_STATUS_DISABLED;
+        pFixedInterface->SelectionStatus = WAN_IFACE_NOT_SELECTED;
+        Update_Interface_Status();
+        return STATE_WAN_INTERFACE_DOWN;
+    }
+
+    if (isAnyRemoteInterfaceActive() == 0)
+    {
+        wanmgr_setwanstart();
+        wanmgr_sshd_restart();
+
+        retState = STATE_WAN_INTERFACE_UP;
+        CcspTraceInfo(("%s %d - Remote Interface Down \n", __FUNCTION__, __LINE__));
+    }
+    return retState;
+}
+#endif
 
 /*********************************************************************************/
 /*********************************************************************************/
@@ -1384,6 +1825,11 @@ static ANSC_STATUS Wanmgr_WanFixedMode_StartStateMachine(void)
             case STATE_WAN_INTERFACE_TEARDOWN:
                 fmob_sm_state = State_WanInterfaceTearDown(&WanPolicyCtrl);
                 break;
+#ifdef WAN_FAILOVER_SUPPORTED
+            case STATE_WAN_VALIDATED_INTERFACE:
+                fmob_sm_state = State_FixedWanInterfaceValidated(&WanPolicyCtrl);
+                break;
+#endif
             case STATE_WAN_EXIT:
                 bRunning = false;
                 break;
@@ -1420,7 +1866,6 @@ static void AutoWan_BkupAndReboot(void)
     /* Need to do reboot the device here */
     WanMgr_RdkBus_SetParamValues(PAM_COMPONENT_NAME, PAM_DBUS_PATH, "Device.X_CISCO_COM_DeviceControl.RebootDevice","Device",ccsp_string,TRUE);
 }
-
 
 static WcFmobPolicyState_t State_WanConfiguringInterface(WanMgr_AutoWan_SMInfo_t *pSmInfo)
 {
@@ -1628,6 +2073,11 @@ static WcFmobPolicyState_t State_WanInterfaceActive(WanMgr_AutoWan_SMInfo_t *pSm
 
 	// wan stop
         wanmgr_setwanstop();
+
+        // We are setting accept_ra to 0 to stop router advertise accept on erouter0 and to stop changing
+        // default route on eroter0 interface when backup is active and validating Primary Interface link.
+        WanMgr_disable_ra(pFixedInterface->Wan.Name);
+
         retState = STATE_WAN_INTERFACE_DOWN;
         CcspTraceInfo(("%s %d - RetState %d GOING DOWN if_name %s \n", __FUNCTION__, __LINE__,retState,pFixedInterface->Wan.Name));
     }
@@ -1696,12 +2146,33 @@ static WcFmobPolicyState_t State_WanInterfaceDown(WanMgr_AutoWan_SMInfo_t *pSmIn
     if((pWanController->WanEnable == TRUE) &&
             (pFixedInterface->Phy.Status == WAN_IFACE_PHY_STATUS_UP))
     {
-        // start wan
-        wanmgr_setwanstart();
-        wanmgr_sshd_restart();
-        retState = STATE_WAN_INTERFACE_UP;
-        CcspTraceInfo(("%s %d - AUTOWAN ifname %s \n", __FUNCTION__, __LINE__,pFixedInterface->Wan.Name));
-        CcspTraceInfo(("%s %d - RetState %d WAN INTERFACE UP PhyStatus %d  \n", __FUNCTION__, __LINE__,retState,pFixedInterface->Phy.Status));
+#ifdef WAN_FAILOVER_SUPPORTED
+        if (isAnyRemoteInterfaceActive() == 1)
+        {
+            int ret = 0;
+            // There is already a REMOTE Interace configured as ACTIVE,  wait till it moves to SELECTED state
+            CcspTraceInfo(("%s %d - Waiting for Remote Interface to be Down \n", __FUNCTION__, __LINE__));
+            ret = Transition_WanInterfaceValidating(pWanController);
+            if(ret)
+            {
+                CcspTraceInfo(("%s %d - ret=%d \n", __FUNCTION__, __LINE__, ret));
+                retState = ret;
+            }
+        }
+        else
+#endif
+        {
+            // start wan
+            wanmgr_setwanstart();
+            wanmgr_sshd_restart();
+
+            pFixedInterface->SelectionStatus = WAN_IFACE_SELECTED;
+            Update_Interface_Status();
+
+            retState = STATE_WAN_INTERFACE_UP;
+            CcspTraceInfo(("%s %d - AUTOWAN ifname %s \n", __FUNCTION__, __LINE__,pFixedInterface->Wan.Name));
+            CcspTraceInfo(("%s %d - RetState %d WAN INTERFACE UP PhyStatus %d  \n", __FUNCTION__, __LINE__,retState,pFixedInterface->Phy.Status));
+        }
     }
     return retState;
 }
@@ -1745,7 +2216,31 @@ static WcFmobPolicyState_t State_WaitingForInterface(WanMgr_AutoWan_SMInfo_t *pS
                 }
                 else
                 {
-                    retState = Transition_WanInterfacePhyUp(pSmInfo);
+#ifdef WAN_FAILOVER_SUPPORTED
+                    if (isAnyRemoteInterfaceActive() == 1)
+                    {
+
+                        // We are setting accept_ra to 0 to stop router advertise accept on erouter0 and to stop changing
+                        // default route on eroter0 interface when backup is active and validating Primary Interface link.
+                        WanMgr_disable_ra(pFixedInterface->Wan.Name);
+                        int ret = 0;
+                        // There is already a REMOTE Interace configured as ACTIVE,  wait till it moves to SELECTED state
+                        CcspTraceInfo(("%s %d - Waiting for Remote Interface to be Down \n", __FUNCTION__, __LINE__));
+                        ret = Transition_AutoWanInterfaceValidating(pWanController);
+                        if(ret)
+                        {
+                            CcspTraceInfo(("%s %d - ret=%d \n", __FUNCTION__, __LINE__, ret));
+                            retState = ret;
+                        }
+                    }
+                    else
+#endif
+                    {
+                        pFixedInterface->SelectionStatus = WAN_IFACE_SELECTED;
+                        Update_Interface_Status();
+                        retState = Transition_WanInterfacePhyUp(pSmInfo);
+                    }
+
                 }
             }
             break;
@@ -1878,6 +2373,18 @@ ANSC_STATUS Wanmgr_WanAutoMode_StartStateMachine(void)
                 fmob_sm_state = State_WanInterfaceTearDown(&smInfo.wanPolicyCtrl);
             }
             break;
+#ifdef WAN_FAILOVER_SUPPORTED
+            case STATE_AUTOWAN_VALIDATED_INTERFACE:
+            {
+                fmob_sm_state = State_AutoWanInterfaceValidated(&smInfo);
+            }
+            break;
+            case STATE_WAN_VALIDATED_INTERFACE:
+            {
+                fmob_sm_state = State_WanInterfaceValidated(&smInfo);
+            }
+            break;
+#endif
             case STATE_WAN_EXIT:
             {
                 bRunning = false;
@@ -1996,6 +2503,52 @@ ANSC_STATUS WanMgr_Policy_AutoWan(void)
 /*********************************************************************************/
 /************************** Local Utils ******************************************/
 /*********************************************************************************/
+
+static int Get_Device_Mode(void)
+{
+    int deviceMode = 0;
+    char buf[8]= {0};
+    memset(buf,0,sizeof(buf));
+    if ( 0 == syscfg_get(NULL, "Device_Mode", buf, sizeof(buf)))
+    {
+        if (buf[0] != '\0' && strlen(buf) != 0 )
+        {
+            deviceMode = atoi(buf);
+            CcspTraceInfo(("%s :deviceMode:%d \n", __FUNCTION__, __LINE__, deviceMode));
+        }
+    }
+    return deviceMode;
+}
+
+static void UnSetV6Route(char* ifname , char* route_addr,int metric_val)
+{
+    CcspTraceInfo(("%s : interface name=%s ,route_addr=%s, metric_val=%d\n", __FUNCTION__, ifname,route_addr,metric_val));
+    if ( 0 == metric_val )
+        v_secure_system("ip -6 route del default via %s dev %s", route_addr,ifname);
+    else
+        v_secure_system("ip -6 route del default via %s dev %s metric %d", route_addr,ifname,metric_val);
+}
+
+static bool WanMgr_delBackUpIpv6Route(char *IfaceName)
+{
+    if ((GATEWAY_MODE-1) == Get_Device_Mode())
+    {
+        char ipv6_address[128] = {0};
+        if ((strlen(IfaceName) > 0) && (IfaceName[0] != '\0'))
+        {
+            memset(ipv6_address,0,sizeof(ipv6_address));
+            sysevent_get(sysevent_fd, sysevent_token, MESH_WAN_WAN_IPV6ADDR, ipv6_address, sizeof(ipv6_address));
+            if( '\0' != ipv6_address[0] )
+            {
+                UnSetV6Route(IfaceName,strtok(ipv6_address,"/"),1025);
+                sysevent_set(sysevent_fd, sysevent_token, "remotewan_routeset", "false", 0);
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 static bool WanMgr_FirewallRuleConfig(char *Action, char *IfaceName)
 {
     char command[BUFLEN_128]={0};
@@ -2174,51 +2727,6 @@ static int WanMgr_Policy_BackupWan_CheckAndStartUDHCPClientOverBackupWanInterfac
     return 0;
 }
 
-static int WanMgr_Policy_BackupWan_CheckAnyLocalWANIsActive( WanMgr_Policy_Controller_t* pWanController )
-{
-    INT  uiWanIdx      = 0;
-    UINT uiTotalIfaces = -1;
-
-    //Get uiTotalIfaces
-    uiTotalIfaces = WanMgr_IfaceData_GetTotalWanIface();
-
-    if(uiTotalIfaces > 0)
-    {
-        // Check the policy to determine if any primary interface should be used for WAN
-        for(uiWanIdx = 0; uiWanIdx < uiTotalIfaces; ++uiWanIdx )
-        {
-            WanMgr_Iface_Data_t*   pWanDmlIfaceData = WanMgr_GetIfaceData_locked(uiWanIdx);
-            if(pWanDmlIfaceData != NULL)
-            {
-                DML_WAN_IFACE* pInterface = NULL;
-
-                pInterface = &(pWanDmlIfaceData->data);
-                if(pInterface == NULL)
-                {
-                    WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
-                    return -1;
-                }
-
-                /* Needs to determine any local interface is active or not */
-                if( ( LOCAL_IFACE == pInterface->Wan.IfaceType ) &&
-                    ( TRUE == pInterface->Wan.Enable ) &&
-                    ( WAN_IFACE_PHY_STATUS_UP == pInterface->Phy.Status ) &&
-                    ( WAN_IFACE_LINKSTATUS_UP == pInterface->Wan.LinkStatus ) &&
-                    ( WAN_IFACE_STATUS_UP == pInterface->Wan.Status ) )
-                {
-                    CcspTraceInfo(("%s: LOCAL WAN interface '%s' is available and ready, index '%d'\n",__FUNCTION__,pInterface->Wan.Name,uiWanIdx));
-                    WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
-                    return uiWanIdx;
-                }
-
-                WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
-            }
-        }
-    }
-
-    return -1;
-}
-
 static int WanMgr_Policy_BackupWan_CheckAnyLocalWANIsPhysicallyActive(void)
 {
     INT  uiWanIdx      = 0;
@@ -2260,6 +2768,47 @@ static int WanMgr_Policy_BackupWan_CheckAnyLocalWANIsPhysicallyActive(void)
     }
 
     return -1;
+}
+
+static bool WanMgr_Policy_PrimaryWan_CheckAnyLocalWANIsSelected(void)
+{
+    INT  uiWanIdx      = 0;
+    UINT uiTotalIfaces = -1;
+
+    //Get uiTotalIfaces
+    uiTotalIfaces = WanMgr_IfaceData_GetTotalWanIface();
+
+    if(uiTotalIfaces > 0)
+    {
+        // Check the policy to determine if any primary interface should be used for WAN
+        for(uiWanIdx = 0; uiWanIdx < uiTotalIfaces; ++uiWanIdx )
+        {
+            WanMgr_Iface_Data_t*   pWanDmlIfaceData = WanMgr_GetIfaceData_locked(uiWanIdx);
+            if(pWanDmlIfaceData != NULL)
+            {
+                DML_WAN_IFACE* pInterface = NULL;
+
+                pInterface = &(pWanDmlIfaceData->data);
+                if(pInterface == NULL)
+                {
+                    WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+                    return -1;
+                }
+
+                /* Needs to determine any local interface is physically active or not */
+                if( ( LOCAL_IFACE == pInterface->Wan.IfaceType ) &&
+                    ( TRUE == pInterface->Wan.Enable ) &&
+                    ( pInterface->SelectionStatus >= WAN_IFACE_SELECTED ) )
+                {
+                    WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+                    return true;
+                }
+                WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+            }
+        }
+    }
+
+    return false;
 }
 
 static unsigned char WanMgr_Policy_BackupWan_CheckLocalWANsScannedOnce( WanMgr_Policy_Controller_t* pWanController )
@@ -2444,14 +2993,14 @@ static WcBWanPolicyState_t Transition_BackupWanInterfaceUp(WanMgr_Policy_Control
 
     //Start wan over backup wan interface
     CcspTraceInfo(("%s %d - Starting WAN services\n", __FUNCTION__, __LINE__));
-    WanMgr_Policy_BackupWan_CheckAndStopUDHCPClientOverBackupWanInterface(pFixedInterface->Wan.Name);
+    WanMgr_Policy_CheckAndStopUDHCPClientOverWanInterface(pFixedInterface->Wan.Name, BACKUP_WAN_DHCPC_PID_FILE);
 
     pFixedInterface->Wan.LinkStatus = WAN_IFACE_LINKSTATUS_UP;
     pFixedInterface->Wan.Status = WAN_IFACE_STATUS_UP;
     Update_Interface_Status();
 
     //WAN UDHCPC Start
-    WanMgr_Policy_BackupWan_CheckAndStartUDHCPClientOverBackupWanInterface( pWanController, WAN_START_FOR_BACKUP_WAN );
+    WanMgr_Policy_CheckAndStartUDHCPClientOverWanInterface( pWanController, WAN_START_FOR_BACKUP_WAN, BACKUP_WAN_DHCPC_PID_FILE, BACKUP_WAN_DHCPC_SOURCE_FILE );
 
     CcspTraceInfo(("%s - Starting IP Monitoring for '%d' instance\n", __FUNCTION__, pWanController->activeInterfaceIdx + 1));
     WanMgr_StartIpMonitor(pWanController->activeInterfaceIdx + 1);
@@ -2492,6 +3041,7 @@ static WcBWanPolicyState_t Transition_BackupWanInterfaceActive(WanMgr_Policy_Con
 static WcBWanPolicyState_t Transition_BackupWanInterfaceInActive(WanMgr_Policy_Controller_t* pWanController)
 {
     DML_WAN_IFACE* pFixedInterface = NULL;
+    char tmpBuf[32] ={0};
 
     if((pWanController != NULL) && (pWanController->pWanActiveIfaceData != NULL))
     {
@@ -2520,6 +3070,16 @@ static WcBWanPolicyState_t Transition_BackupWanInterfaceInActive(WanMgr_Policy_C
         {
             CcspTraceInfo(("%s-%d : Firewall Rules already deconfigured \n",__FUNCTION__, __LINE__));
         }
+
+	//Delete Default v6 route config.
+        sysevent_get(sysevent_fd, sysevent_token, "remotewan_routeset", tmpBuf, sizeof(tmpBuf));
+        if (strcmp(tmpBuf,"true") == 0 )
+        {
+            if (!WanMgr_delBackUpIpv6Route(pFixedInterface->Wan.Name))
+            {
+                CcspTraceError(("%s-%d : Failed to del Ipv6 Default Route \n",__FUNCTION__, __LINE__));
+            }
+        }
     }
 
     CcspTraceInfo(("%s %d - State changed to STATE_BACKUP_WAN_INTERFACE_INACTIVE \n", __FUNCTION__, __LINE__));
@@ -2529,6 +3089,7 @@ static WcBWanPolicyState_t Transition_BackupWanInterfaceInActive(WanMgr_Policy_C
 static WcBWanPolicyState_t Transition_BackupWanInterfaceDown(WanMgr_Policy_Controller_t* pWanController)
 {
     DML_WAN_IFACE* pFixedInterface = NULL;
+    char tmpBuf[32] ={0};
 
     if((pWanController != NULL) && (pWanController->pWanActiveIfaceData != NULL))
     {
@@ -2562,6 +3123,16 @@ static WcBWanPolicyState_t Transition_BackupWanInterfaceDown(WanMgr_Policy_Contr
         {
             CcspTraceInfo(("%s-%d : Firewall Rules already deconfigured \n",__FUNCTION__, __LINE__));
         }
+
+	//Delete v6 default route.
+        sysevent_get(sysevent_fd, sysevent_token, "remotewan_routeset", tmpBuf, sizeof(tmpBuf));
+        if (strcmp(tmpBuf,"true") == 0 )
+        {
+            if (!WanMgr_delBackUpIpv6Route(pFixedInterface->Wan.Name))
+            {
+                CcspTraceError(("%s-%d : Failed to del Ipv6 Default Route \n",__FUNCTION__, __LINE__));
+            }
+        }
     }
 
     CcspTraceInfo(("%s %d - State changed to STATE_BACKUP_WAN_INTERFACE_DOWN \n", __FUNCTION__, __LINE__));
@@ -2571,6 +3142,7 @@ static WcBWanPolicyState_t Transition_BackupWanInterfaceDown(WanMgr_Policy_Contr
 static WcBWanPolicyState_t Transition_BackupWanInterfaceWaitingPrimaryUp(WanMgr_Policy_Controller_t* pWanController)
 {
     DML_WAN_IFACE* pFixedInterface = NULL;
+    char tmpBuf[32] ={0};
 
     if((pWanController != NULL) && (pWanController->pWanActiveIfaceData != NULL))
     {
@@ -2585,6 +3157,16 @@ static WcBWanPolicyState_t Transition_BackupWanInterfaceWaitingPrimaryUp(WanMgr_
     if (!WanMgr_FirewallRuleConfig("deconfigure", pFixedInterface->Wan.Name))
     {
         CcspTraceInfo(("%s-%d : Firewall Rules already deconfigured \n",__FUNCTION__, __LINE__));
+    }
+
+    //Delete v6 default route.
+    sysevent_get(sysevent_fd, sysevent_token, "remotewan_routeset", tmpBuf, sizeof(tmpBuf));
+    if (strcmp(tmpBuf,"true") == 0 )
+    {
+        if (!WanMgr_delBackUpIpv6Route(pFixedInterface->Wan.Name))
+        {
+            CcspTraceError(("%s-%d : Failed to del Ipv6 Default Route \n",__FUNCTION__, __LINE__));
+        }
     }
 
     if ( (pWanController->WanEnable == FALSE) ||
@@ -2680,7 +3262,7 @@ static WcBWanPolicyState_t State_ValidatingBackupWanInterface(WanMgr_Policy_Cont
     }
 
     //Check if there is any IP leases is getting or not over Backup WAN
-    if( 0 == WanMgr_Policy_BackupWan_CheckAndStartUDHCPClientOverBackupWanInterface( pWanController, WAN_START_FOR_VALIDATION ) )
+    if( 0 == WanMgr_Policy_CheckAndStartUDHCPClientOverWanInterface( pWanController, WAN_START_FOR_VALIDATION, BACKUP_WAN_DHCPC_PID_FILE, BACKUP_WAN_DHCPC_SRC_RAMDOM_FILE ) )
     {
         return Transition_BackupWanAvailable(pWanController);
     }
@@ -2751,7 +3333,7 @@ static WcBWanPolicyState_t State_BackupWanInterfaceUp(WanMgr_Policy_Controller_t
         return Transition_BackupWanInterfaceDown(pWanController);
     }
 
-    if( ( WAN_IFACE_STATUS_UP == pFixedInterface->Wan.RemoteStatus ) && 
+    if( ( WAN_IFACE_STATUS_UP == pFixedInterface->Wan.RemoteStatus ) &&
         ( -1 == WanMgr_Policy_BackupWan_CheckAnyLocalWANIsPhysicallyActive() ) && 
         ( TRUE == WanMgr_Policy_BackupWan_CheckLocalWANsScannedOnce( pWanController ) ) )
     {
@@ -2764,6 +3346,7 @@ static WcBWanPolicyState_t State_BackupWanInterfaceUp(WanMgr_Policy_Controller_t
 static WcBWanPolicyState_t State_BackupWanInterfaceActive(WanMgr_Policy_Controller_t* pWanController)
 {
     DML_WAN_IFACE* pFixedInterface = NULL;
+    static bool bRestorationDelayTimerStart = FALSE;
 
     if((pWanController != NULL) && (pWanController->pWanActiveIfaceData != NULL))
     {
@@ -2785,10 +3368,43 @@ static WcBWanPolicyState_t State_BackupWanInterfaceActive(WanMgr_Policy_Controll
         return Transition_BackupWanInterfaceDown(pWanController);
     }
 
-    if( ( WAN_IFACE_STATUS_UP != pFixedInterface->Wan.RemoteStatus ) ||
-        (-1 != WanMgr_Policy_BackupWan_CheckAnyLocalWANIsPhysicallyActive() ) )
+    if( ( -1 != WanMgr_Policy_BackupWan_CheckAnyLocalWANIsPhysicallyActive( ) ) &&
+        ( WanMgr_Policy_PrimaryWan_CheckAnyLocalWANIsSelected()) )
     {
-        return Transition_BackupWanInterfaceInActive(pWanController);
+        // there is a primary interface present
+        if (bRestorationDelayTimerStart == FALSE)
+        {
+            // set timer
+            memset(&(RestorationDelayTimer), 0, sizeof(struct timespec));
+            clock_gettime(CLOCK_MONOTONIC_RAW, &(RestorationDelayTimer));
+            RestorationDelayTimer.tv_sec += RestorationDelayTimeout;
+            bRestorationDelayTimerStart = TRUE;
+            CcspTraceInfo(("%s %d: RestorationDelayTimer started will expire on %us\n",__FUNCTION__, __LINE__, RestorationDelayTimeout));
+        }
+        else
+        {
+            struct timeval now;
+            clock_gettime( CLOCK_MONOTONIC_RAW, &(now));
+            if(difftime(now.tv_sec, RestorationDelayTimer.tv_sec ) > 0)
+            {
+                // RestorationDelayTimer has expired
+                bRestorationDelayTimerStart = FALSE;
+                memset(&(RestorationDelayTimer), 0, sizeof(struct timespec));
+                CcspTraceInfo(("%s %d: RestorationDelayTimer expired \n",__FUNCTION__, __LINE__));
+                return Transition_BackupWanInterfaceInActive(pWanController);
+            }
+        }
+    }
+    else
+    {
+        // No LOCAL interface found
+        if (bRestorationDelayTimerStart)
+        {
+            // clear timer and reset flag if a timer is set
+            CcspTraceInfo(("%s %d: Reset RestorationDelayTimer \n",__FUNCTION__, __LINE__));
+            memset(&(RestorationDelayTimer), 0, sizeof(struct timespec));
+            bRestorationDelayTimerStart = FALSE;
+        }
     }
 
     return STATE_BACKUP_WAN_INTERFACE_ACTIVE;
@@ -2910,6 +3526,7 @@ ANSC_STATUS Wanmgr_BackupWan_StateMachineThread(void *arg)
         {
             WanPolicyCtrl.WanEnable = pWanConfigData->data.Enable;
             WanPolicyCtrl.AllowRemoteInterfaces = pWanConfigData->data.AllowRemoteInterfaces;
+            RestorationDelayTimeout = pWanConfigData->data.RestorationDelay;
             WanMgrDml_GetConfigData_release(pWanConfigData);
         }
 

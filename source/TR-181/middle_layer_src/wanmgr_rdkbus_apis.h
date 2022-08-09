@@ -71,4 +71,5 @@ ANSC_STATUS WanMgr_Publish_WanStatus(UINT IfaceIndex);
 ANSC_STATUS DmlSetWanActiveLinkInPSMDB( UINT uiInterfaceIdx, bool flag );
 ANSC_STATUS WanController_ClearWanConfigurationsInPSM();
 ANSC_STATUS Update_Interface_Status();
+void WanMgr_getRemoteWanIfName(char *IfaceName,int Size);
 #endif /* _WANMGR_RDKBUS_APIS_H_ */
