@@ -1547,8 +1547,7 @@ static int ParsePrefixAddress(const char *prefixAddr, char *address, uint32_t *p
    }
    else
    {
-      memset(tmpBuf, 0, len+1);
-      snprintf(tmpBuf,strlen(prefixAddr), "%s", prefixAddr);
+      memcpy(tmpBuf, prefixAddr, len + 1);
       separator = strchr(tmpBuf, '/');
       if (separator != NULL)
       {
