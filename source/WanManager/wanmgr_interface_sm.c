@@ -453,6 +453,9 @@ int wan_updateDNS(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl, BOOL addIPv4, BOOL
             return RETURN_ERR;
         }
     }
+
+// Don't need to overwrite resolv.conf in EXTENDER mode from here, it is handled based on mesh link status 
+#if 0
     else if (deviceMode == MODEM_MODE)
     {
         // DNS nameserves should not be configured in MODEM mode so clear file contents
@@ -464,6 +467,7 @@ int wan_updateDNS(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl, BOOL addIPv4, BOOL
         fclose(fp);
         fp = NULL;
     }
+#endif
 
     if (addIPv4)
     {
