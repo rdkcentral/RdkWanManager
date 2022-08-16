@@ -119,10 +119,6 @@ ANSC_STATUS WanMgr_WanDataInit(void)
         WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl = &(gWanMgrDataBase.IfaceCtrl);
         retStatus = WanMgr_WanIfaceConfInit(pWanIfaceCtrl);
 
-#ifdef FEATURE_802_1P_COS_MARKING
-        /* Initialize middle layer for Device.X_RDK_WanManager.CPEInterface.{i}.Marking.  */
-        WanMgr_WanIfaceMarkingInit(pWanIfaceCtrl);
-#endif /* * FEATURE_802_1P_COS_MARKING */
 
         WanMgrDml_GetIfaceData_release(NULL);
     }

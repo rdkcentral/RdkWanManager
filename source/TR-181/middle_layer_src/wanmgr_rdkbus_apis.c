@@ -50,6 +50,11 @@
 #define MESH_IFNAME        "br-home"
 
 #define DATA_SKB_MARKING_LOCATION "/tmp/skb_marking.conf"
+#define WAN_DBUS_PATH             "/com/cisco/spvtg/ccsp/wanmanager"
+#define WAN_COMPONENT_NAME        "eRT.com.cisco.spvtg.ccsp.wanmanager"
+#define MARKING_TABLE             "Device.X_RDK_WanManager.CPEInterface.%d.Marking."
+
+extern WANMGR_DATA_ST gWanMgrDataBase;
 extern char g_Subsystem[32];
 extern ANSC_HANDLE bus_handle;
 
@@ -604,10 +609,11 @@ static void AddSkbMarkingToConfFile(UINT data_skb_mark)
 #endif
 
 /* DmlWanIfMarkingInit() */
-ANSC_STATUS WanMgr_WanIfaceMarkingInit (WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl)
+ANSC_STATUS WanMgr_WanIfaceMarkingInit ()
 {
     INT iLoopCount  = 0;
 
+    WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl = &(gWanMgrDataBase.IfaceCtrl);
     //Validate received buffer
     if( NULL == pWanIfaceCtrl )
     {
@@ -618,21 +624,12 @@ ANSC_STATUS WanMgr_WanIfaceMarkingInit (WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl)
     //Initialise Marking Params
     for( iLoopCount = 0; iLoopCount < pWanIfaceCtrl->ulTotalNumbWanInterfaces; iLoopCount++ )
     {
-        WanMgr_Iface_Data_t* pWanIfaceData = WanMgr_GetIfaceData_locked(iLoopCount);
-        if(pWanIfaceData != NULL)
-        {
-            DML_WAN_IFACE*      pWanIface           = &(pWanIfaceData->data);
-            DATAMODEL_MARKING*  pDataModelMarking   = &(pWanIface->Marking);
             ULONG                    ulIfInstanceNumber = 0;
             char                     acPSMQuery[128]    = { 0 },
                                      acPSMValue[64]     = { 0 };
 
-            /* Initiation all params */
-            AnscSListInitializeHeader( &pDataModelMarking->MarkingList );
-            pDataModelMarking->ulNextInstanceNumber     = 1;
-
             //Interface instance number
-            ulIfInstanceNumber = pWanIface->uiInstanceNumber;
+            ulIfInstanceNumber = iLoopCount + 1;
 
             //Query marking list for corresponding interface
             snprintf( acPSMQuery, sizeof( acPSMQuery ), PSM_MARKING_LIST, ulIfInstanceNumber );
@@ -652,20 +649,16 @@ ANSC_STATUS WanMgr_WanIfaceMarkingInit (WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl)
                 //check and add
                 while ( token != NULL )
                 {
-                   CONTEXT_MARKING_LINK_OBJECT*         pMarkingCxtLink   = NULL;
+                   char aTableName[512] = {0};
                    ULONG                                ulInstanceNumber  = 0;
 
                    /* Insert into marking table */
-                   if( ( NULL != ( pMarkingCxtLink = WanManager_AddIfaceMarking( pWanIface, &ulInstanceNumber ) ) )  &&
-                       ( 0 < ulInstanceNumber ) )
-                   {
-                       DML_MARKING*    p_Marking = ( DML_MARKING* )pMarkingCxtLink->hContext;
+                    snprintf(aTableName, sizeof(aTableName), MARKING_TABLE, ulIfInstanceNumber);
+                    if (CCSP_SUCCESS == CcspBaseIf_AddTblRow(bus_handle,WAN_COMPONENT_NAME,WAN_DBUS_PATH, 0, aTableName,&ulInstanceNumber))
+                    {
+                          DML_MARKING    Marking;
+                          DML_MARKING*   p_Marking = &Marking;
 
-                       //Reset this flag during init so set should happen in next time onwards
-                       pMarkingCxtLink->bNew  = FALSE;
-
-                       if( NULL != p_Marking )
-                       {
                            char acTmpMarkingData[ 32 ] = { 0 };
 
                            //Stores into tmp buffer
@@ -741,7 +734,7 @@ ANSC_STATUS WanMgr_WanIfaceMarkingInit (WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl)
 
                             CcspTraceInfo(("%s - Name[%s] Data[%s,%u,%u,%d]\n", __FUNCTION__, acTmpMarkingData, p_Marking->Alias, p_Marking->SKBPort, p_Marking->SKBMark, p_Marking->EthernetPriorityMark));
 
-
+                            Marking_UpdateInitValue(pWanIfaceCtrl->pIface,ulIfInstanceNumber-1,ulInstanceNumber,p_Marking);
 #ifdef _HUB4_PRODUCT_REQ_
                             /* Adding skb mark to config file if alis is 'DATA', so that udhcpc could use it to mark dhcp packets */
                             if(0 == strncmp(p_Marking->Alias, "DATA", 4))
@@ -750,14 +743,11 @@ ANSC_STATUS WanMgr_WanIfaceMarkingInit (WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl)
                             }
 #endif
                        }
-                   }
 
                    token = strtok( NULL, "-" );
                 }
             }
 
-            WanMgrDml_GetIfaceData_release(pWanIfaceData);
-        }
     }
 
     return ANSC_STATUS_SUCCESS;

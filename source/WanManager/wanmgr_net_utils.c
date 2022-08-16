@@ -1669,6 +1669,35 @@ ANSC_STATUS WanManager_getGloballyUniqueIfAddr6(const char *ifname, char *ipAddr
 
 
 #ifdef FEATURE_802_1P_COS_MARKING
+void Marking_UpdateInitValue(ANSC_HANDLE hInsContext, ULONG ulIfInstanceNumber, ULONG nIndex,DML_MARKING* pmark)
+{
+    PSINGLE_LINK_ENTRY  pSListEntry = NULL;
+
+    WanMgr_Iface_Data_t* pIfaceDmlEntry = (WanMgr_Iface_Data_t*) hInsContext;
+    if(pIfaceDmlEntry != NULL)
+    {
+        WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(ulIfInstanceNumber);
+        if(pWanDmlIfaceData != NULL)
+        {
+            DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
+
+            /* check the parameter name and set the corresponding value */
+            pSListEntry       = AnscSListGetEntryByIndex(&(pWanDmlIface->Marking.MarkingList), nIndex);
+            if ( pSListEntry )
+            {
+                CONTEXT_MARKING_LINK_OBJECT* pCxtLink      = ACCESS_CONTEXT_MARKING_LINK_OBJECT(pSListEntry);
+                DML_MARKING*                    p_Marking  = pCxtLink->hContext;
+                pCxtLink->bNew  = FALSE;
+                strcpy(p_Marking->Alias,pmark->Alias);
+                p_Marking->SKBPort = pmark->SKBPort;
+                p_Marking->SKBMark = pmark->SKBMark;
+                p_Marking->EthernetPriorityMark = pmark->EthernetPriorityMark;
+                CcspTraceInfo(("%s %d - copied to dml [%s,%u,%u,%d]\n",__FUNCTION__,__LINE__,p_Marking->Alias,p_Marking->SKBPort,p_Marking->SKBMark,p_Marking->EthernetPriorityMark));
+            }
+            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+        }
+    }
+}
 
 ANSC_HANDLE WanManager_AddIfaceMarking(DML_WAN_IFACE* pWanDmlIface, ULONG* pInsNumber)
 {

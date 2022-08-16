@@ -469,7 +469,6 @@
                                  <func_GetParamIntValue>Marking_GetParamIntValue</func_GetParamIntValue>
                                  <func_GetParamUlongValue>Marking_GetParamUlongValue</func_GetParamUlongValue>
                                  <func_GetParamStringValue>Marking_GetParamStringValue</func_GetParamStringValue>
-                                 <func_GetParamIntValue>Marking_GetParamIntValue</func_GetParamIntValue>
                                  <func_SetParamIntValue>Marking_SetParamIntValue</func_SetParamIntValue>
                                  <func_SetParamUlongValue>Marking_SetParamUlongValue</func_SetParamUlongValue>
                                  <func_SetParamStringValue>Marking_SetParamStringValue</func_SetParamStringValue>
