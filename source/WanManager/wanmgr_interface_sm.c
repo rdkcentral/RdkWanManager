@@ -49,6 +49,10 @@
 #define IPOE_STATUS_FAILED "failed"
 #endif
 
+#if defined(FEATURE_IPOE_HEALTH_CHECK) && defined(IPOE_HEALTH_CHECK_LAN_SYNC_SUPPORT)
+extern lanState_t lanState;
+#endif
+
 /*WAN Manager States*/
 static eWanState_t wan_state_configuring_wan(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
 static eWanState_t wan_state_validating_wan(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
@@ -2549,6 +2553,21 @@ static eWanState_t wan_state_ipv6_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
     }
 #endif
     wanmgr_Ipv6Toggle();
+#if defined(FEATURE_IPOE_HEALTH_CHECK) && defined(IPOE_HEALTH_CHECK_LAN_SYNC_SUPPORT)
+    if((pInterface->PPP.Enable == FALSE) && (pInterface->Wan.EnableIPoE == TRUE) && (pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV6Status == IHC_STARTED))
+    {
+        if(lanState == LAN_STATE_STOPPED)
+        {
+            WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_IPV6_DOWN, pInterface->Wan.Name);
+            lanState = LAN_STATE_RESET;
+        }
+        else if(lanState == LAN_STATE_STARTED)
+        {
+            WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_IPV6_UP, pInterface->Wan.Name);
+            lanState = LAN_STATE_RESET;
+        }
+    }
+#endif
     return WAN_STATE_IPV6_LEASED;
 }
 
@@ -2735,6 +2754,21 @@ static eWanState_t wan_state_dual_stack_active(WanMgr_IfaceSM_Controller_t* pWan
     }
 #endif
     wanmgr_Ipv6Toggle();
+#if defined(FEATURE_IPOE_HEALTH_CHECK) && defined(IPOE_HEALTH_CHECK_LAN_SYNC_SUPPORT)
+    if((pInterface->PPP.Enable == FALSE) && (pInterface->Wan.EnableIPoE == TRUE) && (pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV6Status == IHC_STARTED))
+    {
+        if(lanState == LAN_STATE_STOPPED)
+        {
+            WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_IPV6_DOWN, pInterface->Wan.Name);
+            lanState = LAN_STATE_RESET;
+        }
+        else if(lanState == LAN_STATE_STARTED)
+        {
+            WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_IPV6_UP, pInterface->Wan.Name);
+            lanState = LAN_STATE_RESET;
+        }
+    }
+#endif
     return WAN_STATE_DUAL_STACK_ACTIVE;
 }
 
@@ -2859,6 +2893,21 @@ static eWanState_t wan_state_mapt_active(WanMgr_IfaceSM_Controller_t* pWanIfaceC
     }
 #endif
     wanmgr_Ipv6Toggle();
+#if defined(FEATURE_IPOE_HEALTH_CHECK) && defined(IPOE_HEALTH_CHECK_LAN_SYNC_SUPPORT)
+    if((pInterface->PPP.Enable == FALSE) && (pInterface->Wan.EnableIPoE == TRUE) && (pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV6Status == IHC_STARTED))
+    {
+        if(lanState == LAN_STATE_STOPPED)
+        {
+            WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_IPV6_DOWN, pInterface->Wan.Name);
+            lanState = LAN_STATE_RESET;
+        }
+        else if(lanState == LAN_STATE_STARTED)
+        {
+            WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_IPV6_UP, pInterface->Wan.Name);
+            lanState = LAN_STATE_RESET;
+        }
+    }
+#endif
     return WAN_STATE_MAPT_ACTIVE;
 }
 #endif //FEATURE_MAPT

@@ -42,6 +42,7 @@ static token_t sysevent_msg_token;
 #define SYSEVENT_VALUE_FALSE        "false"
 #define SYSEVENT_VALUE_READY        "ready"
 #define SYSEVENT_VALUE_STARTED      "started"
+#define SYSEVENT_VALUE_STOPPED      "stopped"
 #define SYSEVENT_OPEN_MAX_RETRIES   6
 #define BRG_INST_SIZE 5
 #define BUF_SIZE 256
@@ -64,6 +65,10 @@ static int getVendorClassInfo(char *buffer, int length);
 static int set_default_conf_entry();
 #ifdef FEATURE_MAPT
 int mapt_feature_enable_changed = FALSE;
+#endif
+
+#if defined(FEATURE_IPOE_HEALTH_CHECK) && defined(IPOE_HEALTH_CHECK_LAN_SYNC_SUPPORT)
+lanState_t lanState = LAN_STATE_RESET;
 #endif
 
 static ANSC_STATUS WanMgr_SyseventInit()
@@ -652,6 +657,7 @@ static void *WanManagerSyseventHandler(void *args)
             else if (strcmp(name, SYSEVENT_LAN_STATUS) == 0 )
             {
                 char wanStatus[BUFLEN_16] = {0};
+                CcspTraceInfo(("%s %d SYSEVENT_LAN_STATUS : [%s]\n", __FUNCTION__, __LINE__, val));
                 if (strcmp(val, SYSEVENT_VALUE_STARTED) == 0)
                 {
                     sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_PRIMARY_LAN_L3NET, buf, sizeof(buf));
@@ -690,11 +696,20 @@ static void *WanManagerSyseventHandler(void *args)
                         set_mapt_rule();
                     }
 #endif
+                    snprintf(cmd_str, sizeof(cmd_str), "ip -6 addr add %s/64 dev %s", buf, LAN_BRIDGE_NAME);
+                    if (WanManager_DoSystemActionWithStatus("wanmanager", cmd_str) != RETURN_OK)
+                    {
+                        CcspTraceError(("%s %d failed set command: %s\n", __FUNCTION__, __LINE__, cmd_str));
+                    }
+#if defined(FEATURE_IPOE_HEALTH_CHECK) && defined(IPOE_HEALTH_CHECK_LAN_SYNC_SUPPORT)
+                    lanState = LAN_STATE_STARTED;
+#endif
                 }
-                snprintf(cmd_str, sizeof(cmd_str), "ip -6 addr add %s/64 dev %s", buf, LAN_BRIDGE_NAME);
-                if (WanManager_DoSystemActionWithStatus("wanmanager", cmd_str) != RETURN_OK)
+                else if(strcmp(val, SYSEVENT_VALUE_STOPPED) == 0)
                 {
-                    CcspTraceError(("%s %d failed set command: %s\n", __FUNCTION__, __LINE__, cmd_str));
+#if defined(FEATURE_IPOE_HEALTH_CHECK) && defined(IPOE_HEALTH_CHECK_LAN_SYNC_SUPPORT)
+                    lanState = LAN_STATE_STOPPED;
+#endif
                 }
             }
 #endif
