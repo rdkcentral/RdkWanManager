@@ -754,7 +754,7 @@ static int wan_setUpIPv4(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
     /** Setup IPv4: such as
      * "ifconfig eth0 10.6.33.165 netmask 255.255.255.192 broadcast 10.6.33.191 up"
      */
-     if (wanmgr_set_Ipv4Sysevent(&pInterface->IP.Ipv4Data) != ANSC_STATUS_SUCCESS)
+     if (wanmgr_set_Ipv4Sysevent(&pInterface->IP.Ipv4Data, pWanIfaceCtrl->DeviceNwMode) != ANSC_STATUS_SUCCESS)
      {
          CcspTraceError(("%s %d - Could not store ipv4 data!", __FUNCTION__, __LINE__));
      }
@@ -1539,7 +1539,7 @@ static eWanState_t wan_transition_ipv4_down(WanMgr_IfaceSM_Controller_t* pWanIfa
         }
 #endif
 
-    wanmgr_sysevents_ipv4Info_init(pInterface->Wan.Name); // reset the sysvent/syscfg fields
+    wanmgr_sysevents_ipv4Info_init(pInterface->Wan.Name, pWanIfaceCtrl->DeviceNwMode); // reset the sysvent/syscfg fields
 
     wanmgr_sysevents_setWanState(WAN_IPV4_DOWN);
     Update_Interface_Status();

@@ -1636,7 +1636,6 @@ ANSC_STATUS Update_Interface_Status()
         CcspTraceInfo(("%s %d -CurrentActiveInterface- [%s] [%s]\n",__FUNCTION__,__LINE__,pWanDmlData->CurrentActiveInterface,CurrentActiveInterface));
         if(strlen(CurrentActiveInterface) > 0)
         {
-
             if(strcmp(pWanDmlData->CurrentActiveInterface,CurrentActiveInterface) != 0 )
             {
                 strcpy(prevCurrentActiveInterface,pWanDmlData->CurrentActiveInterface);

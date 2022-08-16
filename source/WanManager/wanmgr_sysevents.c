@@ -193,20 +193,29 @@ ANSC_STATUS wanmgr_sysevents_ipv4Info_set(const ipc_dhcpv4_data_t* dhcp4Info, co
 }
 
 
-ANSC_STATUS wanmgr_set_Ipv4Sysevent(const WANMGR_IPV4_DATA* dhcp4Info)
+ANSC_STATUS wanmgr_set_Ipv4Sysevent(const WANMGR_IPV4_DATA* dhcp4Info, DEVICE_NETWORKING_MODE DeviceNwMode)
 {
     char name[BUFLEN_64] = {0};
     char value[BUFLEN_64] = {0};
     char ipv6_status[BUFLEN_16] = {0};
 
-    sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_IPV6_CONNECTION_STATE, ipv6_status, sizeof(ipv6_status));
-    if (!(!strcmp(ipv6_status, STATUS_UP_STRING) && (dhcp4Info->ifname[0] == '\0')))
+    sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_CURRENT_WAN_IFNAME, name, sizeof(name));
+    if (DeviceNwMode == GATEWAY_MODE)
     {
-        snprintf(name, sizeof(name), SYSEVENT_CURRENT_WAN_IFNAME);
-        sysevent_set(sysevent_fd, sysevent_token,name, dhcp4Info->ifname, 0);
+        if ((strlen(name) == 0) || (strcmp(name, dhcp4Info->ifname) != 0))
+        {
+            sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_CURRENT_WAN_IFNAME, dhcp4Info->ifname, 0);
+        }
+        snprintf(name, sizeof(name), SYSEVENT_IPV4_IP_ADDRESS, dhcp4Info->ifname);
     }
-
-    snprintf(name, sizeof(name), SYSEVENT_IPV4_IP_ADDRESS, dhcp4Info->ifname);
+    else 
+    {
+        if ((strlen(name) == 0) || (strcmp(name, MESH_IFNAME) != 0))
+        {
+            sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_CURRENT_WAN_IFNAME, MESH_IFNAME, 0);
+        }
+        snprintf(name, sizeof(name), SYSEVENT_IPV4_IP_ADDRESS, MESH_IFNAME);
+    }
     sysevent_set(sysevent_fd, sysevent_token,name, dhcp4Info->ip, 0);
 
     //same as SYSEVENT_IPV4_IP_ADDRESS. But this is required in other components
@@ -232,7 +241,7 @@ ANSC_STATUS wanmgr_set_Ipv4Sysevent(const WANMGR_IPV4_DATA* dhcp4Info)
     return ANSC_STATUS_SUCCESS;
 }
 
-ANSC_STATUS wanmgr_sysevents_ipv4Info_init(const char *wanIfName)
+ANSC_STATUS wanmgr_sysevents_ipv4Info_init(const char *wanIfName, DEVICE_NETWORKING_MODE DeviceNwMode)
 {
     char name[BUFLEN_64] = {0};
     char value[BUFLEN_64] = {0};
@@ -253,7 +262,7 @@ ANSC_STATUS wanmgr_sysevents_ipv4Info_init(const char *wanIfName)
     ipv4Data.mtuSize = WANMNGR_INTERFACE_DEFAULT_MTU_SIZE;
     
     wanmgr_sysevents_ipv4Info_set(&ipc_ipv4Data, wanIfName);
-    return wanmgr_set_Ipv4Sysevent(&ipv4Data);
+    return wanmgr_set_Ipv4Sysevent(&ipv4Data, DeviceNwMode);
 }
 
 
