@@ -547,12 +547,12 @@ static void WanMgr_Rbus_EventReceiveHandler(rbusHandle_t handle, rbusEvent_t con
         rbusValue_t valBuff = rbusObject_GetValue(event->data, NULL );
         CcspTraceInfo(("%s %d: change in %s\n", __FUNCTION__, __LINE__, eventName));
         UINT newValue = rbusValue_GetUInt32(valBuff);
-        // Save here 
+        // Save here
         WanMgr_Config_Data_t* pWanConfigData = WanMgr_GetConfigData_locked();
         if (pWanConfigData != NULL)
         {
             DML_WANMGR_CONFIG* pWanDmlData = &(pWanConfigData->data);
-        
+
             if (newValue == 1)
             {
                 pWanDmlData->DeviceNwMode = MODEM_MODE;
@@ -717,7 +717,7 @@ void WanMgr_Rbus_SubscribeDML(void)
     {
         CcspTraceError(("%s %d - Failed to Subscribe %s, Error=%s \n", __FUNCTION__, __LINE__, rbusError_ToString(ret), WANMGR_DEVICE_NETWORKING_MODE));
     }
-
+#ifdef FEATURE_RDKB_INTER_DEVICE_MANAGER
     ret = rbusEvent_Subscribe(rbusHandle, X_RDK_REMOTE_DEVICECHANGE, WanMgr_Rbus_EventReceiveHandler, NULL, 60);
     if(ret != RBUS_ERROR_SUCCESS)
     {
@@ -729,7 +729,7 @@ void WanMgr_Rbus_SubscribeDML(void)
     {
         CcspTraceError(("%s %d - Failed to Subscribe %s, Error=%s \n", __FUNCTION__, __LINE__, rbusError_ToString(ret), X_RDK_REMOTE_INVOKE));
     }
-
+#endif
     CcspTraceInfo(("WanMgr_Rbus_SubscribeDML done\n"));
 }
 
@@ -840,7 +840,7 @@ ANSC_STATUS WanMgr_IDM_Invoke(idm_invoke_method_Params_t *IDM_request)
     }else
     {
         CcspTraceInfo(("%s %d -consumer: rbusMethod_Invoke(Device.X_RDK_Remote.Invoke()) success\n",__FUNCTION__, __LINE__));
-        return ANSC_STATUS_FAILURE;    
+        return ANSC_STATUS_FAILURE;
     }
 }
 
@@ -1023,7 +1023,7 @@ ANSC_STATUS WanMgr_Rbus_String_EventPublish_OnValueChange(char *dm_event, void *
 
     CcspTraceInfo(("%s %d - dm_event[%s],prev_dm_value[%s],dm_value[%s]\n", __FUNCTION__, __LINE__, dm_event, prev_dm_value, dm_value));
 
-    if(rbusEvent_Publish(rbusHandle, &event) != RBUS_ERROR_SUCCESS) 
+    if(rbusEvent_Publish(rbusHandle, &event) != RBUS_ERROR_SUCCESS)
     {
         CcspTraceInfo(("%s %d - event publishing failed for type\n", __FUNCTION__, __LINE__));
     }
