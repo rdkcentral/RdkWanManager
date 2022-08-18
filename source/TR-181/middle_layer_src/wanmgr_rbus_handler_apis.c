@@ -1358,4 +1358,62 @@ static int WanMgr_Remote_IfaceData_index(char *macAddress)
     return cpeInterfaceIndex;
 }
 
+ANSC_STATUS WanMgr_RestartUpdateRemoteIface()
+{
+    char dmQuery[BUFLEN_256] = {0};
+    char dmValue[BUFLEN_256] = {0};
+    int numofRemoteEntries = 0;
+
+    CcspTraceInfo(("%s %d - Enter \n", __FUNCTION__, __LINE__));
+
+    DEVICE_NETWORKING_MODE  DeviceMode;
+    WanMgr_Config_Data_t*   pWanConfigData = WanMgr_GetConfigData_locked();
+    if(pWanConfigData != NULL)
+    {
+        DeviceMode = pWanConfigData->data.DeviceNwMode;
+        WanMgrDml_GetConfigData_release(pWanConfigData);
+
+        if (DeviceMode == GATEWAY_MODE)
+        {
+            CcspTraceInfo(("%s %d -DeviceNwMode set to GATEWAY_MODE. Configure remote Iface\n", __FUNCTION__, __LINE__));
+        }
+        else
+        {
+            CcspTraceInfo(("%s %d -DeviceNwMode is not GATEWAY_MODE. Do not configure remote Iface\n", __FUNCTION__, __LINE__));
+            return ANSC_STATUS_SUCCESS;
+        }
+    }
+
+    // get mac of connected remote CPE
+    snprintf(dmQuery, sizeof(dmQuery)-1, X_RDK_REMOTE_DEVICE_NUM_OF_ENTRIES);
+
+    if ( ANSC_STATUS_FAILURE == WanMgr_RdkBus_GetParamValueFromAnyComp (dmQuery, dmValue))
+    {
+        CcspTraceError(("%s-%d: %s, Failed to get param value\n", __FUNCTION__, __LINE__, dmQuery));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    numofRemoteEntries = atoi(dmValue);
+    CcspTraceInfo(("%s %d - numofRemoteEntries = %d\n", __FUNCTION__, __LINE__,numofRemoteEntries));
+
+    //IDM first entry will be local device.
+    if(numofRemoteEntries > 1)
+    {
+        for( int i = 2; i <= numofRemoteEntries; i++)
+        {
+            memset(dmQuery, 0, sizeof(dmQuery));
+            memset(dmValue, 0, sizeof(dmValue));
+            snprintf(dmQuery, sizeof(dmQuery)-1, X_RDK_REMOTE_DEVICE_MAC, i);
+            if ( ANSC_STATUS_FAILURE == WanMgr_RdkBus_GetParamValueFromAnyComp (dmQuery, dmValue))
+            {
+                CcspTraceError(("%s-%d: %s, Failed to get param value\n", __FUNCTION__, __LINE__, dmQuery));
+            }
+            CcspTraceInfo(("%s %d - Remote device MAC %s \n", __FUNCTION__, __LINE__,dmValue));
+            char *remoteMac = malloc(MAC_ADDR_SIZE + 1);
+            strncpy(remoteMac, dmValue, MAC_ADDR_SIZE+1);
+            WanMgr_WanRemoteIfaceConfigure(remoteMac);
+        }
+    }
+    return ANSC_STATUS_SUCCESS;
+}
 #endif //RBUS_BUILD_FLAG_ENABLE
