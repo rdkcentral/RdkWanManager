@@ -208,7 +208,7 @@ ANSC_STATUS wanmgr_set_Ipv4Sysevent(const WANMGR_IPV4_DATA* dhcp4Info, DEVICE_NE
     sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_CURRENT_WAN_IFNAME, name, sizeof(name));
     if (DeviceNwMode == GATEWAY_MODE)
     {
-        if ((strlen(name) == 0) || (strcmp(name, dhcp4Info->ifname) != 0))
+        if (((strlen(name) == 0) || (strcmp(name, dhcp4Info->ifname) != 0)) && (strlen(dhcp4Info->ifname) > 0))
         {
             sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_CURRENT_WAN_IFNAME, dhcp4Info->ifname, 0);
         }
@@ -722,13 +722,18 @@ static void *WanManagerSyseventHandler(void *args)
             }
             else if (strcmp(name, SYSEVENT_GLOBAL_IPV6_PREFIX_CLEAR) == 0)
             {
-		/*ToDo
+                /*ToDo
                  *This is temporary changes because of Voice Issue,
                  * For More Info, please Refer RDKB-38461.
                  */
+                char ifName[64] = {0};
                 sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV6_CONNECTION_STATE, STATUS_DOWN_STRING, 0);
-		Wan_ForceRenewDhcpIPv6(PHY_WAN_IF_NAME);
-		sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, NULL, 0);
+                sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_CURRENT_WAN_IFNAME, ifName, sizeof(ifName));
+                if(strlen(ifName) > 0)
+                {
+                    Wan_ForceRenewDhcpIPv6(ifName);
+                }
+                sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, NULL, 0);
             }
 #ifdef FEATURE_MAPT
             else if (strcmp(name, SYSEVENT_MAPT_FEATURE_ENABLE) == 0)
