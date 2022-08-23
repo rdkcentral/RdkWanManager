@@ -759,7 +759,7 @@ void wanmgr_Ipv6Toggle()
 
     sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_IPV6_TOGGLE, v6Toggle, sizeof(v6Toggle));
 
-    if(strlen(v6Toggle) > 0 && !strcmp(v6Toggle,"TRUE"))
+    if((strlen(v6Toggle) == 0) || (!strcmp(v6Toggle,"TRUE")))
     {
         CcspTraceInfo(("%s %d SYSEVENT_IPV6_TOGGLE[TRUE] \n", __FUNCTION__, __LINE__));
 
