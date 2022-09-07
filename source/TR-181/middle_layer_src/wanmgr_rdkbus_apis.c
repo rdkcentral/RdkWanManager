@@ -660,6 +660,10 @@ ANSC_STATUS WanMgr_WanIfaceMarkingInit ()
                           DML_MARKING*   p_Marking = &Marking;
 
                            char acTmpMarkingData[ 32 ] = { 0 };
+                           /* a) SKBPort is derived from InstanceNumber.
+                              b) Since InstanceNumber starts with Zero, to make it non-zero (add 1)
+                              c) Voice packet get EthernetPriotityMark based on SKBPort.*/
+                           p_Marking->InstanceNumber = ulInstanceNumber + 1;
 
                            //Stores into tmp buffer
                            snprintf( acTmpMarkingData, sizeof( acTmpMarkingData ), "%s", token );
@@ -907,12 +911,19 @@ DmlCheckAndProceedMarkingOperations
 
                 snprintf( acPSMRecEntry, sizeof( acPSMRecEntry ), PSM_MARKING_SKBPORT, ulIfInstanceNumber, pMarking->Alias );
 
+                /* a) SKBPort is derived from InstanceNumber.
+                   b) Since InstanceNumber starts with Zero, to make it non-zero (add 1)
+                   c) Voice packet get EthernetPriotityMark based on SKBPort.*/
+
+                pMarking->InstanceNumber = pMarking->InstanceNumber + 1;
+
                 /*
                  * Generate SKB port
                  *
                  * Stores the SKB Port for the entry. This is auto-generated for each entry starting from "1".
                  * Its value matches the instance index.
                  */
+
                 pMarking->SKBPort = pMarking->InstanceNumber;
 
                 snprintf( acPSMRecValue, sizeof( acPSMRecValue ), "%u", pMarking->SKBPort );

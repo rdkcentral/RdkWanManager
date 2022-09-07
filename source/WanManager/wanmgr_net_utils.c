@@ -1714,9 +1714,11 @@ void Marking_UpdateInitValue(ANSC_HANDLE hInsContext, ULONG ulIfInstanceNumber, 
                 CONTEXT_MARKING_LINK_OBJECT* pCxtLink      = ACCESS_CONTEXT_MARKING_LINK_OBJECT(pSListEntry);
                 DML_MARKING*                    p_Marking  = pCxtLink->hContext;
                 pCxtLink->bNew  = FALSE;
+                /*Copy values from pmark to p_Marking */
                 strcpy(p_Marking->Alias,pmark->Alias);
                 p_Marking->SKBPort = pmark->SKBPort;
                 p_Marking->SKBMark = pmark->SKBMark;
+                p_Marking->InstanceNumber = pmark->InstanceNumber;
                 p_Marking->EthernetPriorityMark = pmark->EthernetPriorityMark;
                 CcspTraceInfo(("%s %d - copied to dml [%s,%u,%u,%d]\n",__FUNCTION__,__LINE__,p_Marking->Alias,p_Marking->SKBPort,p_Marking->SKBMark,p_Marking->EthernetPriorityMark));
             }
