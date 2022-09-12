@@ -704,6 +704,10 @@ int WanManager_ProcessMAPTConfiguration(ipc_mapt_data_t *dhcp6cMAPTMsgBody, cons
     */
     int isNatFtpModuleLoaded = RETURN_ERR;
     isNatFtpModuleLoaded = isModuleLoaded(NF_NAT_FTP_MODULE);
+#ifdef MAPT_NAT46_FTP_ACTIVE_MODE
+    char port_range[BUFLEN_1024] = {'\0'};
+    char cmd_ftp_load[BUFLEN_1024] = {'\0'};
+#endif
 
     if(dhcp6cMAPTMsgBody->ratio != 1)
     {
@@ -718,6 +722,21 @@ int WanManager_ProcessMAPTConfiguration(ipc_mapt_data_t *dhcp6cMAPTMsgBody, cons
                 CcspTraceInfo(("%s %d !!!!! nf_nat_ftp.ko module removed !!!!! \n", __FUNCTION__, __LINE__));
             }
         }
+#ifdef MAPT_NAT46_FTP_ACTIVE_MODE
+        WanManager_CalculateMAPTPortRange(dhcp6cMAPTMsgBody->psidOffset, psidLen, psidValue, port_range);
+        if(port_range[0] != '\0')
+        {
+            snprintf(cmd_ftp_load, BUFLEN_1024, "insmod /lib/modules/`uname -r`/kernel/net/netfilter/nf_nat_ftp.ko port_range_array=%s", port_range);
+            if (WanManager_DoSystemActionWithStatus("wanmanager", cmd_ftp_load) != RETURN_OK)
+            {
+                CcspTraceError(("%s %d insmod: !!!!! Failed to add nf_nat_ftp.ko !!!!! \n", __FUNCTION__, __LINE__));
+            }
+        }
+        else
+        {
+            CcspTraceInfo(("%s %d MAPT port range is empty \n", __FUNCTION__, __LINE__));
+        }
+#endif
     }
     else
     {
@@ -2364,3 +2383,31 @@ INT WanMgr_StartIpMonitor(UINT iface_index)
     }
     return iErrorCode;
 }
+#ifdef MAPT_NAT46_FTP_ACTIVE_MODE
+void WanManager_CalculateMAPTPortRange(int offset, int psidLen, int psid, char* port_range)
+{
+    int a = 0, m = 0, contigous_port = 0, ratio = 0;
+    int index = 0, len = 0;
+    int initialPortValue = 0, finalPortValue = 0;
+    char single_port_range[BUFLEN_32]={0};
+
+    if (offset == 0)
+        offset = 6;
+
+    a = (1 << offset);
+    m = 16 - (psidLen + offset);
+    contigous_port = (1 << m);
+    ratio = 16 - offset;
+
+    for(index=1; index < (a); index++)
+    {
+        initialPortValue = (index<<ratio) + (psid <<(m));
+        finalPortValue   = initialPortValue + (contigous_port - 1);
+        snprintf(single_port_range, BUFLEN_32, "%d,%d,", initialPortValue, finalPortValue);
+        strncat(port_range, single_port_range, BUFLEN_32);
+        memset(single_port_range, 0, BUFLEN_32);
+    }
+    len = strlen(port_range);
+    port_range[len - 1] = '\0';
+}
+#endif
