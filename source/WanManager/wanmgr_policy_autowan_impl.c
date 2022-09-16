@@ -2017,7 +2017,6 @@ static int WanMgr_Policy_BackupWan_GetCurrentBackupWanInterfaceIndex( WanMgr_Pol
                 }
 
                 /* If WAN Interface Type is REMOTE then we need to return that index to proceed further */
-                CcspTraceInfo(("%s - Index:%d Type:%d Enable:%d\n", __FUNCTION__, uiWanIdx, pInterface->Wan.IfaceType, pInterface->Wan.Enable));
                 if( ( TRUE == pInterface->Wan.Enable ) &&
                     ( REMOTE_IFACE == pInterface->Wan.IfaceType ) )
                 {
