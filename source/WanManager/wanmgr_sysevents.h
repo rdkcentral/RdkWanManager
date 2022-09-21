@@ -287,4 +287,13 @@ ANSC_STATUS wanmgr_firewall_restart(void);
  * @return Returns NONE.
 */
 void wanmgr_Ipv6Toggle();
+
+#ifdef FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE
+/*
+ * @brief Utility function used to get current wan interface name.
+ * @return Returns NONE.
+*/
+void wanmgr_get_wan_interface(char *wanInterface);
+#endif
+
 #endif //_WANMGR_SYSEVENTS_H_

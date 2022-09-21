@@ -33,7 +33,11 @@ static bool g_toggle_flag = TRUE;
 
 #define MTU_DEFAULT_SIZE (1500)
 #define MAPT_MTU_SIZE (1520)
+#ifdef FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE
+#define MAP_WAN_IFACE "current_wan_ifname"
+#else
 #define MAP_WAN_IFACE "wan_ifname"
+#endif
 #define BUFLEN_64 64
 #define BUFLEN_128 128
 #define BUFLEN_256 256

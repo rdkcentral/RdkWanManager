@@ -407,10 +407,20 @@ static int set_default_conf_entry()
     
     char result[BUFLEN_128];
     FILE *fp;
+#ifdef FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE
+    char wanInterface[BUFLEN_64] = {'\0'};
+    char cmd[BUFLEN_128] = {'\0'};
+#endif
 
     memset(result, 0, sizeof(result));
 
+#ifdef FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE
+    wanmgr_get_wan_interface(wanInterface);
+    snprintf(cmd, BUFLEN_128, "/sys/class/net/%s/address", wanInterface);
+    fp = fopen(cmd,"r");
+#else
     fp = fopen(WAN_PHY_ADDRESS,"r");
+#endif
     if (! fp) {
         CcspTraceError(("%s %d cannot open file \n", __FUNCTION__, __LINE__));
         return 0;
@@ -784,11 +794,16 @@ static int CheckV6DefaultRule()
 {
     int ret = FALSE,pclose_ret = 0;
     FILE *fp = NULL;
- 
     char output[256] = {0};
 
-  
+#ifdef FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE
+    char wanInterface[BUFLEN_64] = {'\0'};
+
+    wanmgr_get_wan_interface(wanInterface);
+    if(!(fp = v_secure_popen("r", " ip -6 ro | grep default | grep via | grep %s", wanInterface)))
+#else
     if(!(fp = v_secure_popen("r"," ip -6 ro | grep default | grep via | grep erouter0")))
+#endif
     {
         return -1;
     }
@@ -808,16 +823,28 @@ static int CheckV6DefaultRule()
 static void do_toggle_v6_status()
 {
     bool isV6DefaultRoutePresent = FALSE;
-	    int ret = 0;
+    int ret = 0;
+#ifdef FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE
+    char wanInterface[BUFLEN_64] = {'\0'};
+    wanmgr_get_wan_interface(wanInterface);
+#endif
     isV6DefaultRoutePresent = CheckV6DefaultRule();
     if ( isV6DefaultRoutePresent != TRUE)
     {
         CcspTraceInfo(("%s %d toggle initiated \n", __FUNCTION__, __LINE__));
+#ifdef FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE
+        ret = v_secure_system("sysctl -w net.ipv6.conf.%s.disable_ipv6=1", wanInterface);
+#else
         ret = v_secure_system("echo 1 > /proc/sys/net/ipv6/conf/erouter0/disable_ipv6");
+#endif
 	if(ret != 0) {
             CcspTraceWarning(("%s: Failure in executing command via v_secure_system. ret:[%d] \n",__FUNCTION__,ret));
         } 
+#ifdef FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE
+        ret = v_secure_system("sysctl -w net.ipv6.conf.%s.disable_ipv6=0", wanInterface);
+#else
         ret = v_secure_system("echo 0 > /proc/sys/net/ipv6/conf/erouter0/disable_ipv6");
+#endif
         if(ret != 0) {
             CcspTraceWarning(("%s: Failure in executing command via v_secure_system. ret:[%d] \n", __FUNCTION__,ret));
         }
@@ -982,3 +1009,14 @@ void wanmgr_sysevent_hw_reconfig_reboot(void)
     CcspTraceInfo(("Setting hw reconfiguration reboot event.\n"));
     sysevent_set(sysevent_fd, sysevent_token, "wanmanager_reboot_status", "1", 0);
 }
+
+#ifdef FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE
+void wanmgr_get_wan_interface(char *wanInterface)
+{
+    sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_CURRENT_WAN_IFNAME, wanInterface, BUFLEN_64);
+    if(wanInterface[0] == '\0' ||  strlen(wanInterface) == 0)
+    {
+        strcpy(wanInterface,"erouter0"); // default wan interface
+    }
+}
+#endif
