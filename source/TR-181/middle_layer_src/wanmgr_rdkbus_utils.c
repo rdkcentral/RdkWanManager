@@ -530,7 +530,7 @@ ANSC_STATUS WanMgr_RdkBus_GetParamValueFromAnyComp( char * pQuery, char *pValue)
 ANSC_STATUS WanMgr_RdkBus_GetParamValues( char *pComponent, char *pBus, char *pParamName, char *pReturnVal )
 {
     CCSP_MESSAGE_BUS_INFO  *bus_info         = (CCSP_MESSAGE_BUS_INFO *)bus_handle;
-    parameterValStruct_t   **retVal;
+    parameterValStruct_t   **retVal = NULL;
     char                    *ParamName[ 1 ];
     int                    ret               = 0,
                            nval;
