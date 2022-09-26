@@ -41,7 +41,7 @@
  * @param msg - Pointer to msg_payload_t structure contains Dhcpv4 configuration as part of ipc message
  * @return ANSC_STATUS_SUCCESS upon success else error code returned.
  */
-ANSC_STATUS wanmgr_handle_dchpv4_event_data(DML_WAN_IFACE* pIfaceData);
+ANSC_STATUS wanmgr_handle_dhcpv4_event_data(DML_WAN_IFACE* pIfaceData);
 void* IPCPStateChangeHandler (void *arg);
 void WanMgr_UpdateIpFromCellularMgr (char *dhcpcInterface);
 

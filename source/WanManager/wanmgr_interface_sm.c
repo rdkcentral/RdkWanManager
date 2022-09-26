@@ -2960,12 +2960,12 @@ static ANSC_STATUS WanMgr_IfaceIpcMsg_handle(WanMgr_IfaceSM_Controller_t* pWanIf
 
     if (pInterface->IP.pIpcIpv4Data != NULL )
     {
-        wanmgr_handle_dchpv4_event_data(pInterface);
+        wanmgr_handle_dhcpv4_event_data(pInterface);
     }
 
     if (pInterface->IP.pIpcIpv6Data != NULL )
     {
-        wanmgr_handle_dchpv6_event_data(pInterface);
+        wanmgr_handle_dhcpv6_event_data(pInterface);
     }
 
     return ANSC_STATUS_SUCCESS;

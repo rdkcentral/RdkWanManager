@@ -2262,7 +2262,7 @@ dhcpv6c_dbg_thrd(void * in)
                                         pIfaceData->IP.pIpcIpv6Data->mapeAssigned = FALSE;
                                         pIfaceData->IP.pIpcIpv6Data->prefixCmd = 0;
                                     }
-                                    if (wanmgr_handle_dchpv6_event_data(pIfaceData) != ANSC_STATUS_SUCCESS)
+                                    if (wanmgr_handle_dhcpv6_event_data(pIfaceData) != ANSC_STATUS_SUCCESS)
                                     {
                                         CcspTraceError(("[%s-%d] Failed to send dhcpv6 data to wanmanager!!! \n", __FUNCTION__, __LINE__));
                                     }
@@ -2410,7 +2410,7 @@ static ANSC_STATUS wanmgr_dchpv6_get_ipc_msg_info(WANMGR_IPV6_DATA* pDhcpv6Data,
     return ANSC_STATUS_SUCCESS;
 }
 
-ANSC_STATUS wanmgr_handle_dchpv6_event_data(DML_WAN_IFACE* pIfaceData)
+ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_WAN_IFACE* pIfaceData)
 {
     if(NULL == pIfaceData)
     {

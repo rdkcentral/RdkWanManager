@@ -94,7 +94,7 @@ static ANSC_STATUS wanmgr_dchpv4_get_ipc_msg_info(WANMGR_IPV4_DATA* pDhcpv4Data,
 }
 
 
-ANSC_STATUS wanmgr_handle_dchpv4_event_data(DML_WAN_IFACE* pIfaceData)
+ANSC_STATUS wanmgr_handle_dhcpv4_event_data(DML_WAN_IFACE* pIfaceData)
 {
     if(NULL == pIfaceData)
     {
@@ -357,7 +357,7 @@ void WanMgr_UpdateIpFromCellularMgr (char *dhcpcInterface)
                 }
 
                 //update Ipv4 data
-                wanmgr_handle_dchpv4_event_data(pIfaceData);
+                wanmgr_handle_dhcpv4_event_data(pIfaceData);
             }    
         }
 
@@ -520,7 +520,7 @@ void* IPCPStateChangeHandler (void *arg)
 
                           strncpy(pIfaceData->IP.pIpcIpv4Data->dhcpcInterface, dhcpcInterface, sizeof(pIfaceData->IP.pIpcIpv4Data->dhcpcInterface) - 1);
                           strncpy(pIfaceData->IP.pIpcIpv4Data->mask, P2P_SUB_NET_MASK, sizeof(pIfaceData->IP.pIpcIpv4Data->mask)-1);
-                          wanmgr_handle_dchpv4_event_data(pIfaceData);
+                          wanmgr_handle_dhcpv4_event_data(pIfaceData);
                          break;
                      }
                      case WAN_IFACE_IPCP_STATUS_DOWN:
@@ -528,7 +528,7 @@ void* IPCPStateChangeHandler (void *arg)
                          strncpy (pIfaceData->IP.pIpcIpv4Data->dhcpcInterface, dhcpcInterface, sizeof(pIfaceData->IP.pIpcIpv4Data->dhcpcInterface) - 1);
                          strncpy (pIfaceData->IP.pIpcIpv4Data->dhcpState, DHCP_STATE_DOWN, sizeof(pIfaceData->IP.pIpcIpv4Data->dhcpState)-1);
                          pIfaceData->IP.pIpcIpv4Data->addressAssigned = FALSE;
-                         wanmgr_handle_dchpv4_event_data(pIfaceData);
+                         wanmgr_handle_dhcpv4_event_data(pIfaceData);
                          break;
                      }
                 }
