@@ -291,14 +291,19 @@ int main(int argc, char* argv[])
     char *subSys            = NULL;
     DmErr_t    err;
 
-    syscfg_get( NULL, "NonRootSupport", buf, sizeof(buf));
-    if( buf != NULL )  {
-        if (strncmp(buf, "true", strlen("true")) == 0) {
-            init_capability();
-            drop_root_caps(&appcaps);
-            update_process_caps(&appcaps);
-            read_capability(&appcaps);
-        }
+    bool blocklist_ret = false;
+    blocklist_ret = isBlocklisted();
+    if(blocklist_ret)
+    {
+        CcspTraceInfo(("NonRoot feature is disabled\n"));
+    }
+    else
+    {
+        CcspTraceInfo(("NonRoot feature is enabled, dropping root privileges for RdkWanManager Process\n"));
+        init_capability();
+        drop_root_caps(&appcaps);
+        update_process_caps(&appcaps);
+        read_capability(&appcaps);
     }
 
     for (idx = 1; idx < argc; idx++)
