@@ -1192,10 +1192,11 @@ void WanMgr_WanRemoteIfaceConfigure_thread(void *arg)
     if (pWanDmlIfaceData != NULL)
     {
         DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
-        if (pDeviceChangeEvent->available != true) 
+        if (pDeviceChangeEvent->available != true)
         {
             CcspTraceInfo(("%s %d: Remote device is not available. so setting interface:%d to Wan.Enable = FALSE\n", __FUNCTION__, __LINE__, cpeInterfaceIndex));
             pWanDmlIface->Wan.Enable = FALSE;
+            pWanDmlIface->Phy.Status = WAN_IFACE_PHY_STATUS_DOWN;
 
             free(pDeviceChangeEvent);
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
