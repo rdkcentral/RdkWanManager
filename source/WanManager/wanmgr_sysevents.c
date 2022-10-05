@@ -422,6 +422,8 @@ static int set_default_conf_entry()
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_TOPOLOGY_MODE, "1", 0);
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_MULTINET_INSTANCES, LAN_BRIDGE_NAME, 0);
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_MULTINET_NAME, LAN_BRIDGE_NAME, 0);
+    // By default unset dhcpv4 time offset. If dhcpv4 time offset is used, it will be set by function "wanmgr_sysevents_ipv4Info_set"
+    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_DHCPV4_TIME_OFFSET, UNSET, 0);
     syscfg_set(NULL, SYSEVENT_LAN_PD_INTERFACES, LAN_BRIDGE_NAME); // sets the lan interface for prefix deligation
     syscfg_set(NULL, SYSCFG_ETH_WAN_ENABLED, "false"); // to handle Factory reset case
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_ETHWAN_INITIALIZED, "0", 0);
