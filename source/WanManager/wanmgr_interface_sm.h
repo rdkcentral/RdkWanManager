@@ -88,6 +88,7 @@ typedef struct WanMgr_IfaceSM_Ctrl_st
     DML_WAN_IFACE*          pIfaceData;
     eWanState_t            eCurrentState; 
     DEVICE_NETWORKING_MODE         DeviceNwMode;
+    BOOL                           DeviceNwModeChanged;     // Set if DeviceNwMode is changed and config needs to be applied
 } WanMgr_IfaceSM_Controller_t;
 
 

@@ -553,6 +553,11 @@ static void WanMgr_Rbus_EventReceiveHandler(rbusHandle_t handle, rbusEvent_t con
         {
             DML_WANMGR_CONFIG* pWanDmlData = &(pWanConfigData->data);
 
+            if (pWanDmlData->DeviceNwMode != newValue)
+            {
+                CcspTraceInfo(("%s %d: DeviceNetworkMode changed identified\n", __FUNCTION__, __LINE__));
+                pWanDmlData->DeviceNwModeChanged = TRUE;
+            }
             if (newValue == 1)
             {
                 pWanDmlData->DeviceNwMode = MODEM_MODE;

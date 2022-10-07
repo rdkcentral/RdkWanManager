@@ -1330,18 +1330,53 @@ int WanManager_GetBCastFromIpSubnetMask(const char* inIpStr, const char* inSubne
    return ret;
 }
 
-int WanManager_DelDefaultGatewayRoute(DEVICE_NETWORKING_MODE DeviceNwMode, const WANMGR_IPV4_DATA* pIpv4Info)
+int WanManager_DelDefaultGatewayRoute(DEVICE_NETWORKING_MODE DeviceNwMode, BOOL DeviceNwModeChange, const WANMGR_IPV4_DATA* pIpv4Info)
 {
     char cmd[BUFLEN_128]={0};
     int ret = RETURN_OK;
+    DEVICE_NETWORKING_MODE ModeConfigToDelete;
 
-    if (DeviceNwMode == GATEWAY_MODE)
+
+    if (DeviceNwModeChange == TRUE)
     {
-        CcspTraceInfo(("%s %d: Device in Gateway Mode. So configure default route in main routing table\n", __FUNCTION__, __LINE__));
+        if (DeviceNwMode == GATEWAY_MODE)
+        {
+            // DeviceNwMode changed from MODEM_MODE to GATEWAY_MODE
+            CcspTraceInfo(("%s %d: DeviceNwMode changed from MODEM_MODE->GATEWAY_MODE. So deleting MODEM_MODE def routes\n", __FUNCTION__, __LINE__));
+            ModeConfigToDelete = MODEM_MODE;
+        }
+        else
+        {
+            // DeviceNwMode changed from GATEWAY_MODE to MODEM_MODE
+            CcspTraceInfo(("%s %d: DeviceNwMode changed from GATEWAY_MODE->MODEM_MODE. So deleting GATEWAY_MODE def route\n", __FUNCTION__, __LINE__));
+            ModeConfigToDelete = GATEWAY_MODE;
+        }
+    }
+    else
+    {
+        // No change is DeviceNwMode, so delete config for current DeviceNwMode
+        ModeConfigToDelete =  DeviceNwMode;
+    }
+
+
+    if (ModeConfigToDelete == GATEWAY_MODE)
+    {
         /* delete default gateway first before add  */
         snprintf(cmd, sizeof(cmd), "route del default 2>/dev/null");
         WanManager_DoSystemAction("SetUpDefaultSystemGateway:", cmd);
     }
+    else
+    {
+        snprintf(cmd, sizeof(cmd), "ip rule flush table %s", MODEM_TABLE_NAME);
+        WanManager_DoSystemAction("SetUpDefaultSystemGateway:", cmd);
+
+        memset (cmd, 0 , sizeof(cmd));
+        snprintf(cmd, sizeof(cmd), "ip ro flush table %s", MODEM_TABLE_NAME);
+        WanManager_DoSystemAction("SetUpDefaultSystemGateway:", cmd);
+
+        WanManager_DoSystemAction("SetUpDefaultSystemGateway:", "ip route flush cache");
+    }
+
     return ret;
 }
 
@@ -1365,16 +1400,6 @@ int WanManager_AddDefaultGatewayRoute(DEVICE_NETWORKING_MODE DeviceNwMode, const
     else if (DeviceNwMode == MODEM_MODE)   
     {
         CcspTraceInfo(("%s %d: Device in MODEM Mode. So configure default route in user defined MODEM routing table\n", __FUNCTION__, __LINE__));
-        FILE * fp = NULL;
-        if((fp = fopen(ROUTE_TABLE_FILE, "a")) == NULL)
-        {
-            CcspTraceError(("%s %d - Open %s error!\n", __FUNCTION__, __LINE__, ROUTE_TABLE_FILE));
-            return RETURN_ERR;
-        }
-
-        // add new routing table 
-        fprintf(fp, "200 %s\n", MODEM_TABLE_NAME);
-        fclose (fp);
 
         // add rule for packets from brWan to lookup MODEM table
         memset (cmd, 0, sizeof(cmd));

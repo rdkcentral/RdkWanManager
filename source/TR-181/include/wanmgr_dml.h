@@ -398,10 +398,11 @@ typedef struct _DML_WANMGR_CONFIG_
 {
     BOOLEAN Enable;
     DML_WAN_POLICY Policy;
+    BOOLEAN PolicyChanged;
     DEVICE_NETWORKING_MODE DeviceNwMode;
+    BOOLEAN DeviceNwModeChanged;    // Set if DeviceNwMode is changed and config needs to be applied
     BOOLEAN ResetActiveInterface;
     BOOLEAN AllowRemoteInterfaces;
-    BOOLEAN PolicyChanged;
     CHAR    InterfaceAvailableStatus[BUFLEN_64];
     CHAR    InterfaceActiveStatus[BUFLEN_64];
     CHAR    CurrentActiveInterface[BUFLEN_64];

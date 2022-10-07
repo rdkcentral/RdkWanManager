@@ -895,7 +895,7 @@ static int wan_tearDownIPv4(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
         ret = RETURN_ERR;
     }
 
-    if (WanManager_DelDefaultGatewayRoute(DeviceNwMode, &pInterface->IP.Ipv4Data) != RETURN_OK)
+    if (WanManager_DelDefaultGatewayRoute(DeviceNwMode, pWanIfaceCtrl->DeviceNwModeChanged, &pInterface->IP.Ipv4Data) != RETURN_OK)
     {
         CcspTraceError(("%s %d - Failed to Del default system gateway", __FUNCTION__, __LINE__));
         ret = RETURN_ERR;
@@ -2337,7 +2337,7 @@ static eWanState_t wan_state_ipv4_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
     {
         return wan_transition_ipv4_down(pWanIfaceCtrl);
     }
-    else if (pInterface->SelectionStatus != WAN_IFACE_ACTIVE)
+    else if ((pInterface->SelectionStatus != WAN_IFACE_ACTIVE) || (pWanIfaceCtrl->DeviceNwModeChanged == TRUE))
     {
         return wan_transition_standby_deconfig_ips(pWanIfaceCtrl);
     }
@@ -2478,7 +2478,7 @@ static eWanState_t wan_state_ipv6_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
     {
         return wan_transition_ipv6_down(pWanIfaceCtrl);
     }
-    else if (pInterface->SelectionStatus != WAN_IFACE_ACTIVE)
+    else if ((pInterface->SelectionStatus != WAN_IFACE_ACTIVE)  || (pWanIfaceCtrl->DeviceNwModeChanged == TRUE))
     {
         return wan_transition_standby_deconfig_ips(pWanIfaceCtrl);
     }
@@ -2643,7 +2643,7 @@ static eWanState_t wan_state_dual_stack_active(WanMgr_IfaceSM_Controller_t* pWan
         /* TODO: Add IPoE Health Check failed for IPv4 here */
         return wan_transition_ipv4_down(pWanIfaceCtrl);
     }
-    else if (pInterface->SelectionStatus != WAN_IFACE_ACTIVE)
+    else if ((pInterface->SelectionStatus != WAN_IFACE_ACTIVE) || (pWanIfaceCtrl->DeviceNwModeChanged == TRUE))
     {
         return wan_transition_standby_deconfig_ips(pWanIfaceCtrl);
     }
@@ -3096,6 +3096,8 @@ static void* WanMgr_InterfaceSMThread( void *arg )
         {
             pWanIfaceCtrl->WanEnable = pWanConfigData->data.Enable;
             pWanIfaceCtrl->DeviceNwMode = pWanConfigData->data.DeviceNwMode;
+            pWanIfaceCtrl->DeviceNwModeChanged = pWanConfigData->data.DeviceNwModeChanged;
+            pWanConfigData->data.DeviceNwModeChanged = FALSE;   // setting DeviceNwMode to FALSE, pWanIfaceCtrl->DeviceNwModeChanged will handle the current value
             WanMgrDml_GetConfigData_release(pWanConfigData);
         }
 
