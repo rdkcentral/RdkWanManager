@@ -422,7 +422,7 @@ int util_collectProcess(int pid, int timeout)
       {
          if (errno == ECHILD)
          {
-            CcspTraceInfo(("Could not collect child pid %d, possibly stolen by SIGCHLD handler?", requestedPid));
+            CcspTraceError(("Could not collect child pid %d, possibly stolen by SIGCHLD handler?", requestedPid));
             ret = RETURN_ERROR;
          }
          else
@@ -581,7 +581,7 @@ int GetPathToApp(const char *name, char *buf, uint32_t len)
         }
     }
 
-    CcspTraceInfo(("not found==>%s \n", name));
+    CcspTraceError(("not found==>%s \n", name));
     return RETURN_ERROR;
 }
 
@@ -595,7 +595,7 @@ void WanManager_DoSystemAction(const char *from, char *cmd)
 {
     if (RETURN_OK != WanManager_DoSystemActionWithStatus(from, cmd))
     {
-        CcspTraceInfo(("WanManager_DoSystemActionWithStatus Failed!!!\n"));
+        CcspTraceError(("WanManager_DoSystemActionWithStatus Failed!!!\n"));
     }
 }
 
@@ -631,7 +631,7 @@ static int LaunchApp(const char *appName, const char *cmdLineArgs)
     }
     else
     {
-        CcspTraceError(("%s launched, pid %d\n", appName, pid));
+        CcspTraceInfo(("%s launched, pid %d\n", appName, pid));
     }
     return pid;
 }
@@ -856,7 +856,7 @@ int util_getZombiePidByName (char * name)
 {
     if (name == NULL)
     {
-        CcspTraceInfo(("%s %d: Invalid args\n", __FUNCTION__, __LINE__));
+        CcspTraceError(("%s %d: Invalid args\n", __FUNCTION__, __LINE__));
         return 0;
     }
 
@@ -872,7 +872,7 @@ int util_getZombiePidByName (char * name)
 
     if (NULL == (dir = opendir("/proc")))
     {
-        CcspTraceInfo(("%s %d:could not open /proc\n", __FUNCTION__, __LINE__));
+        CcspTraceError(("%s %d:could not open /proc\n", __FUNCTION__, __LINE__));
         return 0;
     }
 
@@ -884,7 +884,7 @@ int util_getZombiePidByName (char * name)
             snprintf(filename, sizeof(filename), "/proc/%d/stat", pid);
             if ((fp = fopen(filename, "r")) == NULL)
             {
-                CcspTraceInfo(("%s %d:could not open %s\n", __FUNCTION__, __LINE__, filename));
+                CcspTraceError(("%s %d:could not open %s\n", __FUNCTION__, __LINE__, filename));
             }
             else
             {

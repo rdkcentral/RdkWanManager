@@ -424,7 +424,7 @@ static ANSC_STATUS WanMgr_Send_InterfaceRefresh(DML_WAN_IFACE* pInterface)
         iErrorCode = pthread_create( &refreshThreadId, NULL, &WanMgr_RdkBus_WanIfRefreshThread, (void*)pWanIface4Thread );
         if( 0 != iErrorCode )
         {
-         CcspTraceInfo(("%s %d - Failed to start WAN refresh thread EC:%d\n", __FUNCTION__, __LINE__, iErrorCode ));
+         CcspTraceError(("%s %d - Failed to start WAN refresh thread EC:%d\n", __FUNCTION__, __LINE__, iErrorCode ));
          return ANSC_STATUS_FAILURE;
         }
     }
@@ -574,7 +574,7 @@ int wan_updateDNS(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl, BOOL addIPv4, BOOL
     }
     else
     {
-        CcspTraceInfo(("%s %d - No valid nameserver is available, adding loopback address for nameserver\n", __FUNCTION__,__LINE__));
+        CcspTraceError(("%s %d - No valid nameserver is available, adding loopback address for nameserver\n", __FUNCTION__,__LINE__));
         if (fp != NULL)
         {
             fprintf(fp, "nameserver %s \n", LOOPBACK);
@@ -623,7 +623,7 @@ static int checkIpv6LanAddressIsReadyToUse()
     }//getifaddr close
 
     if(address_flag == 0) {
-        CcspTraceInfo(("%s %d address_flag Failed\n", __FUNCTION__, __LINE__));
+        CcspTraceError(("%s %d address_flag Failed\n", __FUNCTION__, __LINE__));
         return -1;
     }
     /* Check Duplicate Address Detection (DAD) status. The way it works is that
@@ -669,7 +669,7 @@ static int checkIpv6LanAddressIsReadyToUse()
     }
 
     if(dad_flag == 0 || route_flag == 0) {
-        CcspTraceInfo(("%s %d dad_flag[%d] route_flag[%d] Failed \n", __FUNCTION__, __LINE__,dad_flag,route_flag));
+        CcspTraceError(("%s %d dad_flag[%d] route_flag[%d] Failed \n", __FUNCTION__, __LINE__,dad_flag,route_flag));
         return -1;
     }
 
@@ -793,12 +793,12 @@ static int wan_setUpIPv4(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
     /** configure DNS */
     if (RETURN_OK != wan_updateDNS(pWanIfaceCtrl, TRUE, (pInterface->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_UP)))
     {
-        CcspTraceInfo(("%s %d - Failed to configure IPv4 DNS servers \n", __FUNCTION__, __LINE__));
+        CcspTraceError(("%s %d - Failed to configure IPv4 DNS servers \n", __FUNCTION__, __LINE__));
         ret = RETURN_ERR;
     }
     else
     {
-    CcspTraceInfo(("%s %d -  IPv4 DNS servers configures successfully \n", __FUNCTION__, __LINE__));
+        CcspTraceInfo(("%s %d -  IPv4 DNS servers configures successfully \n", __FUNCTION__, __LINE__));
     }
 
         /** Set default gatway. */
@@ -1158,7 +1158,7 @@ static eWanState_t wan_transition_start(WanMgr_IfaceSM_Controller_t* pWanIfaceCt
         pInterface->Wan.LinkStatus = WAN_IFACE_LINKSTATUS_CONFIGURING;
         if (WanMgr_RdkBus_updateInterfaceUpstreamFlag(pInterface->Phy.Path, TRUE) != ANSC_STATUS_SUCCESS)
         {
-            CcspTraceInfo(("%s - Failed to set Upstream data model, exiting interface state machine\n", __FUNCTION__));
+            CcspTraceError(("%s - Failed to set Upstream data model, exiting interface state machine\n", __FUNCTION__));
             return WAN_STATE_EXIT;
         }
         //Update Link status if wanmanager restarted.
@@ -1319,7 +1319,7 @@ static eWanState_t wan_transition_wan_validated(WanMgr_IfaceSM_Controller_t* pWa
             if (IhcPid > 0)
             {
                 pWanIfaceCtrl->IhcPid = IhcPid;
-                CcspTraceError(("%s %d - Starting IPoE Health Check pid - %u for interface %s \n", __FUNCTION__, __LINE__, pWanIfaceCtrl->IhcPid, pInterface->Wan.Name));
+                CcspTraceInfo(("%s %d - Starting IPoE Health Check pid - %u for interface %s \n", __FUNCTION__, __LINE__, pWanIfaceCtrl->IhcPid, pInterface->Wan.Name));
             }
             else
             {
@@ -1537,7 +1537,7 @@ static eWanState_t wan_transition_ipv4_down(WanMgr_IfaceSM_Controller_t* pWanIfa
         // start DHCPv4 client if it is not running, MAP-T not configured and PPP Disable scenario.
         if ((WanManager_IsApplicationRunning(DHCPV4_CLIENT_NAME) != TRUE) && (pInterface->PPP.Enable == FALSE) &&
             (!(pInterface->Wan.EnableMAPT == TRUE && (pInterface->SelectionStatus == WAN_IFACE_ACTIVE) && 
-	      (pInterface->MAP.MaptStatus == WAN_IFACE_MAPT_STATE_UP))))
+            (pInterface->MAP.MaptStatus == WAN_IFACE_MAPT_STATE_UP))))
         {
             pInterface->IP.Dhcp4cPid = WanManager_StartDhcpv4Client(pInterface->Wan.Name);
             CcspTraceInfo(("%s %d - SELFHEAL - Started dhcpc on interface %s, dhcpv4_pid %d \n", __FUNCTION__, __LINE__, pInterface->Wan.Name, pInterface->IP.Dhcp4cPid));
@@ -2185,7 +2185,7 @@ static eWanState_t wan_state_obtaining_ip_addresses(WanMgr_IfaceSM_Controller_t*
             {
                 wanmgr_Ipv6Toggle();
             }
-	}
+        }
         else
         {
             return wan_transition_standby(pWanIfaceCtrl);
@@ -2242,7 +2242,7 @@ static eWanState_t wan_state_standby(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
                 if (setUpLanPrefixIPv6(pInterface) == RETURN_OK)
                 {
                     BridgeWait = TRUE;
-                    CcspTraceError((" %s %d - configure IPv6 prefix \n", __FUNCTION__, __LINE__));
+                    CcspTraceInfo((" %s %d - configure IPv6 prefix \n", __FUNCTION__, __LINE__));
                 }
             }
             if (checkIpv6AddressAssignedToBridge() == RETURN_OK)
@@ -2250,7 +2250,7 @@ static eWanState_t wan_state_standby(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
                 BridgeWait = FALSE;
                 ret = wan_transition_ipv6_up(pWanIfaceCtrl);
                 pInterface->IP.Ipv6Changed = FALSE;
-                CcspTraceError((" %s %d - IPv6 Address Assigned to Bridge Yet.\n", __FUNCTION__, __LINE__));
+                CcspTraceInfo((" %s %d - IPv6 Address Assigned to Bridge Yet.\n", __FUNCTION__, __LINE__));
             }
             else
             {
@@ -2304,7 +2304,8 @@ static eWanState_t wan_state_ipv4_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
             if (IhcPid > 0)
             {
                 pWanIfaceCtrl->IhcPid = IhcPid;
-                CcspTraceError(("%s %d - Starting IPoE Health Check pid - %u for interface %s \n", __FUNCTION__, __LINE__, pWanIfaceCtrl->IhcPid, pInterface->Wan.Name));
+                CcspTraceInfo(("%s %d - Starting IPoE Health Check pid - %u for interface %s \n", 
+                                __FUNCTION__, __LINE__, pWanIfaceCtrl->IhcPid, pInterface->Wan.Name));
             }
             else
             {
@@ -2445,7 +2446,8 @@ static eWanState_t wan_state_ipv6_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
             if (IhcPid > 0)
             {
                 pWanIfaceCtrl->IhcPid = IhcPid;
-                CcspTraceError(("%s %d - Starting IPoE Health Check pid - %u for interface %s \n", __FUNCTION__, __LINE__, pWanIfaceCtrl->IhcPid, pInterface->Wan.Name));
+                CcspTraceInfo(("%s %d - Starting IPoE Health Check pid - %u for interface %s \n", 
+                                __FUNCTION__, __LINE__, pWanIfaceCtrl->IhcPid, pInterface->Wan.Name));
             }
             else
             {
@@ -2596,7 +2598,8 @@ static eWanState_t wan_state_dual_stack_active(WanMgr_IfaceSM_Controller_t* pWan
             if (IhcPid > 0)
             {
                 pWanIfaceCtrl->IhcPid = IhcPid;
-                CcspTraceError(("%s %d - Starting IPoE Health Check pid - %u for interface %s \n", __FUNCTION__, __LINE__, pWanIfaceCtrl->IhcPid, pInterface->Wan.Name));
+                CcspTraceInfo(("%s %d - Starting IPoE Health Check pid - %u for interface %s \n", 
+                                __FUNCTION__, __LINE__, pWanIfaceCtrl->IhcPid, pInterface->Wan.Name));
             }
             else
             {
@@ -2995,7 +2998,7 @@ ANSC_STATUS WanMgr_InterfaceSMThread_Finalise(void)
     retStatus = WanMgr_CloseIpcServer();
     if(retStatus != ANSC_STATUS_SUCCESS)
     {
-        CcspTraceInfo(("%s %d - IPC Thread failed to start!\n", __FUNCTION__, __LINE__ ));
+        CcspTraceError(("%s %d - IPC Thread failed to start!\n", __FUNCTION__, __LINE__ ));
     }
 
     return retStatus;
@@ -3226,7 +3229,7 @@ int WanMgr_StartInterfaceStateMachine(WanMgr_IfaceSM_Controller_t *wanIf)
 
     if( 0 != iErrorCode )
     {
-        CcspTraceInfo(("%s %d - Failed to start WanManager State Machine Thread EC:%d\n", __FUNCTION__, __LINE__, iErrorCode ));
+        CcspTraceError(("%s %d - Failed to start WanManager State Machine Thread EC:%d\n", __FUNCTION__, __LINE__, iErrorCode ));
     }
     else
     {

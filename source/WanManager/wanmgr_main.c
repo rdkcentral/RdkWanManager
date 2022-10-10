@@ -416,6 +416,9 @@ int main(int argc, char* argv[])
 #endif //_HUB4_PRODUCT_REQ_
 #endif
 #endif //#if defined (FEATURE_RDKB_WAN_MANAGER)
+
+    WanMgrDmlWanWebConfigInit();
+
     if ( bRunAsDaemon )
     {
         //MAIN THREAD

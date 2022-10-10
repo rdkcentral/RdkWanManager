@@ -151,7 +151,7 @@ rbusError_t wanMgrDmlPublishEventHandler(rbusHandle_t handle, rbusEventSubAction
 
     if(eventName == NULL)
     {
-        CcspTraceInfo(("%s %d - Property get name is NULL\n", __FUNCTION__, __LINE__));
+        CcspTraceError(("%s %d - Property get name is NULL\n", __FUNCTION__, __LINE__));
         return RBUS_ERROR_BUS_ERROR;
     }
 
@@ -273,7 +273,7 @@ rbusError_t WanMgr_Interface_GetHandler(rbusHandle_t handle, rbusProperty_t prop
 
     if(name == NULL)
     {
-        CcspTraceInfo(("%s %d - Property get name is NULL\n", __FUNCTION__, __LINE__));
+        CcspTraceError(("%s %d - Property get name is NULL\n", __FUNCTION__, __LINE__));
         return RBUS_ERROR_BUS_ERROR;
     }
 
@@ -352,7 +352,7 @@ rbusError_t WanMgr_Interface_SetHandler(rbusHandle_t handle, rbusProperty_t prop
 
     if(name == NULL)
     {
-        CcspTraceInfo(("%s %d - Property get name is NULL\n", __FUNCTION__, __LINE__));
+        CcspTraceError(("%s %d - Property get name is NULL\n", __FUNCTION__, __LINE__));
         return RBUS_ERROR_BUS_ERROR;
     }
 
@@ -518,7 +518,7 @@ ANSC_STATUS WanMgr_Rbus_getUintParamValue (char * param, UINT * value)
 
     if (rbus_getUint(rbusHandle, param, value) != RBUS_ERROR_SUCCESS)
     {
-        CcspTraceError(("%s %d: unbale to get value of param %s\n", __FUNCTION__, __LINE__, param));
+        CcspTraceError(("%s %d: unable to get value of param %s\n", __FUNCTION__, __LINE__, param));
         return ANSC_STATUS_FAILURE;
     }
 
@@ -591,7 +591,7 @@ static void WanMgr_Rbus_EventReceiveHandler(rbusHandle_t handle, rbusEvent_t con
 
         if(remoteMac == NULL  )
         {
-            CcspTraceInfo(("%s %d - Memory allocation failed \n", __FUNCTION__, __LINE__));
+            CcspTraceError(("%s %d - Memory allocation failed \n", __FUNCTION__, __LINE__));
             return;
         }
         char *Mac = rbusValue_GetString(value, NULL);
@@ -601,7 +601,7 @@ static void WanMgr_Rbus_EventReceiveHandler(rbusHandle_t handle, rbusEvent_t con
             CcspTraceInfo(("%s %d - from source MAC %s\n", __FUNCTION__, __LINE__, remoteMac));
         }else
         {
-            CcspTraceInfo(("%s %d - Mac_addr get failed \n", __FUNCTION__, __LINE__));
+            CcspTraceError(("%s %d - Mac_addr get failed \n", __FUNCTION__, __LINE__));
             if(remoteMac != NULL)
             {
                 free(remoteMac);
@@ -691,7 +691,7 @@ static void WanMgr_Rbus_EventReceiveHandler(rbusHandle_t handle, rbusEvent_t con
         }
         else
         {
-            CcspTraceInfo(("%s %d - Remote Interface Not found \n", __FUNCTION__, __LINE__));
+            CcspTraceError(("%s %d - Remote Interface Not found \n", __FUNCTION__, __LINE__));
         }
     }
     else
@@ -882,7 +882,7 @@ ANSC_STATUS WanMgr_IDM_Invoke(idm_invoke_method_Params_t *IDM_request)
         return ANSC_STATUS_SUCCESS;
     }else
     {
-        CcspTraceInfo(("%s %d -consumer: rbusMethod_Invoke(Device.X_RDK_Remote.Invoke()) success\n",__FUNCTION__, __LINE__));
+        CcspTraceError(("%s %d -consumer: rbusMethod_Invoke(Device.X_RDK_Remote.Invoke()) failed\n",__FUNCTION__, __LINE__));
         return ANSC_STATUS_FAILURE;
     }
 }
@@ -1013,7 +1013,7 @@ ANSC_STATUS WanMgr_Rbus_EventPublishHandler(char *dm_event, void *dm_value, rbus
             CcspTraceInfo(("%s %d - dm_value[%s]\n", __FUNCTION__, __LINE__, dm_value));
             break;
         default:
-            CcspTraceInfo(("%s %d - Cannot identify valueType %d\n", __FUNCTION__, __LINE__, valueType));
+            CcspTraceError(("%s %d - Cannot identify valueType %d\n", __FUNCTION__, __LINE__, valueType));
             return ANSC_STATUS_FAILURE;
     }
 
@@ -1021,7 +1021,7 @@ ANSC_STATUS WanMgr_Rbus_EventPublishHandler(char *dm_event, void *dm_value, rbus
     event.data = rdata;
     event.type = RBUS_EVENT_GENERAL;
     if(rbusEvent_Publish(rbusHandle, &event) != RBUS_ERROR_SUCCESS) {
-        CcspTraceInfo(("%s %d - event pusblishing failed for type %d\n", __FUNCTION__, __LINE__, valueType));
+        CcspTraceError(("%s %d - event pusblishing failed for type %d\n", __FUNCTION__, __LINE__, valueType));
         return ANSC_STATUS_FAILURE;
     }
     CcspTraceInfo(("%s %d - Successfully Pusblished event for event %s \n", __FUNCTION__, __LINE__, dm_event));
@@ -1042,7 +1042,7 @@ ANSC_STATUS WanMgr_Rbus_String_EventPublish_OnValueChange(char *dm_event, void *
 
     if(dm_event == NULL || dm_value == NULL)
     {
-        CcspTraceInfo(("%s %d - Failed publishing\n", __FUNCTION__, __LINE__));
+        CcspTraceError(("%s %d - Failed publishing\n", __FUNCTION__, __LINE__));
         return rc;
     }
 
@@ -1068,11 +1068,11 @@ ANSC_STATUS WanMgr_Rbus_String_EventPublish_OnValueChange(char *dm_event, void *
 
     if(rbusEvent_Publish(rbusHandle, &event) != RBUS_ERROR_SUCCESS)
     {
-        CcspTraceInfo(("%s %d - event publishing failed for type\n", __FUNCTION__, __LINE__));
+        CcspTraceWarning(("%s %d - Event [%s] published failed\n", __FUNCTION__, __LINE__));
     }
     else
     {
-        CcspTraceInfo(("%s %d - Successfully Published event for event %s \n", __FUNCTION__, __LINE__, dm_event));
+        CcspTraceInfo(("%s %d - Event [%s] published successfully\n", __FUNCTION__, __LINE__, dm_event));
         rc = ANSC_STATUS_SUCCESS;
     }
 
@@ -1144,7 +1144,7 @@ ANSC_STATUS WanMgr_WanRemoteIfaceConfigure(WanMgr_DeviceChangeEvent * pDeviceCha
 {
     if (pDeviceChangeEvent == NULL)
     {
-        CcspTraceInfo(("%s %d:Invalid args..\n", __FUNCTION__, __LINE__));
+        CcspTraceError(("%s %d:Invalid args..\n", __FUNCTION__, __LINE__));
         return ANSC_STATUS_FAILURE;
     }
 
@@ -1154,7 +1154,7 @@ ANSC_STATUS WanMgr_WanRemoteIfaceConfigure(WanMgr_DeviceChangeEvent * pDeviceCha
     iErrorCode = pthread_create( &threadId, NULL, &WanMgr_WanRemoteIfaceConfigure_thread, pDeviceChangeEvent);
     if( 0 != iErrorCode )
     {
-        CcspTraceInfo(("%s %d - Failed to start WanMgr_WanRemoteIfaceConfigure_thread EC:%d\n", __FUNCTION__, __LINE__, iErrorCode ));
+        CcspTraceError(("%s %d - Failed to start WanMgr_WanRemoteIfaceConfigure_thread EC:%d\n", __FUNCTION__, __LINE__, iErrorCode ));
         if(pDeviceChangeEvent != NULL)
         {
             free(pDeviceChangeEvent);
@@ -1188,7 +1188,7 @@ void WanMgr_WanRemoteIfaceConfigure_thread(void *arg)
         if (pDeviceChangeEvent->available != true)
         {
             // No need to add new remote device if its not available
-            CcspTraceInfo(("%s %d - Remote device not conencted. So no need to add it in Interface table.\n", __FUNCTION__, __LINE__));
+            CcspTraceError(("%s %d - Remote device not connected. So no need to add it in Interface table.\n", __FUNCTION__, __LINE__));
             free(pDeviceChangeEvent);
             return ANSC_STATUS_FAILURE;
         }
@@ -1196,22 +1196,24 @@ void WanMgr_WanRemoteIfaceConfigure_thread(void *arg)
         // Initialise remote CPE's wan interface with default
         if (WanMgr_Remote_IfaceData_configure(pDeviceChangeEvent->mac_addr, &newInterfaceIndex) != ANSC_STATUS_SUCCESS)
         {
-            CcspTraceInfo(("%s %d - Failed to configure remote Wan Interface Entry.\n", __FUNCTION__, __LINE__));
+            CcspTraceError(("%s %d - Failed to configure remote Wan Interface Entry.\n", __FUNCTION__, __LINE__));
             free(pDeviceChangeEvent);
             return ANSC_STATUS_FAILURE;
         }
 
         WanMgr_GetIfaceAliasNameByIndex(newInterfaceIndex,AliasName);
-        CcspTraceError(("%s %d - Iterface(%d) AliasName[%s]\n", __FUNCTION__, __LINE__, newInterfaceIndex, AliasName));
+        CcspTraceInfo(("%s %d - Iterface(%d) AliasName[%s]\n", __FUNCTION__, __LINE__, newInterfaceIndex, AliasName));
 
         rc = rbusTable_registerRow(rbusHandle, WANMGR_INFACE_TABLE, (newInterfaceIndex+1), AliasName);
         if(rc != RBUS_ERROR_SUCCESS)
         {
-            CcspTraceError(("%s %d - Iterface(%d) Table (%s) UnRegistartion failed, Error=%d \n", __FUNCTION__, __LINE__, (newInterfaceIndex+1), WANMGR_INFACE_TABLE, rc));
+            CcspTraceError(("%s %d - Iterface(%d) Table (%s) UnRegistartion failed, Error=%d \n", 
+                            __FUNCTION__, __LINE__, (newInterfaceIndex+1), WANMGR_INFACE_TABLE, rc));
             free(pDeviceChangeEvent);
             return rc;
         }
-        CcspTraceInfo(("%s %d - Iterface(%d) Table (%s) Registartion Successfully AliasName[%s]\n", __FUNCTION__, __LINE__, (newInterfaceIndex+1), WANMGR_INFACE_TABLE,AliasName));
+        CcspTraceInfo(("%s %d - Iterface(%d) Table (%s) Registartion Successfully AliasName[%s]\n", 
+                       __FUNCTION__, __LINE__, (newInterfaceIndex+1), WANMGR_INFACE_TABLE,AliasName));
 
         cpeInterfaceIndex = newInterfaceIndex;
     }
@@ -1222,7 +1224,8 @@ void WanMgr_WanRemoteIfaceConfigure_thread(void *arg)
         DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
         if (pDeviceChangeEvent->available != true)
         {
-            CcspTraceInfo(("%s %d: Remote device is not available. so setting interface:%d to Wan.Enable = FALSE\n", __FUNCTION__, __LINE__, cpeInterfaceIndex));
+            CcspTraceInfo(("%s %d: Remote device is not available. so setting interface:%d to Wan.Enable = FALSE\n", 
+                            __FUNCTION__, __LINE__, cpeInterfaceIndex));
             pWanDmlIface->Wan.Enable = FALSE;
             pWanDmlIface->Phy.Status = WAN_IFACE_PHY_STATUS_DOWN;
 
@@ -1300,7 +1303,7 @@ static void CPEInterface_AsyncMethodHandler(
         rbusObject_fwrite(params, 1, stdout);
     }else
     {
-        CcspTraceInfo(("%s %d - asyncMethodHandler request failed\n", __FUNCTION__, __LINE__));
+        CcspTraceError(("%s %d - asyncMethodHandler request failed\n", __FUNCTION__, __LINE__));
         return;
     }
 
@@ -1371,7 +1374,7 @@ static void CPEInterface_AsyncMethodHandler(
         }
         else
         {
-            CcspTraceInfo(("%s %d - Remote Interface Not found \n", __FUNCTION__, __LINE__));
+            CcspTraceError(("%s %d - Remote Interface Not found \n", __FUNCTION__, __LINE__));
         }
     }
 }
@@ -1509,7 +1512,7 @@ BOOL WanMgr_Rbus_discover_components(char const *pModuleList)
 
     if(RBUS_ERROR_SUCCESS != rc)
     {
-        CcspTraceInfo(("Failed to discover components. Error Code = %d\n", rc));
+        CcspTraceError(("Failed to discover components. Error Code = %d\n", rc));
         return ret;
     }
 
@@ -1526,7 +1529,7 @@ BOOL WanMgr_Rbus_discover_components(char const *pModuleList)
         ret = TRUE;
     }
 
-    CcspTraceInfo( ("WanMgr_Rbus_discover_components (%d-%d)ret[%s]\n",componentCnt,count,(ret)?"TRUE":"FALSE"));
+    CcspTraceInfo(("WanMgr_Rbus_discover_components (%d-%d)ret[%s]\n",componentCnt,count,(ret)?"TRUE":"FALSE"));
 
     return ret;
 }

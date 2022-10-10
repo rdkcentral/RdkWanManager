@@ -1101,7 +1101,7 @@ DmlCheckAndProceedMarkingOperations
 
              default:
              {
-                 CcspTraceError(("%s Invalid case\n",__FUNCTION__));
+                 CcspTraceWarning(("%s default case\n",__FUNCTION__));
                  return ANSC_STATUS_FAILURE;
              }
         }

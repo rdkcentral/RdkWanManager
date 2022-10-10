@@ -631,7 +631,7 @@ static void *WanManagerSyseventHandler(void *args)
                 }
                 else
                 {
-                    CcspTraceInfo(("%s %d: DeviceNetworkMode syscfg get fail\n", __FUNCTION__, __LINE__));
+                    CcspTraceError(("%s %d: DeviceNetworkMode syscfg get fail\n", __FUNCTION__, __LINE__));
                 }
             }
 #endif /* RDKB_EXTENDER_ENABLED */
@@ -756,7 +756,7 @@ static void *WanManagerSyseventHandler(void *args)
 #endif
             else
             {
-                CcspTraceError(("%s %d undefined event %s:%s \n", __FUNCTION__, __LINE__, name, val));
+                CcspTraceWarning(("%s %d undefined event %s:%s \n", __FUNCTION__, __LINE__, name, val));
             }
         }
     }
@@ -815,7 +815,7 @@ static int CheckV6DefaultRule()
     pclose_ret = v_secure_pclose(fp);
     if(pclose_ret !=0)
     {
-        CcspTraceInfo(("Failed in closing the pipe ret %d \n",pclose_ret));
+        CcspTraceError(("Failed in closing the pipe ret %d \n",pclose_ret));
     }
     return ret;
 }
@@ -880,7 +880,7 @@ static void set_vendor_spec_conf()
     }
     else
     {
-        CcspTraceError(("getVendorClassInfo failed"));
+        CcspTraceError(("getVendorClassInfo failed\n"));
     }
 }
 
@@ -982,7 +982,7 @@ ANSC_STATUS WanMgr_SysEvents_Init(void)
 #endif
     //Init msg status handler
     if(pthread_create(&sysevent_tid, NULL, WanManagerSyseventHandler, NULL) == 0) {
-        CcspTraceError(("%s %d - DmlWanMsgHandler -- pthread_create successfully \n", __FUNCTION__, __LINE__));    
+        CcspTraceInfo(("%s %d - DmlWanMsgHandler -- pthread_create successfully \n", __FUNCTION__, __LINE__));
     }
     else {
         CcspTraceError(("%s %d - DmlWanMsgHandler -- pthread_create failed \n", __FUNCTION__, __LINE__));
