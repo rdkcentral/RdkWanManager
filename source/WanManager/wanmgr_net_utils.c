@@ -884,7 +884,7 @@ int WanManager_ProcessMAPTConfiguration(ipc_mapt_data_t *dhcp6cMAPTMsgBody, cons
         return ret;
     }
 
-    snprintf(cmdInterfaceConfig , sizeof(cmdInterfaceConfig), "echo config %s local.style MAP local.v4 %s/%d local.v6 %s local.ea-len %d local.psid-offset %d remote.v4 0.0.0.0/0 remote.v6 %s remote.style RFC6052 remote.ea-len 0 remote.psid-offset 0 > /proc/net/nat46/control",
+    snprintf(cmdInterfaceConfig , sizeof(cmdInterfaceConfig), "echo config %s local.style MAP local.v4 %s/%d local.v6 %s local.ea-len %d local.psid-offset %d remote.v4 0.0.0.0/0 remote.v6 %s remote.style RFC6052 remote.ea-len 0 remote.psid-offset 0 debug -1 > /proc/net/nat46/control",
     MAP_INTERFACE, dhcp6cMAPTMsgBody->ruleIPv4Prefix, dhcp6cMAPTMsgBody->v4Len, dhcp6cMAPTMsgBody->ruleIPv6Prefix, dhcp6cMAPTMsgBody->eaLen, dhcp6cMAPTMsgBody->psidOffset, dhcp6cMAPTMsgBody->brIPv6Prefix);
     if ((ret = WanManager_DoSystemActionWithStatus("map_nat46", cmdInterfaceConfig)) < RETURN_OK)
     {
