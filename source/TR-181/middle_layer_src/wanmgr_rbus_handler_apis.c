@@ -700,11 +700,9 @@ void WanMgr_Rbus_UpdateLocalWanDb(void)
     UINT ret = 0;
 
     // get DeviceNetworking Mode
-    if (WanMgr_Rbus_getUintParamValue(WANMGR_DEVICE_NETWORKING_MODE, &ret) != ANSC_STATUS_SUCCESS)
-    {
-        CcspTraceError(("%s %d: unable to fetch %s\n", __FUNCTION__, __LINE__, WANMGR_DEVICE_NETWORKING_MODE));
-        return;
-    }
+    char dev_type[16] = {0};
+    syscfg_get(NULL, "Device_Mode", dev_type, sizeof(dev_type));
+    ret = atoi(dev_type);
 
     //Update Wan config
     WanMgr_Config_Data_t*   pWanConfigData = WanMgr_GetConfigData_locked();
@@ -731,6 +729,31 @@ void WanMgr_Rbus_SubscribeDML(void)
     if(ret != RBUS_ERROR_SUCCESS)
     {
         CcspTraceError(("%s %d - Failed to Subscribe %s, Error=%s \n", __FUNCTION__, __LINE__, rbusError_ToString(ret), WANMGR_DEVICE_NETWORKING_MODE));
+    }
+    else
+    {
+        // subscription of WANMGR_DEVICE_NETWORKING_MODE is successful, update the value in local DB
+        UINT DeviceNwMode;
+        if (WanMgr_Rbus_getUintParamValue(WANMGR_DEVICE_NETWORKING_MODE, &DeviceNwMode) == ANSC_STATUS_SUCCESS)
+        {
+            WanMgr_Config_Data_t*   pWanConfigData = WanMgr_GetConfigData_locked();
+            if(pWanConfigData != NULL)
+            {
+                if (DeviceNwMode == 1)
+                {
+                    pWanConfigData->data.DeviceNwMode = MODEM_MODE;
+                }
+                else
+                {
+                    pWanConfigData->data.DeviceNwMode = GATEWAY_MODE;
+                }
+                WanMgrDml_GetConfigData_release(pWanConfigData);
+            }
+        }
+        else
+        {
+            CcspTraceError(("%s %d: unable to fetch %s\n", __FUNCTION__, __LINE__, WANMGR_DEVICE_NETWORKING_MODE));
+        } 
     }
 #ifdef FEATURE_RDKB_INTER_DEVICE_MANAGER
     ret = rbusEvent_Subscribe(rbusHandle, X_RDK_REMOTE_DEVICECHANGE, WanMgr_Rbus_EventReceiveHandler, NULL, 60);
