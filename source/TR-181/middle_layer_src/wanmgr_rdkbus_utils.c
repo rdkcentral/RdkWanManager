@@ -1115,3 +1115,25 @@ ANSC_STATUS WanMgr_RdkBus_setDhcpv6DnsServerInfo(void)
     }
     return retStatus;
 }
+#if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
+ANSC_STATUS WanMgr_RdkBus_setWanIpInterfaceData(DML_WAN_IFACE* pWanIfaceData)
+{
+    ANSC_STATUS retStatus = ANSC_STATUS_FAILURE;
+
+    if(pWanIfaceData->PPP.Enable == TRUE)
+    {
+        retStatus = WanMgr_RdkBus_SetParamValues( PAM_COMPONENT_NAME, PAM_DBUS_PATH, "Device.IP.Interface.1.LowerLayers", pWanIfaceData->PPP.Path, ccsp_string, TRUE );
+        CcspTraceInfo(("%s %d - Updating Device.IP.Interface.1.LowerLayers  => %s\n", __FUNCTION__, __LINE__, pWanIfaceData->PPP.Path));
+    }else
+    {
+        INT     iVLANInstance   = -1;
+        CHAR    VlanPath[BUFLEN_264]  = {0};
+        WanMgr_RdkBus_GetInterfaceInstanceInOtherAgent( NOTIFY_TO_VLAN_AGENT, pWanIfaceData->Name, &iVLANInstance );
+        snprintf( VlanPath, sizeof(VlanPath), VLAN_ETHLINK_TABLE_FORMAT, iVLANInstance);
+
+        retStatus = WanMgr_RdkBus_SetParamValues( PAM_COMPONENT_NAME, PAM_DBUS_PATH, "Device.IP.Interface.1.LowerLayers", VlanPath, ccsp_string, TRUE );
+        CcspTraceInfo(("%s %d - Updating Device.IP.Interface.1.LowerLayers  => %s\n", __FUNCTION__, __LINE__,VlanPath));
+    }
+    return retStatus;
+}
+#endif

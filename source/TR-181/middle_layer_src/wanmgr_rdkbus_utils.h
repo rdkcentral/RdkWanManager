@@ -157,4 +157,8 @@ bool WanMgr_RestartUpdatePPPinfo(DML_WAN_IFACE *pWanIfaceData);
 #ifdef FEATURE_RDKB_AUTO_PORT_SWITCH
 void WanMgr_SetPortCapabilityForEthIntf(DML_WAN_POLICY eWanPolicy);
 #endif  //FEATURE_RDKB_AUTO_PORT_SWITCH
+
+#if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
+ANSC_STATUS WanMgr_RdkBus_setWanIpInterfaceData(DML_WAN_IFACE *pWanIfaceData);
+#endif 
 #endif /* _WANMGR_RDKBUS_UTILS_H_ */

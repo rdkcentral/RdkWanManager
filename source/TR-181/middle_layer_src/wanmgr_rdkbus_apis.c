@@ -1558,6 +1558,10 @@ ANSC_STATUS Update_Interface_Status()
                     if(pWanIfaceData->SelectionStatus == WAN_IFACE_ACTIVE)
                     {
                         snprintf(newIface->CurrentActive, sizeof(newIface->CurrentActive), "%s", pWanIfaceData->Wan.Name);
+#if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
+                        /* Update Only for Gateway mode. Wan IP Interface entry not added in PAM for MODEM_MODE */
+                        WanMgr_RdkBus_setWanIpInterfaceData(pWanIfaceData);
+#endif
                     }
                     else if(pWanIfaceData->SelectionStatus == WAN_IFACE_SELECTED)
                     {
