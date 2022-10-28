@@ -287,6 +287,16 @@ typedef struct _WANMGR_IPV4_DATA
     char dnsServer[BUFLEN_64];         /** New dns Server, if addressAssigned==TRUE */
     char dnsServer1[BUFLEN_64];        /** New dns Server, if addressAssigned==TRUE */
     uint32_t mtuSize;                  /** New MTU size, if mtuAssigned==TRUE */
+#if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
+    int32_t timeOffset;                /** New time offset, if addressAssigned==TRUE */
+    bool isTimeOffsetAssigned;         /** Is the time offset assigned ? */
+    char timeZone[BUFLEN_64];          /** New time zone, if addressAssigned==TRUE */
+    uint32_t upstreamCurrRate;         /** Upstream rate */
+    uint32_t downstreamCurrRate;       /** Downstream rate */
+    char dhcpServerId[BUFLEN_64];      /** Dhcp server id */
+    char dhcpState[BUFLEN_64];         /** Dhcp state. */
+    uint32_t leaseTime;                /** Lease time, , if addressAssigned==TRUE */
+#endif
 } WANMGR_IPV4_DATA;
 
 
@@ -302,6 +312,14 @@ typedef struct _WANMGR_IPV6_DATA
    uint32_t prefixPltime;
    uint32_t prefixVltime;
    char sitePrefixOld[BUFLEN_48]; /**< add support for RFC7084 requirement L-13 */
+   #if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
+   /* Params to store the IPv6 IPC message */
+   bool addrAssigned;
+   uint32_t addrCmd;
+   bool prefixAssigned;  /**< Have we been assigned a site prefix ? */
+   uint32_t prefixCmd;
+   bool domainNameAssigned;     /**< Have we been assigned dns server addresses ? */
+   #endif
 } WANMGR_IPV6_DATA;
 
 

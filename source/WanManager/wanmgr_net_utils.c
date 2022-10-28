@@ -344,7 +344,11 @@ int WanManager_Ipv6AddrUtil(char *ifname, Ipv6OperType opr, int preflft, int val
                     CcspTraceError(("failed to run cmd: %s", cmdLine));
 
                 memset(cmdLine, 0, sizeof(cmdLine));
+#if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
+                snprintf(cmdLine, sizeof(cmdLine), "ip -6 route flush match %s ", prefix);
+#else
                 snprintf(cmdLine, sizeof(cmdLine), "ip -6 route flush %s ", prefix);
+#endif
                 if (WanManager_DoSystemActionWithStatus("ip -6 route flush PREFIX ", cmdLine) != 0)
                     CcspTraceError(("failed to run cmd: %s", cmdLine));
 

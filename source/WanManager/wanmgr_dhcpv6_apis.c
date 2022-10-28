@@ -37,9 +37,6 @@ extern token_t sysevent_token;
 extern ANSC_HANDLE bus_handle;
 extern char g_Subsystem[32];
 
-#define IFADDRCONF_ADD 0
-#define IFADDRCONF_REMOVE 1
-
 #ifdef _HUB4_PRODUCT_REQ_
 #include "wanmgr_ipc.h"
 #if defined SUCCESS
@@ -63,6 +60,10 @@ extern char g_Subsystem[32];
 #if defined(MULTILAN_FEATURE)
 #define IPV6_PREF_MAXLEN 128
 #endif
+#endif
+
+#if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
+char PreviousIPv6Address[128] = {0}; //Global varibale to store previous IPv6 address
 #endif
 
 static struct {
@@ -1458,6 +1459,124 @@ WanMgr_DmlDhcpv6Remove(ANSC_HANDLE hContext)
     return;
 }
 
+#if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
+ /* dhcpv6_assign_global_ip Copied from PAM module */
+int dhcpv6_assign_global_ip(char * prefix, char * intfName, char * ipAddr)
+{
+
+    unsigned int    length           = 0;
+    char            globalIP[64]     = {0};
+    char           *pMac             = NULL;
+    unsigned int    i                = 0;
+    unsigned int    j                = 0;
+    unsigned int    k                = 0;
+    char            out[256]         = {0};
+    char            tmp[8]           = {0};
+    FILE *fp = NULL;
+
+     _ansc_strcpy( globalIP, prefix);
+    /* Prepare the first part. */
+
+    i = _ansc_strlen(globalIP);
+
+    while( (globalIP[i-1] != '/') && (i>0) ) i--;
+
+    if ( i == 0 ){
+        CcspTraceError(("error, there is not '/' in prefix:%s\n", prefix));
+        return 1;
+    }
+
+    length = atoi(&globalIP[i]);
+
+    if ( length > 64 ){
+        CcspTraceError(("error, length is bigger than 64. prefix:%s, length:%d\n", prefix, length));
+        return 1;
+    }
+
+    globalIP[i-1] = '\0';
+
+    i = i-1;
+
+    if ( (globalIP[i-1]!=':') && (globalIP[i-2]!=':') ){
+        CcspTraceError(("error, there is not '::' in prefix:%s\n", prefix));
+        return 1;
+    }
+#ifdef _HUB4_PRODUCT_REQ_
+    if(strncmp(intfName, COSA_DML_DHCPV6_SERVER_IFNAME, strlen(intfName)) == 0)
+    {
+        snprintf(ipAddr, 128, "%s1", globalIP);
+        CcspTraceInfo(("the full part is:%s\n", ipAddr));
+        return 0;
+    }
+#endif
+
+    j = i-2;
+    k = 0;
+    while( j>0 ){
+        if ( globalIP[j-1] == ':' )
+            k++;
+        j--;
+    }
+
+    if ( k == 3 )
+    {
+        globalIP[i-1] = '\0';
+        i = i - 1;
+    }
+
+    CcspTraceInfo(("the first part is:%s\n", globalIP));
+
+    /* prepare second part */
+    fp = v_secure_popen("r", "ifconfig %s | grep HWaddr", intfName );
+    _get_shell_output(fp, out, sizeof(out));
+    v_secure_pclose(fp);
+    pMac =_ansc_strstr(out, "HWaddr");
+    if ( pMac == NULL ){
+        CcspTraceError(("error, this interface has not a mac address .\n"));
+        return 1;
+    }
+    pMac += _ansc_strlen("HWaddr");
+    while( pMac && (pMac[0] == ' ') )
+        pMac++;
+
+    /* switch 7bit to 1*/
+    tmp[0] = pMac[1];
+
+    k = strtol(tmp, (char **)NULL, 16);
+
+    k = k ^ 0x2;
+    if ( k < 10 )
+        k += '0';
+    else
+        k += 'A' - 10;
+
+    pMac[1] = k;
+    pMac[17] = '\0';
+
+    //00:50:56: FF:FE:  92:00:22
+    _ansc_strncpy(out, pMac, 9);
+    out[9] = '\0';
+    _ansc_strcat(out, "FF:FE:");
+    _ansc_strcat(out, pMac+9);
+
+    for(k=0,j=0;out[j];j++){
+        if ( out[j] == ':' )
+            continue;
+        globalIP[i++] = out[j];
+        if ( ++k == 4 ){
+           globalIP[i++] = ':';
+           k = 0;
+        }
+    }
+
+    globalIP[i-1] = '\0';
+
+    CcspTraceInfo(("the full part is:%s\n", globalIP));
+    _ansc_strncpy(ipAddr, globalIP, sizeof(globalIP) - 1);
+    /* This IP should be unique. If not I have no idea. */
+    return 0;
+}
+#else
 int dhcpv6_assign_global_ip(char * prefix, char * intfName, char * ipAddr)
 {
     unsigned int    length           = 0;
@@ -1580,6 +1699,7 @@ int dhcpv6_assign_global_ip(char * prefix, char * intfName, char * ipAddr)
     /* This IP should be unique. If not I have no idea. */
     return 0;
 }
+#endif
 
 #define POS_PREFIX_DELEGATION 7
 int CalcIPv6Prefix(char *GlobalPref, char *pref,int index)
@@ -2406,7 +2526,13 @@ static ANSC_STATUS wanmgr_dchpv6_get_ipc_msg_info(WANMGR_IPV6_DATA* pDhcpv6Data,
     pDhcpv6Data->prefixPltime = pIpcIpv6Data->prefixPltime;
     pDhcpv6Data->prefixVltime = pIpcIpv6Data->prefixVltime;
     memcpy(pDhcpv6Data->sitePrefixOld, pIpcIpv6Data->sitePrefixOld, BUFLEN_48);
-
+#if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
+    pDhcpv6Data->addrAssigned = pIpcIpv6Data->addrAssigned;
+    pDhcpv6Data->addrCmd = pIpcIpv6Data->addrCmd;
+    pDhcpv6Data->prefixAssigned = pIpcIpv6Data->prefixAssigned;
+    pDhcpv6Data->prefixCmd = pIpcIpv6Data->prefixCmd;
+    pDhcpv6Data->domainNameAssigned = pIpcIpv6Data->domainNameAssigned;
+#endif
     return ANSC_STATUS_SUCCESS;
 }
 
@@ -2466,6 +2592,9 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_WAN_IFACE* pIfaceData)
         {
             CcspTraceInfo(("assigned IPv6 address \n"));
             connected = TRUE;
+#if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
+        }
+#else
             if (strcmp(pDhcp6cInfoCur->address, pNewIpcMsg->address))
             {
                 syscfg_set_string(SYSCFG_FIELD_IPV6_ADDRESS, pNewIpcMsg->address);
@@ -2476,6 +2605,7 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_WAN_IFACE* pIfaceData)
             CcspTraceInfo(("remove IPv6 address \n"));
             syscfg_set_string(SYSCFG_FIELD_IPV6_ADDRESS, "");
         }
+#endif
     }
 
     /* dhcp6c receives prefix delegation for LAN */
@@ -2488,6 +2618,7 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_WAN_IFACE* pIfaceData)
             connected = TRUE;
 
             /* Update the WAN prefix validity time in the persistent storage */
+#if !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
             if (pDhcp6cInfoCur->prefixVltime != pNewIpcMsg->prefixVltime)
             {
                 snprintf(set_value, sizeof(set_value), "%d", pNewIpcMsg->prefixVltime);
@@ -2534,6 +2665,7 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_WAN_IFACE* pIfaceData)
                     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_PREFIX, prefix, 0);
                 }
             }
+#endif
         }
         else /* IFADDRCONF_REMOVE: prefix remove */
         {
@@ -2541,14 +2673,17 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_WAN_IFACE* pIfaceData)
             if (strcmp(pDhcp6cInfoCur->sitePrefix, pNewIpcMsg->sitePrefix) == 0)
             {
                 CcspTraceInfo(("remove prefix \n"));
+#if !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
                 syscfg_set_string(SYSCFG_FIELD_IPV6_PREFIX, "");
                 syscfg_set_string(SYSCFG_FIELD_PREVIOUS_IPV6_PREFIX, "");
                 syscfg_set_string(SYSCFG_FIELD_IPV6_PREFIX_ADDRESS, "");
+#endif
                 WanManager_UpdateInterfaceStatus(pIfaceData, WANMGR_IFACE_CONNECTION_IPV6_DOWN);
             }
         }
     }
 
+#if !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
     /* dhcp6c receives domain name information */
     if (pNewIpcMsg->domainNameAssigned && !IS_EMPTY_STRING(pNewIpcMsg->domainName))
     {
@@ -2559,6 +2694,7 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_WAN_IFACE* pIfaceData)
             sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_DOMAIN, pNewIpcMsg->domainName, 0);
         }
     }
+#endif
 
     /* Even when dhcp6c is not used to get the WAN interface IP address,
      *  * use this message as a trigger to check the WAN interface IP.
@@ -2580,7 +2716,12 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_WAN_IFACE* pIfaceData)
 
             if (strcmp(pDhcp6cInfoCur->address, guAddrPrefix))
             {
+#if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
+                strncpy(pIfaceData->IP.Ipv6Data.address,guAddrPrefix, sizeof(pIfaceData->IP.Ipv6Data.address));
+                pNewIpcMsg->addrAssigned = true;
+#else
                 syscfg_set_string(SYSCFG_FIELD_IPV6_ADDRESS, guAddrPrefix);
+#endif
             }
         }
     }
@@ -2600,7 +2741,12 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_WAN_IFACE* pIfaceData)
         wanmgr_dchpv6_get_ipc_msg_info(&(Ipv6DataTemp), pNewIpcMsg);
 
         if (strcmp(Ipv6DataTemp.address, pDhcp6cInfoCur->address) ||
+#if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)//Do not compare if Ipv6DataTemp.pdIfAddress is empty. pdIfAddress Will be calculated while configuring LAN prefix.
+            ((Ipv6DataTemp.pdIfAddress) && (strlen(Ipv6DataTemp.pdIfAddress) > 0)&&
+            (strcmp(Ipv6DataTemp.pdIfAddress, pDhcp6cInfoCur->pdIfAddress))) ||
+#else
                 strcmp(Ipv6DataTemp.pdIfAddress, pDhcp6cInfoCur->pdIfAddress) ||
+#endif
                 strcmp(Ipv6DataTemp.nameserver, pDhcp6cInfoCur->nameserver) ||
                 strcmp(Ipv6DataTemp.nameserver1, pDhcp6cInfoCur->nameserver1) ||
                 strcmp(Ipv6DataTemp.sitePrefix, pDhcp6cInfoCur->sitePrefix))
@@ -2612,6 +2758,7 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_WAN_IFACE* pIfaceData)
         {
             /*TODO: Revisit this*/
             //call function for changing the prlft and vallft
+            // FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE : Handle Ip renew in handler thread. 
             if ((WanManager_Ipv6AddrUtil(LAN_BRIDGE_NAME, SET_LFT, pNewIpcMsg->prefixPltime, pNewIpcMsg->prefixVltime) < 0))
             {
                 CcspTraceError(("Life Time Setting Failed"));
@@ -2701,4 +2848,226 @@ void* IPV6CPStateChangeHandler (void *arg)
     free (arg);
 
     return (void *)ANSC_STATUS_SUCCESS;
+}
+
+int setUpLanPrefixIPv6(DML_WAN_IFACE* pIfaceData)
+{
+    if (pIfaceData == NULL)
+    {
+        CcspTraceError(("%s %d - Invalid memory \n", __FUNCTION__, __LINE__));
+        return RETURN_ERR;
+    }
+
+    CcspTraceInfo(("%s %d Updating SYSEVENT_CURRENT_WAN_IFNAME %s\n", __FUNCTION__, __LINE__,pIfaceData->IP.Ipv6Data.ifname));
+    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_CURRENT_WAN_IFNAME, pIfaceData->IP.Ipv6Data.ifname, 0);
+
+    int index = strcspn(pIfaceData->IP.Ipv6Data.sitePrefix, "/");
+    if (index < strlen(pIfaceData->IP.Ipv6Data.sitePrefix))
+    {
+        char lanPrefix[BUFLEN_48] = {0};
+        strncpy(lanPrefix, pIfaceData->IP.Ipv6Data.sitePrefix, index);
+        if ((sizeof(lanPrefix) - index) > 3)
+        {
+            char previousPrefix[BUFLEN_48] = {0};
+            char previousPrefix_vldtime[BUFLEN_48] = {0};
+            char previousPrefix_prdtime[BUFLEN_48] = {0};
+            strncat(lanPrefix, "/64",sizeof(lanPrefix)-1);
+            sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_PREFIX, previousPrefix, sizeof(previousPrefix));
+            sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_PREFIXVLTIME, previousPrefix_vldtime, sizeof(previousPrefix_vldtime));
+            sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_PREFIXPLTIME, previousPrefix_prdtime, sizeof(previousPrefix_prdtime));
+            if (strncmp(previousPrefix, lanPrefix, BUFLEN_48) == 0)
+            {
+                sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_PREVIOUS_IPV6_PREFIX, "", 0);
+                sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_PREVIOUS_IPV6_PREFIXVLTIME, "0", 0);
+                sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_PREVIOUS_IPV6_PREFIXPLTIME, "0", 0);
+            }
+            else if (strncmp(previousPrefix, "", BUFLEN_48) != 0)
+            {
+                sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_PREVIOUS_IPV6_PREFIX, previousPrefix, 0);
+                sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_PREVIOUS_IPV6_PREFIXVLTIME, previousPrefix_vldtime, 0);
+                sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_PREVIOUS_IPV6_PREFIXPLTIME, previousPrefix_prdtime, 0);
+            }
+            sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_PREFIX, lanPrefix, 0);
+            sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_TR_EROUTER_DHCPV6_CLIENT_PREFIX, pIfaceData->IP.Ipv6Data.sitePrefix, 0);
+        }
+    }
+#if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
+    /* moved from PAM */
+    int ret = RETURN_OK;
+    char globalIP[128] = {0};
+    char set_value[BUFLEN_64] = {0};
+    char cmdLine[BUFLEN_256];
+
+    WanMgr_RdkBus_setWanIpInterfaceData(pIfaceData);
+
+    if (pIfaceData->IP.Ipv6Data.prefixPltime != 0 && pIfaceData->IP.Ipv6Data.prefixVltime != 0)
+    {
+        ret = dhcpv6_assign_global_ip(pIfaceData->IP.Ipv6Data.sitePrefix, COSA_DML_DHCPV6_SERVER_IFNAME, globalIP);
+        if(ret != 0) {
+            CcspTraceInfo(("Assign global ip error \n"));
+        }
+#ifdef _HUB4_PRODUCT_REQ_
+        else {
+            CcspTraceInfo(("%s Going to set [%s] address on brlan0 interface \n", __FUNCTION__, globalIP));
+            memset(cmdLine, 0, sizeof(cmdLine));
+            snprintf(cmdLine, sizeof(cmdLine), "ip -6 addr add %s/64 dev %s valid_lft %d preferred_lft %d",
+                    globalIP, COSA_DML_DHCPV6_SERVER_IFNAME, pIfaceData->IP.Ipv6Data.prefixVltime, pIfaceData->IP.Ipv6Data.prefixPltime);
+            if (WanManager_DoSystemActionWithStatus(__FUNCTION__, cmdLine) != 0)
+                CcspTraceError(("failed to run cmd: %s", cmdLine));
+
+            sysevent_set(sysevent_fd, sysevent_token, "lan_ipaddr_v6", globalIP, 0);
+            // send an event to wanmanager that Global-prefix is set
+            sysevent_set(sysevent_fd, sysevent_token, "lan_prefix_set", globalIP, 0);
+        }
+#else
+        else {
+            sysevent_set(sysevent_fd, sysevent_token, "lan_ipaddr_v6", globalIP, 0);
+
+        }
+        // send an event to wanmanager that Global-prefix is set
+        sysevent_set(sysevent_fd, sysevent_token, "lan_prefix_set", globalIP, 0);
+#endif
+        memset(cmdLine, 0, sizeof(cmdLine));
+        snprintf(cmdLine, sizeof(cmdLine), "ip -6 route add %s dev %s", pIfaceData->IP.Ipv6Data.sitePrefix, COSA_DML_DHCPV6_SERVER_IFNAME);
+        if (WanManager_DoSystemActionWithStatus(__FUNCTION__, cmdLine) != 0)
+        {
+            CcspTraceError(("failed to run cmd: %s", cmdLine));
+        }
+#ifdef _COSA_INTEL_XB3_ARM_
+        memset(cmdLine, 0, sizeof(cmdLine));
+        snprintf(cmdLine, sizeof(cmdLine), "ip -6 route add %s dev %s table erouter", pIfaceData->IP.Ipv6Data.sitePrefix, COSA_DML_DHCPV6_SERVER_IFNAME);
+        if (WanManager_DoSystemActionWithStatus(__FUNCTION__, cmdLine) != 0)
+        {
+            CcspTraceError(("failed to run cmd: %s", cmdLine));
+        }
+#endif
+        //Restart LAN if required.
+        BOOL bRestartLan = FALSE;
+        /* we need save this for zebra to send RA
+           ipv6_prefix           // xx:xx::/yy
+         */
+        memset(cmdLine, 0, sizeof(cmdLine));
+#ifndef _HUB4_PRODUCT_REQ_
+        snprintf(cmdLine, sizeof(cmdLine), "sysevent set ipv6_prefix %s ",v6pref);
+#else
+        snprintf(cmdLine, sizeof(cmdLine), "sysevent set zebra-restart ");
+#endif
+        if (WanManager_DoSystemActionWithStatus(__FUNCTION__, cmdLine) != 0)
+            CcspTraceError(("failed to run cmd: %s", cmdLine));
+
+        CcspTraceWarning(("%s: globalIP %s PreviousIPv6Address %s\n", __func__,
+                    globalIP, PreviousIPv6Address));
+        if ( _ansc_strcmp(globalIP, PreviousIPv6Address ) ){
+            bRestartLan = TRUE;
+
+            //PaM may restart. When this happen, we should not overwrite previous ipv6
+            if ( PreviousIPv6Address[0] )
+                sysevent_set(sysevent_fd, sysevent_token, "lan_ipaddr_v6_prev", PreviousIPv6Address, 0);
+
+            strncpy(PreviousIPv6Address, globalIP,sizeof(PreviousIPv6Address));
+        }else{
+            char lanrestart[8] = {0};
+            sysevent_get(sysevent_fd, sysevent_token, "lan_restarted", lanrestart, sizeof(lanrestart));
+            fprintf(stderr,"lan restart staus is %s \n",lanrestart);
+            if (strcmp("true",lanrestart) == 0)
+                bRestartLan = TRUE;
+            else
+                bRestartLan = FALSE;
+        }
+        CcspTraceWarning(("%s: bRestartLan %d\n", __func__, bRestartLan));
+        if ( ret != 0 )
+        {
+            CcspTraceError(("error, assign global ip error.\n"));
+        }else if ( bRestartLan == FALSE ){
+            CcspTraceError(("Same global IP, Need not restart.\n"));
+        }else{
+            char pref_len[10] ={0};
+
+            CcspTraceWarning(("Restart lan%s:%d\n", __func__,__LINE__));
+            /* This is for IP.Interface.1. use */
+            sysevent_set(sysevent_fd, sysevent_token, COSA_DML_DHCPV6S_ADDR_SYSEVENT_NAME, globalIP, 0);
+
+            /*This is for brlan0 interface */
+            sysevent_set(sysevent_fd, sysevent_token, "lan_ipaddr_v6", globalIP, 0);
+            sscanf (pIfaceData->IP.Ipv6Data.sitePrefix,"%*[^/]/%s" ,pref_len);
+            sysevent_set(sysevent_fd, sysevent_token, "lan_prefix_v6", pref_len, 0);
+            CcspTraceWarning(("%s: setting lan-restart\n", __FUNCTION__));
+            sysevent_set(sysevent_fd, sysevent_token, "lan-restart", "1", 0);
+
+            // Below code copied from CosaDmlDHCPv6sTriggerRestart(FALSE) PAm function.
+            int fd = 0;
+            char str[32] = "restart";
+            fd= open(DHCPS6V_SERVER_RESTART_FIFO, O_RDWR);
+            if (fd < 0)
+            {
+                fprintf(stderr, "open dhcpv6 server restart fifo when writing.\n");
+                return 1;
+            }
+            write( fd, str, sizeof(str) );
+            close(fd);
+        }
+    }
+
+    /* Sysevent set moved from wanmgr_handle_dhcpv6_event_data */
+    if(pIfaceData->IP.Ipv6Data.addrAssigned )
+    {
+        if (pIfaceData->IP.Ipv6Data.addrCmd == IFADDRCONF_ADD)
+        {
+            CcspTraceInfo(("assigned IPv6 address \n"));
+            syscfg_set_string(SYSCFG_FIELD_IPV6_ADDRESS, pIfaceData->IP.Ipv6Data.address);
+        }
+        else /* IFADDRCONF_REMOVE */
+        {
+            CcspTraceInfo(("remove IPv6 address \n"));
+            syscfg_set_string(SYSCFG_FIELD_IPV6_ADDRESS, "");
+        }
+    }
+    if (pIfaceData->IP.Ipv6Data.prefixAssigned && !IS_EMPTY_STRING(pIfaceData->IP.Ipv6Data.sitePrefix))
+    {
+        if (pIfaceData->IP.Ipv6Data.prefixCmd == IFADDRCONF_ADD &&
+                pIfaceData->IP.Ipv6Data.prefixPltime != 0 && pIfaceData->IP.Ipv6Data.prefixVltime != 0)
+        {
+            CcspTraceInfo(("assigned prefix=%s \n", pIfaceData->IP.Ipv6Data.sitePrefix));
+            snprintf(set_value, sizeof(set_value), "%d", pIfaceData->IP.Ipv6Data.prefixVltime);
+            sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_PREFIXVLTIME, set_value, 0);
+            snprintf(set_value, sizeof(set_value), "%d", pIfaceData->IP.Ipv6Data.prefixPltime);
+            sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_PREFIXPLTIME, set_value, 0);
+            syscfg_set_string(SYSCFG_FIELD_PREVIOUS_IPV6_PREFIX, pIfaceData->IP.Ipv6Data.sitePrefixOld);
+            syscfg_set_string(SYSCFG_FIELD_IPV6_PREFIX, pIfaceData->IP.Ipv6Data.sitePrefix);
+            // create global IPv6 address (<prefix>::1)
+            char prefix[BUFLEN_64] = {0};
+            memset(prefix, 0, sizeof(prefix));
+
+            int index = strcspn(pIfaceData->IP.Ipv6Data.sitePrefix, "/");
+            if (index < strlen(pIfaceData->IP.Ipv6Data.sitePrefix) && index < sizeof(prefix))
+            {
+                strncpy(prefix, pIfaceData->IP.Ipv6Data.sitePrefix, index);                                            // only copy prefix without the prefix length
+                snprintf(set_value, sizeof(set_value), "%s1", prefix);                                        // concatenate "1" onto the prefix, which is in the form "xxxx:xxxx:xxxx:xxxx::"
+                snprintf(pIfaceData->IP.Ipv6Data.pdIfAddress, sizeof(pIfaceData->IP.Ipv6Data.pdIfAddress), "%s/64", set_value); // concatenate prefix address with length "/64"
+                syscfg_set_string(SYSCFG_FIELD_IPV6_PREFIX_ADDRESS, pIfaceData->IP.Ipv6Data.pdIfAddress);
+                sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_TR_BRLAN0_DHCPV6_SERVER_ADDRESS, set_value, 0);
+                CcspTraceInfo(("%s %d new prefix = %s\n", __FUNCTION__, __LINE__, pIfaceData->IP.Ipv6Data.sitePrefix));
+                strncat(prefix, "/64",sizeof(prefix)-1);
+                sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_PREFIX, prefix, 0);
+            }
+        }else /* IFADDRCONF_REMOVE: prefix remove */
+        {
+            CcspTraceInfo(("remove prefix \n"));
+            syscfg_set_string(SYSCFG_FIELD_IPV6_PREFIX, "");
+            syscfg_set_string(SYSCFG_FIELD_PREVIOUS_IPV6_PREFIX, "");
+            syscfg_set_string(SYSCFG_FIELD_IPV6_PREFIX_ADDRESS, "");
+        }
+    }
+
+    /* dhcp6c receives domain name information */
+    if (pIfaceData->IP.Ipv6Data.domainNameAssigned && !IS_EMPTY_STRING(pIfaceData->IP.Ipv6Data.domainName))
+    {
+        CcspTraceInfo(("assigned domain name=%s \n", pIfaceData->IP.Ipv6Data.domainName));
+
+        sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_DOMAIN, pIfaceData->IP.Ipv6Data.domainName, 0);
+    }
+    /* Sysevent set moved from wanmgr_handle_dhcpv6_event_data end */
+
+#endif
+    return RETURN_OK;
 }

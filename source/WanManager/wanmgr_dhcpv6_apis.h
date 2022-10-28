@@ -33,6 +33,8 @@
 /**********************************************************************
                 STRUCTURE AND CONSTANT DEFINITIONS
 **********************************************************************/
+#define IFADDRCONF_ADD 0
+#define IFADDRCONF_REMOVE 1
 
 #define CCSP_COMMON_FIFO "/tmp/ccsp_common_fifo"
 
@@ -336,5 +338,11 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_WAN_IFACE* pIfaceData);
 void* IPV6CPStateChangeHandler (void *arg);
 
 void _get_shell_output(FILE *fp, char * out, int len);
+
+/************************************************************************************
+ * @brief Set v6 prefixe required for lan configuration
+ * @return RETURN_OK on success else RETURN_ERR
+ ************************************************************************************/
+int setUpLanPrefixIPv6(DML_WAN_IFACE* pIfaceData);
 
 #endif //_WANMGR_DHCPV6_APIS_H_

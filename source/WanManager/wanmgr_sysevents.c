@@ -173,6 +173,7 @@ ANSC_STATUS wanmgr_sysevents_ipv4Info_set(const ipc_dhcpv4_data_t* dhcp4Info, co
     snprintf(value, sizeof(value), "%d", dhcp4Info->upstreamCurrRate);
     sysevent_set(sysevent_fd, sysevent_token,name, value, 0);
 
+    /* Generic sysevent will be set when IPv4 address configured by Interface SM */
     if (dhcp4Info->isTimeOffsetAssigned)
     {
         snprintf(value, sizeof(value), "@%d", dhcp4Info->timeOffset);
@@ -241,6 +242,36 @@ ANSC_STATUS wanmgr_set_Ipv4Sysevent(const WANMGR_IPV4_DATA* dhcp4Info, DEVICE_NE
     snprintf(value, sizeof(value), "%u",dhcp4Info->mtuSize);
     sysevent_set(sysevent_fd, sysevent_token,name, value, 0);
 
+#if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
+    snprintf(name, sizeof(name), SYSEVENT_IPV4_DS_CURRENT_RATE, dhcp4Info->ifname);
+    snprintf(value, sizeof(value), "%d", dhcp4Info->downstreamCurrRate);
+    sysevent_set(sysevent_fd, sysevent_token,name, value, 0);
+
+    snprintf(name, sizeof(name), SYSEVENT_IPV4_US_CURRENT_RATE, dhcp4Info->ifname);
+    snprintf(value, sizeof(value), "%d", dhcp4Info->upstreamCurrRate);
+    sysevent_set(sysevent_fd, sysevent_token,name, value, 0);
+
+    /* Generic sysevent will be set when IPv4 address configured by Interface SM */
+    if (dhcp4Info->isTimeOffsetAssigned)
+    {
+        snprintf(value, sizeof(value), "@%d", dhcp4Info->timeOffset);
+        sysevent_set(sysevent_fd, sysevent_token,SYSEVENT_IPV4_TIME_OFFSET, value, 0);
+        sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_DHCPV4_TIME_OFFSET, SET, 0);
+    }
+
+    sysevent_set(sysevent_fd, sysevent_token,SYSEVENT_IPV4_TIME_ZONE, dhcp4Info->timeZone, 0);
+
+    snprintf(name,sizeof(name),SYSEVENT_IPV4_DHCP_SERVER,dhcp4Info->ifname);
+    sysevent_set(sysevent_fd, sysevent_token,name, dhcp4Info->dhcpServerId,0);
+
+    snprintf(name,sizeof(name),SYSEVENT_IPV4_DHCP_STATE ,dhcp4Info->ifname);
+    sysevent_set(sysevent_fd, sysevent_token,name, dhcp4Info->dhcpState,0);
+
+    snprintf(name,sizeof(name), SYSEVENT_IPV4_LEASE_TIME, dhcp4Info->ifname);
+    snprintf(value, sizeof(value), "%u",dhcp4Info->leaseTime);
+    sysevent_set(sysevent_fd, sysevent_token,name, value, 0);
+
+#endif
     return ANSC_STATUS_SUCCESS;
 }
 

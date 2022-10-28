@@ -54,6 +54,7 @@
 extern lanState_t lanState;
 #endif
 
+
 /*WAN Manager States*/
 static eWanState_t wan_state_configuring_wan(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
 static eWanState_t wan_state_validating_wan(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
@@ -162,12 +163,6 @@ static int checkIpv6AddressAssignedToBridge();
  * @return RETURN_OK on success else RETURN_ERR
  *************************************************************************************/
 static int checkIpv6LanAddressIsReadyToUse();
-
-/************************************************************************************
- * @brief Set v6 prefixe required for lan configuration
- * @return RETURN_OK on success else RETURN_ERR
- ************************************************************************************/
-static int setUpLanPrefixIPv6(DML_WAN_IFACE* pIfaceData);
 
 #ifdef FEATURE_MAPT
 
@@ -333,6 +328,21 @@ void WanManager_UpdateInterfaceStatus(DML_WAN_IFACE* pIfaceData, wanmgr_iface_st
         }
         case WANMGR_IFACE_CONNECTION_UP:
         {
+#if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
+            /*Set Generic sysevents only if Interface is active. Else will be configured by ISM when interface is selected. */
+            if(pIfaceData->SelectionStatus == WAN_IFACE_ACTIVE)
+            {
+                if (pIfaceData->IP.Ipv4Data.isTimeOffsetAssigned)
+                {
+                    char value[64] = {0};
+                    snprintf(value, sizeof(value), "@%d", pIfaceData->IP.Ipv4Data.timeOffset);
+                    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV4_TIME_OFFSET, value, 0);
+                    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_DHCPV4_TIME_OFFSET, SET, 0);
+                }
+
+                sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV4_TIME_ZONE, pIfaceData->IP.Ipv4Data.timeZone, 0);
+            }
+#endif
             pIfaceData->IP.Ipv4Status = WAN_IFACE_IPV4_STATE_UP;
             break;
         }
@@ -696,51 +706,6 @@ static int checkIpv6AddressAssignedToBridge()
     return ret;
 }
 
-static int setUpLanPrefixIPv6(DML_WAN_IFACE* pIfaceData)
-{
-    if (pIfaceData == NULL)
-    {
-        CcspTraceError(("%s %d - Invalid memory \n", __FUNCTION__, __LINE__));
-        return RETURN_ERR;
-    }
-
-    CcspTraceInfo(("%s %d Updating SYSEVENT_CURRENT_WAN_IFNAME %s\n", __FUNCTION__, __LINE__,pIfaceData->IP.Ipv6Data.ifname));
-    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_CURRENT_WAN_IFNAME, pIfaceData->IP.Ipv6Data.ifname, 0);
-
-    int index = strcspn(pIfaceData->IP.Ipv6Data.sitePrefix, "/");
-    if (index < strlen(pIfaceData->IP.Ipv6Data.sitePrefix))
-    {
-        char lanPrefix[BUFLEN_48] = {0};
-        strncpy(lanPrefix, pIfaceData->IP.Ipv6Data.sitePrefix, index);
-        if ((sizeof(lanPrefix) - index) > 3)
-        {
-            char previousPrefix[BUFLEN_48] = {0};
-            char previousPrefix_vldtime[BUFLEN_48] = {0};
-            char previousPrefix_prdtime[BUFLEN_48] = {0};
-            strncat(lanPrefix, "/64",sizeof(lanPrefix)-1);
-            sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_PREFIX, previousPrefix, sizeof(previousPrefix));
-            sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_PREFIXVLTIME, previousPrefix_vldtime, sizeof(previousPrefix_vldtime));
-            sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_PREFIXPLTIME, previousPrefix_prdtime, sizeof(previousPrefix_prdtime));
-            if (strncmp(previousPrefix, lanPrefix, BUFLEN_48) == 0)
-            {
-                sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_PREVIOUS_IPV6_PREFIX, "", 0);
-                sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_PREVIOUS_IPV6_PREFIXVLTIME, "0", 0);
-                sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_PREVIOUS_IPV6_PREFIXPLTIME, "0", 0);
-            }
-            else if (strncmp(previousPrefix, "", BUFLEN_48) != 0)
-            {
-                sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_PREVIOUS_IPV6_PREFIX, previousPrefix, 0);
-                sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_PREVIOUS_IPV6_PREFIXVLTIME, previousPrefix_vldtime, 0);
-                sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_PREVIOUS_IPV6_PREFIXPLTIME, previousPrefix_prdtime, 0);
-            }
-            sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_PREFIX, lanPrefix, 0);
-            sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_TR_EROUTER_DHCPV6_CLIENT_PREFIX, pIfaceData->IP.Ipv6Data.sitePrefix, 0);
-        }
-    }
-
-    return RETURN_OK;
-}
-
 static int wan_setUpIPv4(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
 {
 
@@ -812,6 +777,7 @@ static int wan_setUpIPv4(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
     }
 
     /** Update required sysevents. */
+
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV4_CONNECTION_STATE, WAN_STATUS_UP, 0);
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_CURRENT_IPV4_LINK_STATE, WAN_STATUS_UP, 0);
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_CURRENT_WAN_IPADDR, pInterface->IP.Ipv4Data.ip, 0);
@@ -2755,7 +2721,10 @@ static eWanState_t wan_state_dual_stack_active(WanMgr_IfaceSM_Controller_t* pWan
             pInterface->SelectionStatus == WAN_IFACE_ACTIVE &&
             pInterface->MAP.MaptStatus == WAN_IFACE_MAPT_STATE_UP)
     {
-        return wan_transition_mapt_up(pWanIfaceCtrl);
+        if (checkIpv6AddressAssignedToBridge() == RETURN_OK) // Wait for default gateway before MAP-T configuration
+        {
+            return wan_transition_mapt_up(pWanIfaceCtrl);
+        }//wanmgr_Ipv6Toggle() is called below.
     }
     else if (pInterface->Wan.EnableMAPT == TRUE &&
             pInterface->SelectionStatus == WAN_IFACE_ACTIVE &&

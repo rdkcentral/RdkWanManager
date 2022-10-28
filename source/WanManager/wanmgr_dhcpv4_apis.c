@@ -80,6 +80,16 @@ static ANSC_STATUS wanmgr_dchpv4_get_ipc_msg_info(WANMGR_IPV4_DATA* pDhcpv4Data,
     memcpy(pDhcpv4Data->gateway, pIpcIpv4Data->gateway, BUFLEN_32);
     memcpy(pDhcpv4Data->dnsServer, pIpcIpv4Data->dnsServer, BUFLEN_64);
     memcpy(pDhcpv4Data->dnsServer1, pIpcIpv4Data->dnsServer1, BUFLEN_64);
+#if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
+    memcpy(pDhcpv4Data->timeZone, pIpcIpv4Data->timeZone, BUFLEN_64);
+    pDhcpv4Data->isTimeOffsetAssigned = pIpcIpv4Data->isTimeOffsetAssigned;
+    pDhcpv4Data->timeOffset = pIpcIpv4Data->timeOffset;
+    pDhcpv4Data->leaseTime = pIpcIpv4Data->leaseTime;
+    pDhcpv4Data->upstreamCurrRate = pIpcIpv4Data->upstreamCurrRate;
+    pDhcpv4Data->downstreamCurrRate = pIpcIpv4Data->downstreamCurrRate;
+    memcpy(pDhcpv4Data->dhcpServerId, pIpcIpv4Data->dhcpServerId, BUFLEN_64);
+    memcpy(pDhcpv4Data->dhcpState, pIpcIpv4Data->dhcpState, BUFLEN_64);
+#endif
 
     if( ( TRUE == pIpcIpv4Data->mtuAssigned ) && ( 0 != pIpcIpv4Data->mtuSize ) )
     {
@@ -147,15 +157,18 @@ ANSC_STATUS wanmgr_handle_dhcpv4_event_data(DML_WAN_IFACE* pIfaceData)
 
         if (IPv4ConfigChanged)
         {
+#if !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE) //Sysevents will be configured by ISM while selecting Iface as Active.
             if (wanmgr_sysevents_ipv4Info_set(pDhcpcInfo, pDhcpcInfo->dhcpcInterface) != ANSC_STATUS_SUCCESS)
             {
                 CcspTraceError(("%s %d - Could not store ipv4 data!", __FUNCTION__, __LINE__));
             }
+#endif
             //Update isIPv4ConfigChanged flag.
             pIfaceData->IP.Ipv4Changed = TRUE;
         }
         else
         {
+            //FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE : Handle IP Renew packets in Handler
             CcspTraceInfo(("%s %d - IPV4 optional configuration received \n", __FUNCTION__, __LINE__));
             snprintf(name, sizeof(name), SYSEVENT_IPV4_DS_CURRENT_RATE, pDhcpcInfo->dhcpcInterface);
             snprintf(value, sizeof(value), "%d", pDhcpcInfo->downstreamCurrRate);
@@ -169,6 +182,7 @@ ANSC_STATUS wanmgr_handle_dhcpv4_event_data(DML_WAN_IFACE* pIfaceData)
             snprintf(value, sizeof(value), "%d", pDhcpcInfo->leaseTime);
             sysevent_set(sysevent_fd, sysevent_token, name, value, 0);
 
+#if !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
             if (pDhcpcInfo->isTimeOffsetAssigned)
             {
                 snprintf(value, sizeof(value), "@%d", pDhcpcInfo->timeOffset);
@@ -177,6 +191,7 @@ ANSC_STATUS wanmgr_handle_dhcpv4_event_data(DML_WAN_IFACE* pIfaceData)
             }
 
             sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV4_TIME_ZONE, pDhcpcInfo->timeZone, 0);
+#endif
 #ifdef FEATURE_IPOE_HEALTH_CHECK
             pIfaceData->IP.Ipv4Renewed = TRUE;
 #endif
