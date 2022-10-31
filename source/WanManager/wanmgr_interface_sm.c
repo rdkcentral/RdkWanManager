@@ -20,6 +20,7 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <ifaddrs.h>
+#include <sys/syscall.h>
 #include "wanmgr_interface_sm.h"
 #include "wanmgr_utils.h"
 #include "platform_hal.h"
@@ -846,7 +847,7 @@ static int wan_setUpIPv4(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
         }
         //Get WAN uptime
         WanManager_GetDateAndUptime( buffer, &uptime );
-        LOG_CONSOLE("%s Wan_init_complete:%d\n",buffer,uptime);
+        LOG_CONSOLE("%s [tid=%ld] v4: Wan_init_complete for interface index %d at %d\n", buffer, syscall(SYS_gettid), pWanIfaceCtrl->interfaceIdx, uptime);
 
         system("print_uptime \"Waninit_complete\"");
         system("print_uptime \"boot_to_wan_uptime\"");
@@ -972,7 +973,7 @@ static int wan_setUpIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
 
         //Get WAN uptime
         WanManager_GetDateAndUptime( buffer, &uptime );
-        LOG_CONSOLE("%s Wan_init_complete:%d\n",buffer,uptime);
+        LOG_CONSOLE("%s [tid=%ld] v6: Wan_init_complete for interface index %d at %d\n", buffer, syscall(SYS_gettid), pWanIfaceCtrl->interfaceIdx, uptime);
 
         system("print_uptime \"Waninit_complete\"");
         system("print_uptime \"boot_to_wan_uptime\"");
@@ -1170,7 +1171,7 @@ static eWanState_t wan_transition_start(WanMgr_IfaceSM_Controller_t* pWanIfaceCt
     WanMgr_Set_ISM_RunningStatus(TRUE);
 
     WanManager_GetDateAndUptime( buffer, &uptime );
-    LOG_CONSOLE("%s Wan_init_start:%d\n",buffer,uptime);
+    LOG_CONSOLE("%s [tid=%ld] Wan_init_start:%d\n", buffer, syscall(SYS_gettid), uptime);
 
     system("print_uptime \"Waninit_start\"");
 
@@ -3072,7 +3073,7 @@ static void* WanMgr_InterfaceSMThread( void *arg )
     pthread_detach(pthread_self());
 
 
-    CcspTraceInfo(("%s %d - Interface state machine (TID %lu) initialising for iface idx %d\n", __FUNCTION__, __LINE__, pthread_self(), pWanIfaceCtrl->interfaceIdx));
+    CcspTraceInfo(("%s %d - Interface state machine (TID %lu) initialising for iface idx %d\n", __FUNCTION__, __LINE__, syscall(SYS_gettid), pWanIfaceCtrl->interfaceIdx));
 
 
     // initialise state machine
@@ -3209,7 +3210,13 @@ static void* WanMgr_InterfaceSMThread( void *arg )
     WanMgr_InterfaceSMThread_Finalise();
 
 
-    CcspTraceInfo(("%s %d - Interface state machine (TID %lu) exiting for iface idx %d\n", __FUNCTION__, __LINE__, pthread_self(), pWanIfaceCtrl->interfaceIdx));
+    CcspTraceInfo(("%s %d - Interface state machine (TID %lu) exiting for iface idx %d\n", __FUNCTION__, __LINE__, syscall(SYS_gettid), pWanIfaceCtrl->interfaceIdx));
+
+    int  uptime = 0;
+    char buffer[64];
+    memset(&buffer, 0, sizeof(buffer));
+    WanManager_GetDateAndUptime( buffer, &uptime );
+    LOG_CONSOLE("%s [tid=%ld] Wan_exit_complete at %d\n",buffer, syscall(SYS_gettid), uptime);
 
     //Free current private resource before exit
     if(NULL != pWanIfaceCtrl)
