@@ -1197,9 +1197,37 @@ static WcAwPolicyState_t State_InterfaceReconfiguration (WanMgr_Policy_Controlle
         return STATE_AUTO_WAN_ERROR;
     }
 
+#ifdef FEATURE_RDKB_WAN_UPSTREAM
+    char dmName[BUFLEN_256] = { 0 };
+    int insVal = 0;
+#endif
+
     DML_WAN_IFACE * pActiveInterface = &(pWanController->pWanActiveIfaceData->data);
     if (pActiveInterface->Wan.IfaceType != REMOTE_IFACE)
     {
+#ifdef FEATURE_RDKB_WAN_UPSTREAM
+        if (strstr(pActiveInterface->Phy.Path, "Ethernet") != NULL)
+        {
+            sscanf(pActiveInterface->Phy.Path, ETH_PHY_PATH_DM, &insVal);
+            if(insVal > 0)
+            {
+                snprintf(dmName, "%s%d", ETH_HW_CONFIG_PHY_PATH, insVal);
+                if (WanMgr_RdkBus_updateInterfaceUpstreamFlag(dmName, TRUE) != ANSC_STATUS_SUCCESS)
+                {
+                    CcspTraceError(("%s - Failed to set [%s] data model \n", __FUNCTION__, dmName));
+                }
+                else
+                {
+                    CcspTraceInfo(("%s %d: dmName=[%s] dmValue=[TRUE] success. \n", __FUNCTION__, __LINE__, dmName));
+                }
+            }
+        }
+        else
+        {
+            //set false to all the interface with phy path Ethernet
+            WanMgr_RdkBus_setEthernetUpstream(FALSE);
+        }
+#endif
         if (WanMgr_CheckIfPlatformReconfiguringRequired (pWanController) == TRUE)
         { 
             CcspTraceInfo(("%s %d: Hardware reconfiguration required\n", __FUNCTION__, __LINE__));

@@ -118,6 +118,10 @@ extern token_t sysevent_token;
 #ifdef FEATURE_RDKB_AUTO_PORT_SWITCH
 #define ETH_INTERFACE_PORTCAPABILITY            ".PortCapability"
 #endif  //FEATURE_RDKB_AUTO_PORT_SWITCH
+
+#define ETH_PHY_PATH_DM             "Device.Ethernet.X_RDK_Interface.%d"
+#define ETH_HW_CONFIG_PHY_PATH      "Device.Ethernet.Interface.%d"
+
 //CM Agent
 #define CMAGENT_COMPONENT_NAME "eRT.com.cisco.spvtg.ccsp.cm"
 #define CMAGENT_COMP_NAME_WITHOUTSUBSYSTEM "com.cisco.spvtg.ccsp.cm"
@@ -166,5 +170,8 @@ void WanMgr_SetPortCapabilityForEthIntf(DML_WAN_POLICY eWanPolicy);
 
 #if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
 ANSC_STATUS WanMgr_RdkBus_setWanIpInterfaceData(DML_WAN_IFACE *pWanIfaceData);
-#endif 
+#endif
+
+void WanMgr_RdkBus_setEthernetUpstream(bool setVal);
+
 #endif /* _WANMGR_RDKBUS_UTILS_H_ */

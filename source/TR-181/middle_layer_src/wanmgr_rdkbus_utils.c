@@ -1137,3 +1137,39 @@ ANSC_STATUS WanMgr_RdkBus_setWanIpInterfaceData(DML_WAN_IFACE* pWanIfaceData)
     return retStatus;
 }
 #endif
+void WanMgr_RdkBus_setEthernetUpstream(bool setVal)
+{
+    int insVal = 0;
+    int uiLoopCount = 0;
+    char dmName[BUFLEN_256] = { 0 };
+    int totalIfaces = WanMgr_IfaceData_GetTotalWanIface();
+
+    for (uiLoopCount = 0; uiLoopCount <  totalIfaces; uiLoopCount++)
+    {
+        WanMgr_Iface_Data_t*   pWanDmlIfaceData = WanMgr_GetIfaceData_locked(uiLoopCount);
+        if(pWanDmlIfaceData != NULL)
+        {
+            insVal = 0;
+            DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
+            if (strstr(pWanIfaceData->Phy.Path, "Ethernet") != NULL)
+            {
+                sscanf(pWanIfaceData->Phy.Path, ETH_PHY_PATH_DM, &insVal);
+                CcspTraceInfo(("%s %d: Phy.Path=[%s] return instance = [%d] \n", __FUNCTION__, __LINE__, pWanIfaceData->Phy.Path, insVal));
+            }
+            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+            if(insVal > 0)
+            {
+                memset(dmName, 0, BUFLEN_256);
+                snprintf(dmName, "%s%d", ETH_HW_CONFIG_PHY_PATH, insVal);
+                if (WanMgr_RdkBus_updateInterfaceUpstreamFlag(dmName, setVal) != ANSC_STATUS_SUCCESS)
+                {
+                    CcspTraceError(("%s - Failed to set [%s] data model \n", __FUNCTION__, dmName));
+                }
+                else
+                {
+                    CcspTraceInfo(("%s %d: dmName=[%s] dmValue=[%d] success. \n", __FUNCTION__, __LINE__, dmName, setVal));
+                }
+            }
+        }
+    }
+}

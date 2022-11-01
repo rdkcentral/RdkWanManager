@@ -122,9 +122,10 @@ ANSC_STATUS WanController_Start_StateMachine(DML_WAN_POLICY swan_policy)
             WanStateMachineRunning = pWanConfig->Interface_SM_Running;
             wan_policy = pWanConfig->Policy;
             WanPolicyChanged = pWanConfig->PolicyChanged;
-            if(pWanConfig->PolicyChanged)
+            if((pWanConfig->PolicyChanged) && (WanStateMachineRunning == FALSE))
             {
                 pWanConfig->PolicyChanged = FALSE;
+                CcspTraceInfo((" %s %d PolicyChanged reset \n", __FUNCTION__, __LINE__ ));
             }           
 
             WanMgrDml_GetConfigData_release(pWanConfigData);
@@ -138,6 +139,16 @@ ANSC_STATUS WanController_Start_StateMachine(DML_WAN_POLICY swan_policy)
         if(WanPolicyChanged)
         {
             WanController_ResetActiveLinkOnAllIface();
+#ifdef FEATURE_RDKB_WAN_UPSTREAM
+            /* The changes are required only for the policies that are not handling
+             * hardware configurations on its own. It is ineffective if we do not intend
+             * to use those policies.
+             */
+            if(wan_policy != AUTOWAN_MODE)  // Add policy that does not need reset hw configurations.
+            {
+                WanMgr_RdkBus_setEthernetUpstream(TRUE);
+            }
+#endif
         }
 
 #ifdef FEATURE_RDKB_AUTO_PORT_SWITCH
