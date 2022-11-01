@@ -2514,6 +2514,13 @@ static WcBWanPolicyState_t Transition_BackupWanInterfaceInActive(WanMgr_Policy_C
         CcspTraceInfo(("%s %d - State changed to STATE_BACKUP_WAN_WAITING \n", __FUNCTION__, __LINE__));
         return STATE_BACKUP_WAN_WAITING;
     }
+    else
+    {
+        if (!WanMgr_FirewallRuleConfig("deconfigure", pFixedInterface->Wan.Name))
+        {
+            CcspTraceInfo(("%s-%d : Firewall Rules already deconfigured \n",__FUNCTION__, __LINE__));
+        }
+    }
 
     CcspTraceInfo(("%s %d - State changed to STATE_BACKUP_WAN_INTERFACE_INACTIVE \n", __FUNCTION__, __LINE__));
     return STATE_BACKUP_WAN_INTERFACE_INACTIVE;
@@ -2548,6 +2555,13 @@ static WcBWanPolicyState_t Transition_BackupWanInterfaceDown(WanMgr_Policy_Contr
     {
         CcspTraceInfo(("%s %d - State changed to STATE_BACKUP_WAN_WAITING \n", __FUNCTION__, __LINE__));
         return STATE_BACKUP_WAN_WAITING;
+    }
+    else
+    {
+        if (!WanMgr_FirewallRuleConfig("deconfigure", pFixedInterface->Wan.Name))
+        {
+            CcspTraceInfo(("%s-%d : Firewall Rules already deconfigured \n",__FUNCTION__, __LINE__));
+        }
     }
 
     CcspTraceInfo(("%s %d - State changed to STATE_BACKUP_WAN_INTERFACE_DOWN \n", __FUNCTION__, __LINE__));
