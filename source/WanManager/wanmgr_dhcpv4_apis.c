@@ -458,7 +458,9 @@ void* IPCPStateChangeHandler (void *arg)
                          /* We don't receive MTU from PPP so we need to assign default MTU size */
                          pIfaceData->IP.pIpcIpv4Data->mtuAssigned = FALSE;
                          pIfaceData->IP.pIpcIpv4Data->mtuSize = 0;
-
+                        /* we don't receive ntp time offset value from ppp */
+                         pIfaceData->IP.pIpcIpv4Data->isTimeOffsetAssigned = FALSE;
+                         pIfaceData->IP.pIpcIpv4Data->timeOffset = 0;
                          pIfaceData->IP.pIpcIpv4Data->isExpired = FALSE;
                          pIfaceData->IP.pIpcIpv4Data->addressAssigned = TRUE;
                          strncpy (pIfaceData->IP.pIpcIpv4Data->dhcpState, DHCP_STATE_UP, BUFLEN_64);
@@ -532,7 +534,9 @@ void* IPCPStateChangeHandler (void *arg)
                          /* We don't receive MTU from PPP so we need to assign default MTU size */
                          pIfaceData->IP.pIpcIpv4Data->mtuAssigned = FALSE;
                          pIfaceData->IP.pIpcIpv4Data->mtuSize = 0;
-                         
+                         /* we don't receive ntp time offset value from ppp */
+                         pIfaceData->IP.pIpcIpv4Data->isTimeOffsetAssigned = FALSE;
+                         pIfaceData->IP.pIpcIpv4Data->timeOffset = 0;
                          strncpy (pIfaceData->IP.pIpcIpv4Data->dhcpcInterface, dhcpcInterface, sizeof(pIfaceData->IP.pIpcIpv4Data->dhcpcInterface) - 1);
                          strncpy (pIfaceData->IP.pIpcIpv4Data->dhcpState, DHCP_STATE_DOWN, sizeof(pIfaceData->IP.pIpcIpv4Data->dhcpState)-1);
                          pIfaceData->IP.pIpcIpv4Data->addressAssigned = FALSE;
