@@ -473,12 +473,15 @@ static void *WanManagerSyseventHandler(void *args)
     async_id_t mesh_wan_link_status_asyncid;
 #endif /* RDKB_EXTENDER_ENABLED */
 
+
+#if defined (_HUB4_PRODUCT_REQ_)
     sysevent_set_options(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_ULA_ADDRESS, TUPLE_FLAG_EVENT);
     sysevent_setnotification(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_ULA_ADDRESS, &lan_ula_address_event_asyncid);
 
     sysevent_set_options(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_ULA_ENABLE, TUPLE_FLAG_EVENT);
     sysevent_setnotification(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_ULA_ENABLE, &lan_ula_enable_asyncid);
 
+#endif
     sysevent_set_options(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_IPV6_ENABLE, TUPLE_FLAG_EVENT);
     sysevent_setnotification(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_IPV6_ENABLE, &lan_ipv6_enable_asyncid);
 
@@ -541,6 +544,7 @@ static void *WanManagerSyseventHandler(void *args)
             CcspTraceInfo(("%s %d - received notification event %s:%s\n", __FUNCTION__, __LINE__, name, val ));
             if ( strcmp(name, SYSEVENT_ULA_ADDRESS) == 0 )
             {
+		#if defined (_HUB4_PRODUCT_REQ_)
                 datamodel_value = (char *) malloc(sizeof(char) * 256);
                 if(datamodel_value != NULL)
                 {
@@ -564,9 +568,11 @@ static void *WanManagerSyseventHandler(void *args)
                 {
                     CcspTraceError(("%s %d failed set command: %s\n", __FUNCTION__, __LINE__, cmd_str));
                 }
+		#endif
             }
             else if ( strcmp(name, SYSEVENT_ULA_ENABLE) == 0 )
             {
+		#if defined (_HUB4_PRODUCT_REQ_)
                 datamodel_value = (char *) malloc(sizeof(char) * 256);
                 if(datamodel_value != NULL)
                 {
@@ -579,6 +585,7 @@ static void *WanManagerSyseventHandler(void *args)
                     }
                 }
                 free(datamodel_value);
+		#endif
             }
             else if ( strcmp(name, SYSEVENT_IPV6_ENABLE) == 0 )
             {
