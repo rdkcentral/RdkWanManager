@@ -1219,7 +1219,7 @@ static eWanState_t wan_transition_physical_interface_down(WanMgr_IfaceSM_Control
         if (pInterface->IP.Dhcp4cPid > 0)
         {
             CcspTraceInfo(("%s %d: Stopping DHCP v4\n", __FUNCTION__, __LINE__));
-            WanManager_StopDhcpv4Client(pInterface->Wan.Name); // release dhcp lease
+            WanManager_StopDhcpv4Client(pInterface->Wan.Name, TRUE); // release dhcp lease
             pInterface->IP.Dhcp4cPid = 0;
         }
 
@@ -1376,7 +1376,7 @@ static eWanState_t wan_transition_refreshing_wan(WanMgr_IfaceSM_Controller_t* pW
     else if (pInterface->Wan.EnableDHCP == TRUE)
     {
         /* Stops DHCPv4 client */
-        WanManager_StopDhcpv4Client(pInterface->Wan.Name); // release dhcp lease
+        WanManager_StopDhcpv4Client(pInterface->Wan.Name, FALSE); // no release dhcp lease
         pInterface->IP.Dhcp4cPid = 0;
 
         /* Stops DHCPv6 client */
@@ -1526,7 +1526,7 @@ static eWanState_t wan_transition_ipv4_down(WanMgr_IfaceSM_Controller_t* pWanIfa
     {
         // Stopping DHCPv4 client, so we can send a unicast DHCP Release packet
         CcspTraceInfo(("%s %d: Stopping DHCP v4\n", __FUNCTION__, __LINE__));
-        WanManager_StopDhcpv4Client(pInterface->Wan.Name);
+        WanManager_StopDhcpv4Client(pInterface->Wan.Name, TRUE);
         pInterface->IP.Dhcp4cPid = 0;
     }
     else
@@ -1842,7 +1842,7 @@ static eWanState_t wan_transition_mapt_up(WanMgr_IfaceSM_Controller_t* pWanIface
     if (pInterface->IP.Dhcp4cPid > 0)
     {
         /* Stops DHCPv4 client on this interface */
-        WanManager_StopDhcpv4Client(pInterface->Wan.Name);
+        WanManager_StopDhcpv4Client(pInterface->Wan.Name, TRUE);
         pInterface->IP.Dhcp4cPid = 0;
     }
 
@@ -2126,7 +2126,7 @@ static eWanState_t wan_state_obtaining_ip_addresses(WanMgr_IfaceSM_Controller_t*
             if (pInterface->IP.Dhcp4cPid > 0)
             {
                 CcspTraceInfo(("%s %d: Stopping DHCP v4\n", __FUNCTION__, __LINE__));
-                WanManager_StopDhcpv4Client(pInterface->Wan.Name); // release dhcp lease
+                WanManager_StopDhcpv4Client(pInterface->Wan.Name, FALSE); // no release dhcp lease
                 pInterface->IP.Dhcp4cPid = 0;
             }
 

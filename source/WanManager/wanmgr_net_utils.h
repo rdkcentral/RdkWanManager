@@ -87,7 +87,7 @@ uint32_t WanManager_StartDhcpv6Client(char *pcInterfaceName);
 
 /***************************************************************************
  * @brief API used to stop Dhcpv6 client application.
- * @param intf Interface name on which the dhcpv4 needs to start
+ * @param intf Interface name on which the dhcpv4 needs to stop
  * @return ANSC_STATUS_SUCCESS upon success else returned error code.
  ***************************************************************************/
 ANSC_STATUS WanManager_StopDhcpv6Client(char * iface_name);
@@ -102,9 +102,10 @@ uint32_t WanManager_StartDhcpv4Client(char* intf);
 /***************************************************************************
  * @brief API used to stop Dhcpv4 client application.
  * @param pcInterfaceName Interface name for which dhcp v4 app needs to be stopped
+ * @param IsReleaseNeeded whether release required or not during dhcp stop
  * @return ANSC_STATUS_SUCCESS upon success else returned error code.
  ***************************************************************************/
-ANSC_STATUS WanManager_StopDhcpv4Client(char * iface_name);
+ANSC_STATUS WanManager_StopDhcpv4Client(char * iface_name, unsigned char IsReleaseNeeded);
 
 /***************************************************************************
  * @brief API used to restart Dhcpv6 client application.

@@ -458,7 +458,7 @@ uint32_t WanManager_StartDhcpv4Client(char * iface_name)
     return pid;
 }
 
-ANSC_STATUS WanManager_StopDhcpv4Client(char * iface_name)
+ANSC_STATUS WanManager_StopDhcpv4Client(char * iface_name, unsigned char IsReleaseNeeded)
 {
     if (iface_name == NULL)
     {
@@ -473,6 +473,7 @@ ANSC_STATUS WanManager_StopDhcpv4Client(char * iface_name)
 
     memset (&params, 0, sizeof(dhcp_params));
     params.ifname = iface_name;
+    params.is_release_required = IsReleaseNeeded;
 
     ret = stop_dhcpv4_client(&params);
 

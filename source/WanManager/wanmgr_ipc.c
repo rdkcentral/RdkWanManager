@@ -246,7 +246,7 @@ static ANSC_STATUS Wan_StopDhcpIPv4(char *ifName)
 {
 
     /* Kill DHCPv4 client */
-    if (WanManager_StopDhcpv4Client(TRUE) != ANSC_STATUS_SUCCESS)
+    if (WanManager_StopDhcpv4Client(ifName,TRUE) != ANSC_STATUS_SUCCESS)
     {
         CcspTraceInfo(("Failed to kill DHCPv4 Client \n"));
     }
