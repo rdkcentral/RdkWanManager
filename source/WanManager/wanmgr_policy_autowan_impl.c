@@ -124,6 +124,8 @@ typedef  struct _WANMGR_BACKUPWAN_SMINFO_
 }WanMgr_BackupWan_SMInfo_t;
 
 struct timespec RestorationDelayTimer;    // timer to delay switching of LOCAL interface once it comes up
+
+bool bRestorationDelayTimerStart = FALSE;
 UINT RestorationDelayTimeout = 0;       // value in seconds to wait before we make LOCAL interface ACTIVE
 
 
@@ -3350,7 +3352,7 @@ static WcBWanPolicyState_t State_BackupWanInterfaceUp(WanMgr_Policy_Controller_t
 static WcBWanPolicyState_t State_BackupWanInterfaceActive(WanMgr_Policy_Controller_t* pWanController)
 {
     DML_WAN_IFACE* pFixedInterface = NULL;
-    static bool bRestorationDelayTimerStart = FALSE;
+
 
     if((pWanController != NULL) && (pWanController->pWanActiveIfaceData != NULL))
     {
@@ -3532,7 +3534,10 @@ ANSC_STATUS Wanmgr_BackupWan_StateMachineThread(void *arg)
         {
             WanPolicyCtrl.WanEnable = pWanConfigData->data.Enable;
             WanPolicyCtrl.AllowRemoteInterfaces = pWanConfigData->data.AllowRemoteInterfaces;
-            RestorationDelayTimeout = pWanConfigData->data.RestorationDelay;
+            if (bRestorationDelayTimerStart == FALSE)
+            {
+                RestorationDelayTimeout = pWanConfigData->data.RestorationDelay;
+            }
             WanMgrDml_GetConfigData_release(pWanConfigData);
         }
 
