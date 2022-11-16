@@ -904,13 +904,13 @@ static INT StartWanClients(WanMgr_AutoWan_SMInfo_t *pSmInfo)
 
 #if defined(INTEL_PUMA7)
     memset(out_value, 0, sizeof(out_value));
-    if (!syscfg_get(NULL, "UDHCPEnable", out_value, sizeof(out_value)))
+    if (!syscfg_get(NULL, "UDHCPEnable_v2", out_value, sizeof(out_value)))
     {
        snprintf(udhcpcEnable, sizeof(udhcpcEnable), "%s", out_value);
     }
 
     memset(out_value, 0, sizeof(out_value));
-    if (!syscfg_get(NULL, "dibbler_client_enable", out_value, sizeof(out_value)))
+    if (!syscfg_get(NULL, "dibbler_client_enable_v2", out_value, sizeof(out_value)))
     {
        snprintf(dibblerClientEnable, sizeof(dibblerClientEnable), "%s", out_value);
     }
@@ -941,7 +941,7 @@ static INT StartWanClients(WanMgr_AutoWan_SMInfo_t *pSmInfo)
                         }
 #endif
 #if defined(INTEL_PUMA7)
-                        if(0 == strncmp(udhcpcEnable, "yes", sizeof(udhcpcEnable)))
+                        if(0 == strncmp(udhcpcEnable, "true", 4))
                         {
 #endif
                             v_secure_system("killall udhcpc");
@@ -1012,7 +1012,7 @@ static INT StartWanClients(WanMgr_AutoWan_SMInfo_t *pSmInfo)
                         wanmgr_setwanstop();
                         v_secure_system("killall udhcpc");
 #if defined(INTEL_PUMA7)
-                        if(0 == strncmp(udhcpcEnable, "yes", sizeof(udhcpcEnable)))
+                        if(0 == strncmp(udhcpcEnable, "true", 4))
                         {
                             v_secure_system("killall udhcpc");
                         }
@@ -1041,7 +1041,7 @@ static INT StartWanClients(WanMgr_AutoWan_SMInfo_t *pSmInfo)
                         CcspTraceWarning(("%s : Failure in executing command via v_secure_system. ret:[%d] \n",__FUNCTION__, ret));
                     }
 #if defined(INTEL_PUMA7)
-                    if(0 == strncmp(udhcpcEnable, "yes", sizeof(udhcpcEnable)))
+                    if(0 == strncmp(udhcpcEnable, "true", 4))
                     {
                         v_secure_system("killall udhcpc");
                         ret = v_secure_system("/sbin/udhcpc -i %s -p /tmp/udhcpc.erouter0.pid -s /etc/udhcpc.script &",pFixedInterface->Wan.Name);
