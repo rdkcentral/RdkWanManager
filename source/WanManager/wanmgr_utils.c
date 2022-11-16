@@ -1011,6 +1011,8 @@ int WanMgr_SetRestartWanInfo (const char * param, int idx, char * value)
     if (tmp_fp == NULL)
     {
         CcspTraceError(("%s %d: unable to open file %s", __FUNCTION__, __LINE__, strerror(errno)));
+        if(orig_fp)
+            fclose(orig_fp);
         return ANSC_STATUS_FAILURE;
     }
 
