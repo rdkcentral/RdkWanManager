@@ -2280,15 +2280,14 @@ static INT IsIPObtained(char *pInterfaceName)
     fp = v_secure_popen("r","ip addr show %s |grep -i 'inet ' |awk '{print $2}' |cut -f2 -d:", pInterfaceName);
     if (fp == NULL)
     {
-        printf("<%s>:<%d> Error popen\n", __FUNCTION__, __LINE__);
-
+        CcspTraceError(("%s-%d : Error popen\n", __FUNCTION__, __LINE__));
     }
     else
     {
         /* Read the output a line at a time - output it. */
         if (fgets(buff, 50, fp) != NULL)
         {
-            printf("IP :%s", buff);
+            CcspTraceInfo(("%s-%d : assigned IP(%s), On Interface(%s) \n", __FUNCTION__, __LINE__, buff, pInterfaceName));
         }
         /* close */
         pclose_ret = v_secure_pclose(fp);
@@ -2313,14 +2312,14 @@ static INT IsIPObtained(char *pInterfaceName)
     fp = v_secure_popen("r","ip addr show %s |grep -i 'inet6 ' |grep -i 'Global' |awk '{print $2}'", pInterfaceName);
     if (fp == NULL)
     {
-       printf("<%s>:<%d> Error popen\n", __FUNCTION__, __LINE__);
+        CcspTraceError(("%s-%d : Error popen\n", __FUNCTION__, __LINE__));
     }
     else
     {
         /* Read the output a line at a time - output it. */
         if (fgets(buff, 50, fp) != NULL)
         {
-            printf("IP :%s", buff);
+            CcspTraceInfo(("%s-%d : assigned IP(%s), On Interface(%s) \n", __FUNCTION__, __LINE__, buff, pInterfaceName));
         }
         /* close */
         pclose_ret = v_secure_pclose(fp);
@@ -2380,6 +2379,7 @@ void* ThreadWanMgr_MonitorAndUpdateIpStatus( void *arg )
             {
                 pFixedInterface->IP.Ipv6Status = WAN_IFACE_IPV6_STATE_UP;
             }
+            CcspTraceInfo(("%s-%d : IP Monitor Successful, Interface(%s) \n", __FUNCTION__, __LINE__, pFixedInterface->Wan.Name));
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
             break;
         }
@@ -2387,6 +2387,7 @@ void* ThreadWanMgr_MonitorAndUpdateIpStatus( void *arg )
         {
             pFixedInterface->IP.Ipv4Status = WAN_IFACE_IPV4_STATE_DOWN;
             pFixedInterface->IP.Ipv6Status = WAN_IFACE_IPV6_STATE_DOWN;
+            CcspTraceWarning(("%s-%d : IP Monitor timer expire, Interface(%s) \n", __FUNCTION__, __LINE__, pFixedInterface->Wan.Name));
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
             break;
         }

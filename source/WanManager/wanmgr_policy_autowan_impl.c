@@ -32,6 +32,9 @@
 #include <time.h>
 #include <pthread.h>
 #include "secure_wrapper.h"
+#ifdef ENABLE_FEATURE_TELEMETRY2_0
+#include <telemetry_busmessage_sender.h>
+#endif
 
 /* ---- Global Constants -------------------------- */
 #define LOOP_TIMEOUT 500000 // timeout in milliseconds. This is the state machine loop interval
@@ -128,6 +131,16 @@ struct timespec RestorationDelayTimer;    // timer to delay switching of LOCAL i
 bool bRestorationDelayTimerStart = FALSE;
 UINT RestorationDelayTimeout = 0;       // value in seconds to wait before we make LOCAL interface ACTIVE
 
+typedef enum {
+    STATUS_SWITCHOVER_UNKNOWN,
+    STATUS_SWITCHOVER_STOPED,
+    STATUS_SWITCHOVER_STARTED,
+    STATUS_SWITCHOVER_FAILED,
+    STATUS_SWITCHOVER_SUCCESS
+} SwitchOver_t;
+
+static SwitchOver_t TelemetryRestoreStatus = STATUS_SWITCHOVER_UNKNOWN;
+static SwitchOver_t TelemetryBackUpStatus = STATUS_SWITCHOVER_UNKNOWN;
 
 #endif /* WAN_FAILOVER_SUPPORTED */
 
@@ -138,7 +151,7 @@ int g_SelectedWanMode       = 0;
 
 static pthread_t  gBackupWanThread;
 #ifdef WAN_FAILOVER_SUPPORTED
-static int WanMgr_Policy_CheckAndStartUDHCPClientOverWanInterface(WanMgr_Policy_Controller_t* pWanController, WanStarCallSource_t enCallSource, char* pidfile, char* script);
+static int WanMgr_Policy_CheckAndStartUDHCPClientOverWanInterface(char *IfaceName, WanStarCallSource_t enCallSource, char* pidfile, char* script);
 static int WanMgr_Policy_CheckAndStopUDHCPClientOverWanInterface(char *ifname, char *pidfile);
 #endif
 /* STATES */
@@ -154,6 +167,9 @@ static WcFmobPolicyState_t Transition_FixedWanInterfaceDown(WanMgr_Policy_Contro
 #ifdef WAN_FAILOVER_SUPPORTED
 static WcFmobPolicyState_t Transition_FixedWanInterfaceValidating(WanMgr_Policy_Controller_t* pWanController);
 static WcFmobPolicyState_t State_FixedWanInterfaceValidated(WanMgr_Policy_Controller_t* pWanController);
+
+static WcFmobPolicyState_t Transition_FixedWanInterfaceActive(WanMgr_Policy_Controller_t* pWanController);
+static WcFmobPolicyState_t State_FixedWanInterfaceActive(WanMgr_Policy_Controller_t* pWanController);
 #endif
 /* STATES */
 static WcFmobPolicyState_t State_WaitingForInterface(WanMgr_AutoWan_SMInfo_t *pSmInfo);
@@ -538,6 +554,10 @@ static WcFmobPolicyState_t Transition_FixedWanInterfaceDown(WanMgr_Policy_Contro
     // wan stop
     wanmgr_setwanstop();
 
+    //Trigger switch over from primary to backup.
+#ifdef WAN_FAILOVER_SUPPORTED
+    TelemetryBackUpStatus = STATUS_SWITCHOVER_STARTED;
+#endif
     // We are setting accept_ra to 0 to stop router advertise accept on erouter0 and to stop changing
     // default route on eroter0 interface when backup is active and validating Primary Interface link.
     WanMgr_disable_ra(pFixedInterface->Wan.Name);
@@ -602,7 +622,7 @@ static WcFmobPolicyState_t Transition_FixedWanInterfaceValidating(WanMgr_Policy_
     }
 
     //Check if there is any IP leases is getting or not over Backup WAN
-    if( 0 == WanMgr_Policy_CheckAndStartUDHCPClientOverWanInterface( pWanController, WAN_START_FOR_VALIDATION, PRIMARY_WAN_DHCPC_PID_FILE, BACKUP_WAN_DHCPC_SRC_RAMDOM_FILE ) )
+    if( 0 == WanMgr_Policy_CheckAndStartUDHCPClientOverWanInterface( pFixedInterface->Wan.Name, WAN_START_FOR_VALIDATION, PRIMARY_WAN_DHCPC_PID_FILE, BACKUP_WAN_DHCPC_SRC_RAMDOM_FILE ) )
     {
         CcspTraceInfo(("%s %d - State changed to STATE_AUTOWAN_VALIDATED_INTERFACE \n", __FUNCTION__, __LINE__));
         pFixedInterface->SelectionStatus = WAN_IFACE_SELECTED;
@@ -633,7 +653,8 @@ static WcFmobPolicyState_t State_FixedWanInterfaceValidated(WanMgr_Policy_Contro
         return Transition_WanInterfaceTearDown(pWanController);
     }
 
-    if (pFixedInterface->Phy.Status == WAN_IFACE_PHY_STATUS_DOWN)
+    if ((pFixedInterface->Phy.Status == WAN_IFACE_PHY_STATUS_DOWN) ||
+        (pFixedInterface->SelectionStatus == WAN_IFACE_NOT_SELECTED))
     {
         return Transition_FixedWanInterfaceDown(pWanController);
     }
@@ -641,9 +662,16 @@ static WcFmobPolicyState_t State_FixedWanInterfaceValidated(WanMgr_Policy_Contro
     if (isAnyRemoteInterfaceActive() == 0)
     {
         CcspTraceInfo(("%s %d - Remote Interface Down \n", __FUNCTION__, __LINE__));
+         TelemetryRestoreStatus = STATUS_SWITCHOVER_STARTED;
         retState = Transition_FixedWanInterfaceUp(pWanController);
     }
     return retState;
+}
+
+static WcFmobPolicyState_t Transition_FixedWanInterfaceActive(WanMgr_Policy_Controller_t* pWanController)
+{
+    CcspTraceInfo(("%s %d - State changed to STATE_WAN_INTERFACE_ACTIVE \n", __FUNCTION__, __LINE__));
+    return STATE_WAN_INTERFACE_ACTIVE;
 }
 #endif
 /*********************************************************************************/
@@ -693,6 +721,7 @@ static WcFmobPolicyState_t State_FixedWanInterfaceDown(WanMgr_Policy_Controller_
         pFixedInterface->Wan.Status == WAN_IFACE_STATUS_DISABLED)
     {
 #ifdef WAN_FAILOVER_SUPPORTED
+        TelemetryBackUpStatus = STATUS_SWITCHOVER_STOPED;
         if (isAnyRemoteInterfaceActive() == 1)
         {
             int ret = 0;
@@ -719,6 +748,7 @@ static WcFmobPolicyState_t State_FixedWanInterfaceDown(WanMgr_Policy_Controller_
 
 static WcFmobPolicyState_t State_FixedWanInterfaceUp(WanMgr_Policy_Controller_t* pWanController)
 {
+    WcFmobPolicyState_t retState = STATE_WAN_INTERFACE_UP;
     DML_WAN_IFACE* pFixedInterface = NULL;
 
     if((pWanController != NULL) && (pWanController->pWanActiveIfaceData != NULL))
@@ -741,9 +771,53 @@ static WcFmobPolicyState_t State_FixedWanInterfaceUp(WanMgr_Policy_Controller_t*
         return Transition_FixedWanInterfaceDown(pWanController);
     }
 
-    return STATE_WAN_INTERFACE_UP;
+#ifdef WAN_FAILOVER_SUPPORTED
+    if(wanmgr_isWanStarted() == 1)
+    {
+        if (TelemetryRestoreStatus == STATUS_SWITCHOVER_STARTED ||
+            TelemetryRestoreStatus == STATUS_SWITCHOVER_FAILED)
+        {
+            TelemetryRestoreStatus = STATUS_SWITCHOVER_SUCCESS;
+            CcspTraceInfo(("%s-%d : Telemetry Event Trigger : WAN_RESTORE_SUCCESS_COUNT \n", __FUNCTION__, __LINE__));
+#ifdef ENABLE_FEATURE_TELEMETRY2_0
+            t2_event_d("WAN_RESTORE_SUCCESS_COUNT", 1);
+#endif
+        }
+        retState = Transition_FixedWanInterfaceActive(pWanController);
+    }
+#endif
+
+    return retState;
 }
 
+#ifdef WAN_FAILOVER_SUPPORTED
+static WcFmobPolicyState_t State_FixedWanInterfaceActive(WanMgr_Policy_Controller_t* pWanController)
+{
+    DML_WAN_IFACE* pFixedInterface = NULL;
+
+    if((pWanController != NULL) && (pWanController->pWanActiveIfaceData != NULL))
+    {
+        pFixedInterface = &(pWanController->pWanActiveIfaceData->data);
+    }
+
+    if(pFixedInterface == NULL)
+    {
+        return STATE_WAN_INTERFACE_DOWN;
+    }
+
+    if (pWanController->WanEnable == FALSE)
+    {
+        return Transition_WanInterfaceTearDown(pWanController);
+    }
+
+    if(pFixedInterface->Phy.Status == WAN_IFACE_PHY_STATUS_DOWN)
+    {
+        return Transition_FixedWanInterfaceDown(pWanController);
+    }
+
+    return STATE_WAN_INTERFACE_ACTIVE;
+}
+#endif
 
 static INT StartWanClients(WanMgr_AutoWan_SMInfo_t *pSmInfo)
 {
@@ -1000,21 +1074,15 @@ static int WanMgr_Policy_CheckAndStopUDHCPClientOverWanInterface(char *ifname, c
     }
 }
 
-static int WanMgr_Policy_CheckAndStartUDHCPClientOverWanInterface(WanMgr_Policy_Controller_t* pWanController, WanStarCallSource_t enCallSource, char* pidfile, char* script)
+static int WanMgr_Policy_CheckAndStartUDHCPClientOverWanInterface(char *IfaceName, WanStarCallSource_t enCallSource, char* pidfile, char* script)
 {
     int iPIDofBackupWAN = -1;
     unsigned char bPIDFileAvailable   = FALSE,
                   bDHCPRunningAlready = FALSE;
-    DML_WAN_IFACE* pFixedInterface = NULL;
     char command[256] = {0},
          logPrefixString[256] = {0};
 
-    if((pWanController != NULL) && (pWanController->pWanActiveIfaceData != NULL))
-    {
-        pFixedInterface = &(pWanController->pWanActiveIfaceData->data);
-    }
-
-    if(pFixedInterface == NULL)
+    if( (strlen(IfaceName) <= 0) || (IfaceName[0] == '\0') )
     {
         return -1;
     }
@@ -1030,13 +1098,13 @@ static int WanMgr_Policy_CheckAndStartUDHCPClientOverWanInterface(WanMgr_Policy_
     }
 
     //Cleanup - Stop UDHCPC client before start another instance
-    WanMgr_Policy_CheckAndStopUDHCPClientOverWanInterface(pFixedInterface->Wan.Name, pidfile);
+    WanMgr_Policy_CheckAndStopUDHCPClientOverWanInterface(IfaceName, pidfile);
 
-    CcspTraceInfo(("%s-%d : %s : Starting udhcpc client locally for '%s' interface\n",__FUNCTION__, __LINE__, logPrefixString,pFixedInterface->Wan.Name));
+    CcspTraceInfo(("%s-%d : %s : Starting udhcpc client locally for '%s' interface\n",__FUNCTION__, __LINE__, logPrefixString, IfaceName));
 
     /* To start local udhcpc server over interface to check whether it is getting leases or not */
     memset(command, 0, sizeof(command));
-    snprintf(command, sizeof(command), "/sbin/udhcpc -t 5 -n -O 125 -i %s -p %s -s %s",pFixedInterface->Wan.Name, pidfile, script);
+    snprintf(command, sizeof(command), "/sbin/udhcpc -t 5 -n -O 125 -i %s -p %s -s %s", IfaceName, pidfile, script);
     WanManager_DoSystemAction("StartingUDHCPCviaWAN:", command);
 
     CcspTraceInfo(("%s-%d : %s WAN: Cmd Str[%s]\n",__FUNCTION__, __LINE__, logPrefixString,command));
@@ -1049,14 +1117,14 @@ static int WanMgr_Policy_CheckAndStartUDHCPClientOverWanInterface(WanMgr_Policy_
     }
     else
     {
-        CcspTraceInfo(("%s-%d : %s WAN interface '%s' got leases\n", __FUNCTION__, __LINE__, logPrefixString,pFixedInterface->Wan.Name));
+        CcspTraceInfo(("%s-%d : %s WAN interface '%s' got leases\n", __FUNCTION__, __LINE__, logPrefixString, IfaceName));
     }
 
     //Stop UDHCPC process after starting WAN
     if( WAN_START_FOR_VALIDATION == enCallSource )
     {
         //Cleanup - Stop UDHCPC local client after start checking
-        WanMgr_Policy_CheckAndStopUDHCPClientOverWanInterface(pFixedInterface->Wan.Name, pidfile);
+        WanMgr_Policy_CheckAndStopUDHCPClientOverWanInterface(IfaceName, pidfile);
     }
 
     return 0;
@@ -1492,7 +1560,7 @@ static WcFmobPolicyState_t Transition_AutoWanInterfaceValidating(WanMgr_Policy_C
     }
 
     //Check if there is any IP leases is getting or not over Backup WAN
-    if( 0 == WanMgr_Policy_CheckAndStartUDHCPClientOverWanInterface( pWanController, WAN_START_FOR_VALIDATION, PRIMARY_WAN_DHCPC_PID_FILE, BACKUP_WAN_DHCPC_SRC_RAMDOM_FILE ) )
+    if( 0 == WanMgr_Policy_CheckAndStartUDHCPClientOverWanInterface( pFixedInterface->Wan.Name, WAN_START_FOR_VALIDATION, PRIMARY_WAN_DHCPC_PID_FILE, BACKUP_WAN_DHCPC_SRC_RAMDOM_FILE ) )
     {
         CcspTraceInfo(("%s %d - State changed to STATE_AUTOWAN_VALIDATED_INTERFACE \n", __FUNCTION__, __LINE__));
         pFixedInterface->SelectionStatus = WAN_IFACE_SELECTED;
@@ -1529,17 +1597,19 @@ static WcFmobPolicyState_t State_AutoWanInterfaceValidated(WanMgr_AutoWan_SMInfo
         return Transition_WanInterfaceTearDown(pWanController);
     }
 
-    if (pFixedInterface->Phy.Status == WAN_IFACE_PHY_STATUS_DOWN)
+    if ((pFixedInterface->Phy.Status == WAN_IFACE_PHY_STATUS_DOWN) ||
+        (pFixedInterface->SelectionStatus == WAN_IFACE_NOT_SELECTED) )
     {
         pFixedInterface->Wan.Status = WAN_IFACE_STATUS_DISABLED;
         pFixedInterface->SelectionStatus = WAN_IFACE_NOT_SELECTED;
-	Update_Interface_Status();
+        Update_Interface_Status();
         return STATE_WAN_INTERFACE_DOWN;
     }
 
     if (isAnyRemoteInterfaceActive() == 0)
     {
         CcspTraceInfo(("%s %d - Remote Down \n", __FUNCTION__, __LINE__));
+        TelemetryRestoreStatus = STATUS_SWITCHOVER_STARTED;
         retState = Transition_WanInterfacePhyUp(pSmInfo);
     }
     return retState;
@@ -1568,7 +1638,7 @@ static WcFmobPolicyState_t Transition_WanInterfaceValidating(WanMgr_Policy_Contr
     }
 
     //Check if there is any IP leases is getting or not over Backup WAN
-    if( 0 == WanMgr_Policy_CheckAndStartUDHCPClientOverWanInterface( pWanController, WAN_START_FOR_VALIDATION, PRIMARY_WAN_DHCPC_PID_FILE, BACKUP_WAN_DHCPC_SRC_RAMDOM_FILE ) )
+    if( 0 == WanMgr_Policy_CheckAndStartUDHCPClientOverWanInterface( pFixedInterface->Wan.Name, WAN_START_FOR_VALIDATION, PRIMARY_WAN_DHCPC_PID_FILE, BACKUP_WAN_DHCPC_SRC_RAMDOM_FILE ) )
     {
         CcspTraceInfo(("%s %d - State changed to STATE_WAN_VALIDATED_INTERFACE \n", __FUNCTION__, __LINE__));
         pFixedInterface->SelectionStatus = WAN_IFACE_SELECTED;
@@ -1605,7 +1675,8 @@ static WcFmobPolicyState_t State_WanInterfaceValidated(WanMgr_AutoWan_SMInfo_t *
         return Transition_WanInterfaceTearDown(pWanController);
     }
 
-    if (pFixedInterface->Phy.Status == WAN_IFACE_PHY_STATUS_DOWN)
+    if ((pFixedInterface->Phy.Status == WAN_IFACE_PHY_STATUS_DOWN) ||
+        (pFixedInterface->SelectionStatus == WAN_IFACE_NOT_SELECTED) )
     {
         pFixedInterface->Wan.Status = WAN_IFACE_STATUS_DISABLED;
         pFixedInterface->SelectionStatus = WAN_IFACE_NOT_SELECTED;
@@ -1617,6 +1688,8 @@ static WcFmobPolicyState_t State_WanInterfaceValidated(WanMgr_AutoWan_SMInfo_t *
     {
         wanmgr_setwanstart();
         wanmgr_sshd_restart();
+
+        TelemetryRestoreStatus = STATUS_SWITCHOVER_STARTED;
 
         retState = STATE_WAN_INTERFACE_UP;
         CcspTraceInfo(("%s %d - Remote Interface Down \n", __FUNCTION__, __LINE__));
@@ -1831,6 +1904,9 @@ static ANSC_STATUS Wanmgr_WanFixedMode_StartStateMachine(void)
             case STATE_WAN_VALIDATED_INTERFACE:
                 fmob_sm_state = State_FixedWanInterfaceValidated(&WanPolicyCtrl);
                 break;
+            case STATE_WAN_INTERFACE_ACTIVE:
+                fmob_sm_state = State_FixedWanInterfaceActive(&WanPolicyCtrl);
+                break;
 #endif
             case STATE_WAN_EXIT:
                 bRunning = false;
@@ -2012,6 +2088,16 @@ static WcFmobPolicyState_t State_WanScanningInterface(WanMgr_AutoWan_SMInfo_t *p
             break;
             case WAN_OPERSTATUS_NOT_OPERATIONAL:
             {
+#ifdef WAN_FAILOVER_SUPPORTED
+                 if (TelemetryRestoreStatus == STATUS_SWITCHOVER_STARTED)
+                 {
+                     TelemetryRestoreStatus = STATUS_SWITCHOVER_FAILED;
+                     CcspTraceInfo(("%s-%d : Telemetry Event Trigger : WAN_RESTORE_FAIL_COUNT \n", __FUNCTION__, __LINE__));
+#ifdef ENABLE_FEATURE_TELEMETRY2_0
+                     t2_event_d("WAN_RESTORE_FAIL_COUNT", 1);
+#endif
+                 }
+#endif
                  retState = STATE_WAN_DECONFIGURING_INTERFACE;
             }
             break;
@@ -2029,12 +2115,33 @@ static WcFmobPolicyState_t State_WanScanningInterface(WanMgr_AutoWan_SMInfo_t *p
         else if ((pFixedInterface->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_DOWN)
                     && (pFixedInterface->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_DOWN))
         {
+#ifdef WAN_FAILOVER_SUPPORTED
+            if (TelemetryRestoreStatus == STATUS_SWITCHOVER_STARTED)
+            {
+                TelemetryRestoreStatus = STATUS_SWITCHOVER_FAILED;
+                CcspTraceInfo(("%s-%d : Telemetry Event Trigger : WAN_RESTORE_FAIL_COUNT \n", __FUNCTION__, __LINE__));
+#ifdef ENABLE_FEATURE_TELEMETRY2_0
+                t2_event_d("WAN_RESTORE_FAIL_COUNT", 1);
+#endif
+            }
+#endif
             retState = STATE_WAN_DECONFIGURING_INTERFACE;
         }
     }
 
     if (wanActive == true)
     {
+#ifdef WAN_FAILOVER_SUPPORTED
+        if (TelemetryRestoreStatus == STATUS_SWITCHOVER_STARTED ||
+            TelemetryRestoreStatus == STATUS_SWITCHOVER_FAILED)
+        {
+            TelemetryRestoreStatus = STATUS_SWITCHOVER_SUCCESS;
+            CcspTraceInfo(("%s-%d : Telemetry Event Trigger : WAN_RESTORE_SUCCESS_COUNT \n", __FUNCTION__, __LINE__));
+#ifdef ENABLE_FEATURE_TELEMETRY2_0
+            t2_event_d("WAN_RESTORE_SUCCESS_COUNT", 1);
+#endif
+        }
+#endif
         WanMgr_Policy_AutoWan_CfgPostWanSelection(pSmInfo);
         retState = Transition_WanInterfaceActive(pSmInfo);
     }
@@ -2076,6 +2183,10 @@ static WcFmobPolicyState_t State_WanInterfaceActive(WanMgr_AutoWan_SMInfo_t *pSm
 	// wan stop
         wanmgr_setwanstop();
 
+       //Trigger switch over from primary to backup.
+#ifdef WAN_FAILOVER_SUPPORTED
+       TelemetryBackUpStatus = STATUS_SWITCHOVER_STARTED;
+#endif
         // We are setting accept_ra to 0 to stop router advertise accept on erouter0 and to stop changing
         // default route on eroter0 interface when backup is active and validating Primary Interface link.
         WanMgr_disable_ra(pFixedInterface->Wan.Name);
@@ -2112,8 +2223,20 @@ static WcFmobPolicyState_t State_WanInterfaceUp(WanMgr_AutoWan_SMInfo_t *pSmInfo
     {
         return Transition_WanInterfaceTearDown(pWanController);
     }
+
     if(wanmgr_isWanStarted() == 1)
     {
+#ifdef WAN_FAILOVER_SUPPORTED
+        if (TelemetryRestoreStatus == STATUS_SWITCHOVER_STARTED ||
+            TelemetryRestoreStatus == STATUS_SWITCHOVER_FAILED)
+        {
+            TelemetryRestoreStatus = STATUS_SWITCHOVER_SUCCESS;
+            CcspTraceInfo(("%s-%d : Telemetry Event Trigger : WAN_RESTORE_SUCCESS_COUNT \n", __FUNCTION__, __LINE__));
+#ifdef ENABLE_FEATURE_TELEMETRY2_0
+            t2_event_d("WAN_RESTORE_SUCCESS_COUNT", 1);
+#endif
+        }
+#endif
         retState = Transition_WanInterfaceActive(pSmInfo);
     }
     return retState;
@@ -2149,6 +2272,7 @@ static WcFmobPolicyState_t State_WanInterfaceDown(WanMgr_AutoWan_SMInfo_t *pSmIn
             (pFixedInterface->Phy.Status == WAN_IFACE_PHY_STATUS_UP))
     {
 #ifdef WAN_FAILOVER_SUPPORTED
+        TelemetryBackUpStatus = STATUS_SWITCHOVER_STOPED;
         if (isAnyRemoteInterfaceActive() == 1)
         {
             int ret = 0;
@@ -2178,7 +2302,6 @@ static WcFmobPolicyState_t State_WanInterfaceDown(WanMgr_AutoWan_SMInfo_t *pSmIn
     }
     return retState;
 }
-
 
 static WcFmobPolicyState_t State_WaitingForInterface(WanMgr_AutoWan_SMInfo_t *pSmInfo)
 {
@@ -2219,6 +2342,7 @@ static WcFmobPolicyState_t State_WaitingForInterface(WanMgr_AutoWan_SMInfo_t *pS
                 else
                 {
 #ifdef WAN_FAILOVER_SUPPORTED
+                    TelemetryBackUpStatus = STATUS_SWITCHOVER_STOPED;
                     if (isAnyRemoteInterfaceActive() == 1)
                     {
 
@@ -2555,7 +2679,7 @@ static bool WanMgr_FirewallRuleConfig(char *Action, char *IfaceName)
 {
     char command[BUFLEN_128]={0};
     char name[BUFLEN_64] = {0};
-    bool ret = false;
+    bool ret = true;
     bool setRules = false;
 
     /* If Action is deconfigure
@@ -2585,9 +2709,12 @@ static bool WanMgr_FirewallRuleConfig(char *Action, char *IfaceName)
     if (setRules)
     {
         snprintf(command, sizeof(command), "sh %s %s",BACKUP_WAN_DHCPC_SOURCE_FILE, Action);
-        WanManager_DoSystemAction("TearDownBackupWAN:", command);
-
-        CcspTraceInfo(("%s Cmd Str[%s]\n",__FUNCTION__,command));
+        if (RETURN_OK != WanManager_DoSystemActionWithStatus("TearDownBackupWAN:", command))
+        {
+            CcspTraceError(("%s-%d : execution Failed for cmd [%s] \n",__FUNCTION__, __LINE__, command));
+            ret = false;
+        }
+        CcspTraceInfo(("%s-%d : Cmd Str[%s]\n",__FUNCTION__, __LINE__, command));
         wanmgr_firewall_restart();
         ret = true;
     }
@@ -2637,96 +2764,51 @@ static int WanMgr_Policy_BackupWan_GetCurrentBackupWanInterfaceIndex( WanMgr_Pol
     return -1;
 }
 
-static int WanMgr_Policy_BackupWan_CheckAndStopUDHCPClientOverBackupWanInterface(char *ifname)
+static int WanMgr_Policy_PrimaryWan_ReTriggerValidation(void)
 {
-    if (access(BACKUP_WAN_DHCPC_PID_FILE, F_OK) == 0)
+    int ret = 0;
+    INT  uiWanIdx      = 0;
+    UINT uiTotalIfaces = -1;
+
+    //Get uiTotalIfaces
+    uiTotalIfaces = WanMgr_IfaceData_GetTotalWanIface();
+
+    if(uiTotalIfaces > 0)
     {
-        char cmd[128] = {0},
-             output[16] = {0};
-        int iPIDofBackupWAN = -1;
-
-        snprintf(cmd, sizeof(cmd), "cat %s", BACKUP_WAN_DHCPC_PID_FILE);
-        WanManager_Util_GetShell_output(cmd, output, sizeof(output));
-
-        if( '\0' != output[0] )
+        // Check the policy to determine if any primary interface should be used for WAN
+        for(uiWanIdx = 0; uiWanIdx < uiTotalIfaces; ++uiWanIdx )
         {
-            iPIDofBackupWAN = atoi(output);
-
-            if ( iPIDofBackupWAN > 0 )
+            WanMgr_Iface_Data_t*   pWanDmlIfaceData = WanMgr_GetIfaceData_locked(uiWanIdx);
+            if(pWanDmlIfaceData != NULL)
             {
-                CcspTraceInfo(("%s: DHCP client has already running as PID %d\n",__FUNCTION__,iPIDofBackupWAN));
-                kill(iPIDofBackupWAN, SIGKILL);
-                CcspTraceInfo(("%s: Stopped local udhcpc client for '%s' interface\n",__FUNCTION__,ifname));
+                DML_WAN_IFACE* pInterface = NULL;
+
+                pInterface = &(pWanDmlIfaceData->data);
+                if(pInterface == NULL)
+                {
+                    WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+                    return -1;
+                }
+
+                /* Needs to determine any local interface is physically active or not */
+                if( ( LOCAL_IFACE == pInterface->Wan.IfaceType ) &&
+                    ( TRUE == pInterface->Wan.Enable ) && 
+		    (WAN_IFACE_PHY_STATUS_UP == pInterface->Phy.Status) )
+                {
+                    if( -1 == WanMgr_Policy_CheckAndStartUDHCPClientOverWanInterface( pInterface->Wan.Name, WAN_START_FOR_VALIDATION, PRIMARY_WAN_DHCPC_PID_FILE, BACKUP_WAN_DHCPC_SRC_RAMDOM_FILE ) )
+                    {
+                        CcspTraceWarning(("%s %d - Failed to Validate IP on Interface(%s) \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
+                        pInterface->SelectionStatus = WAN_IFACE_NOT_SELECTED;
+                        ret = -1;
+                    }
+                    WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+                    return ret;
+                }
+                WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
             }
         }
-
-        unlink(BACKUP_WAN_DHCPC_PID_FILE);
     }
-}
-
-static int WanMgr_Policy_BackupWan_CheckAndStartUDHCPClientOverBackupWanInterface(WanMgr_Policy_Controller_t* pWanController, WanStarCallSource_t enCallSource)
-{
-    int iPIDofBackupWAN = -1;
-    unsigned char bPIDFileAvailable   = FALSE,
-                  bDHCPRunningAlready = FALSE;
-    DML_WAN_IFACE* pFixedInterface = NULL;
-    char command[256] = {0},
-         logPrefixString[256] = {0},
-         udhcpcString[64] = {0};
-
-    if((pWanController != NULL) && (pWanController->pWanActiveIfaceData != NULL))
-    {
-        pFixedInterface = &(pWanController->pWanActiveIfaceData->data);
-    }
-
-    if(pFixedInterface == NULL)
-    {
-        return -1;
-    }
-
-    //Log Purpose
-    if( WAN_START_FOR_VALIDATION == enCallSource )
-    {
-        snprintf(logPrefixString, sizeof(logPrefixString), "Validating");
-        snprintf(udhcpcString, sizeof(udhcpcString), "-s /etc/udhcpc_backupwan_random.script");
-    }
-    else
-    {
-        snprintf(logPrefixString, sizeof(logPrefixString), "Effecting");
-        snprintf(udhcpcString, sizeof(udhcpcString), "-s %s",BACKUP_WAN_DHCPC_SOURCE_FILE);
-    }
-
-    //Cleanup - Stop UDHCPC client before start another instance
-    WanMgr_Policy_BackupWan_CheckAndStopUDHCPClientOverBackupWanInterface(pFixedInterface->Wan.Name);
-
-    CcspTraceInfo(("%s BackupWAN: Starting udhcpc client locally for '%s' interface\n",logPrefixString,pFixedInterface->Wan.Name));
-
-    /* To start local udhcpc server over interface to check whether it is getting leases or not */
-    memset(command, 0, sizeof(command));
-    snprintf(command, sizeof(command), "/sbin/udhcpc -t 5 -n -i %s -p %s %s",pFixedInterface->Wan.Name, BACKUP_WAN_DHCPC_PID_FILE, udhcpcString);
-    WanManager_DoSystemAction("StartingUDHCPCviaBackupWAN:", command);
-
-    CcspTraceInfo(("%s BackupWAN: Cmd Str[%s]\n",logPrefixString,command));
-
-    /* DHCP client didn't able to get Ipv4 configurations */
-    if ( -1 == access(BACKUP_WAN_DHCPC_PID_FILE, F_OK) )
-    {
-        CcspTraceInfo(("%s BackupWAN: Backup WAN service not able to get IPv4 configuration in 5 lease try\n",logPrefixString));
-        return -1;
-    }
-    else
-    {
-        CcspTraceInfo(("%s BackupWAN: Backup WAN interface '%s' got leases\n",logPrefixString,pFixedInterface->Wan.Name));
-    }
-
-    //Stop UDHCPC process after starting WAN
-    if( WAN_START_FOR_VALIDATION == enCallSource )
-    {
-        //Cleanup - Stop UDHCPC local client after start checking
-        WanMgr_Policy_BackupWan_CheckAndStopUDHCPClientOverBackupWanInterface(pFixedInterface->Wan.Name);
-    }
-
-    return 0;
+    return -1;
 }
 
 static int WanMgr_Policy_BackupWan_CheckAnyLocalWANIsPhysicallyActive(void)
@@ -3002,10 +3084,9 @@ static WcBWanPolicyState_t Transition_BackupWanInterfaceUp(WanMgr_Policy_Control
     Update_Interface_Status();
 
     //WAN UDHCPC Start
-    WanMgr_Policy_CheckAndStartUDHCPClientOverWanInterface( pWanController, WAN_START_FOR_BACKUP_WAN, BACKUP_WAN_DHCPC_PID_FILE, BACKUP_WAN_DHCPC_SOURCE_FILE );
+    WanMgr_Policy_CheckAndStartUDHCPClientOverWanInterface( pFixedInterface->Wan.Name, WAN_START_FOR_BACKUP_WAN, BACKUP_WAN_DHCPC_PID_FILE, BACKUP_WAN_DHCPC_SOURCE_FILE );
 
     CcspTraceInfo(("%s - Starting IP Monitoring for '%d' instance\n", __FUNCTION__, pWanController->activeInterfaceIdx + 1));
-    WanMgr_StartIpMonitor(pWanController->activeInterfaceIdx + 1);
 
     CcspTraceInfo(("%s %d - State changed to STATE_BACKUP_WAN_INTERFACE_UP \n", __FUNCTION__, __LINE__));
     return STATE_BACKUP_WAN_INTERFACE_UP;
@@ -3025,6 +3106,22 @@ static WcBWanPolicyState_t Transition_BackupWanInterfaceActive(WanMgr_Policy_Con
         return Transition_BackupWanSelectingInterface(pWanController);
     }
 
+    if ( (pFixedInterface->Phy.Status == WAN_IFACE_PHY_STATUS_DOWN)||
+         (pFixedInterface->Wan.LinkStatus != WAN_IFACE_LINKSTATUS_UP) ||
+         ( WAN_IFACE_STATUS_UP != pFixedInterface->Wan.Status ) ||
+         (pFixedInterface->Wan.RemoteStatus != WAN_IFACE_STATUS_UP) )
+    {
+        if (TelemetryBackUpStatus == STATUS_SWITCHOVER_STARTED)
+        {
+            TelemetryBackUpStatus = STATUS_SWITCHOVER_FAILED;
+            CcspTraceInfo(("%s-%d : Telemetry Event Trigger : WAN_FAILOVER_FAIL_COUNT \n", __FUNCTION__, __LINE__));
+#ifdef ENABLE_FEATURE_TELEMETRY2_0
+            t2_event_d("WAN_FAILOVER_FAIL_COUNT", 1);
+#endif
+        }
+        return Transition_BackupWanInterfaceDown(pWanController);
+    }
+
     pFixedInterface->SelectionStatus = WAN_IFACE_ACTIVE;
     pFixedInterface->Wan.Status =  WAN_IFACE_STATUS_UP;
 
@@ -3033,7 +3130,26 @@ static WcBWanPolicyState_t Transition_BackupWanInterfaceActive(WanMgr_Policy_Con
 
     if (!WanMgr_FirewallRuleConfig("configure", pFixedInterface->Wan.Name))
     {
-        CcspTraceInfo(("%s-%d : Firewall Rules already configured \n",__FUNCTION__, __LINE__));
+        CcspTraceError(("%s-%d : Failed to Configure Firewall Rules \n",__FUNCTION__, __LINE__));
+        if (TelemetryBackUpStatus == STATUS_SWITCHOVER_STARTED)
+        {
+            TelemetryBackUpStatus = STATUS_SWITCHOVER_FAILED;
+            CcspTraceInfo(("%s-%d : Telemetry Event Trigger : WAN_FAILOVER_FAIL_COUNT \n", __FUNCTION__, __LINE__));
+#ifdef ENABLE_FEATURE_TELEMETRY2_0
+            t2_event_d("WAN_FAILOVER_FAIL_COUNT", 1);
+#endif
+        }
+        return Transition_BackupWanInterfaceDown(pWanController);
+    }
+
+    if (TelemetryBackUpStatus == STATUS_SWITCHOVER_STARTED ||
+        TelemetryBackUpStatus == STATUS_SWITCHOVER_FAILED)
+    {
+        TelemetryBackUpStatus = STATUS_SWITCHOVER_SUCCESS;
+        CcspTraceInfo(("%s-%d : Telemetry Event Trigger : WAN_FAILOVER_SUCCESS_COUNT \n", __FUNCTION__, __LINE__));
+#ifdef ENABLE_FEATURE_TELEMETRY2_0
+        t2_event_d("WAN_FAILOVER_SUCCESS_COUNT", 1);
+#endif
     }
 
     CcspTraceInfo(("%s %d - State changed to STATE_BACKUP_WAN_INTERFACE_ACTIVE \n", __FUNCTION__, __LINE__));
@@ -3070,7 +3186,7 @@ static WcBWanPolicyState_t Transition_BackupWanInterfaceInActive(WanMgr_Policy_C
     {
         if (!WanMgr_FirewallRuleConfig("deconfigure", pFixedInterface->Wan.Name))
         {
-            CcspTraceInfo(("%s-%d : Firewall Rules already deconfigured \n",__FUNCTION__, __LINE__));
+            CcspTraceError(("%s-%d : Failed to De-Configure Firewall Rules \n",__FUNCTION__, __LINE__));
         }
 
 	//Delete Default v6 route config.
@@ -3123,7 +3239,7 @@ static WcBWanPolicyState_t Transition_BackupWanInterfaceDown(WanMgr_Policy_Contr
     {
         if (!WanMgr_FirewallRuleConfig("deconfigure", pFixedInterface->Wan.Name))
         {
-            CcspTraceInfo(("%s-%d : Firewall Rules already deconfigured \n",__FUNCTION__, __LINE__));
+            CcspTraceError(("%s-%d : Failed to De-Configure Firewall Rules \n",__FUNCTION__, __LINE__));
         }
 
 	//Delete v6 default route.
@@ -3158,7 +3274,7 @@ static WcBWanPolicyState_t Transition_BackupWanInterfaceWaitingPrimaryUp(WanMgr_
 
     if (!WanMgr_FirewallRuleConfig("deconfigure", pFixedInterface->Wan.Name))
     {
-        CcspTraceInfo(("%s-%d : Firewall Rules already deconfigured \n",__FUNCTION__, __LINE__));
+        CcspTraceError(("%s-%d : Failed to De-Configure Firewall Rules \n",__FUNCTION__, __LINE__));
     }
 
     //Delete v6 default route.
@@ -3209,6 +3325,18 @@ static WcBWanPolicyState_t State_SelectingBackupWanInterface(WanMgr_Policy_Contr
         return Transition_BackupWanInterfaceSelected(pWanController);
     }
 
+    if(-1 == WanMgr_Policy_BackupWan_CheckAnyLocalWANIsPhysicallyActive() )
+    {
+        if (TelemetryBackUpStatus == STATUS_SWITCHOVER_STARTED)
+        {
+            TelemetryBackUpStatus = STATUS_SWITCHOVER_FAILED;
+            CcspTraceInfo(("%s-%d : Telemetry Event Trigger : WAN_FAILOVER_FAIL_COUNT \n", __FUNCTION__, __LINE__));
+#ifdef ENABLE_FEATURE_TELEMETRY2_0
+            t2_event_d("WAN_FAILOVER_FAIL_COUNT", 1);
+#endif
+        }
+    }
+    
     return STATE_BACKUP_WAN_SELECTING_INTERFACE;
 }
 
@@ -3239,6 +3367,18 @@ static WcBWanPolicyState_t State_BackupWanInterfaceDown(WanMgr_Policy_Controller
         return Transition_ValidatingBackupWanInterface(pWanController);
     }
 
+    if(-1 == WanMgr_Policy_BackupWan_CheckAnyLocalWANIsPhysicallyActive() )
+    {
+        if (TelemetryBackUpStatus == STATUS_SWITCHOVER_STARTED)
+        {
+            TelemetryBackUpStatus = STATUS_SWITCHOVER_FAILED;
+            CcspTraceInfo(("%s-%d : Telemetry Event Trigger : WAN_FAILOVER_FAIL_COUNT \n", __FUNCTION__, __LINE__));
+#ifdef ENABLE_FEATURE_TELEMETRY2_0
+            t2_event_d("WAN_FAILOVER_FAIL_COUNT", 1);
+#endif
+        }
+    }
+
     return STATE_BACKUP_WAN_INTERFACE_DOWN;
 }
 
@@ -3266,9 +3406,21 @@ static WcBWanPolicyState_t State_ValidatingBackupWanInterface(WanMgr_Policy_Cont
     }
 
     //Check if there is any IP leases is getting or not over Backup WAN
-    if( 0 == WanMgr_Policy_CheckAndStartUDHCPClientOverWanInterface( pWanController, WAN_START_FOR_VALIDATION, BACKUP_WAN_DHCPC_PID_FILE, BACKUP_WAN_DHCPC_SRC_RAMDOM_FILE ) )
+    if( 0 == WanMgr_Policy_CheckAndStartUDHCPClientOverWanInterface( pFixedInterface->Wan.Name, WAN_START_FOR_VALIDATION, BACKUP_WAN_DHCPC_PID_FILE, BACKUP_WAN_DHCPC_SRC_RAMDOM_FILE ) )
     {
         return Transition_BackupWanAvailable(pWanController);
+    }
+
+    if(-1 == WanMgr_Policy_BackupWan_CheckAnyLocalWANIsPhysicallyActive() )
+    {
+        if (TelemetryBackUpStatus == STATUS_SWITCHOVER_STARTED)
+        {
+            TelemetryBackUpStatus = STATUS_SWITCHOVER_FAILED;
+            CcspTraceInfo(("%s-%d : Telemetry Event Trigger : WAN_FAILOVER_FAIL_COUNT \n", __FUNCTION__, __LINE__));
+#ifdef ENABLE_FEATURE_TELEMETRY2_0
+            t2_event_d("WAN_FAILOVER_FAIL_COUNT", 1);
+#endif
+        }
     }
 
     return STATE_BACKUP_WAN_VALIDATING_INTERFACE;
@@ -3339,8 +3491,13 @@ static WcBWanPolicyState_t State_BackupWanInterfaceUp(WanMgr_Policy_Controller_t
         return Transition_BackupWanInterfaceDown(pWanController);
     }
 
+    /* TelemetryBackUpStatus will be in fail status when switch over happend while 
+     * backup was in bringup states or any earlier states and failed in any of those states.
+     */
     if( ( WAN_IFACE_STATUS_UP == pFixedInterface->Wan.RemoteStatus ) &&
-        ( -1 == WanMgr_Policy_BackupWan_CheckAnyLocalWANIsPhysicallyActive() ) && 
+        (TelemetryBackUpStatus == STATUS_SWITCHOVER_UNKNOWN || 
+	 TelemetryBackUpStatus == STATUS_SWITCHOVER_STARTED ||
+	 TelemetryBackUpStatus == STATUS_SWITCHOVER_FAILED) &&
         ( TRUE == WanMgr_Policy_BackupWan_CheckLocalWANsScannedOnce( pWanController ) ) )
     {
         return Transition_BackupWanInterfaceActive(pWanController);
@@ -3398,7 +3555,10 @@ static WcBWanPolicyState_t State_BackupWanInterfaceActive(WanMgr_Policy_Controll
                 bRestorationDelayTimerStart = FALSE;
                 memset(&(RestorationDelayTimer), 0, sizeof(struct timespec));
                 CcspTraceInfo(("%s %d: RestorationDelayTimer expired \n",__FUNCTION__, __LINE__));
-                return Transition_BackupWanInterfaceInActive(pWanController);
+                if ( WanMgr_Policy_PrimaryWan_ReTriggerValidation() == 0)
+                {
+                    return Transition_BackupWanInterfaceInActive(pWanController);
+                }
             }
         }
     }
@@ -3442,8 +3602,12 @@ static WcBWanPolicyState_t State_BackupWanInterfaceInActive(WanMgr_Policy_Contro
         return Transition_BackupWanInterfaceDown(pWanController);
     }
 
+    /* TelemetryBackUpStatus will be in fail status when switch over happend while
+     * backup was in bringup states or any earlier states and failed in any of those states.
+     */
     if( ( WAN_IFACE_STATUS_UP == pFixedInterface->Wan.RemoteStatus ) && 
-        (-1 == WanMgr_Policy_BackupWan_CheckAnyLocalWANIsPhysicallyActive() ) )
+        (TelemetryBackUpStatus == STATUS_SWITCHOVER_STARTED ||
+         TelemetryBackUpStatus == STATUS_SWITCHOVER_FAILED) )
     {
         return Transition_BackupWanInterfaceActive(pWanController);
     }
@@ -3480,8 +3644,7 @@ static WcBWanPolicyState_t State_BackupWanInterfaceWaitingPrimaryUp(WanMgr_Polic
         return Transition_BackupWanInterfaceWaitingPrimaryUp(pWanController);
     }
 
-    if( ( WAN_IFACE_STATUS_UP == pFixedInterface->Wan.RemoteStatus ) &&
-        (-1 == WanMgr_Policy_BackupWan_CheckAnyLocalWANIsPhysicallyActive() ) )
+    if( WAN_IFACE_STATUS_UP == pFixedInterface->Wan.RemoteStatus )
     {
         return Transition_BackupWanInterfaceActive(pWanController);
     }

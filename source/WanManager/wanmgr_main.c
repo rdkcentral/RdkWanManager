@@ -76,6 +76,9 @@
 #include "breakpad_wrapper.h"
 #endif
 #include "cap.h"
+#ifdef ENABLE_FEATURE_TELEMETRY2_0
+#include <telemetry_busmessage_sender.h>
+#endif
 
 cap_user appcaps;
 
@@ -418,7 +421,9 @@ int main(int argc, char* argv[])
 #endif //#if defined (FEATURE_RDKB_WAN_MANAGER)
 
     WanMgrDmlWanWebConfigInit();
-
+#ifdef ENABLE_FEATURE_TELEMETRY2_0
+    t2_init(COMPONENT_NAME_WANMANAGER);
+#endif
     if ( bRunAsDaemon )
     {
         //MAIN THREAD
