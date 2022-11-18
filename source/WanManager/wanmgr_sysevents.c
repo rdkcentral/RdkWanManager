@@ -469,6 +469,9 @@ static void *WanManagerSyseventHandler(void *args)
     async_id_t primary_lan_l3net_asyncid;
     async_id_t radvd_restart_asyncid;
     async_id_t ipv6_down_asyncid;
+#ifdef NTP_STATUS_SYNC_EVENT
+    async_id_t sync_ntp_statusid;
+#endif
 #if defined (RDKB_EXTENDER_ENABLED)
     async_id_t mesh_wan_link_status_asyncid;
 #endif /* RDKB_EXTENDER_ENABLED */
@@ -506,6 +509,10 @@ static void *WanManagerSyseventHandler(void *args)
     sysevent_set_options(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_GLOBAL_IPV6_PREFIX_CLEAR, TUPLE_FLAG_EVENT);
     sysevent_setnotification(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_GLOBAL_IPV6_PREFIX_CLEAR, &ipv6_down_asyncid);
 
+#ifdef NTP_STATUS_SYNC_EVENT
+    sysevent_set_options(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_SYNC_NTP_STATUS, TUPLE_FLAG_EVENT);
+    sysevent_setnotification(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_SYNC_NTP_STATUS, &sync_ntp_statusid);
+#endif
 #ifdef FEATURE_MAPT
     sysevent_set_options(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_MAPT_FEATURE_ENABLE, TUPLE_FLAG_EVENT);
     sysevent_setnotification(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_MAPT_FEATURE_ENABLE, &ipv6_down_asyncid);
@@ -587,6 +594,15 @@ static void *WanManagerSyseventHandler(void *args)
                 free(datamodel_value);
 		#endif
             }
+#ifdef NTP_STATUS_SYNC_EVENT
+            else if (strcmp(name,SYSEVENT_SYNC_NTP_STATUS) == 0)
+            {
+                /* NTP Status sync will be missed in case of quick sync failure and following time sync success from NTPD daemon..,So handling that scenario here */
+                /* SKYH4-6572 setting NTP STATUS to 3 (which means *synchronized*)  upon receiving SYSEVENT_SYNC_NTP_STATUS event from NTPD daemon on time sync */
+                system("syscfg set ntp_status 3");
+                system("sysevent set ntp_time_sync 1");
+            }
+#endif
             else if ( strcmp(name, SYSEVENT_IPV6_ENABLE) == 0 )
             {
                 datamodel_value = (char *) malloc(sizeof(char) * 256);

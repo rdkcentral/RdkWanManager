@@ -97,6 +97,7 @@
 #define SYSEVENT_ULA_ADDRESS                        "ula_address"
 #define SYSEVENT_ULA_ENABLE                         "lan_ula_enable"
 #define SYSEVENT_IPV6_ENABLE                        "lan_ipv6_enable"
+#define SYSEVENT_SYNC_NTP_STATUS                    "sync_ntp_status"
 
 #define SYSEVENT_FIELD_TR_BRLAN0_DHCPV6_SERVER_ADDRESS        "tr_brlan0_dhcpv6_server_v6addr"
 #define SYSEVENT_FIELD_TR_EROUTER_DHCPV6_CLIENT_PREFIX        "tr_erouter0_dhcpv6_client_v6pref"
