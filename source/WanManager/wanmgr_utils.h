@@ -156,5 +156,6 @@ int util_runCommandInShellBlocking(char *command);
 int util_getZombiePidByName(char * name);
 void WanManager_Util_GetShell_output(char *cmd, char *out, int len);
 
-ANSC_STATUS WanMgr_RestartUpdatePhyPath (const char * param, int idx, char * output, int size);
+ANSC_STATUS WanMgr_RestartUpdateCfg (const char * param, int idx, char * output, int size);
+ANSC_STATUS WanMgr_RestartUpdateCfg_Bool (const char * param, int idx, BOOL* output);
 #endif /* _WANMGR_UTILS_H_ */

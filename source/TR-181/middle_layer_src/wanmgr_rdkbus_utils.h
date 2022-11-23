@@ -71,7 +71,13 @@ extern token_t sysevent_token;
 #define UPSTREAM_DM_SUFFIX                  ".Upstream"
 #define WAN_CONFIG_PORT_DM_SUFFIX           ".WanConfigPort"
 
-#define WAN_PHY_PATH_PARAM_NAME             "Device.X_RDK_WanManager.CPEInterface.%d.Phy.Path"
+#define WAN_ENABLE_CUSTOM_CONFIG_PARAM_NAME         "Device.X_RDK_WanManager.CPEInterface.%d.EnableCustomConfig"
+#define WAN_CUSTOM_CONFIG_PATH_PARAM_NAME           "Device.X_RDK_WanManager.CPEInterface.%d.CustomConfigPath"
+#define WAN_CONFIGURE_WAN_ENABLE_PARAM_NAME         "Device.X_RDK_WanManager.CPEInterface.%d.ConfigureWanEnable"
+#define WAN_ENABLE_OPER_STATUS_MONITOR_PARAM_NAME   "Device.X_RDK_WanManager.CPEInterface.%d.EnableOperStatusMonitor"
+#define WAN_NAME_PARAM_NAME                         "Device.X_RDK_WanManager.CPEInterface.%d.Wan.Name"
+#define WAN_PHY_PATH_PARAM_NAME                     "Device.X_RDK_WanManager.CPEInterface.%d.Phy.Path"
+
 #define WAN_PPP_PATH_PARAM_NAME             "Device.X_RDK_WanManager.CPEInterface.%d.PPP.Path"
 #define STATUS_DM_SUFFIX                    ".Status"
 #define VLAN_ETHLINK_STATUS_PARAM_NAME      "Device.X_RDK_Ethernet.Link.%d.Status"

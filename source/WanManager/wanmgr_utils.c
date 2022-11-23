@@ -940,7 +940,7 @@ void WanManager_Util_GetShell_output(char *cmd, char *out, int len)
     }
 }
 
-ANSC_STATUS WanMgr_RestartUpdatePhyPath (const char * param, int idx, char * output, int size)
+ANSC_STATUS WanMgr_RestartUpdateCfg (const char * param, int idx, char * output, int size)
 {
     if ((param == NULL))
     {
@@ -1052,5 +1052,26 @@ int WanMgr_SetRestartWanInfo (const char * param, int idx, char * value)
 
     rename (WANMGR_RESTART_INFO_TMP_FILE, WANMGR_RESTART_INFO_FILE);
 
+    return ANSC_STATUS_SUCCESS;
+}
+
+ANSC_STATUS WanMgr_RestartUpdateCfg_Bool (const char * param, int idx, BOOL* output)
+{
+    char tmp_val[10] = {0};
+    CcspTraceInfo(("%s %d: for param %s\n", __FUNCTION__, __LINE__, param));
+    if(ANSC_STATUS_SUCCESS != WanMgr_RestartUpdateCfg (param, idx, tmp_val, sizeof(tmp_val))) {
+        CcspTraceError(("%s %d: Unable to fetch value from boot info db\n", __FUNCTION__, __LINE__));
+        return ANSC_STATUS_FAILURE;
+    }
+    if(!strcmp(tmp_val, "true")) {
+        *output = true;
+    }
+    else if(!strcmp(tmp_val, "false")) {
+        *output = false;
+    }
+    else {
+        CcspTraceError(("%s %d: Invalid value fetched from boot info db\n", __FUNCTION__, __LINE__));
+        return ANSC_STATUS_FAILURE;
+    }
     return ANSC_STATUS_SUCCESS;
 }

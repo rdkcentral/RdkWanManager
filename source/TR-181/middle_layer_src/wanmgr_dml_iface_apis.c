@@ -333,6 +333,9 @@ BOOL WanIf_SetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, char* p
             if (strcmp(ParamName, "CustomConfigPath") == 0)
             {
                 AnscCopyString(pWanDmlIface->CustomConfigPath, pString);
+#if defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_)
+                WanMgr_SetRestartWanInfo(WAN_CUSTOM_CONFIG_PATH_PARAM_NAME, pWanDmlIface->uiIfaceIdx, pString);
+#endif
                 ret = TRUE;
             }
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
@@ -444,17 +447,26 @@ BOOL WanIf_SetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL bVal
             if (strcmp(ParamName, "ConfigureWanEnable") == 0)
             {
                 pWanDmlIface->WanConfigEnabled  = bValue;
+#if defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_)
+                WanMgr_SetRestartWanInfo(WAN_CONFIGURE_WAN_ENABLE_PARAM_NAME, pWanDmlIface->uiIfaceIdx, pWanDmlIface->WanConfigEnabled?"true":"false");
+#endif
                 ret = TRUE;
             }
             /* check the parameter name and set the corresponding value */
             if (strcmp(ParamName, "EnableCustomConfig") == 0)
             {
                 pWanDmlIface->CustomConfigEnable  = bValue;
+#if defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_)
+                WanMgr_SetRestartWanInfo(WAN_ENABLE_CUSTOM_CONFIG_PARAM_NAME, pWanDmlIface->uiIfaceIdx, pWanDmlIface->CustomConfigEnable?"true":"false");
+#endif
                 ret = TRUE;
             }
             if (strcmp(ParamName, "EnableOperStatusMonitor") == 0)
             {
                 pWanDmlIface->MonitorOperStatus = bValue;
+#if defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_)
+                WanMgr_SetRestartWanInfo(WAN_ENABLE_OPER_STATUS_MONITOR_PARAM_NAME, pWanDmlIface->uiIfaceIdx, pWanDmlIface->MonitorOperStatus?"true":"false");
+#endif
                 ret = TRUE;
             }
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
@@ -1132,6 +1144,9 @@ BOOL WanIfCfg_SetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, char
             if (strcmp(ParamName, "Name") == 0)
             {
                 AnscCopyString(pWanDmlIface->Wan.Name, pString);
+#if defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_)
+                WanMgr_SetRestartWanInfo(WAN_NAME_PARAM_NAME, pWanDmlIface->uiIfaceIdx, pString);
+#endif
                 ret = TRUE;
             }
 

@@ -484,12 +484,18 @@ ANSC_STATUS WanMgr_UpdatePrevData ()
         if(pWanDmlIfaceData != NULL)
         {
             DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
-            
-            WanMgr_RestartUpdatePhyPath (WAN_PHY_PATH_PARAM_NAME, uiLoopCount, pWanIfaceData->Phy.Path, sizeof(pWanIfaceData->Phy.Path));
+#if defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_)
+            WanMgr_RestartUpdateCfg_Bool (WAN_ENABLE_CUSTOM_CONFIG_PARAM_NAME, uiLoopCount, &pWanIfaceData->CustomConfigEnable);
+            WanMgr_RestartUpdateCfg_Bool (WAN_CONFIGURE_WAN_ENABLE_PARAM_NAME, uiLoopCount, &pWanIfaceData->WanConfigEnabled);
+            WanMgr_RestartUpdateCfg_Bool (WAN_ENABLE_OPER_STATUS_MONITOR_PARAM_NAME, uiLoopCount, &pWanIfaceData->MonitorOperStatus);
+            WanMgr_RestartUpdateCfg (WAN_CUSTOM_CONFIG_PATH_PARAM_NAME, uiLoopCount, pWanIfaceData->CustomConfigPath, sizeof(pWanIfaceData->CustomConfigPath));
+            WanMgr_RestartUpdateCfg (WAN_NAME_PARAM_NAME, uiLoopCount, pWanIfaceData->Wan.Name, sizeof(pWanIfaceData->Wan.Name));
+#endif            
+            WanMgr_RestartUpdateCfg (WAN_PHY_PATH_PARAM_NAME, uiLoopCount, pWanIfaceData->Phy.Path, sizeof(pWanIfaceData->Phy.Path));
             if(pWanIfaceData->PPP.Enable == TRUE)
             {
                 CcspTraceInfo(("%s %d - Update PPP path\n", __FUNCTION__, __LINE__));
-                WanMgr_RestartUpdatePhyPath (WAN_PPP_PATH_PARAM_NAME, uiLoopCount, pWanIfaceData->PPP.Path, sizeof(pWanIfaceData->PPP.Path));
+                WanMgr_RestartUpdateCfg (WAN_PPP_PATH_PARAM_NAME, uiLoopCount, pWanIfaceData->PPP.Path, sizeof(pWanIfaceData->PPP.Path));
             }
             #if !defined(AUTOWAN_ENABLE)
             WanMgr_RestartGetPhyStatus(pWanIfaceData);
