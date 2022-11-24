@@ -1156,7 +1156,8 @@ static eWanState_t wan_transition_start(WanMgr_IfaceSM_Controller_t* pWanIfaceCt
     /*TODO: Upstream should not be set for Remote Interface, for More info, refer RDKB-42676*/
     if (pInterface->Wan.IfaceType != REMOTE_IFACE)
     {
-        pInterface->Wan.LinkStatus = WAN_IFACE_LINKSTATUS_CONFIGURING;
+        if( pInterface->Wan.LinkStatus == WAN_IFACE_LINKSTATUS_DOWN )
+            pInterface->Wan.LinkStatus = WAN_IFACE_LINKSTATUS_CONFIGURING;
         if (WanMgr_RdkBus_updateInterfaceUpstreamFlag(pInterface->Phy.Path, TRUE) != ANSC_STATUS_SUCCESS)
         {
             CcspTraceError(("%s - Failed to set Upstream data model, exiting interface state machine\n", __FUNCTION__));
