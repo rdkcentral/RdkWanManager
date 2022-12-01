@@ -3231,6 +3231,7 @@ static WcBWanPolicyState_t State_BackupWanInterfaceDown(WanMgr_Policy_Controller
 
     if( (pWanController->WanEnable == TRUE) &&
         (pFixedInterface->Phy.Status == WAN_IFACE_PHY_STATUS_UP) &&
+        (pFixedInterface->Wan.RemoteStatus == WAN_IFACE_STATUS_UP) &&
         (pFixedInterface->Wan.Status == WAN_IFACE_STATUS_DISABLED) )
     {
         return Transition_ValidatingBackupWanInterface(pWanController);
@@ -3256,7 +3257,8 @@ static WcBWanPolicyState_t State_ValidatingBackupWanInterface(WanMgr_Policy_Cont
 
     if ( (pWanController->WanEnable == FALSE) ||
          (pFixedInterface->Wan.Enable == FALSE) ||
-         (pFixedInterface->Phy.Status == WAN_IFACE_PHY_STATUS_DOWN) )
+         (pFixedInterface->Phy.Status == WAN_IFACE_PHY_STATUS_DOWN) ||
+         (pFixedInterface->Wan.RemoteStatus != WAN_IFACE_STATUS_UP) )
     {
         return Transition_BackupWanInterfaceDown(pWanController);
     }
@@ -3289,7 +3291,8 @@ static WcBWanPolicyState_t State_BackupWanAvailable(WanMgr_Policy_Controller_t* 
     if ( (pWanController->WanEnable == FALSE) ||
          (pFixedInterface->Wan.Enable == FALSE) ||
          (pWanController->AllowRemoteInterfaces == FALSE) ||
-         (pFixedInterface->Phy.Status == WAN_IFACE_PHY_STATUS_DOWN) )
+         (pFixedInterface->Phy.Status == WAN_IFACE_PHY_STATUS_DOWN) ||
+         (pFixedInterface->Wan.RemoteStatus != WAN_IFACE_STATUS_UP) )
     {
         return Transition_BackupWanInterfaceDown(pWanController);
     }
@@ -3328,7 +3331,8 @@ static WcBWanPolicyState_t State_BackupWanInterfaceUp(WanMgr_Policy_Controller_t
          (pFixedInterface->Wan.Enable == FALSE) ||
          (pFixedInterface->Phy.Status == WAN_IFACE_PHY_STATUS_DOWN)||
          (pFixedInterface->Wan.LinkStatus != WAN_IFACE_LINKSTATUS_UP) ||
-         ( WAN_IFACE_STATUS_UP != pFixedInterface->Wan.Status ) )
+         ( WAN_IFACE_STATUS_UP != pFixedInterface->Wan.Status ) ||
+         (pFixedInterface->Wan.RemoteStatus != WAN_IFACE_STATUS_UP) )
     {
         return Transition_BackupWanInterfaceDown(pWanController);
     }
@@ -3363,7 +3367,8 @@ static WcBWanPolicyState_t State_BackupWanInterfaceActive(WanMgr_Policy_Controll
          (pFixedInterface->Wan.Enable == FALSE) ||
          (pFixedInterface->Phy.Status == WAN_IFACE_PHY_STATUS_DOWN)||
          (pFixedInterface->Wan.LinkStatus != WAN_IFACE_LINKSTATUS_UP) ||
-         (WAN_IFACE_STATUS_UP != pFixedInterface->Wan.Status) )
+         (WAN_IFACE_STATUS_UP != pFixedInterface->Wan.Status) ||
+         (pFixedInterface->Wan.RemoteStatus != WAN_IFACE_STATUS_UP) )
     {
         return Transition_BackupWanInterfaceDown(pWanController);
     }
@@ -3429,7 +3434,8 @@ static WcBWanPolicyState_t State_BackupWanInterfaceInActive(WanMgr_Policy_Contro
          (pFixedInterface->Wan.Enable == FALSE) ||
          (pFixedInterface->Phy.Status == WAN_IFACE_PHY_STATUS_DOWN)||
          (pFixedInterface->Wan.LinkStatus != WAN_IFACE_LINKSTATUS_UP) ||
-         (WAN_IFACE_STATUS_UP != pFixedInterface->Wan.Status) )
+         (WAN_IFACE_STATUS_UP != pFixedInterface->Wan.Status) ||
+         (pFixedInterface->Wan.RemoteStatus != WAN_IFACE_STATUS_UP) )
     {
         return Transition_BackupWanInterfaceDown(pWanController);
     }

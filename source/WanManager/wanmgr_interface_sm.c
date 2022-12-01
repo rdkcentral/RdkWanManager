@@ -1582,6 +1582,11 @@ static eWanState_t wan_transition_ipv4_down(WanMgr_IfaceSM_Controller_t* pWanIfa
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_CURRENT_WAN_IFNAME, "", 0);
 
     pInterface->Wan.Status = WAN_IFACE_STATUS_VALIDATING;
+    if (pWanIfaceCtrl->interfaceIdx != -1)
+    {
+        WanMgr_Publish_WanStatus(pWanIfaceCtrl->interfaceIdx);
+    }
+
     CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION OBTAINING IP ADDRESSES\n", __FUNCTION__, __LINE__, pInterface->Name));
     return WAN_STATE_OBTAINING_IP_ADDRESSES;
 }
@@ -1718,6 +1723,12 @@ static eWanState_t wan_transition_ipv6_down(WanMgr_IfaceSM_Controller_t* pWanIfa
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_CURRENT_WAN_IFNAME, "", 0);
 
     pInterface->Wan.Status = WAN_IFACE_STATUS_VALIDATING;
+
+    if (pWanIfaceCtrl->interfaceIdx != -1)
+    {
+        WanMgr_Publish_WanStatus(pWanIfaceCtrl->interfaceIdx);
+    }
+
     CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION OBTAINING IP ADDRESSES\n", __FUNCTION__, __LINE__, pInterface->Name));
     return WAN_STATE_OBTAINING_IP_ADDRESSES;
 
@@ -1942,6 +1953,7 @@ static eWanState_t wan_transition_exit(WanMgr_IfaceSM_Controller_t* pWanIfaceCtr
     DML_WAN_IFACE* pInterface = pWanIfaceCtrl->pIfaceData;
 
     pInterface->Wan.Status = WAN_IFACE_STATUS_DISABLED;
+
     pInterface->Wan.Refresh = FALSE;
 
     if (pWanIfaceCtrl->interfaceIdx != -1)
@@ -2011,6 +2023,11 @@ static eWanState_t wan_transition_standby_deconfig_ips(WanMgr_IfaceSM_Controller
         }
     }
     pInterface->Wan.Status = WAN_IFACE_STATUS_STANDBY;
+    if (pWanIfaceCtrl->interfaceIdx != -1)
+    {
+        WanMgr_Publish_WanStatus(pWanIfaceCtrl->interfaceIdx);
+    }
+
     Update_Interface_Status();
      CcspTraceInfo(("%s %d - TRANSITION WAN_STATE_STANDBY\n", __FUNCTION__, __LINE__));
     return WAN_STATE_STANDBY;
