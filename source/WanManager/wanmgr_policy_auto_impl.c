@@ -129,13 +129,16 @@ static int WanMgr_SetActiveLink (WanMgr_Policy_Controller_t * pWanController, bo
 
     // set ActiveLink in Interface data
     DML_WAN_IFACE* pIfaceData = &(pWanController->pWanActiveIfaceData->data);
-    pIfaceData->Wan.ActiveLink = storeValue;
-
-    // save ActiveLink value in PSM
-    if (DmlSetWanActiveLinkInPSMDB(pWanController->activeInterfaceIdx, storeValue) != ANSC_STATUS_SUCCESS)
+    if(pIfaceData->Wan.ActiveLink != storeValue)
     {
-        CcspTraceError(("%s %d: Failed to set ActiveLink in PSM, SelectedInterface %d \n",
-                    __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
+        pIfaceData->Wan.ActiveLink = storeValue;
+
+        // save ActiveLink value in PSM
+        if (DmlSetWanActiveLinkInPSMDB(pWanController->activeInterfaceIdx, storeValue) != ANSC_STATUS_SUCCESS)
+        {
+            CcspTraceError(("%s %d: Failed to set ActiveLink in PSM, SelectedInterface %d \n",
+                        __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
+        }
     }
     return ANSC_STATUS_SUCCESS;
 }

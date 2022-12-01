@@ -629,6 +629,57 @@ static void AddSkbMarkingToConfFile(UINT data_skb_mark)
 }
 #endif
 
+static void WanMgr_RemoveMarkingEntryFromPSMList(char *acOldMarkingList, char *markingEntry, ULONG ulIfInstanceNumber)
+{
+    /* If entry avilable in Marking list and Marking entries(Alias,SKBPort,... ) are not availbale, PSM could be truncated. 
+     * In this case don't add TR181 Marking table Entry and remove entry from PSM LIST to avoid Marking entry add failure. 
+     * If entry is deleted from List, TelcoVoice manager will add voice marking entries and wan refresh will be triggered. 
+     */
+    char acNewMarkingList[64] = { 0 };
+    char *save_ptr;
+    char *tmpToken = NULL;
+    INT     iTotalMarking        = 0;
+    char                     acPSMQuery[128]    = { 0 },
+                             acPSMValue[64]     = { 0 };
+
+    //split marking table value
+    tmpToken = strtok_r( acOldMarkingList, "-",&save_ptr );
+    //check and add
+    while ( tmpToken != NULL )
+    {
+        //Copy all the values except delete alias
+        if( 0 != strcmp( markingEntry, tmpToken ) )
+        {
+            if( 0 == iTotalMarking )
+            {
+                snprintf( acNewMarkingList, sizeof( acNewMarkingList ), "%s", tmpToken );
+            }
+            else
+            {
+                //Append remaining marking strings
+                strncat( acNewMarkingList, "-", strlen("-") + 1 );
+                strncat( acNewMarkingList, tmpToken, strlen( tmpToken ) + 1 );
+            }
+            iTotalMarking++;
+        }
+        tmpToken = strtok_r( NULL, "-",&save_ptr );
+    }
+
+    //Check whether any marking available or not
+    if( iTotalMarking == 0 )
+    {
+        snprintf( acPSMValue, sizeof( acPSMValue ), "%s", "" ); //Copy empty
+    }
+    else
+    {
+        snprintf( acPSMValue, sizeof( acPSMValue ), "%s", acNewMarkingList ); //Copy new string
+    }
+
+    //Set Marking LIST into PSM
+    snprintf( acPSMQuery, sizeof( acPSMQuery ), PSM_MARKING_LIST, ulIfInstanceNumber );
+    DmlWanSetPSMRecordValue( acPSMQuery, acPSMValue );
+    return;
+}
 /* DmlWanIfMarkingInit() */
 ANSC_STATUS WanMgr_WanIfaceMarkingInit ()
 {
@@ -659,10 +710,12 @@ ANSC_STATUS WanMgr_WanIfaceMarkingInit ()
             {
                 char acTmpString[64] = { 0 };
                 char *token          = NULL;
+                char acOldMarkingList[64] = { 0 };
 
 
                 //Parse PSM output
                 snprintf( acTmpString, sizeof( acTmpString ), acPSMValue );
+                snprintf( acOldMarkingList, sizeof( acOldMarkingList ), acPSMValue );
 
                 //split marking table value
                 token = strtok( acTmpString, "-" );
@@ -670,95 +723,126 @@ ANSC_STATUS WanMgr_WanIfaceMarkingInit ()
                 //check and add
                 while ( token != NULL )
                 {
-                   char aTableName[512] = {0};
-                   ULONG                                ulInstanceNumber  = 0;
+                    char aTableName[512] = {0};
+                    ULONG                                ulInstanceNumber  = 0;
 
-                   /* Insert into marking table */
+                    DML_MARKING    Marking;
+                    DML_MARKING*   p_Marking = &Marking;
+                    //Stores into tmp buffer
+                    char acTmpMarkingData[ 32 ] = { 0 };
+                    snprintf( acTmpMarkingData, sizeof( acTmpMarkingData ), "%s", token );
+                    //Get Alias from PSM
+                    memset( acPSMQuery, 0, sizeof( acPSMQuery ) );
+                    memset( acPSMValue, 0, sizeof( acPSMValue ) );
+                    snprintf( acPSMQuery, sizeof( acPSMQuery ), PSM_MARKING_ALIAS, ulIfInstanceNumber, acTmpMarkingData );
+                    if ( ( CCSP_SUCCESS == DmlWanGetPSMRecordValue( acPSMQuery, acPSMValue ) ) && \
+                            ( strlen( acPSMValue ) > 0 ) )
+                    {
+                        snprintf( p_Marking->Alias, sizeof( p_Marking->Alias ), "%s", acPSMValue );
+                    }
+                    else
+                    {
+                        WanMgr_RemoveMarkingEntryFromPSMList(acOldMarkingList, acTmpMarkingData, ulIfInstanceNumber);
+                        CcspTraceInfo(("%s %d - PSM entry for Alias Failed. Don't add Marking table Entry for token: (%s)\n", __FUNCTION__, __LINE__, token));
+                        token = strtok( NULL, "-" );
+                        continue;
+                    }
+
+                    
+                        //Get SKB Port from PSM
+                        memset( acPSMQuery, 0, sizeof( acPSMQuery ) );
+                        memset( acPSMValue, 0, sizeof( acPSMValue ) );
+                        
+                        snprintf( acPSMQuery, sizeof( acPSMQuery ), PSM_MARKING_SKBPORT, ulIfInstanceNumber, acTmpMarkingData );
+                        if ( ( CCSP_SUCCESS == DmlWanGetPSMRecordValue( acPSMQuery, acPSMValue ) ) && \
+                                ( strlen( acPSMValue ) > 0 ) )
+                        {
+                            p_Marking->SKBPort = atoi( acPSMValue );
+                                
+                        }
+                        else
+                        {
+                            WanMgr_RemoveMarkingEntryFromPSMList(acOldMarkingList, acTmpMarkingData, ulIfInstanceNumber);
+                            CcspTraceInfo(("%s %d - PSM entry for SKBPort Failed. Don't add Marking table Entry for token: (%s)\n", __FUNCTION__, __LINE__, token));
+                            token = strtok( NULL, "-" );
+                            continue;
+                        }
+                    
+                        //Get SKB Mark from PSM
+                        memset( acPSMQuery, 0, sizeof( acPSMQuery ) );
+                        memset( acPSMValue, 0, sizeof( acPSMValue ) );
+                        
+                        snprintf( acPSMQuery, sizeof( acPSMQuery ), PSM_MARKING_SKBMARK, ulIfInstanceNumber, acTmpMarkingData );
+                        if ( ( CCSP_SUCCESS == DmlWanGetPSMRecordValue( acPSMQuery, acPSMValue ) ) && \
+                                ( strlen( acPSMValue ) > 0 ) )
+                        {
+                            p_Marking->SKBMark = atoi( acPSMValue );
+                        }
+                        else
+                        {
+                            WanMgr_RemoveMarkingEntryFromPSMList(acOldMarkingList, acTmpMarkingData, ulIfInstanceNumber);
+                            CcspTraceInfo(("%s %d - PSM entry for SKBMark Failed. Don't add Marking table Entry for token: (%s)\n", __FUNCTION__, __LINE__, token));
+                            token = strtok( NULL, "-" );
+                            continue;
+                        }
+                    
+                        //Get Ethernet Priority Mark from PSM
+                        memset( acPSMQuery, 0, sizeof( acPSMQuery ) );
+                        memset( acPSMValue, 0, sizeof( acPSMValue ) );
+                        
+                        snprintf( acPSMQuery, sizeof( acPSMQuery ), PSM_MARKING_ETH_PRIORITY_MASK, ulIfInstanceNumber, acTmpMarkingData );
+                        if ( ( CCSP_SUCCESS == DmlWanGetPSMRecordValue( acPSMQuery, acPSMValue ) ) && \
+                                ( strlen( acPSMValue ) > 0 ) )
+                        {
+                            p_Marking->EthernetPriorityMark = atoi( acPSMValue );
+                        }
+                        else
+                        {
+                            WanMgr_RemoveMarkingEntryFromPSMList(acOldMarkingList, acTmpMarkingData, ulIfInstanceNumber);
+                            CcspTraceInfo(("%s %d - PSM entry for EthernetPriorityMark Failed. Don't add Marking table Entry for token: (%s)\n", __FUNCTION__, __LINE__, token));
+                            token = strtok( NULL, "-" );
+                            continue;
+                        }
+                    /* Insert into marking table */
                     snprintf(aTableName, sizeof(aTableName), MARKING_TABLE, ulIfInstanceNumber);
                     if (CCSP_SUCCESS == CcspBaseIf_AddTblRow(bus_handle,WAN_COMPONENT_NAME,WAN_DBUS_PATH, 0, aTableName,&ulInstanceNumber))
                     {
-                          DML_MARKING    Marking;
-                          DML_MARKING*   p_Marking = &Marking;
 
-                           char acTmpMarkingData[ 32 ] = { 0 };
-                           /* a) SKBPort is derived from InstanceNumber.
-                              b) Since InstanceNumber starts with Zero, to make it non-zero (add 1)
-                              c) Voice packet get EthernetPriotityMark based on SKBPort.*/
-                           p_Marking->InstanceNumber = ulInstanceNumber + 1;
+                        /* a) SKBPort is derived from InstanceNumber.
+                           b) Since InstanceNumber starts with Zero, to make it non-zero (add 1)
+                           c) Voice packet get EthernetPriotityMark based on SKBPort.*/
+                        p_Marking->InstanceNumber = ulInstanceNumber + 1;
 
-                           //Stores into tmp buffer
-                           snprintf( acTmpMarkingData, sizeof( acTmpMarkingData ), "%s", token );
+                        //Re-adjust SKB Port if it is not matching with instance number
+                        if ( p_Marking->InstanceNumber != p_Marking->SKBPort )
+                        {
+                            p_Marking->SKBPort = p_Marking->InstanceNumber;
 
-                           //Get Alias from PSM
-                           memset( acPSMQuery, 0, sizeof( acPSMQuery ) );
-                           memset( acPSMValue, 0, sizeof( acPSMValue ) );
-
-                           snprintf( acPSMQuery, sizeof( acPSMQuery ), PSM_MARKING_ALIAS, ulIfInstanceNumber, acTmpMarkingData );
-                           if ( ( CCSP_SUCCESS == DmlWanGetPSMRecordValue( acPSMQuery, acPSMValue ) ) && \
-                                ( strlen( acPSMValue ) > 0 ) )
-                           {
-                                snprintf( p_Marking->Alias, sizeof( p_Marking->Alias ), "%s", acPSMValue );
-                           }
-
-                           //Get SKB Port from PSM
-                           memset( acPSMQuery, 0, sizeof( acPSMQuery ) );
-                           memset( acPSMValue, 0, sizeof( acPSMValue ) );
-
-                           snprintf( acPSMQuery, sizeof( acPSMQuery ), PSM_MARKING_SKBPORT, ulIfInstanceNumber, acTmpMarkingData );
-                           if ( ( CCSP_SUCCESS == DmlWanGetPSMRecordValue( acPSMQuery, acPSMValue ) ) && \
-                                ( strlen( acPSMValue ) > 0 ) )
-                           {
-                                p_Marking->SKBPort = atoi( acPSMValue );
-
-                                //Re-adjust SKB Port if it is not matching with instance number
-                                if ( p_Marking->InstanceNumber != p_Marking->SKBPort )
-                                {
-                                    p_Marking->SKBPort = p_Marking->InstanceNumber;
-
-                                    //Set SKB Port into PSM
-                                    memset( acPSMValue, 0, sizeof( acPSMValue ) );
-
-                                    snprintf( acPSMValue, sizeof( acPSMValue ), "%u", p_Marking->SKBPort );
-                                    DmlWanSetPSMRecordValue( acPSMQuery, acPSMValue );
-                                }
-                           }
-
-                           //Get SKB Mark from PSM
-                           memset( acPSMQuery, 0, sizeof( acPSMQuery ) );
-                           memset( acPSMValue, 0, sizeof( acPSMValue ) );
-
-                           snprintf( acPSMQuery, sizeof( acPSMQuery ), PSM_MARKING_SKBMARK, ulIfInstanceNumber, acTmpMarkingData );
-                           if ( ( CCSP_SUCCESS == DmlWanGetPSMRecordValue( acPSMQuery, acPSMValue ) ) && \
-                                ( strlen( acPSMValue ) > 0 ) )
-                            {
-                                /*
-                                 * Re-adjust SKB Mark
-                                 *
-                                 * 0x100000 * InstanceNumber(1,2,3, etc)
-                                 * 1048576 is decimal equalent to 0x100000 hexa decimal
-                                 */
-                                p_Marking->SKBMark = ( p_Marking->InstanceNumber ) * ( 1048576 );
-
-                                //Set SKB Port into PSM
-                                memset( acPSMValue, 0, sizeof( acPSMValue ) );
-
-                                snprintf( acPSMValue, sizeof( acPSMValue ), "%u", p_Marking->SKBMark );
-                                DmlWanSetPSMRecordValue( acPSMQuery, acPSMValue );
-                            }
-
-                            //Get Ethernet Priority Mark from PSM
+                            //Set SKB Port into PSM
                             memset( acPSMQuery, 0, sizeof( acPSMQuery ) );
                             memset( acPSMValue, 0, sizeof( acPSMValue ) );
+                            snprintf( acPSMQuery, sizeof( acPSMQuery ), PSM_MARKING_SKBPORT, ulIfInstanceNumber, acTmpMarkingData );
+                            snprintf( acPSMValue, sizeof( acPSMValue ), "%u", p_Marking->SKBPort );
+                            DmlWanSetPSMRecordValue( acPSMQuery, acPSMValue );
+                        }
 
-                            snprintf( acPSMQuery, sizeof( acPSMQuery ), PSM_MARKING_ETH_PRIORITY_MASK, ulIfInstanceNumber, acTmpMarkingData );
-                            if ( ( CCSP_SUCCESS == DmlWanGetPSMRecordValue( acPSMQuery, acPSMValue ) ) && \
-                                    ( strlen( acPSMValue ) > 0 ) )
-                            {
-                                p_Marking->EthernetPriorityMark = atoi( acPSMValue );
-                            }
+                        /*
+                         * Re-adjust SKB Mark
+                         *
+                         * 0x100000 * InstanceNumber(1,2,3, etc)
+                         * 1048576 is decimal equalent to 0x100000 hexa decimal
+                         */
+                        p_Marking->SKBMark = ( p_Marking->InstanceNumber ) * ( 1048576 );
 
-                            CcspTraceInfo(("%s - Name[%s] Data[%s,%u,%u,%d]\n", __FUNCTION__, acTmpMarkingData, p_Marking->Alias, p_Marking->SKBPort, p_Marking->SKBMark, p_Marking->EthernetPriorityMark));
+                        //Set SKB Port into PSM
+                        memset( acPSMQuery, 0, sizeof( acPSMQuery ) );
+                        memset( acPSMValue, 0, sizeof( acPSMValue ) );
+                        snprintf( acPSMQuery, sizeof( acPSMQuery ), PSM_MARKING_SKBMARK, ulIfInstanceNumber, acTmpMarkingData );
+                        snprintf( acPSMValue, sizeof( acPSMValue ), "%u", p_Marking->SKBMark );
+                        DmlWanSetPSMRecordValue( acPSMQuery, acPSMValue );
 
+                        CcspTraceInfo(("%s - Name[%s] Data[%s,%u,%u,%d]\n", __FUNCTION__, acTmpMarkingData, p_Marking->Alias, p_Marking->SKBPort, p_Marking->SKBMark, p_Marking->EthernetPriorityMark));
+                            
                             Marking_UpdateInitValue(pWanIfaceCtrl->pIface,ulIfInstanceNumber-1,ulInstanceNumber,p_Marking);
 #ifdef _HUB4_PRODUCT_REQ_
                             /* Adding skb mark to config file if alis is 'DATA', so that udhcpc could use it to mark dhcp packets */
