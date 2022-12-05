@@ -2439,3 +2439,65 @@ void WanManager_CalculateMAPTPortRange(int offset, int psidLen, int psid, char* 
     port_range[len - 1] = '\0';
 }
 #endif
+
+bool IsDefaultRoutePresent(char *IfaceName, bool IsV4)
+{
+    int pclose_ret = 0;
+    bool ret = false;
+    char line[BUFLEN_1024] = {0};
+    FILE *fp;
+
+    if ((strlen(IfaceName) <=0 ) || (IfaceName[0] == '\0'))
+    {
+        CcspTraceError(("%s-%d : Interface Name is Null\n", __FUNCTION__, __LINE__));
+        return false;
+    }
+
+    if (IsV4)
+    {
+        fp = v_secure_popen("r","ip -4 route show default | grep default | awk '{print $5}'");
+    }
+    else
+    {
+        fp = v_secure_popen("r","ip -6 route show default | grep default | awk '{print $5}'");
+    }
+    if (fp)
+    {
+        if (fgets(line, sizeof(line), fp) != NULL)
+        {
+            char *token = strtok(line, "\n");
+            if (token)
+            {
+                CcspTraceError(("%s-%d : Default Route Iface Name(%s)/Expected Iface Name(%s) \n", __FUNCTION__, __LINE__, token, IfaceName));
+                if ((strcmp(IfaceName, token) == 0))
+                {
+                    CcspTraceInfo(("%s-%d : Default %s Route found for Interface(%s) \n", __FUNCTION__, __LINE__, (IsV4? "IPv4":"IPv6"), IfaceName));
+                    ret = true;
+                }
+            }
+            else
+            {
+                CcspTraceError(("%s-%d : Failed to Parse Route, Expected Iface Name(%s) \n", __FUNCTION__, __LINE__, IfaceName));
+                ret = false;
+            }
+        }
+        else
+        {
+            CcspTraceError(("%s-%d : Could not read default route \n", __FUNCTION__, __LINE__));
+            ret = false;
+        }
+        pclose_ret = v_secure_pclose(fp);
+        if(pclose_ret !=0)
+        {
+            CcspTraceError(("%s-%d : Failed in closing the pipe ret %d \n", __FUNCTION__, __LINE__, pclose_ret));
+        }
+    }
+    else
+    {
+        CcspTraceError(("%s-%d : Failed to get the default route \n", __FUNCTION__, __LINE__));
+        ret = false;
+    }
+
+    return ret;
+}
+

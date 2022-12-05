@@ -215,6 +215,7 @@ ANSC_STATUS WanManager_DeletePPPSession(DML_WAN_IFACE* pInterface);
 
 
 ANSC_STATUS WanManager_getGloballyUniqueIfAddr6(const char *ifname, char *ipAddr, uint32_t *prefixLen);
+bool IsDefaultRoutePresent(char *IfaceName, bool IsV4);
 
 #ifdef FEATURE_802_1P_COS_MARKING
 ANSC_HANDLE WanManager_AddIfaceMarking(DML_WAN_IFACE* pWanDmlIface, ULONG* pInsNumber);

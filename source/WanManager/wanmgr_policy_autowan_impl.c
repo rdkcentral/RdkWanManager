@@ -603,12 +603,13 @@ static WcFmobPolicyState_t Transition_FixedWanInterfaceUp(WanMgr_Policy_Controll
     }
 
     pFixedInterface->Wan.ActiveLink = TRUE;
-    pFixedInterface->SelectionStatus = WAN_IFACE_ACTIVE;
     pFixedInterface->Wan.Status =  WAN_IFACE_STATUS_UP;
 
+#ifndef WAN_FAILOVER_SUPPORTED
+    pFixedInterface->SelectionStatus = WAN_IFACE_ACTIVE;
     //Update current active interface variable
     Update_Interface_Status();
-
+#endif
      // start wan
      wanmgr_setwanstart();
      wanmgr_sshd_restart();
@@ -810,7 +811,15 @@ static WcFmobPolicyState_t State_FixedWanInterfaceUp(WanMgr_Policy_Controller_t*
             t2_event_d("WAN_RESTORE_SUCCESS_COUNT", 1);
 #endif
         }
-        retState = Transition_FixedWanInterfaceActive(pWanController);
+
+	//Check If Default route is v4(for v4 2nd arg is true) or v6(for v6 2nd arg is false)
+        if (IsDefaultRoutePresent(pFixedInterface->Wan.Name, true) || 
+            IsDefaultRoutePresent(pFixedInterface->Wan.Name, false))
+        {
+            pFixedInterface->SelectionStatus = WAN_IFACE_ACTIVE;
+            Update_Interface_Status();
+            retState = Transition_FixedWanInterfaceActive(pWanController);
+        }
     }
 #endif
 
@@ -2199,8 +2208,13 @@ static WcFmobPolicyState_t State_WanScanningInterface(WanMgr_AutoWan_SMInfo_t *p
 #endif
         }
 #endif
-        WanMgr_Policy_AutoWan_CfgPostWanSelection(pSmInfo);
-        retState = Transition_WanInterfaceActive(pSmInfo);
+        //Check If Default route is v4(for v4 2nd arg is true) or v6(for v6 2nd arg is false)
+        if (IsDefaultRoutePresent(pFixedInterface->Wan.Name, true) ||
+            IsDefaultRoutePresent(pFixedInterface->Wan.Name, false))
+        {
+            WanMgr_Policy_AutoWan_CfgPostWanSelection(pSmInfo);
+            retState = Transition_WanInterfaceActive(pSmInfo);
+        }
     }
     return retState;
 }
@@ -2294,7 +2308,12 @@ static WcFmobPolicyState_t State_WanInterfaceUp(WanMgr_AutoWan_SMInfo_t *pSmInfo
 #endif
         }
 #endif
-        retState = Transition_WanInterfaceActive(pSmInfo);
+        //Check If Default route is v4(for v4 2nd arg is true) or v6(for v6 2nd arg is false)
+        if (IsDefaultRoutePresent(pFixedInterface->Wan.Name, true) ||
+            IsDefaultRoutePresent(pFixedInterface->Wan.Name, false))
+        {
+            retState = Transition_WanInterfaceActive(pSmInfo);
+        }
     }
     return retState;
 }
@@ -3181,6 +3200,8 @@ static WcBWanPolicyState_t Transition_BackupWanInterfaceActive(WanMgr_Policy_Con
         return Transition_BackupWanInterfaceDown(pWanController);
     }
 
+    pFixedInterface->Wan.Status =  WAN_IFACE_STATUS_UP;
+
     if (!WanMgr_FirewallRuleConfig("configure", pFixedInterface->Wan.Name))
     {
         CcspTraceError(("%s-%d : Failed to Configure Firewall Rules \n",__FUNCTION__, __LINE__));
@@ -3192,6 +3213,32 @@ static WcBWanPolicyState_t Transition_BackupWanInterfaceActive(WanMgr_Policy_Con
             t2_event_d("WAN_FAILOVER_FAIL_COUNT", 1);
 #endif
         }
+        return Transition_BackupWanInterfaceDown(pWanController);
+    }
+
+    //Check If Default route is v4(for v4 2nd arg is true) or v6(for v6 2nd arg is false)
+    int RetryDelay = 1;
+    do
+    {
+        if (IsDefaultRoutePresent(pFixedInterface->Wan.Name, true) ||
+            IsDefaultRoutePresent(pFixedInterface->Wan.Name, false))
+        {
+            pFixedInterface->SelectionStatus = WAN_IFACE_ACTIVE;
+            Update_Interface_Status();
+            break;
+        }
+        else
+        {
+            CcspTraceWarning(("%s-%d : Failed to find Default Route for V4 and V6 for Interface(%s) \n", __FUNCTION__, __LINE__, pFixedInterface->Wan.Name));
+            CcspTraceWarning(("%s-%d : Retry Route check, RetryCount=%d \n", __FUNCTION__, __LINE__, RetryDelay));
+            //Re-try Route Present for v4 and v6 after every 1/2 sec and till 5sec
+            usleep(500000);
+        }
+    }while(RetryDelay++ < 10);
+
+    if (RetryDelay >= 10)
+    {
+        CcspTraceWarning(("%s-%d : Retry Reached Max=%d, so Transition do Down \n", __FUNCTION__, __LINE__, RetryDelay));
         return Transition_BackupWanInterfaceDown(pWanController);
     }
 
@@ -3693,19 +3740,14 @@ static WcBWanPolicyState_t State_BackupWanInterfaceWaitingPrimaryUp(WanMgr_Polic
         return Transition_BackupWanSelectingInterface(pWanController);
     }
 
-    if( (pWanController->WanEnable == TRUE) &&
-        (pFixedInterface->Phy.Status == WAN_IFACE_PHY_STATUS_UP) &&
-        (pFixedInterface->Wan.Status == WAN_IFACE_STATUS_DISABLED) )
-    {
-        return Transition_ValidatingBackupWanInterface(pWanController);
-    }
-
     if(-1 != WanMgr_Policy_BackupWan_CheckAnyLocalWANIsPhysicallyActive() )
     {
         return Transition_BackupWanInterfaceWaitingPrimaryUp(pWanController);
     }
 
-    if( WAN_IFACE_STATUS_UP == pFixedInterface->Wan.RemoteStatus )
+    if( (pWanController->WanEnable == TRUE) &&
+        (pFixedInterface->Phy.Status == WAN_IFACE_PHY_STATUS_UP) && 
+        (WAN_IFACE_STATUS_UP == pFixedInterface->Wan.RemoteStatus) )
     {
         return Transition_BackupWanInterfaceActive(pWanController);
     }
