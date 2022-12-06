@@ -1994,8 +1994,28 @@ static WcFmobPolicyState_t State_WanConfiguringInterface(WanMgr_AutoWan_SMInfo_t
         }
 
     }
-    retState = Transition_WanInterfaceConfigured(pSmInfo);
-    CcspTraceInfo(("%s %d - going to state %d \n", __FUNCTION__, __LINE__,retState));
+#ifdef WAN_FAILOVER_SUPPORTED
+    if (isAnyRemoteInterfaceActive() == 1)
+    {
+        // We are setting accept_ra to 0 to stop router advertise accept on erouter0 and to stop changing
+        // default route on eroter0 interface when backup is active and validating Primary Interface link.
+        WanMgr_disable_ra(pFixedInterface->Wan.Name);
+        int ret = 0;
+        // There is already a REMOTE Interace configured as ACTIVE,  wait till it moves to SELECTED state
+        CcspTraceInfo(("%s %d - Waiting for Remote Interface to be Down \n", __FUNCTION__, __LINE__));
+        ret = Transition_AutoWanInterfaceValidating(pWanController);
+        if(ret)
+        {
+            CcspTraceInfo(("%s %d - ret=%d \n", __FUNCTION__, __LINE__, ret));
+            retState = ret;
+        }
+    }
+    else
+#endif
+    {
+        retState = Transition_WanInterfaceConfigured(pSmInfo);
+        CcspTraceInfo(("%s %d - going to state %d \n", __FUNCTION__, __LINE__,retState));
+    }
     return retState;
 }
 
@@ -2334,6 +2354,9 @@ static WcFmobPolicyState_t State_WaitingForInterface(WanMgr_AutoWan_SMInfo_t *pS
         {
             case WAN_IFACE_PHY_STATUS_UP:
             {
+#ifdef WAN_FAILOVER_SUPPORTED 
+                TelemetryBackUpStatus = STATUS_SWITCHOVER_STOPED;
+#endif
                 pFixedInterface->InterfaceScanStatus = WAN_IFACE_STATUS_SCANNED;
                 if (pWanController->activeInterfaceIdx != pSmInfo->previousActiveInterfaceIndex)
                 {
@@ -2345,7 +2368,6 @@ static WcFmobPolicyState_t State_WaitingForInterface(WanMgr_AutoWan_SMInfo_t *pS
                     TelemetryBackUpStatus = STATUS_SWITCHOVER_STOPED;
                     if (isAnyRemoteInterfaceActive() == 1)
                     {
-
                         // We are setting accept_ra to 0 to stop router advertise accept on erouter0 and to stop changing
                         // default route on eroter0 interface when backup is active and validating Primary Interface link.
                         WanMgr_disable_ra(pFixedInterface->Wan.Name);
