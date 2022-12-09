@@ -133,6 +133,7 @@
 #define SYSEVENT_MULTINET_INSTANCES   "multinet-instances"
 #define SYSEVENT_TOPOLOGY_MODE        "erouter_topology-mode"
 #define SYSCFG_WAN_INTERFACE_NAME     "wan_physical_ifname"
+#define SYSEVENT_WAN_ROUTED_STATUS    "routed-status"
 #if defined (RDKB_EXTENDER_ENABLED)
 #define SYSCFG_DEVICE_NETWORKING_MODE "Device_Mode"
 #endif /* RDKB_EXTENDER_ENABLED */
@@ -272,6 +273,7 @@ ANSC_STATUS wanmgr_setwanstop();
 ANSC_STATUS wanmgr_sshd_restart();
 ANSC_STATUS wanmgr_setwanrestart();
 INT wanmgr_isWanStarted();
+INT WanMgr_IsWanStopped(void);
 ANSC_STATUS wanmgr_firewall_restart(void);
 //#ifdef FEATURE_MAPT
 ///*

@@ -3122,12 +3122,6 @@ static WcBWanPolicyState_t Transition_BackupWanInterfaceActive(WanMgr_Policy_Con
         return Transition_BackupWanInterfaceDown(pWanController);
     }
 
-    pFixedInterface->SelectionStatus = WAN_IFACE_ACTIVE;
-    pFixedInterface->Wan.Status =  WAN_IFACE_STATUS_UP;
-
-    //Update current active interface variable
-    Update_Interface_Status();
-
     if (!WanMgr_FirewallRuleConfig("configure", pFixedInterface->Wan.Name))
     {
         CcspTraceError(("%s-%d : Failed to Configure Firewall Rules \n",__FUNCTION__, __LINE__));
@@ -3151,6 +3145,12 @@ static WcBWanPolicyState_t Transition_BackupWanInterfaceActive(WanMgr_Policy_Con
         t2_event_d("WAN_FAILOVER_SUCCESS_COUNT", 1);
 #endif
     }
+
+    pFixedInterface->SelectionStatus = WAN_IFACE_ACTIVE;
+    pFixedInterface->Wan.Status =  WAN_IFACE_STATUS_UP;
+
+    //Update current active interface variable
+    Update_Interface_Status();
 
     CcspTraceInfo(("%s %d - State changed to STATE_BACKUP_WAN_INTERFACE_ACTIVE \n", __FUNCTION__, __LINE__));
     return STATE_BACKUP_WAN_INTERFACE_ACTIVE;
@@ -3498,7 +3498,8 @@ static WcBWanPolicyState_t State_BackupWanInterfaceUp(WanMgr_Policy_Controller_t
         (TelemetryBackUpStatus == STATUS_SWITCHOVER_UNKNOWN || 
 	 TelemetryBackUpStatus == STATUS_SWITCHOVER_STARTED ||
 	 TelemetryBackUpStatus == STATUS_SWITCHOVER_FAILED) &&
-        ( TRUE == WanMgr_Policy_BackupWan_CheckLocalWANsScannedOnce( pWanController ) ) )
+        ( TRUE == WanMgr_Policy_BackupWan_CheckLocalWANsScannedOnce( pWanController ) ) &&
+	( WanMgr_IsWanStopped() == 1 ) )
     {
         return Transition_BackupWanInterfaceActive(pWanController);
     }
@@ -3605,9 +3606,10 @@ static WcBWanPolicyState_t State_BackupWanInterfaceInActive(WanMgr_Policy_Contro
     /* TelemetryBackUpStatus will be in fail status when switch over happend while
      * backup was in bringup states or any earlier states and failed in any of those states.
      */
-    if( ( WAN_IFACE_STATUS_UP == pFixedInterface->Wan.RemoteStatus ) && 
+    if( ( WAN_IFACE_STATUS_UP == pFixedInterface->Wan.RemoteStatus ) &&
         (TelemetryBackUpStatus == STATUS_SWITCHOVER_STARTED ||
-         TelemetryBackUpStatus == STATUS_SWITCHOVER_FAILED) )
+         TelemetryBackUpStatus == STATUS_SWITCHOVER_FAILED) &&
+        ( WanMgr_IsWanStopped() == 1 ) )
     {
         return Transition_BackupWanInterfaceActive(pWanController);
     }

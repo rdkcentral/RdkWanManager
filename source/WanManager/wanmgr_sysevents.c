@@ -951,6 +951,74 @@ INT wanmgr_isWanStarted()
     return 0;
 }
 
+static INT WanMgr_GetWanServiceStatus(void)
+{
+    INT ret = -1;
+    char wan_st[BUFLEN_16];
+    memset(wan_st,0,sizeof(wan_st));
+    sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_WAN_SERVICE_STATUS, wan_st, sizeof(wan_st));
+
+    if (strcmp(wan_st, SYSEVENT_VALUE_STARTED) == 0)
+    {
+        ret = 1;
+    }
+    else if (strcmp(wan_st, SYSEVENT_VALUE_STOPPED) == 0)
+    {
+        ret = 0;
+    }
+
+    return ret;
+}
+
+static INT WanMgr_GetWanStatus(void)
+{
+    INT ret = -1;
+    char wan_st[BUFLEN_16];
+    memset(wan_st,0,sizeof(wan_st));
+    sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_WAN_STATUS, wan_st, sizeof(wan_st));
+
+    if (strcmp(wan_st, SYSEVENT_VALUE_STARTED) == 0)
+    {
+        ret = 1;
+    }
+    else if (strcmp(wan_st, SYSEVENT_VALUE_STOPPED) == 0)
+    {
+        ret = 0;
+    }
+
+    return ret;
+}
+
+static INT WanMgr_GetWanRoutedStatus(void)
+{
+    INT ret = -1;
+    char wan_st[BUFLEN_16];
+    memset(wan_st,0,sizeof(wan_st));
+    sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_WAN_ROUTED_STATUS, wan_st, sizeof(wan_st));
+
+    if (strcmp(wan_st, SYSEVENT_VALUE_STARTED) == 0)
+    {
+        ret = 1;
+    }
+    else if (strcmp(wan_st, SYSEVENT_VALUE_STOPPED) == 0)
+    {
+        ret = 0;
+    }
+
+    return ret;
+}
+
+INT WanMgr_IsWanStopped(void)
+{
+    if ( (WanMgr_GetWanServiceStatus() == 0) &&
+         (WanMgr_GetWanStatus() == 0) &&
+         (WanMgr_GetWanRoutedStatus() == 0) )
+    {
+        CcspTraceInfo(("%s-%d : WanStopped \n", __FUNCTION__, __LINE__));
+        return 1;
+    }
+    return 0;
+}
 
 ANSC_STATUS wanmgr_setwanstart()
 {
