@@ -233,6 +233,28 @@ static void AutoWan_BkupAndReboot(void);
 /*********************************************************************************/
 /**************************** ACTIONS ********************************************/
 /*********************************************************************************/
+
+#ifdef WAN_FAILOVER_SUPPORTED
+static void WanMgr_SetInterface(char *IfaceName, char *state)
+{
+
+    if ((strlen(IfaceName) <=0 ) || (IfaceName[0] == '\0'))
+    {
+        CcspTraceError(("%s-%d : Interface Name is Null\n", __FUNCTION__, __LINE__));
+        return;
+    }
+
+    char command[256] = {0};
+    int ret = 0;
+    memset(command, 0, sizeof(command));
+    snprintf(command, sizeof(command), "ip -4 link set %s %s", IfaceName, state);
+    WanManager_DoSystemActionWithStatus("SetInterface:", command);
+    if(ret != RETURN_OK) {
+        CcspTraceError(("%s-%d : Failure in executing command via v_secure_system. ret:[%d] \n", __FUNCTION__, __LINE__, ret));
+    }
+}
+#endif
+
 static void WanMgr_disable_ra(char *IfaceName)
 {
 
@@ -621,6 +643,11 @@ static WcFmobPolicyState_t Transition_FixedWanInterfaceValidating(WanMgr_Policy_
         return 0;
     }
 
+    //WorkWround: set erouter0 up and down for Docsis.
+    if (pWanController->activeInterfaceIdx == 0)
+    {
+        WanMgr_SetInterface(pFixedInterface->Wan.Name, "up");
+    }
     //Check if there is any IP leases is getting or not over Backup WAN
     if( 0 == WanMgr_Policy_CheckAndStartUDHCPClientOverWanInterface( pFixedInterface->Wan.Name, WAN_START_FOR_VALIDATION, PRIMARY_WAN_DHCPC_PID_FILE, BACKUP_WAN_DHCPC_SRC_RAMDOM_FILE ) )
     {
@@ -1559,6 +1586,11 @@ static WcFmobPolicyState_t Transition_AutoWanInterfaceValidating(WanMgr_Policy_C
         return 0;
     }
 
+    //WorkWround: set erouter0 up and down for Docsis.
+    if (pWanController->activeInterfaceIdx == 0)
+    {
+        WanMgr_SetInterface(pFixedInterface->Wan.Name, "up");
+    }
     //Check if there is any IP leases is getting or not over Backup WAN
     if( 0 == WanMgr_Policy_CheckAndStartUDHCPClientOverWanInterface( pFixedInterface->Wan.Name, WAN_START_FOR_VALIDATION, PRIMARY_WAN_DHCPC_PID_FILE, BACKUP_WAN_DHCPC_SRC_RAMDOM_FILE ) )
     {
@@ -1637,6 +1669,11 @@ static WcFmobPolicyState_t Transition_WanInterfaceValidating(WanMgr_Policy_Contr
         return 0;
     }
 
+    //WorkWround: set erouter0 up and down for Docsis.
+    if (pWanController->activeInterfaceIdx == 0)
+    {
+        WanMgr_SetInterface(pFixedInterface->Wan.Name, "up");
+    }
     //Check if there is any IP leases is getting or not over Backup WAN
     if( 0 == WanMgr_Policy_CheckAndStartUDHCPClientOverWanInterface( pFixedInterface->Wan.Name, WAN_START_FOR_VALIDATION, PRIMARY_WAN_DHCPC_PID_FILE, BACKUP_WAN_DHCPC_SRC_RAMDOM_FILE ) )
     {
