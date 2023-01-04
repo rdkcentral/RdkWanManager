@@ -394,7 +394,7 @@ ANSC_STATUS maptInfo_reset()
 
     sysevent_set(sysevent_fd, sysevent_token,SYSEVENT_MAPT_PSID_LENGTH, "", 0);
 
-    sysevent_set(sysevent_fd, sysevent_token,SYSEVENT_MAP_TRANSPORT_MODE, "", 0);
+    sysevent_set(sysevent_fd, sysevent_token,SYSEVENT_MAP_TRANSPORT_MODE, "NONE", 0);//default value
 
     sysevent_set(sysevent_fd, sysevent_token,SYSEVENT_MAP_IS_FMR, "", 0);
 
