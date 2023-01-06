@@ -815,7 +815,37 @@ BOOL WanIfCfg_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG
             }
             if( strcmp(ParamName, "Group") == 0)
             {
-                pWanDmlIface->Wan.Group = uValue;
+                //TODO: MAX_INTERFACE_GROUP  check should be removed after implementing dynamic group table. 
+                if(uValue > MAX_INTERFACE_GROUP)
+                {
+                    CcspTraceWarning(("%s %d Group Id(%d) is not supported. MAX_INTERFACE_GROUP %d \n", __FUNCTION__, __LINE__,uValue,MAX_INTERFACE_GROUP));
+                }
+                else if(pWanDmlIface->Wan.Group != uValue)
+                {
+                    /*Update GroupIfaceListChanged */
+                    WANMGR_IFACE_GROUP* pWanIfaceGroup = WanMgr_GetIfaceGroup_locked((uValue -1));
+                    if (pWanIfaceGroup != NULL)
+                    {
+                        CcspTraceInfo(("%s %d Group(%d) configuration changed  \n", __FUNCTION__, __LINE__,uValue));
+                        pWanIfaceGroup->GroupIfaceListChanged = TRUE;
+                        /* Add Interface to New group Available list */
+                        pWanIfaceGroup->InterfaceAvailable |= (1<<pIfaceDmlEntry->data.uiIfaceIdx);
+                        WanMgrDml_GetIfaceGroup_release();
+                        pWanIfaceGroup = NULL;
+                    }
+
+                    pWanIfaceGroup = WanMgr_GetIfaceGroup_locked((pWanDmlIface->Wan.Group -1));
+                    if (pWanIfaceGroup != NULL)
+                    {
+                        CcspTraceInfo(("%s %d Group(%d) configuration changed  \n", __FUNCTION__, __LINE__,pWanDmlIface->Wan.Group));
+                        pWanIfaceGroup->GroupIfaceListChanged = TRUE;
+                        /* Remove Interface from Old group Available list */
+                        pWanIfaceGroup->InterfaceAvailable &= ~(1<<pIfaceDmlEntry->data.uiIfaceIdx);
+                        WanMgrDml_GetIfaceGroup_release();
+                    }
+
+                    pWanDmlIface->Wan.Group = uValue;
+                }
                 ret = TRUE;
             }
             if (strcmp(ParamName, "Type") == 0)

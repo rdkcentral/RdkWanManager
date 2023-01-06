@@ -144,7 +144,7 @@ ANSC_STATUS WanController_Start_StateMachine(DML_WAN_POLICY swan_policy)
              * hardware configurations on its own. It is ineffective if we do not intend
              * to use those policies.
              */
-            if(wan_policy != AUTOWAN_MODE)  // Add policy that does not need reset hw configurations.
+            if(wan_policy != AUTOWAN_MODE )  // Add policy that does not need reset hw configurations.
             {
                 WanMgr_RdkBus_setEthernetUpstream(TRUE);
             }
@@ -180,7 +180,7 @@ ANSC_STATUS WanController_Start_StateMachine(DML_WAN_POLICY swan_policy)
 #if defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_)
                 retStatus = WanMgr_Policy_AutoWan();
 #else
-                retStatus = WanMgr_Policy_AutoWanPolicy();
+                retStatus = WanMgr_FailOverThread();
 #endif
                 break;
         }
@@ -236,6 +236,8 @@ ANSC_STATUS WanMgr_Controller_PolicyCtrlInit(WanMgr_Policy_Controller_t* pWanPol
         pWanPolicyCtrl->WanOperationalMode = -1;
         pWanPolicyCtrl->GroupIfaceList = 0;
         pWanPolicyCtrl->GroupInst = 0;
+        pWanPolicyCtrl->GroupChanged = FALSE;
+        pWanPolicyCtrl->ResetActiveInterface = FALSE;
         retStatus = ANSC_STATUS_SUCCESS;
     }
 

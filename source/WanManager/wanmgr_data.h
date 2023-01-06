@@ -32,6 +32,7 @@
 #define SELECTION_TIMEOUT_DEFAULT_MIN 20
 #define MAX_INTERFACE_GROUP           2
 #define MAX_WAN_INTERFACE_ENTRY       32
+#define REMOTE_INTERFACE_GROUP        2
 //WAN CONFIG
 typedef struct _WANMGR_CONFIG_DATA_
 {
@@ -57,10 +58,11 @@ typedef struct _WANMGR_IFACE_GROUP_DATA_
 {
     pthread_t          ThreadId;
     UINT               GroupState;
-    UINT               Interfaces;
+    UINT               InterfaceAvailable;
     UINT               SelectedInterface;
     BOOL               SelectedIfaceStatus;
     BOOL               GroupIfaceListChanged;
+    UINT               GroupSelectionTimeOut;
 }WANMGR_IFACE_GROUP;
 
 typedef struct _WANMGR_IFACE_GROUP_

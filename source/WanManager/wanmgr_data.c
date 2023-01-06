@@ -76,7 +76,7 @@ void WanMgr_SetIfaceGroup_Default(WanMgr_IfaceGroup_t *pWanIfacegroup)
 	{
             pWanIfacegroup->Group[i].ThreadId = 0;
             pWanIfacegroup->Group[i].GroupState = 0;
-            pWanIfacegroup->Group[i].Interfaces = 0;
+            pWanIfacegroup->Group[i].InterfaceAvailable = 0;
             pWanIfacegroup->Group[i].SelectedInterface = 0;
             pWanIfacegroup->Group[i].SelectedIfaceStatus = 0;
             pWanIfacegroup->Group[i].GroupIfaceListChanged = 0;
@@ -379,7 +379,19 @@ void WanMgr_Remote_IfaceData_Init(WanMgr_Iface_Data_t* pIfaceData, UINT iface_in
         pWanDmlIface->Wan.LinkStatus = WAN_IFACE_LINKSTATUS_DOWN;
         pWanDmlIface->Wan.Refresh = FALSE;
         pWanDmlIface->Wan.RebootOnConfiguration = FALSE;
-        pWanDmlIface->Wan.Group = 2;
+        pWanDmlIface->Wan.Group = REMOTE_INTERFACE_GROUP;
+
+        /*Update GroupIfaceListChanged */
+        WANMGR_IFACE_GROUP* pWanIfaceGroup = WanMgr_GetIfaceGroup_locked(pWanDmlIface->Wan.Group - 1);
+        if (pWanIfaceGroup != NULL)
+        {
+            CcspTraceInfo(("%s %d Group(%d) configuration changed  \n", __FUNCTION__, __LINE__, pWanDmlIface->Wan.Group));
+            /* Add interface to remote group Available interface list */
+            pWanIfaceGroup->InterfaceAvailable |= (1<<pWanDmlIface->uiIfaceIdx);
+            WanMgrDml_GetIfaceGroup_release();
+            pWanIfaceGroup = NULL;
+        }
+
         memset(pWanDmlIface->IP.Path, 0, 64);
         pWanDmlIface->IP.Ipv4Status = WAN_IFACE_IPV4_STATE_DOWN;
         pWanDmlIface->IP.Ipv6Status = WAN_IFACE_IPV6_STATE_DOWN;

@@ -235,6 +235,11 @@ typedef enum _IFACE_TYPE
     REMOTE_IFACE
 } IFACE_TYPE;
 
+typedef enum {
+    STATE_GROUP_UNKNOWN = 1,
+    STATE_GROUP_RUNNING,
+    STATE_GROUP_STOPPED,
+} WAN_IFACE_GROUP_STATUS;
 
 typedef struct _DATAMODEL_PPP
 {
