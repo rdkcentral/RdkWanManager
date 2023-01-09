@@ -257,6 +257,8 @@ ANSC_STATUS wanmgr_sysevents_ipv4Info_init(const char *wanIfName, DEVICE_NETWORK
     memset(&ipv4Data, 0, sizeof(WANMGR_IPV4_DATA));
     memset(&ipc_ipv4Data, 0, sizeof(ipc_dhcpv4_data_t));
 
+    strncpy(ipc_ipv4Data.dhcpcInterface, wanIfName, sizeof(ipc_ipv4Data.dhcpcInterface)-1);
+    strncpy(ipv4Data.ifname, wanIfName, sizeof(ipv4Data.ifname)-1);
     strncpy(ipv4Data.ip, "0.0.0.0", sizeof(ipv4Data.ip)-1);
     strncpy(ipv4Data.mask, "0.0.0.0", sizeof(ipv4Data.mask)-1);
     strncpy(ipv4Data.gateway, "0.0.0.0", sizeof(ipv4Data.gateway)-1);
