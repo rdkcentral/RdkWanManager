@@ -3009,7 +3009,6 @@ static unsigned char WanMgr_Policy_BackupWan_CheckLocalWANsScannedOnce( WanMgr_P
 
                     if( WAN_IFACE_STATUS_SCANNED == pInterface->InterfaceScanStatus )
                     {
-                        //CcspTraceInfo(("%s: LOCAL WAN interface '%s' is scanned, index '%d'\n",__FUNCTION__,pInterface->Wan.Name,uiWanIdx));
                         uiTotalScannedLocalIfaces++;
 
                         if( ( WAN_MODE_PRIMARY == selectedMode ) &&
@@ -3600,11 +3599,9 @@ static WcBWanPolicyState_t State_BackupWanInterfaceUp(WanMgr_Policy_Controller_t
      * backup was in bringup states or any earlier states and failed in any of those states.
      */
     if( ( WAN_IFACE_STATUS_UP == pFixedInterface->Wan.RemoteStatus ) &&
-        (TelemetryBackUpStatus == STATUS_SWITCHOVER_UNKNOWN || 
-	 TelemetryBackUpStatus == STATUS_SWITCHOVER_STARTED ||
-	 TelemetryBackUpStatus == STATUS_SWITCHOVER_FAILED) &&
+        (TelemetryBackUpStatus != STATUS_SWITCHOVER_STOPED ) &&
         ( TRUE == WanMgr_Policy_BackupWan_CheckLocalWANsScannedOnce( pWanController ) ) &&
-	( WanMgr_IsWanStopped() == 1 ) )
+        ( WanMgr_IsWanStopped() == 1 ) )
     {
         return Transition_BackupWanInterfaceActive(pWanController);
     }
@@ -3731,9 +3728,12 @@ static WcBWanPolicyState_t State_BackupWanInterfaceWaitingPrimaryUp(WanMgr_Polic
         pFixedInterface = &(pWanController->pWanActiveIfaceData->data);
     }
 
-    if( ( pFixedInterface == NULL ) ||
-        (pFixedInterface->Wan.Enable == FALSE) ||
-        (pWanController->WanEnable == FALSE) ||
+    if( pFixedInterface == NULL )
+    {
+        return STATE_BACKUP_WAN_WAITING;
+    }
+
+    if( (pWanController->WanEnable == FALSE) ||
         ( pWanController->AllowRemoteInterfaces == FALSE ) )
     {
         return Transition_BackupWanSelectingInterface(pWanController);
@@ -3744,7 +3744,7 @@ static WcBWanPolicyState_t State_BackupWanInterfaceWaitingPrimaryUp(WanMgr_Polic
         return Transition_BackupWanInterfaceWaitingPrimaryUp(pWanController);
     }
 
-    if( (pWanController->WanEnable == TRUE) &&
+    if( (pFixedInterface->Wan.Enable == TRUE) &&
         (pFixedInterface->Phy.Status == WAN_IFACE_PHY_STATUS_UP) && 
         (WAN_IFACE_STATUS_UP == pFixedInterface->Wan.RemoteStatus) )
     {

@@ -936,7 +936,6 @@ INT WanMgr_IsWanStopped(void)
          (WanMgr_GetWanStatus() == 0) &&
          (WanMgr_GetWanRoutedStatus() == 0) )
     {
-        CcspTraceInfo(("%s-%d : WanStopped \n", __FUNCTION__, __LINE__));
         return 1;
     }
     return 0;
