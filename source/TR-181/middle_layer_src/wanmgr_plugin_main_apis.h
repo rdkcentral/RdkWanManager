@@ -135,7 +135,7 @@ typedef  struct _WANMGR_BACKEND_OBJ_
 #endif
 } WANMGR_BACKEND_OBJ;
 
-WANMGR_BACKEND_OBJ* g_pWanMgrBE;
+extern WANMGR_BACKEND_OBJ* g_pWanMgrBE;
 
 ANSC_HANDLE BackEndManagerCreate(VOID);
 ANSC_STATUS BackEndManagerInitialize(ANSC_HANDLE hThisObject);
