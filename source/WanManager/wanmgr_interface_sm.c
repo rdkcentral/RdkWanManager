@@ -845,6 +845,7 @@ static int wan_setUpIPv4(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
         {
             syscfg_set_string(SYSCFG_WAN_INTERFACE_NAME, pInterface->IP.Ipv4Data.ifname);
         }
+        wanmgr_sshd_restart();
         //Get WAN uptime
         WanManager_GetDateAndUptime( buffer, &uptime );
         LOG_CONSOLE("%s [tid=%ld] v4: Wan_init_complete for interface index %d at %d\n", buffer, syscall(SYS_gettid), pWanIfaceCtrl->interfaceIdx, uptime);
@@ -984,6 +985,7 @@ static int wan_setUpIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
         {
             syscfg_set_string(SYSCFG_WAN_INTERFACE_NAME, pInterface->IP.Ipv6Data.ifname);
         }
+        wanmgr_sshd_restart();
     }
 
     return ret;
