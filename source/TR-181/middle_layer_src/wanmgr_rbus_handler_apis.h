@@ -63,8 +63,6 @@ typedef struct _idm_invoke_method_Params
     char Mac_dest[18];
     char param_name[128];
     char param_value[2048];
-    char pComponent_name[128];
-    char pBus_path[128];
     uint timeout;
     enum dataType_e type;
     rbusMethodAsyncHandle_t asyncHandle;
@@ -82,8 +80,6 @@ Arguments:
     char Mac_dest[18]           : Destination device (identifier) MAC
     char param_name[128]        : DM name
     char param_value[2048]      : DM value
-    char pComponent_name[128]   : Destination Component name (EX: eRT.com.cisco.spvtg.ccsp.wanmanager)
-    char pBus_path[128]         : Destination Component bus path (EX : /com/cisco/spvtg/ccsp/wanmanager)
     uint timeout                : Timeout for async call back
     enum dataType_e type        : DM data type
     rbusMethodAsyncHandle_t asyncHandle : Async call back handler pointer

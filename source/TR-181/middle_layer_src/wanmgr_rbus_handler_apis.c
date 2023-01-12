@@ -813,8 +813,6 @@ Arguments:
     char Mac_dest[18]           : Destination device (identifier) MAC
     char param_name[128]        : DM name
     char param_value[2048]      : DM value
-    char pComponent_name[128]   : Destination Component name (EX: eRT.com.cisco.spvtg.ccsp.wanmanager)
-    char pBus_path[128]         : Destination Component bus path (EX : /com/cisco/spvtg/ccsp/wanmanager)
     uint timeout                : Timeout for async call back
     enum dataType_e type        : DM data type
     rbusMethodAsyncHandle_t asyncHandle : Async call back handler pointer
@@ -846,16 +844,6 @@ ANSC_STATUS WanMgr_IDM_Invoke(idm_invoke_method_Params_t *IDM_request)
     rbusValue_Init(&value);
     rbusValue_SetString(value,IDM_request->param_value);
     rbusObject_SetValue(inParams, "paramValue", value);
-    rbusValue_Release(value);
-
-    rbusValue_Init(&value);
-    rbusValue_SetString(value, IDM_request->pComponent_name);
-    rbusObject_SetValue(inParams, "pComponent", value);
-    rbusValue_Release(value);
-
-    rbusValue_Init(&value);
-    rbusValue_SetString(value, IDM_request->pBus_path);
-    rbusObject_SetValue(inParams, "pBus", value);
     rbusValue_Release(value);
 
     rbusValue_Init(&value);
@@ -1252,8 +1240,6 @@ void WanMgr_WanRemoteIfaceConfigure_thread(void *arg)
             /* Update request parameters */
             strcpy(IDM_request.Mac_dest, pDeviceChangeEvent->mac_addr);
             strcpy(IDM_request.param_name, RemoteDMs[i].name);
-            strcpy(IDM_request.pComponent_name, "eRT.com.cisco.spvtg.ccsp.wanmanager");
-            strcpy(IDM_request.pBus_path, "/com/cisco/spvtg/ccsp/wanmanager");
             IDM_request.timeout = 30;
             IDM_request.operation = IDM_GET;
             IDM_request.asyncHandle = &CPEInterface_AsyncMethodHandler; //pointer to callback
@@ -1282,6 +1268,7 @@ void WanMgr_WanRemoteIfaceConfigure_thread(void *arg)
             WanMgr_IDM_Invoke(&IDM_request);
         }
     }
+
     free(pDeviceChangeEvent);
     pthread_exit(NULL);
     return ANSC_STATUS_SUCCESS;
