@@ -181,6 +181,7 @@ static WcFmobPolicyState_t State_WanInterfaceValidated(WanMgr_AutoWan_SMInfo_t *
 /* TRANSITIONS */
 static WcFmobPolicyState_t Transition_StartAuto(WanMgr_AutoWan_SMInfo_t *pSmInfo);
 static WcFmobPolicyState_t Transition_WanInterfaceActive(WanMgr_AutoWan_SMInfo_t *pSmInfo);
+static WcFmobPolicyState_t Transition_WanInterfaceUp(WanMgr_AutoWan_SMInfo_t *pSmInfo);
 static WcFmobPolicyState_t Transition_WaitingForInterface(WanMgr_Iface_Data_t *pWanActiveIfaceData);
 static WcFmobPolicyState_t Transition_WanInterfaceTearDown(WanMgr_Policy_Controller_t* pWanController);
 
@@ -1255,7 +1256,6 @@ static WcFmobPolicyState_t Transition_WanInterfacePhyUp(WanMgr_AutoWan_SMInfo_t 
     pFixedInterface->IP.Ipv4Status = WAN_IFACE_IPV4_STATE_UNKNOWN;
     pFixedInterface->IP.Ipv6Status = WAN_IFACE_IPV6_STATE_UNKNOWN;
     pFixedInterface->SelectionStatus = WAN_IFACE_SELECTED;
-    pFixedInterface->Wan.Status =  WAN_IFACE_STATUS_UP;
 
     //Update current active interface variable
     Update_Interface_Status();
@@ -1464,7 +1464,7 @@ static WcFmobPolicyState_t Transition_WanInterfaceConfigured(WanMgr_AutoWan_SMIn
     return STATE_WAN_SCANNING_INTERFACE;
 }
 
-static WcFmobPolicyState_t Transition_WanInterfaceActive(WanMgr_AutoWan_SMInfo_t *pSmInfo)
+static WcFmobPolicyState_t Transition_WanInterfaceUp(WanMgr_AutoWan_SMInfo_t *pSmInfo)
 {
     WcFmobPolicyState_t retState = STATE_WAN_INTERFACE_ACTIVE;
     WanMgr_Policy_Controller_t    *pWanController = NULL;
@@ -1486,12 +1486,10 @@ static WcFmobPolicyState_t Transition_WanInterfaceActive(WanMgr_AutoWan_SMInfo_t
         return retState;
     }
 
-    pFixedInterface->SelectionStatus = WAN_IFACE_ACTIVE;
-    pFixedInterface->Wan.Status = WAN_IFACE_STATUS_UP;
-    //Update current active interface variable
+    pFixedInterface->SelectionStatus = WAN_IFACE_SELECTED;
     Update_Interface_Status();
 
-    CcspTraceInfo(("%s %d - State changed to STATE_WAN_INTERFACE_ACTIVE if_name %s\n", __FUNCTION__, __LINE__,pFixedInterface->Wan.Name));
+    CcspTraceInfo(("%s %d - State changed to STATE_WAN_INTERFACE_UP if_name %s\n", __FUNCTION__, __LINE__,pFixedInterface->Wan.Name));
     CcspTraceInfo(("%s %d - LastKnownMode %d  Active index %d\n", __FUNCTION__, __LINE__,lastKnownMode,pWanController->activeInterfaceIdx));
 #ifndef ENABLE_WANMODECHANGE_NOREBOOT
     // Do reboot during wan mode change if NOREBOOT feature is not enabled.
@@ -1570,6 +1568,37 @@ static WcFmobPolicyState_t Transition_WanInterfaceActive(WanMgr_AutoWan_SMInfo_t
             break;
     }
 
+
+    return STATE_WAN_INTERFACE_UP;
+}
+
+static WcFmobPolicyState_t Transition_WanInterfaceActive(WanMgr_AutoWan_SMInfo_t *pSmInfo)
+{
+    WcFmobPolicyState_t retState = STATE_WAN_INTERFACE_ACTIVE;
+    WanMgr_Policy_Controller_t    *pWanController = NULL;
+    DML_WAN_IFACE* pFixedInterface = NULL;
+
+    if (!pSmInfo)
+        return retState;
+
+    pWanController = &pSmInfo->wanPolicyCtrl;
+
+    if((pWanController != NULL) && (pWanController->pWanActiveIfaceData != NULL))
+    {
+        pFixedInterface = &(pWanController->pWanActiveIfaceData->data);
+    }
+
+    if(pFixedInterface == NULL)
+    {
+        return retState;
+    }
+
+    pFixedInterface->SelectionStatus = WAN_IFACE_ACTIVE;
+    pFixedInterface->Wan.Status = WAN_IFACE_STATUS_UP;
+    //Update current active interface variable
+    Update_Interface_Status();
+
+    CcspTraceInfo(("%s %d - State changed to STATE_WAN_INTERFACE_ACTIVE if_name %s\n", __FUNCTION__, __LINE__,pFixedInterface->Wan.Name));
 
     return STATE_WAN_INTERFACE_ACTIVE;
 }
@@ -1737,7 +1766,7 @@ static WcFmobPolicyState_t State_WanInterfaceValidated(WanMgr_AutoWan_SMInfo_t *
 
         TelemetryRestoreStatus = STATUS_SWITCHOVER_STARTED;
 
-        retState = STATE_WAN_INTERFACE_UP;
+        retState = Transition_WanInterfaceUp(pSmInfo);
         CcspTraceInfo(("%s %d - Remote Interface Down \n", __FUNCTION__, __LINE__));
     }
     return retState;
@@ -2211,13 +2240,8 @@ static WcFmobPolicyState_t State_WanScanningInterface(WanMgr_AutoWan_SMInfo_t *p
 #endif
         }
 #endif
-        //Check If Default route is v4(for v4 2nd arg is true) or v6(for v6 2nd arg is false)
-        if (IsDefaultRoutePresent(pFixedInterface->Wan.Name, true) ||
-            IsDefaultRoutePresent(pFixedInterface->Wan.Name, false))
-        {
-            WanMgr_Policy_AutoWan_CfgPostWanSelection(pSmInfo);
-            retState = Transition_WanInterfaceActive(pSmInfo);
-        }
+        WanMgr_Policy_AutoWan_CfgPostWanSelection(pSmInfo);
+        retState = Transition_WanInterfaceUp(pSmInfo);
     }
     return retState;
 }
@@ -2371,10 +2395,8 @@ static WcFmobPolicyState_t State_WanInterfaceDown(WanMgr_AutoWan_SMInfo_t *pSmIn
             wanmgr_setwanstart();
             wanmgr_sshd_restart();
 
-            pFixedInterface->SelectionStatus = WAN_IFACE_SELECTED;
-            Update_Interface_Status();
+            retState = Transition_WanInterfaceUp(pSmInfo);
 
-            retState = STATE_WAN_INTERFACE_UP;
             CcspTraceInfo(("%s %d - AUTOWAN ifname %s \n", __FUNCTION__, __LINE__,pFixedInterface->Wan.Name));
             CcspTraceInfo(("%s %d - RetState %d WAN INTERFACE UP PhyStatus %d  \n", __FUNCTION__, __LINE__,retState,pFixedInterface->Phy.Status));
         }
