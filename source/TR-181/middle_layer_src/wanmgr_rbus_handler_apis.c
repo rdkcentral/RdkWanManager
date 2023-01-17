@@ -729,7 +729,7 @@ void WanMgr_Rbus_UpdateLocalWanDb(void)
 void WanMgr_Rbus_SubscribeDML(void)
 {
     rbusError_t ret = RBUS_ERROR_SUCCESS;
-
+#if defined  (WAN_FAILOVER_SUPPORTED) || defined(RDKB_EXTENDER_ENABLED)
     ret = rbusEvent_Subscribe(rbusHandle, WANMGR_DEVICE_NETWORKING_MODE, WanMgr_Rbus_EventReceiveHandler, NULL, 60);
     if(ret != RBUS_ERROR_SUCCESS)
     {
@@ -760,6 +760,7 @@ void WanMgr_Rbus_SubscribeDML(void)
             CcspTraceError(("%s %d: unable to fetch %s\n", __FUNCTION__, __LINE__, WANMGR_DEVICE_NETWORKING_MODE));
         } 
     }
+#endif
 #ifdef FEATURE_RDKB_INTER_DEVICE_MANAGER
     ret = rbusEvent_Subscribe(rbusHandle, X_RDK_REMOTE_DEVICECHANGE, WanMgr_Rbus_EventReceiveHandler, NULL, 60);
     if(ret != RBUS_ERROR_SUCCESS)
