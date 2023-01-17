@@ -1159,6 +1159,7 @@ static eWanState_t wan_transition_physical_interface_down(WanMgr_IfaceSM_Control
 
     DML_WAN_IFACE* pInterface = pWanIfaceCtrl->pIfaceData;
 
+
 #ifdef FEATURE_MAPT
     if(pInterface->MAP.MaptStatus == WAN_IFACE_MAPT_STATE_UP)
     {
@@ -1214,6 +1215,13 @@ static eWanState_t wan_transition_physical_interface_down(WanMgr_IfaceSM_Control
     if (pInterface->Wan.IfaceType != REMOTE_IFACE)
     {
         WanMgr_RdkBus_updateInterfaceUpstreamFlag(pInterface->Phy.Path, FALSE);
+    }
+
+    /* VLAN link is not created yet if LinkStatus is CONFIGURING. Change it to down. */
+    if( pInterface->Wan.LinkStatus == WAN_IFACE_LINKSTATUS_CONFIGURING )
+    {
+        CcspTraceInfo(("%s %d: LinkStatus is still CONFIGURING. Set to down\n", __FUNCTION__, __LINE__));
+        pInterface->Wan.LinkStatus = WAN_IFACE_LINKSTATUS_DOWN;
     }
     CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION DECONFIGURING WAN\n", __FUNCTION__, __LINE__, pInterface->Name));
 

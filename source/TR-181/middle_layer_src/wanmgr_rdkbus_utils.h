@@ -114,7 +114,7 @@ extern token_t sysevent_token;
 #define ETH_COMP_NAME_WITHOUTSUBSYSTEM "com.cisco.spvtg.ccsp.ethagent"
 #define ETH_COMPONENT_PATH "/com/cisco/spvtg/ccsp/ethagent"
 #define ETH_UPSTREAM_NAME  UPSTREAM_DM_SUFFIX
-#define ETH_X_RDK_REBOOTREQUIRED_PARAM_NAME     "Device.Ethernet.Interface.%d.X_RDK_RebootRequired"
+#define ETH_ADDTOLANBRIDGE_DM_SUFFIX  ".AddToLanBridge"
 #ifdef FEATURE_RDKB_AUTO_PORT_SWITCH
 #define ETH_INTERFACE_PORTCAPABILITY            ".PortCapability"
 #endif  //FEATURE_RDKB_AUTO_PORT_SWITCH
@@ -157,7 +157,6 @@ void* WanMgr_RdkBus_WanIfRefreshThread( void *arg );
 ANSC_STATUS DmlGetInstanceByKeywordFromPandM(char *ifname, int *piInstanceNumber);
 ANSC_STATUS WanMgr_RdkBus_SetRequestIfComponent(char *pPhyPath, char *pInputparamName, char *pInputParamValue, enum dataType_e type);
 ANSC_STATUS WaitForInterfaceComponentReady(char *pPhyPath);
-ANSC_STATUS WanMgr_RdkBus_Get_InterfaceRebootRequired(UINT IfaceIndex, BOOL *RebootRequired);
 
 ANSC_STATUS WanMgr_RestartGetPhyStatus (DML_WAN_IFACE *pWanIfaceData);
 ANSC_STATUS WanMgr_RestartGetLinkStatus (DML_WAN_IFACE *pWanIfaceData);

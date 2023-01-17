@@ -1472,7 +1472,7 @@ BOOL WanMgr_Rbus_discover_components(char const *pModuleList)
     char **pComponentNames;
     BOOL ret = FALSE;
     char ModuleList[1024] = {0};
-    char const *rbusModuleList[7];
+    char const *rbusModuleList[16];
     int count = 0;
     const char delimit[2] = " ";
     char *token;

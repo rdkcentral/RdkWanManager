@@ -340,30 +340,6 @@ void WanMgr_SetPortCapabilityForEthIntf (DML_WAN_POLICY eWanPolicy)
 }
 #endif  //FEATURE_RDKB_AUTO_PORT_SWITCH
 
-ANSC_STATUS WanMgr_RdkBus_Get_InterfaceRebootRequired(UINT IfaceIndex, BOOL *RebootRequired)
-{
-    char acTmpReturnValue[BUFLEN_256] = { 0 };
-    char acTmpQueryParam[BUFLEN_256] = { 0 };
-
-    if (IfaceIndex == -1)
-    {
-        return ANSC_STATUS_FAILURE;
-    }
-
-    memset( acTmpReturnValue, 0, BUFLEN_256);
-    memset( acTmpQueryParam, 0, BUFLEN_256);
-
-    snprintf( acTmpQueryParam, sizeof(acTmpQueryParam ), ETH_X_RDK_REBOOTREQUIRED_PARAM_NAME, (IfaceIndex+1));
-    if ( ANSC_STATUS_FAILURE == WanMgr_RdkBus_GetParamValues( ETH_COMPONENT_NAME, ETH_COMPONENT_PATH, acTmpQueryParam, acTmpReturnValue ) )
-    {
-        CcspTraceError(("%s-%d: %s, Failed to get param value\n", __FUNCTION__, __LINE__, acTmpQueryParam));
-        return ANSC_STATUS_FAILURE;
-    }
-    //UpStream
-    *RebootRequired = atoi( acTmpReturnValue );
-    return ANSC_STATUS_SUCCESS;
-}
-
 ANSC_STATUS WanMgr_RdkBus_updateInterfaceUpstreamFlag(char *phyPath, BOOL flag)
 {
     char param_name[BUFLEN_256] = {0};
