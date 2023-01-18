@@ -1582,8 +1582,8 @@ static eWanState_t wan_transition_ipv4_down(WanMgr_IfaceSM_Controller_t* pWanIfa
         return WAN_STATE_IPV6_LEASED;
     }
 
-    /* Remove the current wan interface name, if IPV6 state is already down */
-    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_CURRENT_WAN_IFNAME, "", 0);
+    /* RDKB-46612 - Empty set caused the cujo firewall rules to currupt and led to IHC IDLE.
+    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_CURRENT_WAN_IFNAME, "", 0);*/
 
     pInterface->Wan.Status = WAN_IFACE_STATUS_VALIDATING;
     if (pWanIfaceCtrl->interfaceIdx != -1)
@@ -1723,8 +1723,8 @@ static eWanState_t wan_transition_ipv6_down(WanMgr_IfaceSM_Controller_t* pWanIfa
         return WAN_STATE_IPV4_LEASED;
     }
 
-    /* Remove the current wan interface name, if IPV4 state is already down */
-    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_CURRENT_WAN_IFNAME, "", 0);
+    /* RDKB-46612 - Empty set caused the cujo firewall rules to currupt and led to IHC IDLE.
+    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_CURRENT_WAN_IFNAME, "", 0);*/
 
     pInterface->Wan.Status = WAN_IFACE_STATUS_VALIDATING;
 
