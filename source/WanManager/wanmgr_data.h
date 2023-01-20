@@ -60,7 +60,6 @@ typedef struct _WANMGR_IFACE_GROUP_DATA_
     UINT               GroupState;
     UINT               InterfaceAvailable;
     UINT               SelectedInterface;
-    BOOL               SelectedIfaceStatus;
     BOOL               GroupIfaceListChanged;
     UINT               GroupSelectionTimeOut;
 }WANMGR_IFACE_GROUP;

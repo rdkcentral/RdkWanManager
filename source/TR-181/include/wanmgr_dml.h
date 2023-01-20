@@ -407,6 +407,7 @@ typedef struct _DML_WANMGR_CONFIG_
     DEVICE_NETWORKING_MODE DeviceNwMode;
     BOOLEAN DeviceNwModeChanged;    // Set if DeviceNwMode is changed and config needs to be applied
     BOOLEAN ResetActiveInterface;
+    BOOLEAN ResetFailOverScan;
     BOOLEAN AllowRemoteInterfaces;
     CHAR    InterfaceAvailableStatus[BUFLEN_64];
     CHAR    InterfaceActiveStatus[BUFLEN_64];

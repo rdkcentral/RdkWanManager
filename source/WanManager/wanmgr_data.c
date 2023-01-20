@@ -54,6 +54,7 @@ void WanMgr_SetConfigData_Default(DML_WANMGR_CONFIG* pWanDmlConfig)
         pWanDmlConfig->Enable = TRUE;
         pWanDmlConfig->Policy = FIXED_MODE;
         pWanDmlConfig->ResetActiveInterface = FALSE;
+        pWanDmlConfig->ResetFailOverScan = FALSE;
         pWanDmlConfig->AllowRemoteInterfaces = FALSE;
         pWanDmlConfig->PolicyChanged = FALSE;
         memset(pWanDmlConfig->InterfaceAvailableStatus, 0, BUFLEN_64);
@@ -78,7 +79,6 @@ void WanMgr_SetIfaceGroup_Default(WanMgr_IfaceGroup_t *pWanIfacegroup)
             pWanIfacegroup->Group[i].GroupState = 0;
             pWanIfacegroup->Group[i].InterfaceAvailable = 0;
             pWanIfacegroup->Group[i].SelectedInterface = 0;
-            pWanIfacegroup->Group[i].SelectedIfaceStatus = 0;
             pWanIfacegroup->Group[i].GroupIfaceListChanged = 0;
 	}
     }

@@ -36,6 +36,7 @@ typedef  struct _WANMGR_FAILOVER_CONTROLLER_
     struct timespec         GroupSelectionTimer;
     BOOL                    PolicyChanged;
     UINT                    RestorationDelay;
+    BOOL                    ResetScan;
 } WanMgr_FailOver_Controller_t;
 
 

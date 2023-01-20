@@ -76,21 +76,6 @@ static WcAwPolicyState_t Transition_ResetActiveInterface (WanMgr_Policy_Controll
 
 
 /*
- * WanMgr_SetGroupSelectedIface()
- * - sets the Group Selected Interface.
- */
-static int WanMgr_SetGroupSelectedIface (UINT GroupInst, UINT IfaceInst, BOOL Status)
-{
-    WANMGR_IFACE_GROUP* pWanIfaceGroup = WanMgr_GetIfaceGroup_locked((GroupInst - 1));
-    if (pWanIfaceGroup != NULL)
-    {
-        pWanIfaceGroup->SelectedInterface = IfaceInst;
-        pWanIfaceGroup->SelectedIfaceStatus = Status;
-        WanMgrDml_GetIfaceGroup_release();
-    }
-    return ANSC_STATUS_SUCCESS;
-}
-/*
  * WanMgr_SetActiveLink()
 * - sets the ActiveLink locallt and saves it to PSM
  */
@@ -117,35 +102,6 @@ static int WanMgr_SetActiveLink (WanMgr_Policy_Controller_t * pWanController, bo
         }
     }
     return ANSC_STATUS_SUCCESS;
-}
-
-/*
- * WanMgr_SetSelectionStatus()
- * - sets the ActiveLink locallt and saves it to PSM
- */
-static BOOL WanMgr_SetSelectionStatus (UINT IfaceInst, UINT SelStatus, BOOL State, BOOL flag)
-{
-    BOOL ret = FALSE;
-
-    WanMgr_Iface_Data_t* pWanIfaceData = WanMgr_GetIfaceData_locked((IfaceInst - 1));
-    if (pWanIfaceData != NULL)
-    {
-        DML_WAN_IFACE* pWanIface = &(pWanIfaceData->data);
-        if ((flag == TRUE) || (State == FALSE && pWanIface->Wan.Status != WAN_IFACE_STATUS_UP) ||
-            (State == TRUE && pWanIface->Wan.Status == WAN_IFACE_STATUS_STANDBY))
-        {
-            if (SelStatus)
-            {
-                if (pWanIface->SelectionStatus > WAN_IFACE_NOT_SELECTED)
-                {
-                    pWanIface->SelectionStatus = SelStatus;
-                }
-            }
-            ret = TRUE;
-        }
-        WanMgrDml_GetIfaceData_release(pWanIfaceData);
-    }
-    return ret;
 }
 
 /*
@@ -337,7 +293,7 @@ static int WanMgr_ResetGroupSelectedIface (WanMgr_Policy_Controller_t* pWanContr
         return ANSC_STATUS_FAILURE;
     }
 
-    if (WanMgr_SetGroupSelectedIface (pWanController->GroupInst, (pWanController->activeInterfaceIdx+1), 0) != ANSC_STATUS_SUCCESS)
+    if (WanMgr_SetGroupSelectedIface (pWanController->GroupInst, 0) != ANSC_STATUS_SUCCESS)
     {
         CcspTraceError(("%s %d: Failed to set ActiveLink in PSM, SelectedInterface %d \n",
                         __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
@@ -591,10 +547,6 @@ static int WanMgr_StartIfaceStateMachine (WanMgr_Policy_Controller_t * pWanContr
         return ANSC_STATUS_FAILURE;
     }
 
-    // Set SelectionStatus = ACTIVE & start Interface State Machine
-    DML_WAN_IFACE * pActiveInterface = &(pWanController->pWanActiveIfaceData->data);
-    pActiveInterface->SelectionStatus = WAN_IFACE_SELECTED;
-
     WanMgr_IfaceSM_Controller_t wanIfCtrl;
     WanMgr_IfaceSM_Init(&wanIfCtrl, pWanController->activeInterfaceIdx);
     if (WanMgr_StartInterfaceStateMachine(&wanIfCtrl) != 0)
@@ -749,14 +701,16 @@ static WcAwPolicyState_t Transition_InterfaceFound (WanMgr_Policy_Controller_t *
         return STATE_AUTO_WAN_ERROR;
     }
 
-    // Set SelectionStatus = ACTIVE & start Interface State Machine
+    // Set SelectionStatus = SELECTED & start Interface State Machine
+    DML_WAN_IFACE * pActiveInterface = &(pWanController->pWanActiveIfaceData->data);
+    pActiveInterface->SelectionStatus = WAN_IFACE_SELECTED;
+
     if (WanMgr_StartIfaceStateMachine (pWanController) != ANSC_STATUS_SUCCESS)
     {
         CcspTraceError(("%s %d: unable to start interface state machine\n", __FUNCTION__, __LINE__));
     }
 
     // update the  controller SelectedTimeOut for new selected active iface
-    DML_WAN_IFACE* pActiveInterface = &(pWanController->pWanActiveIfaceData->data);
     pWanController->InterfaceSelectionTimeOut = pActiveInterface->Wan.SelectionTimeout;
     CcspTraceInfo(("%s %d: selected interface idx=%d, name=%s, selectionTimeOut=%d \n",
                 __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx, pActiveInterface->DisplayName,
@@ -816,7 +770,7 @@ static WcAwPolicyState_t Transition_InterfaceValidated (WanMgr_Policy_Controller
     }
 
     CcspTraceInfo(("%s %d: setting GroupSelectedInterface(%d) \n", __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
-    if (WanMgr_SetGroupSelectedIface (pWanController->GroupInst, (pWanController->activeInterfaceIdx+1), 1) != ANSC_STATUS_SUCCESS)
+    if (WanMgr_SetGroupSelectedIface (pWanController->GroupInst, (pWanController->activeInterfaceIdx+1)) != ANSC_STATUS_SUCCESS)
     {
         CcspTraceError(("%s-%d: Failed to set GroupSelectedInterface %d \n",
                     __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
@@ -865,7 +819,9 @@ static WcAwPolicyState_t Transition_RestartSelectionInterface (WanMgr_Policy_Con
     WanMgr_Config_Data_t*   pWanConfigData = WanMgr_GetConfigData_locked();
     if(pWanConfigData != NULL)
     {
-            pWanConfigData->data.ResetActiveInterface = FALSE;
+        CcspTraceInfo(("%s %d: Resetting FO scan thread\n", __FUNCTION__, __LINE__));
+        pWanConfigData->data.ResetFailOverScan = TRUE;
+        pWanConfigData->data.ResetActiveInterface = FALSE;
         WanMgrDml_GetConfigData_release(pWanConfigData);
     }
 
@@ -1258,7 +1214,7 @@ static WcAwPolicyState_t State_WanInterfaceActive (WanMgr_Policy_Controller_t * 
         pActiveInterface->Wan.Enable == FALSE)
     {
         CcspTraceInfo(("%s %d: interface:%d is PHY down\n", __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
-        if (WanMgr_SetGroupSelectedIface (pWanController->GroupInst, (pWanController->activeInterfaceIdx+1), 0) != ANSC_STATUS_SUCCESS)
+        if (WanMgr_SetGroupSelectedIface (pWanController->GroupInst, (pWanController->activeInterfaceIdx+1)) != ANSC_STATUS_SUCCESS)
         {
             CcspTraceError(("%s %d: Failed to set GroupSelectedInterface %d \n",
                             __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
@@ -1299,7 +1255,7 @@ static WcAwPolicyState_t State_WanInterfaceDown (WanMgr_Policy_Controller_t * pW
     if (pActiveInterface->Phy.Status == WAN_IFACE_PHY_STATUS_UP &&
         pActiveInterface->Wan.Enable == TRUE)
     {
-        if (WanMgr_SetGroupSelectedIface (pWanController->GroupInst, (pWanController->activeInterfaceIdx+1), 1) != ANSC_STATUS_SUCCESS)
+        if (WanMgr_SetGroupSelectedIface (pWanController->GroupInst, (pWanController->activeInterfaceIdx+1)) != ANSC_STATUS_SUCCESS)
         {
             CcspTraceError(("%s %d: Failed to set GroupSelectedInterface %d \n",
                             __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));

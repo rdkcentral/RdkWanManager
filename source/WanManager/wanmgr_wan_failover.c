@@ -39,6 +39,7 @@ static WcFailOverState_t Transition_ActivateGroup (WanMgr_FailOver_Controller_t 
 static WcFailOverState_t Transition_Restoration (WanMgr_FailOver_Controller_t * pFailOverController);
 static WcFailOverState_t Transition_DeactivateGroup (WanMgr_FailOver_Controller_t * pFailOverController);
 static WcFailOverState_t Transition_RestorationFail (WanMgr_FailOver_Controller_t * pFailOverController);
+static WcFailOverState_t Transition_ResetScan (WanMgr_FailOver_Controller_t * pFailOverController);
 
 ANSC_STATUS MarkHighPriorityGroup (WanMgr_FailOver_Controller_t* pFailOverController, bool WaitForHigherGroup);
 /*
@@ -104,6 +105,8 @@ static void WanMgr_UpdateFOControllerData (WanMgr_FailOver_Controller_t* pFailOv
         pFailOverController->WanEnable = pWanConfigData->data.Enable;
         pFailOverController->PolicyChanged = pWanConfigData->data.PolicyChanged;
         pFailOverController->RestorationDelay = pWanConfigData->data.RestorationDelay;
+        pFailOverController->ResetScan = pWanConfigData->data.ResetFailOverScan;
+        pWanConfigData->data.ResetFailOverScan = false; //Reset Global data
 
         WanMgrDml_GetConfigData_release(pWanConfigData);
     }
@@ -313,31 +316,6 @@ ANSC_STATUS MarkHighPriorityGroup (WanMgr_FailOver_Controller_t* pFailOverContro
        pFailOverController->HighestValidGroup = 0; 
     }
 
-    if(pFailOverController->CurrentActiveGroup)
-    {
-        WANMGR_IFACE_GROUP* pWanIfaceGroup = WanMgr_GetIfaceGroup_locked((pFailOverController->CurrentActiveGroup -1));
-        if (pWanIfaceGroup != NULL)
-        {
-            if(pWanIfaceGroup->SelectedInterface)
-            {
-                WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked((pWanIfaceGroup->SelectedInterface - 1));
-                if (pWanDmlIfaceData != NULL)
-                {
-                    DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
-                    if((pWanIfaceData->Wan.Status != WAN_IFACE_STATUS_UP))
-                    {
-                        pWanIfaceData->SelectionStatus = WAN_IFACE_SELECTED;
-                        pFailOverController->CurrentActiveGroup = 0;
-                    }
-                    WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
-                }
-            }else
-            {
-                pFailOverController->CurrentActiveGroup = 0;
-            }
-            WanMgrDml_GetIfaceGroup_release();
-        }
-    }
     return ANSC_STATUS_SUCCESS;
 }
 
@@ -350,11 +328,17 @@ static WcFailOverState_t Transition_ActivateGroup (WanMgr_FailOver_Controller_t 
         return STATE_FAILOVER_ERROR;
     }
 
-    if(WanMgr_ActivateGroup(pFailOverController->HighestValidGroup) != ANSC_STATUS_SUCCESS)
+    if(pFailOverController->HighestValidGroup)
     {
-        return STATE_FAILOVER_SCANNING_GROUP;
+        if(WanMgr_ActivateGroup(pFailOverController->HighestValidGroup) != ANSC_STATUS_SUCCESS)
+        {
+            return STATE_FAILOVER_SCANNING_GROUP;
+        }
+        pFailOverController->CurrentActiveGroup = pFailOverController->HighestValidGroup;
+    }else //We should never reach this case.
+    {
+        CcspTraceError(("%s %d HighestValidGroup not available.\n", __FUNCTION__, __LINE__));
     }
-    pFailOverController->CurrentActiveGroup = pFailOverController->HighestValidGroup;
 
     return STATE_FAILOVER_GROUP_ACTIVE;
 }
@@ -367,12 +351,13 @@ static WcFailOverState_t Transition_DeactivateGroup (WanMgr_FailOver_Controller_
         CcspTraceError(("%s %d pFWController object is NULL \n", __FUNCTION__, __LINE__));
         return STATE_FAILOVER_ERROR;
     }
-
-    if(WanMgr_DeactivateGroup(pFailOverController->CurrentActiveGroup) != ANSC_STATUS_SUCCESS)
+    if(pFailOverController->CurrentActiveGroup)
     {
-        return STATE_FAILOVER_GROUP_ACTIVE;
+        if(WanMgr_DeactivateGroup(pFailOverController->CurrentActiveGroup) != ANSC_STATUS_SUCCESS)
+        {
+            return STATE_FAILOVER_GROUP_ACTIVE;
+        }
     }
-
     return STATE_FAILOVER_DEACTIVATE_GROUP;
 
 }
@@ -405,6 +390,27 @@ static WcFailOverState_t Transition_RestorationFail (WanMgr_FailOver_Controller_
     /* Do nothing */
     return STATE_FAILOVER_GROUP_ACTIVE;
 }
+
+static WcFailOverState_t Transition_ResetScan (WanMgr_FailOver_Controller_t * pFailOverController)
+{
+    CcspTraceInfo(("%s %d  \n", __FUNCTION__, __LINE__));
+
+    if(pFailOverController == NULL)
+    {
+        CcspTraceError(("%s %d pFWController object is NULL \n", __FUNCTION__, __LINE__));
+        return STATE_FAILOVER_ERROR;
+    }
+
+    pFailOverController->CurrentActiveGroup =  0;
+    pFailOverController->HighestValidGroup = 0;
+    pFailOverController->ResetScan = false;
+
+    //Start the selectionTimer
+    memset(&(pFailOverController->GroupSelectionTimer), 0, sizeof(struct timespec));
+    clock_gettime(CLOCK_MONOTONIC_RAW, &(pFailOverController->GroupSelectionTimer));
+
+    return STATE_FAILOVER_SCANNING_GROUP;
+}
 /*********************************************************************************/
 /**************************** STATES *********************************************/
 /*********************************************************************************/
@@ -423,12 +429,12 @@ static WcFailOverState_t State_ScanningGroup (WanMgr_FailOver_Controller_t * pFa
         return STATE_FAILOVER_EXIT;
     }
 
+    MarkHighPriorityGroup(pFailOverController, true);
+
     if( pFailOverController->HighestValidGroup)
     {
         return Transition_ActivateGroup(pFailOverController);
     }
-
-    MarkHighPriorityGroup(pFailOverController, true);
 
     return STATE_FAILOVER_SCANNING_GROUP;
 }
@@ -447,26 +453,57 @@ static WcFailOverState_t State_GroupActive (WanMgr_FailOver_Controller_t * pFail
         return Transition_DeactivateGroup(pFailOverController);
     }
 
+    if(pFailOverController->ResetScan == TRUE )
+    {
+        return Transition_ResetScan(pFailOverController);
+    }
+
+    MarkHighPriorityGroup(pFailOverController, false);
+
     if(pFailOverController->HighestValidGroup)
     {
-        if(!pFailOverController->CurrentActiveGroup)
+        bool CurrentActiveGroup_down = false;
+        if(pFailOverController->CurrentActiveGroup)
         {
-            CcspTraceInfo(("%s %d : CurrentActiveGroup Down. Activating Highest available group \n", __FUNCTION__, __LINE__));
-            return Transition_ActivateGroup(pFailOverController);
+            WANMGR_IFACE_GROUP* pWanIfaceGroup = WanMgr_GetIfaceGroup_locked((pFailOverController->CurrentActiveGroup -1));
+            if (pWanIfaceGroup != NULL)
+            {
+                if(pWanIfaceGroup->SelectedInterface)
+                {
+                    WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked((pWanIfaceGroup->SelectedInterface - 1));
+                    if (pWanDmlIfaceData != NULL)
+                    {
+                        DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
+                        if(pWanIfaceData->Wan.Status != WAN_IFACE_STATUS_UP)
+                        {
+                            CurrentActiveGroup_down = true;
+                        }
+                        WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+                    }
+                }else
+                {
+                            CurrentActiveGroup_down = true;
+                }
+                WanMgrDml_GetIfaceGroup_release();
+            }
+        }else
+        {
+            CurrentActiveGroup_down = true;
         }
-        else if(pFailOverController->CurrentActiveGroup < pFailOverController->HighestValidGroup)
+
+        if(CurrentActiveGroup_down && (pFailOverController->CurrentActiveGroup < pFailOverController->HighestValidGroup))
         {
-            CcspTraceInfo(("%s %d :  Activating Highest available group \n", __FUNCTION__, __LINE__));
+            CcspTraceInfo(("%s %d : CurrentActiveGroup(%d) Down. Activating Next Highest available group (%d) \n", __FUNCTION__, __LINE__,
+                                    pFailOverController->CurrentActiveGroup , pFailOverController->HighestValidGroup));
             return Transition_DeactivateGroup (pFailOverController); 
         }
         else if (pFailOverController->CurrentActiveGroup > pFailOverController->HighestValidGroup)
         {
-            CcspTraceInfo(("%s %d :  Found Highest available group. Starting Restoration Timer \n", __FUNCTION__, __LINE__));
+            CcspTraceInfo(("%s %d :  Found Highest available group (%d). Starting Restoration Timer \n", __FUNCTION__, __LINE__,pFailOverController->HighestValidGroup));
             return Transition_Restoration (pFailOverController);
         }
     }
 
-    MarkHighPriorityGroup(pFailOverController, false);
     return STATE_FAILOVER_GROUP_ACTIVE;
 }
 
@@ -549,12 +586,14 @@ static WcFailOverState_t State_DeactivateGroup (WanMgr_FailOver_Controller_t * p
                     if((pWanIfaceData->Wan.Status != WAN_IFACE_STATUS_UP))
                     {
                         CurrentActiveGroup_Deactivated = true;
+                        pFailOverController->CurrentActiveGroup = 0; //Reset the CurrentActiveGroup.
                     }
                     WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
                 }
             }else
             {
                 CurrentActiveGroup_Deactivated = true;
+                pFailOverController->CurrentActiveGroup = 0; //Reset the CurrentActiveGroup.
             }
             WanMgrDml_GetIfaceGroup_release();
         }
