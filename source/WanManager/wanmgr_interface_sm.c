@@ -2554,7 +2554,10 @@ static eWanState_t wan_state_ipv6_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
             pInterface->SelectionStatus == WAN_IFACE_ACTIVE &&
             pInterface->MAP.MaptStatus == WAN_IFACE_MAPT_STATE_UP)
     {
-        return wan_transition_mapt_up(pWanIfaceCtrl);
+        if (checkIpv6AddressAssignedToBridge() == RETURN_OK) // Wait for default gateway before MAP-T configuration
+        {
+            return wan_transition_mapt_up(pWanIfaceCtrl);
+        } //wanmgr_Ipv6Toggle() is called below.
     }
     else if (pInterface->Wan.EnableMAPT == TRUE &&
              pInterface->SelectionStatus == WAN_IFACE_ACTIVE &&

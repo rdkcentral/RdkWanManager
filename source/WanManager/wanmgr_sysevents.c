@@ -57,7 +57,7 @@ static int ipv4_connection_up = 0;
 static int ipv6_connection_up = 0;
 static void check_lan_wan_ready();
 static int CheckV6DefaultRule();
-static void do_toggle_v6_status();
+static int do_toggle_v6_status();
 static int getVendorClassInfo(char *buffer, int length);
 static int set_default_conf_entry();
 #ifdef FEATURE_MAPT
@@ -730,7 +730,7 @@ static int CheckV6DefaultRule()
     return ret;
 }
 
-static void do_toggle_v6_status()
+static int do_toggle_v6_status()
 {
     bool isV6DefaultRoutePresent = FALSE;
     int ret = 0;
@@ -760,7 +760,7 @@ static void do_toggle_v6_status()
         }
 
     }
-    return;
+    return ret;
 }
 
 void wanmgr_Ipv6Toggle()
@@ -773,9 +773,10 @@ void wanmgr_Ipv6Toggle()
     {
         CcspTraceInfo(("%s %d SYSEVENT_IPV6_TOGGLE[TRUE] \n", __FUNCTION__, __LINE__));
 
-        sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV6_TOGGLE, "FALSE", 0);
-
-        do_toggle_v6_status();
+        if(do_toggle_v6_status() ==0)
+        {
+            sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV6_TOGGLE, "FALSE", 0);
+        }
     }
 }
 
