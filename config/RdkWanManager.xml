@@ -1268,7 +1268,7 @@
                 <syntax>string</syntax>
                 <writable>false</writable>
               </parameter>
-<?ifdef FEATURE_SUPPORT_MAPT_NAT46?>
+<?ifdef FEATURE_SUPPORT_MAPT_NAT46 || FEATURE_MAPT?>
               <parameter>
                 <name>MapRatio</name>
                 <type>unsignedInt</type>

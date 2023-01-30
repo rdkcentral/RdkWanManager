@@ -1005,8 +1005,106 @@ int WanManager_ProcessMAPTConfiguration(ipc_mapt_data_t *dhcp6cMAPTMsgBody, cons
 #endif
 #endif //IVI_KERNEL_SUPPORT
 
+    WanManager_DisplayMAPTFeatureStatus();
+
     CcspTraceNotice(("FEATURE_MAPT: MAP-T configuration done\n"));
     return RETURN_OK;
+}
+
+void WanManager_DisplayMAPTFeatureStatus(void)
+{
+    char isEnabled[BUFLEN_8] = {0};
+
+    if(syscfg_get(NULL, "upnp_igd_enabled", isEnabled, BUFLEN_8) == 0)
+    {
+        if ( '1' == isEnabled[0] )
+        {
+            CcspTraceInfo(("%s - MAP-T_enabled_UPnP_IGD_enabled\n", __FUNCTION__));
+        }
+        else
+        {
+            CcspTraceInfo(("%s - MAP-T_enabled_UPnP_IGD_disabled\n", __FUNCTION__));
+        }
+    }
+    memset(isEnabled, 0, BUFLEN_8);
+
+    if (syscfg_get(NULL, "dmz_enabled", isEnabled, BUFLEN_8) == 0)
+    {
+        if ( '1' == isEnabled[0] )
+        {
+            CcspTraceInfo(("%s - MAP-T_enabled_DMZ_enabled\n", __FUNCTION__));
+        }
+        else
+        {
+            CcspTraceInfo(("%s - MAP-T_enabled_DMZ_disabled\n", __FUNCTION__));
+        }
+    }
+    memset(isEnabled, 0, BUFLEN_8);
+
+    if (syscfg_get(NULL, "CosaNAT::port_forward_enabled", isEnabled, BUFLEN_8) == 0)
+    {
+        if ( '1' == isEnabled[0] )
+        {
+            CcspTraceInfo(("%s - MAP-T_enabled_Port_Forwarding_enabled\n", __FUNCTION__));
+        }
+        else
+        {
+            CcspTraceInfo(("%s - MAP-T_enabled_Port_Forwarding_disabled\n", __FUNCTION__));
+        }
+    }
+    memset(isEnabled, 0, BUFLEN_8);
+
+    if (syscfg_get(NULL, "CosaNAT::port_trigger_enabled", isEnabled, BUFLEN_8) == 0)
+    {
+        if ( '1' == isEnabled[0] )
+        {
+            CcspTraceInfo(("%s - MAP-T_enabled_Port_Triggering_enabled\n", __FUNCTION__));
+        }
+        else
+        {
+            CcspTraceInfo(("%s - MAP-T_enabled_Port_Triggering_disabled\n", __FUNCTION__));
+        }
+    }
+    memset(isEnabled, 0, BUFLEN_8);
+
+    if (syscfg_get(NULL, "mgmt_wan_httpaccess_ert", isEnabled, BUFLEN_8)== 0)
+    {
+        if ( '1' == isEnabled[0] )
+        {
+            CcspTraceInfo(("%s - MAP-T_enabled_User_Remote_Mgt_http_enabled\n", __FUNCTION__));
+        }
+        else
+        {
+            CcspTraceInfo(("%s - MAP-T_enabled_User_Remote_Mgt_http_disabled\n", __FUNCTION__));
+        }
+    }
+    else
+    {
+        if (syscfg_get(NULL, "mgmt_wan_httpaccess", isEnabled, BUFLEN_8)== 0)
+        {
+            if ( '1' == isEnabled[0] )
+            {
+                CcspTraceInfo(("%s - MAP-T_enabled_User_Remote_Mgt_http_enabled\n", __FUNCTION__));
+            }
+            else
+            {
+                CcspTraceInfo(("%s - MAP-T_enabled_User_Remote_Mgt_http_disabled\n", __FUNCTION__));
+            }
+        }
+    }
+    memset(isEnabled, 0, BUFLEN_8);
+
+    if (syscfg_get(NULL, "mgmt_wan_httpsaccess", isEnabled, BUFLEN_8) == 0)
+    {
+        if ( '1' == isEnabled[0] )
+        {
+            CcspTraceInfo(("%s - MAP-T_enabled_User_Remote_Mgt_https_enabled\n", __FUNCTION__));
+        }
+        else
+        {
+            CcspTraceInfo(("%s - MAP-T_enabled_User_Remote_Mgt_https_disabled\n", __FUNCTION__));
+        }
+    }
 }
 
 #ifdef NAT46_KERNEL_SUPPORT

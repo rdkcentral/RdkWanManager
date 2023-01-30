@@ -3401,7 +3401,7 @@ dhcp6c_mapt_mape_GetParamUlongValue
 
     if( AnscEqualString(ParamName, "MapRatio", TRUE) )
     {
-#if defined(FEATURE_SUPPORT_MAPT_NAT46)
+#if defined(FEATURE_SUPPORT_MAPT_NAT46) || defined(FEATURE_MAPT)
         sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_MAPT_RATIO, temp, sizeof(temp));
         *puLong  = strtoul(temp, NULL, 10);
 #else

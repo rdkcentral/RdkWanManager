@@ -155,6 +155,11 @@ int isModuleLoaded(char *moduleName); // checks kernel module loaded.
  * @return RETURN_OK in case of success else error code returned.
  ************************************************************************************/
 int WanManager_ProcessMAPTConfiguration(ipc_mapt_data_t *dhcp6cMAPTMsgBody, const char *baseIf, const char *vlanIf);
+
+/***********************************************************************************
+ * @brief This API used to display mapt feature status.
+ ************************************************************************************/
+void WanManager_DisplayMAPTFeatureStatus(void);
 #endif
 
 /***********************************************************************************
