@@ -704,6 +704,8 @@ static int setUpLanPrefixIPv6(DML_WAN_IFACE* pIfaceData)
         return RETURN_ERR;
     }
 
+    CcspTraceInfo(("%s %d Updating SYSEVENT_CURRENT_WAN_IFNAME %s\n", __FUNCTION__, __LINE__,pIfaceData->IP.Ipv6Data.ifname));
+    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_CURRENT_WAN_IFNAME, pIfaceData->IP.Ipv6Data.ifname, 0);
 
     int index = strcspn(pIfaceData->IP.Ipv6Data.sitePrefix, "/");
     if (index < strlen(pIfaceData->IP.Ipv6Data.sitePrefix))
