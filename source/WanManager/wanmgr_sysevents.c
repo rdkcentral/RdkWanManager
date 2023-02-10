@@ -464,6 +464,9 @@ static void *WanManagerSyseventHandler(void *args)
     async_id_t mesh_wan_link_status_asyncid;
 #endif /* RDKB_EXTENDER_ENABLED */
 
+#if defined (FEATURE_MAPT) 
+    async_id_t factory_reset_status_asyncid;
+#endif /* FEATURE_MAPT */
 
 #if defined (_HUB4_PRODUCT_REQ_)
     sysevent_set_options(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_ULA_ADDRESS, TUPLE_FLAG_EVENT);
@@ -495,12 +498,15 @@ static void *WanManagerSyseventHandler(void *args)
 #ifdef FEATURE_MAPT
     sysevent_set_options(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_MAPT_FEATURE_ENABLE, TUPLE_FLAG_EVENT);
     sysevent_setnotification(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_MAPT_FEATURE_ENABLE, &ipv6_down_asyncid);
+    sysevent_set_options(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_FACTORY_RESET_STATUS, TUPLE_FLAG_EVENT);
+    sysevent_setnotification(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_FACTORY_RESET_STATUS, &factory_reset_status_asyncid);
 #endif
 
 #if defined (RDKB_EXTENDER_ENABLED)
     sysevent_set_options(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_MESH_WAN_LINK_STATUS, TUPLE_FLAG_EVENT);
     sysevent_setnotification(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_MESH_WAN_LINK_STATUS, &mesh_wan_link_status_asyncid);
 #endif /* RDKB_EXTENDER_ENABLED */
+
 
     for(;;)
     {
@@ -667,6 +673,26 @@ static void *WanManagerSyseventHandler(void *args)
                 if (!strcmp(val, SYSEVENT_VALUE_TRUE) || !strcmp(val, SYSEVENT_VALUE_FALSE))
                 {
                     mapt_feature_enable_changed = TRUE;
+                }
+            }
+            else if (strcmp(name, SYSEVENT_FACTORY_RESET_STATUS) == 0)
+            {
+                CcspTraceInfo(("%s %d - received notification event %s:%s\n", __FUNCTION__, __LINE__, name, val ));
+                if (strcmp(val, SYSEVENT_VALUE_STARTED) == 0) 
+                {
+                    char ifName[64] = {0},
+                         maptStatus[16] = {0};
+                    sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_MAPT_FEATURE_ENABLE, maptStatus, sizeof(maptStatus));
+                    sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_CURRENT_WAN_IFNAME, ifName, sizeof(ifName));
+    
+                    CcspTraceInfo(("%s %d - IsMAP-TEnabled:%s WAN IfName:%s\n", __FUNCTION__, __LINE__, maptStatus, ifName ));
+
+                    if (!strcmp(maptStatus, SYSEVENT_VALUE_FALSE) && (strlen(ifName) > 0))
+                    {
+                        CcspTraceInfo(("%s %d - Stopping DHCPv6 client for WAN IfName:%s\n", __FUNCTION__, __LINE__, ifName ));
+                        system("touch /tmp/dhcpv6_release");
+                        WanManager_StopDhcpv6Client(ifName);
+                    }
                 }
             }
 #endif
