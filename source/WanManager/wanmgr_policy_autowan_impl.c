@@ -2775,7 +2775,7 @@ static bool WanMgr_FirewallRuleConfig(char *Action, char *IfaceName)
     sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_CURRENT_WAN_IFNAME, name, sizeof(name));
     CcspTraceInfo(("%s-%d : CurrentIfaceName (%s) \n",__FUNCTION__, __LINE__, name));
 
-    if ( (strcmp(Action, "configure") == 0) && ( (strlen(name) == 0) || (strcmp(name, IfaceName) != 0) ) )
+    if ( strcmp(Action, "configure") == 0 )
     {
         setRules = true;
     }
@@ -3186,7 +3186,6 @@ static WcBWanPolicyState_t Transition_BackupWanInterfaceActive(WanMgr_Policy_Con
 
     if ( (pFixedInterface->Phy.Status == WAN_IFACE_PHY_STATUS_DOWN)||
          (pFixedInterface->Wan.LinkStatus != WAN_IFACE_LINKSTATUS_UP) ||
-         ( WAN_IFACE_STATUS_UP != pFixedInterface->Wan.Status ) ||
          (pFixedInterface->Wan.RemoteStatus != WAN_IFACE_STATUS_UP) )
     {
         if (TelemetryBackUpStatus == STATUS_SWITCHOVER_STARTED)
