@@ -458,6 +458,7 @@ static void *WanManagerSyseventHandler(void *args)
     async_id_t radvd_restart_asyncid;
     async_id_t ipv6_down_asyncid;
 #ifdef NTP_STATUS_SYNC_EVENT
+    async_id_t ntp_time_asyncid;
     async_id_t sync_ntp_statusid;
 #endif
 #if defined (RDKB_EXTENDER_ENABLED)
@@ -492,6 +493,9 @@ static void *WanManagerSyseventHandler(void *args)
     sysevent_setnotification(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_GLOBAL_IPV6_PREFIX_CLEAR, &ipv6_down_asyncid);
 
 #ifdef NTP_STATUS_SYNC_EVENT
+    sysevent_set_options(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_NTP_TIME_SYNC, TUPLE_FLAG_EVENT);
+    sysevent_setnotification(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_NTP_TIME_SYNC, &ntp_time_asyncid);
+
     sysevent_set_options(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_SYNC_NTP_STATUS, TUPLE_FLAG_EVENT);
     sysevent_setnotification(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_SYNC_NTP_STATUS, &sync_ntp_statusid);
 #endif
@@ -582,6 +586,13 @@ static void *WanManagerSyseventHandler(void *args)
                 /* SKYH4-6572 setting NTP STATUS to 3 (which means *synchronized*)  upon receiving SYSEVENT_SYNC_NTP_STATUS event from NTPD daemon on time sync */
                 system("syscfg set ntp_status 3");
                 system("sysevent set ntp_time_sync 1");
+            }
+            else if (strcmp(name,SYSEVENT_NTP_TIME_SYNC) == 0)
+            {
+                /*This script to set the ipv4-timeoffset sysevent value with "Europe/CET"
+                 * or "Europe/London" time zone based on serial number.
+                 * SKYH4-6730 This is required to set Timeoffset for Local time*/
+                v_secure_system("/etc/sky/sync_timeoffset.sh");
             }
 #endif
             else if ( strcmp(name, SYSEVENT_IPV6_ENABLE) == 0 )
