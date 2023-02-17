@@ -689,6 +689,14 @@ static void *WanManagerSyseventHandler(void *args)
 
                     if (!strcmp(maptStatus, SYSEVENT_VALUE_FALSE) && (strlen(ifName) > 0))
                     {
+#ifdef FEATURE_IPOE_HEALTH_CHECK
+                        char output[16] = {0},
+                             cmd[64] = {0};
+                        snprintf(cmd, sizeof(cmd), "pidof %s",IHC_CLIENT_NAME);
+                        WanManager_Util_GetShell_output(cmd, output, sizeof(output));
+                        CcspTraceInfo(("%s %d - Stopping IPoE App(PID:%d) for WAN IfName:%s\n", __FUNCTION__, __LINE__, atoi(output), ifName));
+                        WanManager_StopIpoeHealthCheckService(atoi(output));
+#endif /* FEATURE_IPOE_HEALTH_CHECK */
                         CcspTraceInfo(("%s %d - Stopping DHCPv6 client for WAN IfName:%s\n", __FUNCTION__, __LINE__, ifName ));
                         system("touch /tmp/dhcpv6_release");
                         WanManager_StopDhcpv6Client(ifName);
