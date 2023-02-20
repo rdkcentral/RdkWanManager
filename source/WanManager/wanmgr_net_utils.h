@@ -167,6 +167,14 @@ int WanManager_ProcessMAPTConfiguration(ipc_mapt_data_t *dhcp6cMAPTMsgBody, cons
 void WanManager_DisplayMAPTFeatureStatus(void);
 #endif
 
+#ifdef MAPT_NAT46_FTP_ACTIVE_MODE
+/***********************************************************************************
+ * @brief This API used to calculate mapt portrange.
+ * @param port_range will hold calculated ouput of the port range.
+ ************************************************************************************/
+void WanManager_CalculateMAPTPortRange(int offset, int psidLen, int psid, char* port_range);
+#endif
+
 /***********************************************************************************
  * @brief This API used to reset mapt configuration data.
  * @param baseIf Base interface name
