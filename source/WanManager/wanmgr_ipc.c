@@ -291,7 +291,7 @@ ANSC_STATUS Wan_ForceRenewDhcpIPv6(char *ifName)
         util_signalProcess(pid, SIGUSR2);
     }
 
-    return  WanMgr_SetInterfaceStatus(ifName, WANMGR_IFACE_CONNECTION_IPV6_DOWN);
+    return  ANSC_STATUS_SUCCESS; 
 }
 
 static void* IpcServerThread( void *arg )

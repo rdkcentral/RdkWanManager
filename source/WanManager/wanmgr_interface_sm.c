@@ -2579,6 +2579,7 @@ static eWanState_t wan_state_ipv6_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
         if((strcmp(IHC_V6_status, IPOE_STATUS_FAILED) == 0) && (pInterface->PPP.Enable == FALSE) && (pInterface->Wan.EnableIPoE == TRUE) &&
                 (pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV6Status == IHC_STARTED))
         {
+            sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, NULL, 0);
             WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_IPV6_UP, pInterface->Wan.Name);
         }
         pInterface->IP.Ipv6Renewed = FALSE;
@@ -2781,6 +2782,7 @@ static eWanState_t wan_state_dual_stack_active(WanMgr_IfaceSM_Controller_t* pWan
         if((strcmp(IHC_V6_status, IPOE_STATUS_FAILED) == 0) && (pInterface->PPP.Enable == FALSE) && (pInterface->Wan.EnableIPoE == TRUE) &&
                 (pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV6Status == IHC_STARTED))
         {
+            sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, NULL, 0);
             WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_IPV6_UP, pInterface->Wan.Name);
         }
         pInterface->IP.Ipv6Renewed = FALSE;
@@ -2920,6 +2922,7 @@ static eWanState_t wan_state_mapt_active(WanMgr_IfaceSM_Controller_t* pWanIfaceC
         if((strcmp(IHC_V6_status, IPOE_STATUS_FAILED) == 0) && (pInterface->PPP.Enable == FALSE) && (pInterface->Wan.EnableIPoE == TRUE) &&
                 (pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV6Status == IHC_STARTED))
         {
+            sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, NULL, 0);
             WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_IPV6_UP, pInterface->Wan.Name);
         }
         pInterface->IP.Ipv6Renewed = FALSE;
