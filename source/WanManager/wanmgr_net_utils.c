@@ -41,6 +41,9 @@
 #include "wanmgr_sysevents.h"
 #include <sysevent/sysevent.h>
 #include "secure_wrapper.h"
+#include <sys/ioctl.h>
+#include <net/if.h>
+#include <sys/socket.h>
 
 #define BROADCAST_IP "255.255.255.255"
 /* To ignore link local addresses configured as DNS servers,
@@ -2464,3 +2467,29 @@ bool IsDefaultRoutePresent(char *IfaceName, bool IsV4)
     return ret;
 }
 
+bool WanManager_IsNetworkInterfaceAvailable( char *IfaceName ) 
+{
+    int skfd = -1;
+    struct ifreq ifr = {0};
+
+    if( NULL == IfaceName )
+    {
+       return FALSE;
+    }
+  
+    AnscCopyString(ifr.ifr_name, IfaceName);
+    
+    skfd = socket(AF_INET, SOCK_DGRAM, 0);
+    if(skfd == -1)
+       return FALSE;
+   
+    if (ioctl(skfd, SIOCGIFFLAGS, &ifr) < 0) {
+        if (errno == ENODEV) {
+            close(skfd); 
+            return FALSE;
+        }
+    }
+
+    close(skfd);
+    return TRUE;
+}

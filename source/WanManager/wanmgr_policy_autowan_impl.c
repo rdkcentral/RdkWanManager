@@ -1118,7 +1118,7 @@ static int WanMgr_Policy_CheckAndStartUDHCPClientOverWanInterface(char *IfaceNam
     char command[256] = {0},
          logPrefixString[256] = {0};
 
-    if( (strlen(IfaceName) <= 0) || (IfaceName[0] == '\0') )
+    if( (strlen(IfaceName) <= 0) || (IfaceName[0] == '\0') || ( FALSE == WanManager_IsNetworkInterfaceAvailable( IfaceName ) ) )
     {
         return -1;
     }
