@@ -227,8 +227,12 @@ void WanMgr_UpdateIpFromCellularMgr (char *dhcpcInterface)
             pIfaceData->IP.pIpcIpv4Data = (ipc_dhcpv4_data_t*) malloc(sizeof(ipc_dhcpv4_data_t));
             if(pIfaceData->IP.pIpcIpv4Data != NULL)
             {
+                memset(pIfaceData->IP.pIpcIpv4Data, 0, sizeof(ipc_dhcpv4_data_t));
+
                 pIfaceData->IP.pIpcIpv4Data->isExpired = FALSE;
                 pIfaceData->IP.pIpcIpv4Data->addressAssigned = TRUE;
+                /* we don't receive ntp time offset value from cellular network */
+                pIfaceData->IP.pIpcIpv4Data->isTimeOffsetAssigned = FALSE;
 
                 //GET IP address
                 snprintf( acTmpQueryParam, sizeof(acTmpQueryParam ),"%s%s", pIfaceData->Phy.Path, CELLULARMGR_IPADDRESS);
