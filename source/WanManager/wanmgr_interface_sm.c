@@ -38,11 +38,6 @@
 #define LOOP_TIMEOUT 50000 // timeout in microseconds. This is the state machine loop interval
 #define RESOLV_CONF_FILE "/etc/resolv.conf"
 #define LOOPBACK "127.0.0.1"
-#ifdef FEATURE_IPOE_HEALTH_CHECK
-#define IPOE_HEALTH_CHECK_V4_STATUS "ipoe_health_check_ipv4_status"
-#define IPOE_HEALTH_CHECK_V6_STATUS "ipoe_health_check_ipv6_status"
-#define IPOE_STATUS_FAILED "failed"
-#endif
 
 #ifdef FEATURE_IPOE_HEALTH_CHECK
 #define IPOE_HEALTH_CHECK_V4_STATUS "ipoe_health_check_ipv4_status"

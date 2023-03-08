@@ -1139,7 +1139,8 @@ void wanmgr_sysevent_hw_reconfig_reboot(void)
 void wanmgr_get_wan_interface(char *wanInterface)
 {
     sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_CURRENT_WAN_IFNAME, wanInterface, BUFLEN_64);
-    if(wanInterface[0] == '\0' ||  strlen(wanInterface) == 0)
+
+    if (wanInterface[0] == '\0')
     {
         strcpy(wanInterface,"erouter0"); // default wan interface
     }
