@@ -1764,6 +1764,9 @@ static void SetCurrentWanMode(int mode)
     {
         CcspTraceInfo(("syscfg_set failed for curr_wan_mode\n"));
     }
+    else{
+        sysevent_set(sysevent_fd, sysevent_token, "current_wan_mode_update", buf, 0);
+    }
 }
 
 static int GetSelectedWanMode(void)
