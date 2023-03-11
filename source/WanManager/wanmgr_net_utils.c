@@ -45,6 +45,17 @@
 #include <net/if.h>
 #include <sys/socket.h>
 
+#if defined(FEATURE_464XLAT)
+#include <netinet/icmp6.h>
+#include <sys/socket.h>
+#include <net/if.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <signal.h>
+#include <stdio.h>
+#include <netdb.h>
+#endif
+
 #define BROADCAST_IP "255.255.255.255"
 /* To ignore link local addresses configured as DNS servers,
  * it covers the range 169.254.x.x */
@@ -155,6 +166,137 @@ static ANSC_STATUS setDibblerClientEnable(BOOL * enable);
 #define SERIALIZATION_DATA "/tmp/serial.txt"
 static ANSC_STATUS GetAdslUsernameAndPassword(char *Username, char *Password);
 static int WanManager_CalculatePsidAndV4Index(char *pdIPv6Prefix, int v6PrefixLen, int iapdPrefixLen, int v4PrefixLen, int *psidValue, int *ipv4IndexValue, int *psidLen);
+#endif
+
+#if defined(FEATURE_464XLAT)
+#define XLAT_INTERFACE "xlat"
+int gen_xlat_ipv6_address(char *interface, char *address)
+{
+	int socket_inet6;
+	struct icmp6_filter filter;
+	struct sockaddr_in6 inet6Addr;
+	socklen_t len = sizeof(inet6Addr);
+	int ipv6Result = 0;
+	char xlatAddress[512] = {0};
+	
+	//Check wan interface status 
+	socket_inet6  = socket(AF_INET6, SOCK_RAW, IPPROTO_ICMPV6);
+	ICMP6_FILTER_SETBLOCKALL(&filter);
+	setsockopt(socket_inet6 , IPPROTO_ICMPV6, ICMP6_FILTER, &filter, sizeof(filter));
+	setsockopt(socket_inet6 , SOL_SOCKET, SO_BINDTODEVICE, interface, strlen(interface));
+	memset(&inet6Addr, 0, sizeof(inet6Addr));
+	inet6Addr.sin6_family = AF_INET6;
+	inet6Addr.sin6_addr.s6_addr32[0] = htonl(0x2001);
+	inet6Addr.sin6_addr.s6_addr32[1] = htonl(0xdb8);
+	if (connect(socket_inet6 , (struct sockaddr*)&inet6Addr, sizeof(inet6Addr)))
+	{
+		return -1;
+	}
+	if(getsockname(socket_inet6 , (struct sockaddr*)&inet6Addr, &len))
+	{
+		return -1;
+	}
+	
+	if(IN6_IS_ADDR_LINKLOCAL(&inet6Addr.sin6_addr))
+	{
+		return -1;
+	}
+	
+	//Generate clat interface ipv6 address by wan interface.
+	struct ipv6_mreq multicastReq  = {inet6Addr.sin6_addr, if_nametoindex(interface)};
+
+	if (IN6_IS_ADDR_LINKLOCAL(&multicastReq.ipv6mr_multiaddr))
+	{
+		return -1;
+	}
+	//Create a random ipv6 address
+	srandom(multicastReq.ipv6mr_multiaddr.s6_addr32[0] ^ multicastReq.ipv6mr_multiaddr.s6_addr32[1] ^ multicastReq.ipv6mr_multiaddr.s6_addr32[2] ^ multicastReq.ipv6mr_multiaddr.s6_addr32[3]);
+	multicastReq.ipv6mr_multiaddr.s6_addr32[2] = random();
+	multicastReq.ipv6mr_multiaddr.s6_addr32[3] = random();
+	
+	if (setsockopt(socket_inet6 , SOL_IPV6, IPV6_JOIN_ANYCAST, &multicastReq, sizeof(multicastReq)))
+	{
+		return -1;
+	}
+
+	inet_ntop(AF_INET6, &multicastReq.ipv6mr_multiaddr, xlatAddress, sizeof(xlatAddress));
+	
+	snprintf(address,512,"%s",xlat_address);
+	
+	return 0;
+}
+
+int xlat_configure(char *interface, char *xlat_address)
+{
+	char ipv6address[512] = {0}; 
+	char platformPrefix[512] = {0};
+	struct addrinfo socketHints = { .ai_family = AF_INET6 }; 
+	struct addrinfo *returnInfo;
+	int errcode = 1;
+	char host[128] = {0};
+	char cmd[512] = {0};
+	FILE *xlat ;
+	char dntInterface[256] = {0};
+	int ipv6Result = 0;
+	//Get ipv4only.arpa ipv6 address from dns64 server
+	snprintf(host,sizeof(host),"ipv4only.arpa");
+	//Sometimes fails but works on retry
+	errcode = getaddrinfo (host, NULL, &socketHints, &returnInfo);
+	if (errcode == 1)
+	{
+		errcode = getaddrinfo (host, NULL, &socketHints, &returnInfo);
+		if (errcode == 1)
+		{
+			return -1;
+		}
+	}
+	struct sockaddr_in6 *sockin6 = (struct sockaddr_in6*)returnInfo->ai_addr;
+	//dns64 will return "ipv4only.arpa" ipv6 address as "ipv6prfix"+"ipv4 address of ipv4only.arpa".
+	//ex : 64:ff9b::192.0.0.170 .
+	//We need the prefix , and prefix length is /96.
+ 	inet_ntop(AF_INET6, &sockin6->sin6_addr, platformPrefix, sizeof(platformPrefix));
+	strcat(platformPrefix, "/96");
+	freeaddrinfo(returnInfo);
+	snprintf(dntInterface,sizeof(dntInterface),"%s",interface);
+	ipv6Result = gen_xlat_ipv6_address(dntInterface,ipv6address);
+	if(ipv6Result < 0)
+	{
+		return -1;
+	}
+	
+	xlat = fopen("/proc/net/nat46/control", "w");
+    if(xlat)
+	{
+		//Write to nat46 kernel
+		//e.g : add xlat config xlat local.style NONE local.v4 /32 local.v6 2607:fb90:ec92:c52c:8274:4d68:66a2:8955/128 remote.style RFC6052 remote.v6 192.0.0.1
+		//More detail : https://github.com/ayourtch/nat46/blob/master/nat46/modules/README
+		snprintf(cmd,sizeof(cmd),"add %s\nconfig %s local.style NONE local.v4 %s/32 local.v6 %s/128 remote.style RFC6052 remote.v6 %s\n",XLAT_INTERFACE, XLAT_INTERFACE, "192.0.0.1", ipv6address, platformPrefix);
+		if(fprintf(xlat,cmd) <0)
+		{
+			fclose(xlat);
+			return -1;
+		}
+		fclose(xlat);
+	}else
+	{
+		return -1;
+	}
+
+	return 0;	
+}
+
+int xlat_reconfigure(void)
+{
+	FILE *nat46 = fopen("/proc/net/nat46/control", "w");
+	
+	nat46 = fopen("/proc/net/nat46/control", "w");
+	if (nat46) {
+		fprintf(nat46, "del %s\n", XLAT_INTERFACE);
+		fclose(nat46);
+	}
+	
+	return 0;
+}
 #endif
 
 #ifdef FEATURE_MAPT

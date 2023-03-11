@@ -138,6 +138,11 @@ BOOL WanManager_IsApplicationRunning(const char* appName);
  ***************************************************************************/
 int WanManager_Ipv6AddrUtil(char *ifname,Ipv6OperType opr,int preflft,int vallft);
 
+#if defined(FEATURE_464XLAT)
+int xlat_configure(char *interface, char *xlat_address);
+int xlat_reconfigure(void);
+#endif
+
 #ifdef FEATURE_MAPT
 /*************************************************************************************
  * @brief checks kernel module loaded.

@@ -54,6 +54,15 @@
 extern lanState_t lanState;
 #endif
 
+#if defined(FEATURE_464XLAT)
+typedef enum
+{
+    XLAT_ON = 10,
+    XLAT_OFF
+} XLAT_State_t;
+static XLAT_State_t xlat_state_get(void);
+#endif
+
 
 /*WAN Manager States*/
 static eWanState_t wan_state_configuring_wan(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
@@ -299,6 +308,32 @@ void WanMgr_Set_ISM_RunningStatus(bool status)
         WanMgrDml_GetConfigData_release(pWanConfigData);
     }
 }
+
+#if defined(FEATURE_464XLAT)
+static XLAT_State_t xlat_state_get(void)
+{
+	char buf[BUFLEN_128];
+	char status[BUFLEN_128]={0};
+	
+
+	if (syscfg_get(NULL, "xlat_status", status, sizeof(status))!=0)
+	{
+		if(strcmp(status,"up")==0)
+		{
+			CcspTraceInfo(("%s %d - 464 xlat is on\n", __FUNCTION__, __LINE__));
+			return XLAT_ON;
+		}
+		else
+		{
+			CcspTraceInfo(("%s %d - 464 xlat is off\n", __FUNCTION__, __LINE__));
+			return XLAT_OFF;
+		}
+	}else
+	{
+		return XLAT_OFF;
+	}
+}
+#endif
 
 /*********************************************************************************/
 /**************************** ACTIONS ********************************************/
@@ -1569,10 +1604,110 @@ static eWanState_t wan_transition_ipv4_down(WanMgr_IfaceSM_Controller_t* pWanIfa
     return WAN_STATE_OBTAINING_IP_ADDRESSES;
 }
 
+#if defined(FEATURE_464XLAT)
+int sc_myPipe(char *command, char **output)
+{
+    FILE *fp;
+    char buf[1024];
+	char *pt = NULL;
+    int len=0;
+    *output=malloc(3);
+    strcpy(*output, "");
+    if((fp=popen(command, "r"))==NULL)
+	{
+        return(-2);
+	}
+    while((fgets(buf, sizeof(buf), fp)) != NULL){
+        len=strlen(*output)+strlen(buf);
+        if((*output=realloc(*output, (sizeof(char) * (len+1))))==NULL)
+        {
+            pclose(fp);
+            return(-1);
+        }
+        strcat(*output, buf);
+    }
+	if ((pt = strchr(*output, '\n')) != NULL)
+	{
+		*pt = '\0';
+	}
+
+    pclose(fp);
+    return len;
+}
+
+void xlat_process_start(char *interface)
+{
+	char cmd[512] = {0};
+	char xlatcfg_output[256] = {0};
+	char *kernel_path = NULL;
+	int ret = 0;
+	
+	sc_myPipe("uname -r",&kernel_path);
+	snprintf(cmd,sizeof(cmd),"insmod /lib/modules/%s/extra/nat46.ko",kernel_path);
+	free(kernel_path);
+	system(cmd);
+	ret = xlat_configure(interface, xlatcfg_output);
+	if(ret == 0 || strlen(xlatcfg_output) > 3)
+	{
+		system("ifconfig xlat up");
+		sleep(1);
+		system("ip ro del default");
+		system("ip route add default dev xlat");
+		system("echo 200 464xlat >> /etc/iproute2/rt_tables");
+		system("ip -6 rule del from all lookup local");
+		system("ip -6 rule add from all lookup local pref 1");
+		snprintf(cmd,sizeof(cmd),"ip -6 rule add to %s lookup 464xlat pref 0",xlatcfg_output);
+		system(cmd);
+		snprintf(cmd,sizeof(cmd),"ip -6 route add %s dev xlat proto static metric 1024 pref medium table 464xlat",xlatcfg_output);
+		system(cmd);
+		syscfg_set(NULL, "xlat_status", "up");
+        syscfg_set(NULL, "xlat_addrdss", xlatcfg_output);
+		system("sync;sync");
+		syscfg_commit();
+		snprintf(cmd,sizeof(cmd),"sysevent set firewall-restart 0");
+		system(cmd);
+	}else
+	{
+		system("rmmod nat46");
+	}
+}
+
+void xlat_process_stop(char *interface)
+{
+	char cmd[256] = {0};
+	char xlat_addr[128] = {0};
+	
+	system("ip route del default dev xlat");
+	snprintf(cmd,sizeof(cmd),"ip ro add default dev %s scope link",interface);
+	system(cmd);
+	system("iptables -t nat -D POSTROUTING  -o xlat -j SNAT --to-source  192.0.0.1");
+	system("ifconfig xlat down");
+	xlat_reconfigure();
+	system("rmmod nat46");
+	if (syscfg_get(NULL, "xlat_addrdss", xlat_addr, sizeof(xlat_addr))!=0)
+	{
+		if(strlen(xlat_addr) > 3)
+		{
+			snprintf(cmd,sizeof(cmd),"ip -6 rule del to %s lookup 464xlat",xlat_addr);
+			system(cmd);
+		}
+	}
+	system("ip -6 rule del from all lookup local");
+	system("ip -6 rule add from all lookup local pref 0");
+	system("syscfg unset xlat_status");
+	system("syscfg unset xlat_addrdss");
+	system("syscfg commit");
+}
+#endif
+
 static eWanState_t wan_transition_ipv6_up(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
 {
     ANSC_STATUS ret;
     char buf[BUFLEN_128] = {0};
+#if defined(FEATURE_464XLAT)
+	XLAT_State_t xlat_status;
+#endif
+	
 
     if((pWanIfaceCtrl == NULL) || (pWanIfaceCtrl->pIfaceData == NULL))
     {
@@ -1612,7 +1747,23 @@ static eWanState_t wan_transition_ipv6_up(WanMgr_IfaceSM_Controller_t* pWanIface
         sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_WAN_SERVICE_STATUS, WAN_STATUS_STARTED, 0);
         sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, NULL, 0);
     }
-
+#if defined(FEATURE_464XLAT)
+	CcspTraceInfo(("%s %d - 464xlat STARTING \n", __FUNCTION__, __LINE__));
+	xlat_status = xlat_state_get();
+	CcspTraceInfo(("%s %d - xlat_status = %d \n", __FUNCTION__, __LINE__,xlat_status));
+	if(xlat_status == XLAT_OFF)
+	{
+		CcspTraceInfo(("%s %d - START 464xlat\n", __FUNCTION__, __LINE__));
+		xlat_process_start(pInterface->Wan.Name);
+	}
+	else
+	{
+		CcspTraceInfo(("%s %d - RESTART 464xlat\n", __FUNCTION__, __LINE__));
+		xlat_process_stop(pInterface->Wan.Name);
+		xlat_process_start(pInterface->Wan.Name);
+	}
+	CcspTraceInfo(("%s %d -  464xlat END\n", __FUNCTION__, __LINE__));
+#endif
     memset(buf, 0, BUFLEN_128);
     sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_IPV4_CONNECTION_STATE, buf, sizeof(buf));
 
@@ -1629,6 +1780,9 @@ static eWanState_t wan_transition_ipv6_up(WanMgr_IfaceSM_Controller_t* pWanIface
 static eWanState_t wan_transition_ipv6_down(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
 {
     char buf[BUFLEN_128] = {0};
+#if defined(FEATURE_464XLAT)
+	XLAT_State_t xlat_status;
+#endif
 
     if((pWanIfaceCtrl == NULL) || (pWanIfaceCtrl->pIfaceData == NULL))
     {
@@ -1669,7 +1823,14 @@ static eWanState_t wan_transition_ipv6_down(WanMgr_IfaceSM_Controller_t* pWanIfa
     {
         CcspTraceError(("%s %d - Failed to tear down IPv6 for %s \n", __FUNCTION__, __LINE__, pInterface->Wan.Name));
     }
-
+#if defined(FEATURE_464XLAT)
+	xlat_status = xlat_state_get();
+	if(xlat_status == XLAT_ON)
+	{
+		CcspTraceInfo(("%s %d - STOP 464xlat\n", __FUNCTION__, __LINE__));
+		xlat_process_stop(pInterface->Wan.Name);
+	}
+#endif
 #ifdef FEATURE_IPOE_HEALTH_CHECK
         if ( pInterface->PPP.Enable == FALSE )
         {
