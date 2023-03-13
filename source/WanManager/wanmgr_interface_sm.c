@@ -460,6 +460,11 @@ int wan_updateDNS(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl, BOOL addIPv4, BOOL
     FILE *fp = NULL;
     char syseventParam[BUFLEN_128]={0};
 
+    char v4nameserver1[BUFLEN_64];
+    char v4nameserver2[BUFLEN_64];
+    char v6nameserver1[BUFLEN_128];
+    char v6nameserver2[BUFLEN_128]; 
+
     if (deviceMode == GATEWAY_MODE)
     {
         if((fp = fopen(RESOLV_CONF_FILE, "w+")) == NULL)
@@ -469,20 +474,14 @@ int wan_updateDNS(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl, BOOL addIPv4, BOOL
         }
     }
 
-// Don't need to overwrite resolv.conf in EXTENDER mode from here, it is handled based on mesh link status 
-#if 0
-    else if (deviceMode == MODEM_MODE)
-    {
-        // DNS nameserves should not be configured in MODEM mode so clear file contents
-        if((fp = fopen(RESOLV_CONF_FILE, "w")) == NULL)
-        {
-            CcspTraceError(("%s %d - Open %s error!\n", __FUNCTION__, __LINE__, RESOLV_CONF_FILE));
-            return RETURN_ERR;
-        }
-        fclose(fp);
-        fp = NULL;
-    }
-#endif
+    // save the current configured nameserver address
+    sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV4_DNS_PRIMARY, v4nameserver1, sizeof(v4nameserver1));
+    sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV4_DNS_SECONDARY, v4nameserver2, sizeof(v4nameserver2));
+    sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_DNS_PRIMARY, v6nameserver1, sizeof(v6nameserver1));
+    sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_DNS_SECONDARY, v6nameserver2, sizeof(v6nameserver2));
+
+    CcspTraceInfo(("%s %d: v4nameserver1 = %s v4nameserver2 = %s\n", __FUNCTION__, __LINE__, v4nameserver1, v4nameserver2));
+    CcspTraceInfo(("%s %d: v6nameserver1 = %s v6nameserver2 = %s\n", __FUNCTION__, __LINE__, v6nameserver1, v6nameserver2));
 
     if (addIPv4)
     {
@@ -499,6 +498,7 @@ int wan_updateDNS(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl, BOOL addIPv4, BOOL
                 fprintf(fp, "nameserver %s\n", pInterface->IP.Ipv4Data.dnsServer);
             }
             sysevent_set(sysevent_fd, sysevent_token, syseventParam, pInterface->IP.Ipv4Data.dnsServer, 0);
+            CcspTraceInfo(("%s %d: new v4 DNS Server = %s\n", __FUNCTION__, __LINE__, pInterface->IP.Ipv4Data.dnsServer));
             sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV4_DNS_PRIMARY, pInterface->IP.Ipv4Data.dnsServer, 0);
             valid_dns = TRUE;
         }
@@ -520,6 +520,7 @@ int wan_updateDNS(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl, BOOL addIPv4, BOOL
                 CcspTraceInfo(("%s %d: adding nameserver %s >> %s\n", __FUNCTION__, __LINE__, pInterface->IP.Ipv4Data.dnsServer1, RESOLV_CONF_FILE));
                 fprintf(fp, "nameserver %s\n", pInterface->IP.Ipv4Data.dnsServer1);
             }
+            CcspTraceInfo(("%s %d: new v4 DNS Server = %s\n", __FUNCTION__, __LINE__, pInterface->IP.Ipv4Data.dnsServer1));
             sysevent_set(sysevent_fd, sysevent_token, syseventParam, pInterface->IP.Ipv4Data.dnsServer1, 0);
             sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV4_DNS_SECONDARY, pInterface->IP.Ipv4Data.dnsServer1, 0);
             if (valid_dns == TRUE)
@@ -549,6 +550,7 @@ int wan_updateDNS(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl, BOOL addIPv4, BOOL
                 CcspTraceInfo(("%s %d: adding nameserver %s >> %s\n", __FUNCTION__, __LINE__, pInterface->IP.Ipv6Data.nameserver, RESOLV_CONF_FILE));
                 fprintf(fp, "nameserver %s\n", pInterface->IP.Ipv6Data.nameserver);
             }
+            CcspTraceInfo(("%s %d: new v6 DNS Server = %s\n", __FUNCTION__, __LINE__, pInterface->IP.Ipv6Data.nameserver));
             sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_DNS_PRIMARY, pInterface->IP.Ipv6Data.nameserver, 0);
             valid_dns = TRUE;
         }
@@ -567,6 +569,7 @@ int wan_updateDNS(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl, BOOL addIPv4, BOOL
                 CcspTraceInfo(("%s %d: adding nameserver %s >> %s\n", __FUNCTION__, __LINE__, pInterface->IP.Ipv6Data.nameserver1, RESOLV_CONF_FILE));
                 fprintf(fp, "nameserver %s\n", pInterface->IP.Ipv6Data.nameserver1);
             }
+            CcspTraceInfo(("%s %d: new v6 DNS Server = %s\n", __FUNCTION__, __LINE__, pInterface->IP.Ipv6Data.nameserver1));
             sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_DNS_SECONDARY, pInterface->IP.Ipv6Data.nameserver1, 0);
             valid_dns = TRUE;
         }
@@ -577,7 +580,17 @@ int wan_updateDNS(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl, BOOL addIPv4, BOOL
         }
     }
 
-    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_DHCP_SERVER_RESTART, NULL, 0);
+    if ( strcmp(pInterface->IP.Ipv4Data.dnsServer, v4nameserver1) || strcmp(pInterface->IP.Ipv4Data.dnsServer1, v4nameserver2)
+        || strcmp(pInterface->IP.Ipv6Data.nameserver, v6nameserver1) || strcmp (pInterface->IP.Ipv6Data.nameserver1, v6nameserver2))
+    {
+        // new and curr nameservers are differen, so apply configuration
+        CcspTraceInfo(("%s %d: Setting %s\n", __FUNCTION__, __LINE__, SYSEVENT_DHCP_SERVER_RESTART));
+        sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_DHCP_SERVER_RESTART, NULL, 0);
+    }
+    else
+    {
+        CcspTraceInfo(("%s %d: No change not Setting %s\n", __FUNCTION__, __LINE__, SYSEVENT_DHCP_SERVER_RESTART));
+    }
 
     if (valid_dns == TRUE)
     {
