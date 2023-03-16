@@ -972,7 +972,7 @@ static WcAwPolicyState_t State_WaitForInterface (WanMgr_Policy_Controller_t * pW
 
     if(pWanController->WanEnable == FALSE || pWanController->PolicyChanged == TRUE)
     {
-        return STATE_AUTO_WAN_INTERFACE_DOWN;
+        return STATE_AUTO_WAN_SM_EXIT;
     }
 
     // check if Phy is UP
@@ -1074,7 +1074,7 @@ static WcAwPolicyState_t State_WaitingForIfaceTearDown (WanMgr_Policy_Controller
 
     if(pWanController->WanEnable == FALSE || pWanController->PolicyChanged == TRUE)
     {
-        return STATE_AUTO_WAN_INTERFACE_DOWN;
+        return STATE_AUTO_WAN_TEARING_DOWN;
     }
 
     // check if iface sm is running
