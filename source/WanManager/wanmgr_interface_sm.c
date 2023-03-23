@@ -2091,6 +2091,12 @@ static eWanState_t wan_state_validating_wan(WanMgr_IfaceSM_Controller_t* pWanIfa
         return WAN_STATE_CONFIGURING_WAN;
     }
 
+    /* Needs to ensure WAN interface name before going to validation */
+    if ( ( pInterface->Wan.Name[0] == '\0' ) || ( strlen(pInterface->Wan.Name) == 0 ) )
+    {
+       return WAN_STATE_VALIDATING_WAN;
+    }
+
     /* TODO: Waits for every running validation process to complete, then checks the results */
 
     return wan_transition_wan_validated(pWanIfaceCtrl);
