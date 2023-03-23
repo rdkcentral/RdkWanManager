@@ -446,7 +446,7 @@ static int _dibbler_client_operation(char * arg)
         system("/usr/bin/service_dhcpv6_client dhcpv6_client_service_disable");
         CcspTraceInfo(("%s  Calling service_dhcpv6_client.c with dhcpv6_client_service_disable from wanmgr_dhcpv6_apis.c\n", __func__));
 #else
-        sysevent_set(sysevent_fd, sysevent_token, "dhcpv6_client-stop", "", 0);
+        v_secure_system("/etc/utopia/service.d/service_dhcpv6_client.sh disable");
 #endif
 
 #ifdef _COSA_BCM_ARM_
@@ -568,7 +568,7 @@ static int _dibbler_client_operation(char * arg)
         system("/usr/bin/service_dhcpv6_client dhcpv6_client_service_enable");
         CcspTraceInfo(("%s  Calling service_dhcpv6_client.c with dhcpv6_client_service_enable from wanmgr_dhcpv6_apis.c\n", __func__));
 #else
-        sysevent_set(sysevent_fd, sysevent_token, "dhcpv6_client-start", "", 0);
+        v_secure_system("/etc/utopia/service.d/service_dhcpv6_client.sh enable");
 #endif
 
 #ifdef _COSA_BCM_ARM_
