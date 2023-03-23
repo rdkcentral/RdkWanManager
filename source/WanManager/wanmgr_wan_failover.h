@@ -37,6 +37,8 @@ typedef  struct _WANMGR_FAILOVER_CONTROLLER_
     BOOL                    PolicyChanged;
     UINT                    RestorationDelay;
     BOOL                    ResetScan;
+    DML_WAN_IFACE_PHY_STATUS PhyState;
+    eWanState_t             ActiveIfaceState;
 } WanMgr_FailOver_Controller_t;
 
 

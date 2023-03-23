@@ -240,8 +240,6 @@ static WcPpobPolicyState_t Transition_Start(WanMgr_Policy_Controller_t* pWanCont
     memset(&(PPoB_SelectionTimer), 0, sizeof(struct timespec));
     clock_gettime(CLOCK_MONOTONIC_RAW, &(PPoB_SelectionTimer));
 
-    wanmgr_sysevents_setWanState(WAN_LINK_DOWN_STATE);
-
     return SELECTING_WAN_INTERFACE;
 }
 
@@ -289,7 +287,6 @@ static WcPpobPolicyState_t Transition_SelectedInterfaceUp(WanMgr_Policy_Controll
 
 static WcPpobPolicyState_t Transition_SelectedInterfaceDown(WanMgr_Policy_Controller_t* pWanController)
 {
-    wanmgr_sysevents_setWanState(WAN_LINK_DOWN_STATE);
     return SELECTED_INTERFACE_DOWN;
 }
 

@@ -393,6 +393,23 @@ typedef struct _DML_WANIFACE_SUBSCRIBE
     UINT WanEnableSub;
 } DML_WANIFACE_SUBSCRIBE;
 
+typedef enum
+{
+    WAN_STATE_EXIT = 0,
+    WAN_STATE_CONFIGURING_WAN,
+    WAN_STATE_VALIDATING_WAN,
+    WAN_STATE_OBTAINING_IP_ADDRESSES,
+    WAN_STATE_IPV4_LEASED,
+    WAN_STATE_IPV6_LEASED,
+    WAN_STATE_DUAL_STACK_ACTIVE,
+#ifdef FEATURE_MAPT
+    WAN_STATE_MAPT_ACTIVE,
+#endif //FEATURE_MAPT
+    WAN_STATE_REFRESHING_WAN,
+    WAN_STATE_DECONFIGURING_WAN,
+    WAN_STATE_STANDBY
+} eWanState_t;
+
 typedef struct _DML_WAN_INTERFACE
 {
     UINT                        uiIfaceIdx;
@@ -415,6 +432,7 @@ typedef struct _DML_WAN_INTERFACE
     DML_WANIFACE_DSLITE         DSLite;
     DATAMODEL_MARKING           Marking;
     DML_WANIFACE_SUBSCRIBE      Sub;
+    eWanState_t                 eCurrentState; 
 } DML_WAN_IFACE;
 
 

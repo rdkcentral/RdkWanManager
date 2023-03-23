@@ -104,7 +104,6 @@ static INT WanMgr_Policy_FM_SelectWANActive(WanMgr_Policy_Controller_t* pWanCont
 /*********************************************************************************/
 static WcFmPolicyState_t Transition_Start(WanMgr_Policy_Controller_t* pWanController)
 {
-    wanmgr_sysevents_setWanState(WAN_LINK_DOWN_STATE);
     return STATE_FIXING_WAN_INTERFACE;
 }
 
@@ -132,7 +131,6 @@ static WcFmPolicyState_t Transition_WanInterfaceFixed(WanMgr_Policy_Controller_t
 
 static WcFmPolicyState_t Transition_FixedInterfaceDown(WanMgr_Policy_Controller_t* pWanController)
 {
-    wanmgr_sysevents_setWanState(WAN_LINK_DOWN_STATE);
     return STATE_FIXED_WAN_INTERFACE_DOWN;
 }
 

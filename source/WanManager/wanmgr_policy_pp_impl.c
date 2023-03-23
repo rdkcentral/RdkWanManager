@@ -173,8 +173,6 @@ static WcPpPolicyState_t Transition_Start(WanMgr_Policy_Controller_t* pWanContro
         return ANSC_STATUS_FAILURE;
     }
 
-    wanmgr_sysevents_setWanState(WAN_LINK_DOWN_STATE);
-
     CcspTraceInfo(("%s %d - State changed to STATE_INTERFACE_DOWN \n", __FUNCTION__, __LINE__));
     return STATE_INTERFACE_DOWN;
 }
@@ -266,8 +264,6 @@ static WcPpPolicyState_t Transition_PrimaryInterfaceDeSelected(WanMgr_Policy_Con
 
     pWanController->activeInterfaceIdx = -1;
 
-    wanmgr_sysevents_setWanState(WAN_LINK_DOWN_STATE);
-
     CcspTraceInfo(("%s %d - State changed to STATE_INTERFACE_DOWN \n", __FUNCTION__, __LINE__));
     return STATE_INTERFACE_DOWN;
 }
@@ -297,8 +293,6 @@ static WcPpPolicyState_t Transition_PrimaryInterfaceChanged(WanMgr_Policy_Contro
     pActiveInterface->SelectionStatus = WAN_IFACE_NOT_SELECTED;
 
     pWanController->activeInterfaceIdx = -1;
-
-    wanmgr_sysevents_setWanState(WAN_LINK_DOWN_STATE);
 
     WanMgr_Policy_FM_SelectWANActive(pWanController,&selectedPrimaryInterface, &selectedSecondaryInterface);
     if (selectedPrimaryInterface != -1)
@@ -399,8 +393,6 @@ static WcPpPolicyState_t Transition_SecondaryInterfaceDeSelected(WanMgr_Policy_C
     pWanController->activeInterfaceIdx = -1;
     pWanController->selSecondaryInterfaceIdx = -1;
 
-
-    wanmgr_sysevents_setWanState(WAN_LINK_DOWN_STATE);
 
     CcspTraceInfo(("%s %d - State changed to STATE_INTERFACE_DOWN \n", __FUNCTION__, __LINE__));
     return STATE_INTERFACE_DOWN;

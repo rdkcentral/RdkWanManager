@@ -1283,12 +1283,6 @@ static eWanState_t wan_transition_wan_up(WanMgr_IfaceSM_Controller_t* pWanIfaceC
         WanMgr_Publish_WanStatus(pWanIfaceCtrl->interfaceIdx);
     }
 
-    /* TODO: Runs WAN Validation processes */
-    if(pInterface->SelectionStatus == WAN_IFACE_ACTIVE ||
-                        pInterface->SelectionStatus == WAN_IFACE_SELECTED)
-    {
-        wanmgr_sysevents_setWanState(WAN_LINK_UP_STATE);
-    }
     CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION VALIDATING WAN\n", __FUNCTION__, __LINE__, pInterface->Name));
 
     return WAN_STATE_VALIDATING_WAN;
@@ -1305,14 +1299,6 @@ static eWanState_t wan_transition_wan_validated(WanMgr_IfaceSM_Controller_t* pWa
 
     /* Clear DHCP data */
     WanManager_ClearDHCPData(pInterface);
-
-    /* WAN link is just up and validated.
-    This is just a link establishment/re-establishment phase and trying to acquire IP from dhcp
-    Untill ip is acquired, show white strobing*/
-    wanmgr_sysevents_setWanState(WAN_IPV4_DOWN);
-    wanmgr_sysevents_setWanState(WAN_IPV6_DOWN);
-    //additional event for wan establishment as this is the first time
-    wanmgr_sysevents_setWanState(WAN_ESTABLISH);
 
     if( pInterface->PPP.Enable == TRUE )
     {
@@ -1412,11 +1398,6 @@ static eWanState_t wan_transition_wan_refreshed(WanMgr_IfaceSM_Controller_t* pWa
     /* Clear DHCP data */
     WanManager_ClearDHCPData(pInterface);
 
-    /* WAN is just refreshed. Trying to get IP again
-       Untill ip is acquired, show green strobing*/
-    wanmgr_sysevents_setWanState(WAN_IPV4_DOWN);
-    wanmgr_sysevents_setWanState(WAN_IPV6_DOWN);
-
     if( pInterface->PPP.Enable == TRUE )
     {
         WanManager_CreatePPPSession(pInterface);
@@ -1476,8 +1457,6 @@ static eWanState_t wan_transition_ipv4_up(WanMgr_IfaceSM_Controller_t* pWanIface
             }
         }
 #endif
-        wanmgr_sysevents_setWanState(WAN_IPV4_UP);
-
     /* Force reset ipv4 state global flag. */
     pInterface->IP.Ipv4Changed = FALSE;
 #ifdef FEATURE_IPOE_HEALTH_CHECK
@@ -1563,7 +1542,6 @@ static eWanState_t wan_transition_ipv4_down(WanMgr_IfaceSM_Controller_t* pWanIfa
 
     wanmgr_sysevents_ipv4Info_init(pInterface->Wan.Name, pWanIfaceCtrl->DeviceNwMode); // reset the sysvent/syscfg fields
 
-    wanmgr_sysevents_setWanState(WAN_IPV4_DOWN);
     Update_Interface_Status();
     sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_IPV6_CONNECTION_STATE, buf, sizeof(buf));
 
@@ -1628,7 +1606,6 @@ static eWanState_t wan_transition_ipv6_up(WanMgr_IfaceSM_Controller_t* pWanIface
         }
 #endif
     Update_Interface_Status();
-    wanmgr_sysevents_setWanState(WAN_IPV6_UP);
     sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_WAN_SERVICE_STATUS, buf, sizeof(buf));
     if (strcmp(buf, WAN_STATUS_STARTED))
     {
@@ -1703,7 +1680,6 @@ static eWanState_t wan_transition_ipv6_down(WanMgr_IfaceSM_Controller_t* pWanIfa
             }
         }
 #endif
-        wanmgr_sysevents_setWanState(WAN_IPV6_DOWN);
 
     Update_Interface_Status();
     sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_IPV4_CONNECTION_STATE, buf, sizeof(buf));
@@ -1774,7 +1750,6 @@ static eWanState_t wan_transition_mapt_feature_refresh(WanMgr_IfaceSM_Controller
         pInterface->IP.pIpcIpv6Data = NULL;
     }
 
-    wanmgr_sysevents_setWanState(WAN_IPV6_DOWN);
 
     if(pInterface->PPP.Enable == TRUE)
     {
@@ -1881,7 +1856,6 @@ static eWanState_t wan_transition_mapt_up(WanMgr_IfaceSM_Controller_t* pWanIface
         WanManager_DeletePPPSession(pInterface);
     }
 
-    wanmgr_sysevents_setWanState(WAN_MAPT_UP);
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, NULL, 0);
 
     CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION WAN_STATE_MAPT_ACTIVE\n", __FUNCTION__, __LINE__, pInterface->Name));
@@ -1935,7 +1909,6 @@ static eWanState_t wan_transition_mapt_down(WanMgr_IfaceSM_Controller_t* pWanIfa
         }
     }
 
-    wanmgr_sysevents_setWanState(WAN_MAPT_DOWN);
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, NULL, 0);
 
     CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION IPV6 LEASED\n", __FUNCTION__, __LINE__, pInterface->Name));
@@ -1961,7 +1934,6 @@ static eWanState_t wan_transition_exit(WanMgr_IfaceSM_Controller_t* pWanIfaceCtr
         WanMgr_Publish_WanStatus(pWanIfaceCtrl->interfaceIdx);
     }
 
-    wanmgr_sysevents_setWanState(WAN_LINK_DOWN_STATE);
     Update_Interface_Status();
     CcspTraceInfo(("%s %d - Interface '%s' - EXITING STATE MACHINE\n", __FUNCTION__, __LINE__, pInterface->Name));
 
@@ -3170,6 +3142,7 @@ static void* WanMgr_InterfaceSMThread( void *arg )
 
         // Store current state
         pWanIfaceCtrl->eCurrentState = iface_sm_state;
+        pWanIfaceCtrl->pIfaceData->eCurrentState = iface_sm_state;
 
         // process state
         switch (iface_sm_state)

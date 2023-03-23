@@ -60,7 +60,8 @@ ANSC_STATUS WanMgr_FailOverCtrlInit(WanMgr_FailOver_Controller_t* pFailOverContr
     pFailOverController->HighestValidGroup = 0;
     pFailOverController->PolicyChanged = FALSE;
     pFailOverController->RestorationDelay = 0;
-
+    pFailOverController->ActiveIfaceState = -1;
+    pFailOverController->PhyState = WAN_IFACE_PHY_STATUS_UNKNOWN;
     /* Update group Interface */
     UINT GroupInterfaceAvailable[MAX_INTERFACE_GROUP] = {0};
     UINT TotalIfaces = WanMgr_IfaceData_GetTotalWanIface();
@@ -248,6 +249,149 @@ static void WanMgr_FO_IfaceGroupMonitor()
 
     }
 }
+
+ANSC_STATUS UpdateLedStatus (WanMgr_FailOver_Controller_t* pFailOverController)
+{
+    if(pFailOverController == NULL)
+    {
+        CcspTraceError(("%s %d pFWController object is NULL \n", __FUNCTION__, __LINE__));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    /* We have a Active Group */ 
+    if(pFailOverController->CurrentActiveGroup != 0)
+    {
+        WANMGR_IFACE_GROUP* pWanIfaceGroup = WanMgr_GetIfaceGroup_locked((pFailOverController->CurrentActiveGroup -1));
+        if (pWanIfaceGroup != NULL)
+        {
+            /* Active group has a selected Ineterface */
+            if(pWanIfaceGroup->SelectedInterface > 0)
+            {
+                WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked((pWanIfaceGroup->SelectedInterface - 1));
+                if (pWanDmlIfaceData != NULL)
+                {
+                    DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
+                    /* Active Interface State Machine is running, Update the Wan/IP connection status of the interface to LED*/
+                    if(pWanIfaceData->eCurrentState != WAN_STATE_EXIT && pWanIfaceData->eCurrentState != pFailOverController->ActiveIfaceState)
+                    {
+                        /* Update Only when state changed */
+                        CcspTraceInfo(("%s %d Updating LED status of Selected Interface (%s)\n", __FUNCTION__, __LINE__,pWanIfaceData->DisplayName));
+                        switch(pWanIfaceData->eCurrentState)
+                        {
+                            case WAN_STATE_DUAL_STACK_ACTIVE:
+                                wanmgr_sysevents_setWanState(WAN_IPV4_UP);
+                                wanmgr_sysevents_setWanState(WAN_IPV6_UP);
+                                break;
+
+                            case WAN_STATE_IPV6_LEASED:
+#ifdef FEATURE_MAPT
+                                wanmgr_sysevents_setWanState(WAN_MAPT_DOWN);
+#endif
+                                wanmgr_sysevents_setWanState(WAN_IPV4_DOWN);
+                                wanmgr_sysevents_setWanState(WAN_IPV6_UP);
+                                break;
+
+                            case WAN_STATE_IPV4_LEASED:
+                                wanmgr_sysevents_setWanState(WAN_IPV6_DOWN);
+                                wanmgr_sysevents_setWanState(WAN_IPV4_UP);
+
+                                break;
+
+#ifdef FEATURE_MAPT
+                            case WAN_STATE_MAPT_ACTIVE:
+                                wanmgr_sysevents_setWanState(WAN_MAPT_UP);
+                                break;
+#endif
+                            default:
+#ifdef FEATURE_MAPT
+                                wanmgr_sysevents_setWanState(WAN_MAPT_DOWN);
+#endif
+                                wanmgr_sysevents_setWanState(WAN_IPV6_DOWN);
+                                wanmgr_sysevents_setWanState(WAN_IPV4_DOWN);
+                                wanmgr_sysevents_setWanState(WAN_LINK_UP_STATE);
+                                break;
+                        }
+                        pFailOverController->ActiveIfaceState = pWanIfaceData->eCurrentState;
+                        pFailOverController->PhyState = WAN_IFACE_PHY_STATUS_UP; //If ISM running, set Phystate to UP
+                    }
+                    /* Active Interface State Machine is not running, Update the PHY connection status of the interface to LED */
+                    else if(pWanIfaceData->eCurrentState == WAN_STATE_EXIT && pWanIfaceData->Phy.Status != pFailOverController->PhyState)
+                    {
+                        CcspTraceInfo(("%s %d Updating LED status of Selected Interface (%s)\n", __FUNCTION__, __LINE__,pWanIfaceData->DisplayName));
+
+                        if(pWanIfaceData->Phy.Status == WAN_IFACE_PHY_STATUS_UP)
+                        {
+                            wanmgr_sysevents_setWanState(WAN_LINK_UP_STATE);
+                        }else if(pWanIfaceData->Phy.Status == WAN_IFACE_PHY_STATUS_INITIALIZING && 
+                                (strstr(pWanIfaceData->Phy.Path,"DSL") != NULL))
+                        {
+                            /* Update DSL_Training only for DSL connection */
+                            wanmgr_sysevents_setWanState(DSL_TRAINING);
+
+                        }else
+                        {
+                            wanmgr_sysevents_setWanState(WAN_LINK_DOWN_STATE);
+                        }
+                        pFailOverController->PhyState = pWanIfaceData->Phy.Status;
+                    }
+                    WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+                }
+            }
+            WanMgrDml_GetIfaceGroup_release();
+        }
+    }else
+    {
+        /* Active group is not selected, Update the PHY status of all Wan Interfaces  to LED*/
+        DML_WAN_IFACE_PHY_STATUS PhyStatus = WAN_IFACE_PHY_STATUS_DOWN;
+        UINT uiTotalIfaces = 0;
+        UINT uiLoopCount   = 0;
+
+        //Get uiTotalIfaces
+        uiTotalIfaces = WanMgr_IfaceData_GetTotalWanIface();
+
+        if(uiTotalIfaces > 0)
+        {
+            for( uiLoopCount = 0; uiLoopCount < uiTotalIfaces; uiLoopCount++ )
+            {
+
+                WanMgr_Iface_Data_t*   pWanDmlIfaceData = WanMgr_GetIfaceData_locked(uiLoopCount);
+                if(pWanDmlIfaceData != NULL)
+                {
+                    DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
+                    /* if any Wan Interface Phy is Up, set LED Wan link UP,
+                       if all Wan Interfaces Phy is DOWN,  set LED Wan link DOWN */
+                    if(pWanIfaceData->Phy.Status > PhyStatus && pWanIfaceData->Phy.Status != WAN_IFACE_PHY_STATUS_UNKNOWN)
+                    {
+                        if(pWanIfaceData->Phy.Status != WAN_IFACE_PHY_STATUS_INITIALIZING || 
+                          (pWanIfaceData->Phy.Status == WAN_IFACE_PHY_STATUS_INITIALIZING && strstr(pWanIfaceData->Phy.Path,"DSL") != NULL))
+                        {
+                            /* Update DSL_Training (PHY_STATUS_INITIALIZING) only for DSL connection */
+                            PhyStatus = pWanIfaceData->Phy.Status;
+                        }
+                    }
+                    WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+                }
+            }
+        }
+
+        if(PhyStatus != pFailOverController->PhyState)
+        {
+            CcspTraceInfo(("%s %d No Selected Interface. Updating PHY status of all WanLink to LED\n", __FUNCTION__, __LINE__));
+            if(PhyStatus == WAN_IFACE_PHY_STATUS_UP)
+            {
+                wanmgr_sysevents_setWanState(WAN_LINK_UP_STATE);
+            }else if(PhyStatus == WAN_IFACE_PHY_STATUS_INITIALIZING)
+            {
+                wanmgr_sysevents_setWanState(DSL_TRAINING);
+            }else 
+            {
+                wanmgr_sysevents_setWanState(WAN_LINK_DOWN_STATE);
+            }
+        }
+        pFailOverController->PhyState = PhyStatus;
+    }
+}
+
 /*********************************************************************************/
 /************************** TRANSITIONS ******************************************/
 /*********************************************************************************/
@@ -268,6 +412,9 @@ static WcFailOverState_t Transition_Start (WanMgr_FailOver_Controller_t* pFailOv
     //Start the selectionTimer
     memset(&(pFailOverController->GroupSelectionTimer), 0, sizeof(struct timespec));
     clock_gettime(CLOCK_MONOTONIC_RAW, &(pFailOverController->GroupSelectionTimer));
+
+    CcspTraceInfo(("%s %d Updating LED status LinkDown \n", __FUNCTION__, __LINE__));
+    wanmgr_sysevents_setWanState(WAN_LINK_DOWN_STATE);
 
     return STATE_FAILOVER_SCANNING_GROUP;
 }
@@ -336,7 +483,6 @@ ANSC_STATUS MarkHighPriorityGroup (WanMgr_FailOver_Controller_t* pFailOverContro
        CcspTraceInfo(("%s %d: Group list change is in progress. Don't select Interface now. \n", __FUNCTION__, __LINE__));
        pFailOverController->HighestValidGroup = 0; 
     }
-
     return ANSC_STATUS_SUCCESS;
 }
 
@@ -425,6 +571,16 @@ static WcFailOverState_t Transition_ResetScan (WanMgr_FailOver_Controller_t * pF
     pFailOverController->CurrentActiveGroup =  0;
     pFailOverController->HighestValidGroup = 0;
     pFailOverController->ResetScan = false;
+
+    //Update LED
+    CcspTraceInfo(("%s %d Updating LED status (Ipv4/ipv6/mapt down) \n", __FUNCTION__, __LINE__));
+#ifdef FEATURE_MAPT
+    wanmgr_sysevents_setWanState(WAN_MAPT_DOWN);
+#endif
+    wanmgr_sysevents_setWanState(WAN_IPV6_DOWN);
+    wanmgr_sysevents_setWanState(WAN_IPV4_DOWN);
+    pFailOverController->ActiveIfaceState = -1;
+    pFailOverController->PhyState = WAN_IFACE_PHY_STATUS_UNKNOWN;
 
     //Start the selectionTimer
     memset(&(pFailOverController->GroupSelectionTimer), 0, sizeof(struct timespec));
@@ -677,6 +833,7 @@ ANSC_STATUS WanMgr_FailOverThread (void)
 
         WanMgr_UpdateFOControllerData(&FWController);
         WanMgr_FO_IfaceGroupMonitor();
+        UpdateLedStatus(&FWController);
         // process states
         switch (fo_sm_state)
         {

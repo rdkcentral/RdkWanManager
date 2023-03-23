@@ -507,8 +507,6 @@ static WcAwPolicyState_t Transition_Start (WanMgr_Policy_Controller_t* pWanContr
         }
     }
 
-    wanmgr_sysevents_setWanState(WAN_LINK_DOWN_STATE);
-
     CcspTraceInfo(("%s %d: State changed to STATE_AUTO_WAN_INTERFACE_SELECTING \n", __FUNCTION__, __LINE__));
 
     return STATE_AUTO_WAN_INTERFACE_SELECTING;
