@@ -648,7 +648,19 @@ static void WanMgr_Rbus_EventReceiveHandler(rbusHandle_t handle, rbusEvent_t con
     }
     else if(strcmp(eventName, X_RDK_REMOTE_INVOKE) == 0)
     {
-        CcspTraceInfo(("%s:%d Received [%s] \n",__FUNCTION__, __LINE__,eventName));
+        DEVICE_NETWORKING_MODE  DeviceMode;
+        WanMgr_Config_Data_t*   pWanConfigData = WanMgr_GetConfigData_locked();
+        if(pWanConfigData != NULL)
+        {
+            DeviceMode = pWanConfigData->data.DeviceNwMode;
+            WanMgrDml_GetConfigData_release(pWanConfigData);
+        }
+
+        if (DeviceMode != GATEWAY_MODE) //Wanmanger subscribes remote device status only in GATEWAY_MODE
+        {
+            return;
+        }
+        CcspTraceInfo(("%s:%d Received IDM event [%s] \n",__FUNCTION__, __LINE__,eventName));
 
         rbusValue_t value;
         value = rbusObject_GetValue(event->data, "Mac_source");
