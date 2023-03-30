@@ -553,12 +553,8 @@ static void WanMgr_Rbus_EventReceiveHandler(rbusHandle_t handle, rbusEvent_t con
         if (pWanConfigData != NULL)
         {
             DML_WANMGR_CONFIG* pWanDmlData = &(pWanConfigData->data);
+            DEVICE_NETWORKING_MODE prevDeviceNwMode = pWanDmlData->DeviceNwMode;
 
-            if (pWanDmlData->DeviceNwMode != newValue)
-            {
-                CcspTraceInfo(("%s %d: DeviceNetworkMode changed identified\n", __FUNCTION__, __LINE__));
-                pWanDmlData->DeviceNwModeChanged = TRUE;
-            }
             if (newValue == 1)
             {
                 pWanDmlData->DeviceNwMode = MODEM_MODE;
@@ -568,6 +564,12 @@ static void WanMgr_Rbus_EventReceiveHandler(rbusHandle_t handle, rbusEvent_t con
             {
                 pWanDmlData->DeviceNwMode = GATEWAY_MODE;
                 CcspTraceInfo(("%s %d: DeviceNetworkMode changed to GATEWAY_MODE\n", __FUNCTION__, __LINE__));
+            }
+
+            if (pWanDmlData->DeviceNwMode != prevDeviceNwMode)
+            {
+                CcspTraceInfo(("%s %d: DeviceNetworkMode changed identified. PreviousMode:%d CurrentMode:%d\n", __FUNCTION__, __LINE__, prevDeviceNwMode, pWanDmlData->DeviceNwMode));
+                pWanDmlData->DeviceNwModeChanged = TRUE;
             }
 
             WanMgrDml_GetConfigData_release(pWanConfigData);
