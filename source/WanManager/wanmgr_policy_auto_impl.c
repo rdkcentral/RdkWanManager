@@ -858,8 +858,37 @@ static WcAwPolicyState_t Transition_ResetActiveInterface (WanMgr_Policy_Controll
 
 static WcAwPolicyState_t Transition_RebootDevice(void)
 {
+    char lastRebootReason[64] = {'\0'};
+
     // work around if the CPE fails to reboot from the below call and gets stuck.
     wanmgr_sysevent_hw_reconfig_reboot();
+
+    // set reboot reason as previous reboot reason because of webPA and Webconfig dependency on various reboot scenarios.
+    if(syscfg_get( NULL, "X_RDKCENTRAL-COM_LastRebootReason", lastRebootReason, sizeof(lastRebootReason)) == 0)
+    {
+        if(lastRebootReason[0] != '\0')
+        {
+            CcspTraceInfo(("%s %d: X_RDKCENTRAL-COM_LastRebootReason = [%s]\n", __FUNCTION__, __LINE__, lastRebootReason));
+            CcspTraceInfo(("%s %d: WanManager is triggering the reboot and setting the reboot reason as last reboot reason \n", __FUNCTION__, __LINE__));
+
+            if (syscfg_set_commit(NULL, "X_RDKCENTRAL-COM_LastRebootReason", lastRebootReason) != 0)
+            {
+                CcspTraceInfo(("%s %d: Failed to set LastRebootReason\n", __FUNCTION__, __LINE__));
+            }
+            if (syscfg_set_commit(NULL, "X_RDKCENTRAL-COM_LastRebootCounter", "1") != 0)
+            {
+                CcspTraceInfo(("%s %d: Failed to set LastRebootCounter\n", __FUNCTION__, __LINE__));
+            }
+        }
+        else
+        {
+            CcspTraceInfo(("%s %d: lastRebootReason is empty \n", __FUNCTION__, __LINE__));
+        }
+    }
+    else
+    {
+        CcspTraceInfo(("%s %d: Failed to get LastRebootReason\n", __FUNCTION__, __LINE__));
+    }
 
     // Call Device Reboot and Exit from state machine.
     if((WanMgr_RdkBus_SetParamValues(PAM_COMPONENT_NAME, PAM_DBUS_PATH, "Device.X_CISCO_COM_DeviceControl.RebootDevice", "Device", ccsp_string, TRUE) == ANSC_STATUS_SUCCESS))
