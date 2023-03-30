@@ -705,6 +705,7 @@ static void *WanManagerSyseventHandler(void *args)
                 sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_CURRENT_WAN_IFNAME, ifName, sizeof(ifName));
                 if(strlen(ifName) > 0)
                 {
+                    WanMgr_SetInterfaceStatus(ifName, WANMGR_IFACE_CONNECTION_IPV6_DOWN);
                     Wan_ForceRenewDhcpIPv6(ifName);
                 }
                 sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, NULL, 0);
