@@ -2846,6 +2846,7 @@ void* IPV6CPStateChangeHandler (void *arg)
                 break;
             case WAN_IFACE_IPV6CP_STATUS_DOWN:
                 WanManager_StopDhcpv6Client(dhcpcInterface);
+                WanMgr_SetInterfaceStatus(dhcpcInterface, WANMGR_IFACE_CONNECTION_IPV6_DOWN);
                 break;
         }
 
