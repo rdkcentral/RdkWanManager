@@ -34,7 +34,56 @@
 #define X_RDK_REMOTE_INVOKE                          "Device.X_RDK_Remote.Invoke()"
 #define X_RDK_REMOTE_DEVICE_NUM_OF_ENTRIES           "Device.X_RDK_Remote.DeviceNumberOfEntries"
 #define X_RDK_REMOTE_DEVICE_MAC                      "Device.X_RDK_Remote.Device.%d.MAC"
+#define MAX_NO_OF_RBUS_REMOTE_PARAMS                 64
 
+#if defined(WAN_MANAGER_UNIFICATION_ENABLED)
+#define WANMGR_INFACE                                 "Device.X_RDK_WanManager.Interface.{i}."
+#define WANMGR_INFACE_TABLE                           "Device.X_RDK_WanManager.Interface"
+#define WANMGR_VIRTUAL_INFACE                         "Device.X_RDK_WanManager.Interface.{i}.VirtualInterface.{i}."
+#define WANMGR_VIRTUAL_INFACE_TABLE                   "Device.X_RDK_WanManager.Interface.%d.VirtualInterface"
+#define WANMGR_INFACE_PHY_STATUS                      "Device.X_RDK_WanManager.Interface.{i}.BaseInterfaceStatus"
+#define WANMGR_INFACE_WAN_STATUS                      "Device.X_RDK_WanManager.Interface.{i}.VirtualInterface.{i}.Status"
+#define WANMGR_INFACE_WAN_LINKSTATUS                  "Device.X_RDK_WanManager.Interface.{i}.VirtualInterface.{i}.VlanStatus"
+#define WANMGR_INFACE_WAN_ENABLE                      "Device.X_RDK_WanManager.Interface.{i}.Selection.Enable"
+#define WANMGR_INFACE_ALIASNAME                       "Device.X_RDK_WanManager.Interface.{i}.Alias"
+
+#define WANMGR_VIRTUALINFACE_TABLE_PREFIX             "VirtualInterface"
+#define WANMGR_INFACE_PHY_STATUS_SUFFIX               ".BaseInterfaceStatus"
+#define WANMGR_INFACE_WAN_STATUS_SUFFIX               ".Status"
+#define WANMGR_INFACE_WAN_LINKSTATUS_SUFFIX           ".VlanStatus"
+#define WANMGR_INFACE_WAN_ENABLE_SUFFIX               ".Selection.Enable"
+#define WANMGR_INFACE_ALIASNAME_SUFFIX                ".Alias"
+
+#define WANMGR_REMOTE_INFACE_DISPLAYNAME              "Device.X_RDK_WanManager.Interface.1.DisplayName"
+#define WANMGR_REMOTE_INFACE_ALIAS                    "Device.X_RDK_WanManager.Interface.1.Alias"
+#define WANMGR_REMOTE_INFACE_PHY_STATUS               "Device.X_RDK_WanManager.Interface.1.BaseInterfaceStatus"
+#define WANMGR_REMOTE_INFACE_WAN_STATUS               "Device.X_RDK_WanManager.Interface.1.VirtualInterface.1.Status"
+#define WANMGR_REMOTE_INFACE_LINK_STATUS              "Device.X_RDK_WanManager.Interface.1.VirtualInterface.1.VlanStatus"
+
+#define WANMGR_REMOTE_DEVICE_WAN_DML_VERSION          "Device.X_RDK_WanManager.Version"
+
+#define WANMGR_V1_INFACE                              "Device.X_RDK_WanManager.CPEInterface.{i}."
+#define WANMGR_V1_INFACE_TABLE                        "Device.X_RDK_WanManager.CPEInterface"
+#define WANMGR_V1_INFACE_PHY_STATUS                   "Device.X_RDK_WanManager.CPEInterface.{i}.Phy.Status"
+#define WANMGR_V1_INFACE_WAN_STATUS                   "Device.X_RDK_WanManager.CPEInterface.{i}.Wan.Status"
+#define WANMGR_V1_INFACE_WAN_LINKSTATUS               "Device.X_RDK_WanManager.CPEInterface.{i}.Wan.LinkStatus"
+
+#define WANMGR_V1_INFACE_PHY_STATUS_SUFFIX            ".Phy.Status"
+#define WANMGR_V1_INFACE_WAN_STATUS_SUFFIX            ".Wan.Status"
+#define WANMGR_V1_INFACE_WAN_LINKSTATUS_SUFFIX        ".Wan.LinkStatus"
+#define WANMGR_V1_INFACE_ALIASNAME_SUFFIX             ".AliasName"
+
+#define WANMGR_PHY_STATUS_CHECK                       (strstr(name, WANMGR_INFACE_PHY_STATUS_SUFFIX) || (strstr(name, WANMGR_V1_INFACE_PHY_STATUS_SUFFIX)) )
+#define WANMGR_WAN_STATUS_CHECK                       (strstr(name, WANMGR_INFACE_WAN_STATUS_SUFFIX) || (strstr(name, WANMGR_V1_INFACE_WAN_STATUS_SUFFIX)) )
+#define WANMGR_WAN_LINKSTATUS_CHECK                   (strstr(name, WANMGR_INFACE_WAN_LINKSTATUS_SUFFIX) || (strstr(name, WANMGR_V1_INFACE_WAN_LINKSTATUS_SUFFIX)) )
+#define WANMGR_ALIASNAME_CHECK                        (strstr(name, WANMGR_INFACE_ALIASNAME_SUFFIX) || (strstr(name, WANMGR_V1_INFACE_ALIASNAME_SUFFIX)) )
+
+#define WANMGR_REMOTE_V1_INFACE_DISPLAYNAME           "Device.X_RDK_WanManager.CPEInterface.1.DisplayName"
+#define WANMGR_REMOTE_V1_INFACE_ALIAS                 "Device.X_RDK_WanManager.CPEInterface.1.AliasName"
+#define WANMGR_REMOTE_V1_INFACE_PHY_STATUS            "Device.X_RDK_WanManager.CPEInterface.1.Phy.Status"
+#define WANMGR_REMOTE_V1_INFACE_WAN_STATUS            "Device.X_RDK_WanManager.CPEInterface.1.Wan.Status"
+#define WANMGR_REMOTE_V1_INFACE_LINK_STATUS           "Device.X_RDK_WanManager.CPEInterface.1.Wan.LinkStatus"
+#else
 #define WANMGR_INFACE                                 "Device.X_RDK_WanManager.CPEInterface.{i}."
 #define WANMGR_INFACE_TABLE                           "Device.X_RDK_WanManager.CPEInterface"
 #define WANMGR_INFACE_PHY_STATUS                      "Device.X_RDK_WanManager.CPEInterface.{i}.Phy.Status"
@@ -42,6 +91,24 @@
 #define WANMGR_INFACE_WAN_LINKSTATUS                  "Device.X_RDK_WanManager.CPEInterface.{i}.Wan.LinkStatus"
 #define WANMGR_INFACE_WAN_ENABLE                      "Device.X_RDK_WanManager.CPEInterface.{i}.Wan.Enable"
 #define WANMGR_INFACE_ALIASNAME                       "Device.X_RDK_WanManager.CPEInterface.{i}.AliasName"
+
+#define WANMGR_INFACE_PHY_STATUS_SUFFIX               ".Phy.Status"
+#define WANMGR_INFACE_WAN_STATUS_SUFFIX               ".Wan.Status"
+#define WANMGR_INFACE_WAN_LINKSTATUS_SUFFIX           ".Wan.LinkStatus"
+#define WANMGR_INFACE_WAN_ENABLE_SUFFIX               ".Wan.Enable"
+#define WANMGR_INFACE_ALIASNAME_SUFFIX                ".AliasName"
+
+#define WANMGR_REMOTE_INFACE_DISPLAYNAME              "Device.X_RDK_WanManager.CPEInterface.1.DisplayName"
+#define WANMGR_REMOTE_INFACE_ALIAS                    "Device.X_RDK_WanManager.CPEInterface.1.AliasName"
+#define WANMGR_REMOTE_INFACE_PHY_STATUS               "Device.X_RDK_WanManager.CPEInterface.1.Phy.Status"
+#define WANMGR_REMOTE_INFACE_WAN_STATUS               "Device.X_RDK_WanManager.CPEInterface.1.Wan.Status"
+#define WANMGR_REMOTE_INFACE_LINK_STATUS              "Device.X_RDK_WanManager.CPEInterface.1.Wan.LinkStatus"
+
+#define WANMGR_PHY_STATUS_CHECK                       (strstr(name, WANMGR_INFACE_PHY_STATUS_SUFFIX))
+#define WANMGR_WAN_STATUS_CHECK                       (strstr(name, WANMGR_INFACE_WAN_STATUS_SUFFIX))
+#define WANMGR_WAN_LINKSTATUS_CHECK                   (strstr(name, WANMGR_INFACE_WAN_LINKSTATUS_SUFFIX))
+#define WANMGR_ALIASNAME_CHECK                        (strstr(name, WANMGR_INFACE_ALIASNAME_SUFFIX))
+#endif /* WAN_MANAGER_UNIFICATION_ENABLED */
 
 typedef enum _IDM_MSG_OPERATION
 {

@@ -72,7 +72,12 @@ ANSC_STATUS WanMgr_RdkBus_getWanPolicy(DML_WAN_POLICY *wan_policy)
     char param_name[BUFLEN_256]= {0};
 
     memset(param_name, 0, sizeof(param_name));
+#if defined(WAN_MANAGER_UNIFICATION_ENABLED)
+    //Needs to remove this hardcoded value when we adapt updated data structure
+    _ansc_sprintf(param_name, PSM_WANMANAGER_GROUP_POLICY, 1); 
+#else
     _ansc_sprintf(param_name, PSM_WANMANAGER_WANPOLICY);
+#endif /** WAN_MANAGER_UNIFICATION_ENABLED */
     retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name, param_value, sizeof(param_value));
     if (retPsmGet == CCSP_SUCCESS && param_value[0] != '\0') {
         *wan_policy = strtol(param_value, NULL, 10);
@@ -120,7 +125,12 @@ ANSC_STATUS WanMgr_RdkBus_setWanPolicy(DML_WAN_POLICY wan_policy)
     memset(param_name, 0, sizeof(param_name));
 
     snprintf(param_value, sizeof(param_value), "%d", wan_policy);
+#if defined(WAN_MANAGER_UNIFICATION_ENABLED)
+    //Needs to remove this hardcoded value when we adapt updated data structure
+    _ansc_sprintf(param_name, PSM_WANMANAGER_GROUP_POLICY, 1); 
+#else
     _ansc_sprintf(param_name, PSM_WANMANAGER_WANPOLICY);
+#endif /** WAN_MANAGER_UNIFICATION_ENABLED */
 
     retPsmSet = WanMgr_RdkBus_SetParamValuesToDB(param_name, param_value);
     if (retPsmSet != CCSP_SUCCESS) {
@@ -1196,3 +1206,45 @@ void WanMgr_RdkBus_setEthernetUpstream(bool setVal)
         }
     }
 }
+
+#if defined(WAN_MANAGER_UNIFICATION_ENABLED)
+ANSC_STATUS WanMgr_RdkBus_getWanGroupCount(int *wan_group_count)
+{
+    int result = ANSC_STATUS_SUCCESS;
+    int retPsmGet = CCSP_SUCCESS;
+    char param_value[BUFLEN_256] = {0};
+    char param_name[BUFLEN_256]= {0};
+
+    memset(param_name, 0, sizeof(param_name));
+    _ansc_sprintf(param_name, PSM_WANMANAGER_GROUPCOUNT);
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name, param_value, sizeof(param_value));
+    if (retPsmGet == CCSP_SUCCESS && param_value[0] != '\0') {
+        *wan_group_count = strtol(param_value, NULL, 10);
+    }
+    else {
+        result = ANSC_STATUS_FAILURE;
+    }
+
+    return result;
+}
+
+ANSC_STATUS WanMgr_RdkBus_getWanVirtualIfCount(int *wan_vif_count)
+{
+    int result = ANSC_STATUS_SUCCESS;
+    int retPsmGet = CCSP_SUCCESS;
+    char param_value[BUFLEN_256] = {0};
+    char param_name[BUFLEN_256]= {0};
+
+    memset(param_name, 0, sizeof(param_name));
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRTUALIFCOUNT, 1);
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name, param_value, sizeof(param_value));
+    if (retPsmGet == CCSP_SUCCESS && param_value[0] != '\0') {
+        *wan_vif_count = strtol(param_value, NULL, 10);
+    }
+    else {
+        result = ANSC_STATUS_FAILURE;
+    }
+
+    return result;
+}
+#endif /** WAN_MANAGER_UNIFICATION_ENABLED */

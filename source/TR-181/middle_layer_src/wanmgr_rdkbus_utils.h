@@ -71,14 +71,23 @@ extern token_t sysevent_token;
 #define UPSTREAM_DM_SUFFIX                  ".Upstream"
 #define WAN_CONFIG_PORT_DM_SUFFIX           ".WanConfigPort"
 
+#if defined(WAN_MANAGER_UNIFICATION_ENABLED)
+#define WAN_ENABLE_CUSTOM_CONFIG_PARAM_NAME         "Device.X_RDK_WanManager.Interface.%d.EnableCustomConfig"
+#define WAN_CUSTOM_CONFIG_PATH_PARAM_NAME           "Device.X_RDK_WanManager.Interface.%d.CustomConfigPath"
+#define WAN_CONFIGURE_WAN_ENABLE_PARAM_NAME         "Device.X_RDK_WanManager.Interface.%d.ConfigureWanEnable"
+#define WAN_ENABLE_OPER_STATUS_MONITOR_PARAM_NAME   "Device.X_RDK_WanManager.Interface.%d.EnableOperStatusMonitor"
+#define WAN_NAME_PARAM_NAME                         "Device.X_RDK_WanManager.Interface.%d.VirtualInterface.1.Name"
+#define WAN_PHY_PATH_PARAM_NAME                     "Device.X_RDK_WanManager.Interface.%d.BaseInterface"
+#define WAN_PPP_PATH_PARAM_NAME                     "Device.X_RDK_WanManager.Interface.%d.VirtualInterface.1.PPP.Interface"
+#else
 #define WAN_ENABLE_CUSTOM_CONFIG_PARAM_NAME         "Device.X_RDK_WanManager.CPEInterface.%d.EnableCustomConfig"
 #define WAN_CUSTOM_CONFIG_PATH_PARAM_NAME           "Device.X_RDK_WanManager.CPEInterface.%d.CustomConfigPath"
 #define WAN_CONFIGURE_WAN_ENABLE_PARAM_NAME         "Device.X_RDK_WanManager.CPEInterface.%d.ConfigureWanEnable"
 #define WAN_ENABLE_OPER_STATUS_MONITOR_PARAM_NAME   "Device.X_RDK_WanManager.CPEInterface.%d.EnableOperStatusMonitor"
 #define WAN_NAME_PARAM_NAME                         "Device.X_RDK_WanManager.CPEInterface.%d.Wan.Name"
 #define WAN_PHY_PATH_PARAM_NAME                     "Device.X_RDK_WanManager.CPEInterface.%d.Phy.Path"
-
-#define WAN_PPP_PATH_PARAM_NAME             "Device.X_RDK_WanManager.CPEInterface.%d.PPP.Path"
+#define WAN_PPP_PATH_PARAM_NAME                     "Device.X_RDK_WanManager.CPEInterface.%d.PPP.Path"
+#endif /* WAN_MANAGER_UNIFICATION_ENABLED */
 #define STATUS_DM_SUFFIX                    ".Status"
 #define VLAN_ETHLINK_STATUS_PARAM_NAME      "Device.X_RDK_Ethernet.Link.%d.Status"
 #define VLAN_ETHLINK_NAME_PARAM_NAME        "Device.X_RDK_Ethernet.Link.%d.Name"
@@ -174,5 +183,10 @@ ANSC_STATUS WanMgr_RdkBus_setWanIpInterfaceData(DML_WAN_IFACE *pWanIfaceData);
 
 void WanMgr_RdkBus_setEthernetUpstream(bool setVal);
 ANSC_STATUS WanMgr_RdkBusDeleteVlanLink(DML_WAN_IFACE* pInterface );
+
+#if defined(WAN_MANAGER_UNIFICATION_ENABLED)
+ANSC_STATUS WanMgr_RdkBus_getWanGroupCount(int *wan_group_count);
+ANSC_STATUS WanMgr_RdkBus_getWanVirtualIfCount(int *wan_vif_count);
+#endif /** WAN_MANAGER_UNIFICATION_ENABLED */
 
 #endif /* _WANMGR_RDKBUS_UTILS_H_ */

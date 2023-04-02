@@ -61,7 +61,7 @@ ANSC_STATUS WanMgr_Core_Start(void)
     WanMgr_UpdatePrevData();
     WanMgr_RdkBus_setDhcpv6DnsServerInfo();
 #ifdef FEATURE_802_1P_COS_MARKING
-    /* Initialize middle layer for Device.X_RDK_WanManager.CPEInterface.{i}.Marking.  */
+    /* Initialize middle layer for Marking */
     WanMgr_WanIfaceMarkingInit();
 #endif /* * FEATURE_802_1P_COS_MARKING */
     //Initialise Policy State Machine

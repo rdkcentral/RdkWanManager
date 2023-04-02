@@ -1,9 +1,9 @@
-#if !defined(WAN_MANAGER_UNIFICATION_ENABLED)
+#if defined(WAN_MANAGER_UNIFICATION_ENABLED)
 /*
  * If not stated otherwise in this file or this component's Licenses.txt file the
  * following copyright and licenses apply:
  *
- * Copyright 2020 RDK Management
+ * Copyright 2023 RDK Management
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,8 +33,8 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 **********************************************************************/
-#ifndef  _WANMGR_DML_IFACE_APIS_H_
-#define  _WANMGR_DML_IFACE_APIS_H_
+#ifndef  _WANMGR_DML_IFACE_V2_APIS_H_
+#define  _WANMGR_DML_IFACE_V2_APIS_H_
 
 #include "ansc_platform.h"
 
@@ -42,7 +42,7 @@
 
  APIs for Object:
 
-    X_RDK_WanManager.CPEInterface.
+    X_RDK_WanManager.Interface.
 
     *  WanIf_GetEntryCount
     *  WanIf_GetEntry
@@ -67,72 +67,81 @@ ULONG WanIf_GetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, char* 
 BOOL WanIf_SetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, char* pString);
 BOOL WanIf_GetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL* pBool);
 BOOL WanIf_SetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL bValue);
+BOOL WanIf_GetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG* puLong);
+BOOL WanIf_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG uValue);
 BOOL WanIf_Validate(ANSC_HANDLE hInsContext, char* pReturnParamName, ULONG* puLength);
 ULONG WanIf_Commit(ANSC_HANDLE hInsContext);
 ULONG WanIf_Rollback(ANSC_HANDLE hInsContext);
-
+BOOL WanIfCfg_IsUpdated (ANSC_HANDLE hInsContext);
 /***********************************************************************
 
  APIs for Object:
 
-    X_RDK_WanManager.CPEInterface.{i}.Phy.
+    X_RDK_WanManager.Interface.{i}.Selection.
 
-    *  WanIfPhy_GetParamStringValue
-    *  WanIfPhy_SetParamStringValue
-    *  WanIfPhy_GetParamUlongValue
-    *  WanIfPhy_SetParamUlongValue
-    *  WanIfPhy_Validate
-    *  WanIfPhy_Commit
-    *  WanIfPhy_Rollback
+    *  WanIfSelectionCfg_GetParamUlongValue
+    *  WanIfSelectionCfg_SetParamUlongValue
+    *  WanIfSelectionCfg_GetParamIntValue
+    *  WanIfSelectionCfg_SetParamIntValue
+    *  WanIfSelectionCfg_GetParamBoolValue
+    *  WanIfSelectionCfg_SetParamBoolValue
+    *  WanIfSelectionCfg_Validate
+    *  WanIfSelectionCfg_Commit
+    *  WanIfSelectionCfg_Rollback
 
 ***********************************************************************/
 
-
-ULONG WanIfPhy_GetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, char* pValue, ULONG* pUlSize);
-BOOL WanIfPhy_SetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, char* pString);
-BOOL WanIfPhy_GetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG* puLong);
-BOOL WanIfPhy_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG uValue);
-BOOL WanIfPhy_Validate(ANSC_HANDLE hInsContext, char* pReturnParamName, ULONG* puLength);
-ULONG WanIfPhy_Commit(ANSC_HANDLE hInsContext);
-ULONG WanIfPhy_Rollback(ANSC_HANDLE hInsContext);
+BOOL WanIfSelectionCfg_GetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG* puLong);
+BOOL WanIfSelectionCfg_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG uValue);
+BOOL WanIfSelectionCfg_GetParamIntValue(ANSC_HANDLE hInsContext, char* ParamName, int* pInt);
+BOOL WanIfSelectionCfg_SetParamIntValue(ANSC_HANDLE hInsContext, char* ParamName, int iValue);
+BOOL WanIfSelectionCfg_GetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL* pBool);
+BOOL WanIfSelectionCfg_SetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL bValue);
+BOOL WanIfSelectionCfg_Validate(ANSC_HANDLE hInsContext, char* pReturnParamName, ULONG* puLength);
+ULONG WanIfSelectionCfg_Commit(ANSC_HANDLE hInsContext);
+ULONG WanIfSelectionCfg_Rollback(ANSC_HANDLE hInsContext);
 
 /***********************************************************************
 
  APIs for Object:
 
-    X_RDK_WanManager.CPEInterface.{i}.Wan.
+    X_RDK_WanManager.Interface.{i}.VirtualInterface.{i}.
 
-    *  WanIfCfg_GetParamUlongValue
-    *  WanIfCfg_SetParamUlongValue
-    *  WanIfCfg_GetParamIntValue
-    *  WanIfCfg_SetParamIntValue
-    *  WanIfCfg_GetParamBoolValue
-    *  WanIfCfg_SetParamBoolValue
-    *  WanIfCfg_GetParamStringValue
-    *  WanIfCfg_SetParamStringValue
-    *  WanIfCfg_Validate
-    *  WanIfCfg_Commit
-    *  WanIfCfg_Rollback
+    *  WanVirtualIf_GetEntryCount
+    *  WanVirtualIf_GetEntry
+    *  WanVirtualIf_IsUpdated
+    *  WanVirtualIf_Synchronize
+    *  WanVirtualIf_GetParamBoolValue
+    *  WanVirtualIf_SetParamBoolValue
+    *  WanVirtualIf_GetParamUlongValue
+    *  WanVirtualIf_SetParamUlongValue
+    *  WanVirtualIf_GetParamStringValue
+    *  WanVirtualIf_SetParamStringValue
+    *  WanVirtualIf_Validate
+    *  WanVirtualIf_Commit
+    *  WanVirtualIf_Rollback
 
 ***********************************************************************/
 
-BOOL WanIfCfg_GetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG* puLong);
-BOOL WanIfCfg_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG uValue);
-BOOL WanIfCfg_GetParamIntValue(ANSC_HANDLE hInsContext, char* ParamName, int* pInt);
-BOOL WanIfCfg_SetParamIntValue(ANSC_HANDLE hInsContext, char* ParamName, int iValue);
-BOOL WanIfCfg_GetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL* pBool);
-BOOL WanIfCfg_SetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL bValue);
-ULONG WanIfCfg_GetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, char* pValue, ULONG* pUlSize);
-BOOL WanIfCfg_SetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, char* pString);
-BOOL WanIfCfg_Validate(ANSC_HANDLE hInsContext, char* pReturnParamName, ULONG* puLength);
-ULONG WanIfCfg_Commit(ANSC_HANDLE hInsContext);
-ULONG WanIfCfg_Rollback(ANSC_HANDLE hInsContext);
+ULONG WanVirtualIf_GetEntryCount(ANSC_HANDLE);
+ANSC_HANDLE WanVirtualIf_GetEntry(ANSC_HANDLE hInsContext, ULONG nIndex, ULONG* pInsNumber);
+BOOL WanVirtualIf_IsUpdated(ANSC_HANDLE hInsContext);
+ULONG WanVirtualIf_Synchronize(ANSC_HANDLE hInsContext);
+BOOL WanVirtualIf_GetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG* puLong);
+BOOL WanVirtualIf_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG uValue);
+BOOL WanVirtualIf_GetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL* pBool);
+BOOL WanVirtualIf_SetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL bValue);
+ULONG WanVirtualIf_GetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, char* pValue, ULONG* pUlSize);
+BOOL WanVirtualIf_SetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, char* pString);
+BOOL WanVirtualIf_Validate(ANSC_HANDLE hInsContext, char* pReturnParamName, ULONG* puLength);
+ULONG WanVirtualIf_Commit(ANSC_HANDLE hInsContext);
+ULONG WanVirtualIf_Rollback(ANSC_HANDLE hInsContext);
 
 /***********************************************************************
 
  APIs for Object:
 
-    X_RDK_WanManager.CPEInterface.{i}.IP.
+    X_RDK_WanManager.Interface.{i}.VirtualInterface.{i}.IP.
 
     *  WanIfIpCfg_GetParamUlongValue
     *  WanIfIpCfg_SetParamUlongValue
@@ -156,7 +165,7 @@ ULONG WanIfIpCfg_Rollback(ANSC_HANDLE hInsContext);
 
  APIs for Object:
 
-    X_RDK_WanManager.CPEInterface.{i}.MAPT.
+    X_RDK_WanManager.Interface.{i}.VirtualInterface.{i}.MAPT.
 
     *  WanIfMapt_GetParamUlongValue
     *  WanIfMapt_SetParamUlongValue
@@ -180,7 +189,7 @@ ULONG WanIfMapt_Rollback(ANSC_HANDLE hInsContext);
 
  APIs for Object:
 
-    X_RDK_WanManager.CPEInterface.{i}.DSLite.
+    X_RDK_WanManager.Interface.{i}.VirtualInterface.{i}.DSLite.
 
     *  WanIfDSLite_GetParamUlongValue
     *  WanIfDSLite_SetParamUlongValue
@@ -204,7 +213,7 @@ ULONG WanIfDSLite_Rollback(ANSC_HANDLE hInsContext);
 
  APIs for Object:
 
-    Device.X_RDK_WanManager.CPEInterface.{i}.Marking.{i}.
+    Device.X_RDK_WanManager.Interface.{i}.Marking.{i}.
 
     *  Marking_GetEntryCount
     *  Marking_GetEntry
@@ -240,7 +249,7 @@ ULONG Marking_Rollback(ANSC_HANDLE hInsContext);
 
  APIs for Object:
 
-    X_RDK_WanManager.CPEInterface.{i}.PPP.
+    X_RDK_WanManager.Interface.{i}.VirtualInterface.{i}.PPP.
 
     *  WanIfPPPCfg_GetParamUlongValue
     *  WanIfPPPCfg_SetParamUlongValue
@@ -264,5 +273,108 @@ BOOL WanIfPPPCfg_Validate(ANSC_HANDLE hInsContext, char* ParamName, BOOL bValue)
 ULONG WanIfPPPCfg_Commit(ANSC_HANDLE hInsContext);
 ULONG WanIfPPPCfg_Rollback(ANSC_HANDLE hInsContext);
 
-#endif /* _WANMGR_DML_IFACE_APIS_H_ */
-#endif /* !WAN_MANAGER_UNIFICATION_ENABLED */
+/***********************************************************************
+
+ APIs for Object:
+
+    X_RDK_WanManager.Interface.{i}.VirtualInterface.{i}.VLAN.{i}.
+
+    *  WanIfVlanCfg_GetEntryCount
+    *  WanIfVlanCfg_GetEntry
+    *  WanIfVlanCfg_IsUpdated
+    *  WanIfVlanCfg_Synchronize
+    *  WanIfVlanCfg_GetParamStringValue
+    *  WanIfVlanCfg_SetParamStringValue
+    *  WanIfVlanCfg_Validate
+    *  WanIfVlanCfg_Commit
+    *  WanIfVlanCfg_Rollback
+
+***********************************************************************/
+
+ULONG WanIfVlanCfg_GetEntryCount(ANSC_HANDLE);
+ANSC_HANDLE WanIfVlanCfg_GetEntry(ANSC_HANDLE hInsContext, ULONG nIndex, ULONG* pInsNumber);
+BOOL WanIfVlanCfg_IsUpdated(ANSC_HANDLE hInsContext);
+ULONG WanIfVlanCfg_Synchronize(ANSC_HANDLE hInsContext);
+ULONG WanIfVlanCfg_GetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, char* pValue, ULONG* pUlSize);
+BOOL WanIfVlanCfg_SetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, char* pString);
+BOOL WanIfVlanCfg_GetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG* puLong);
+BOOL WanIfVlanCfg_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG uValue);
+BOOL WanIfVlanCfg_Validate(ANSC_HANDLE hInsContext, char* ParamName, BOOL bValue);
+ULONG WanIfVlanCfg_Commit(ANSC_HANDLE hInsContext);
+ULONG WanIfVlanCfg_Rollback(ANSC_HANDLE hInsContext);
+
+/***********************************************************************
+
+ APIs for Object:
+
+    X_RDK_WanManager.Interface.{i}.VirtualInterface.{i}.VLAN.Marking{i}.
+
+    *  WanIfVlanMarking_GetEntryCount
+    *  WanIfVlanMarking_GetEntry
+    *  WanIfVlanMarking_GetParamIntValue
+    *  WanIfVlanMarking_SetParamIntValue
+    *  WanIfVlanMarking_Validate
+    *  WanIfVlanMarking_Commit
+    *  WanIfVlanMarking_Rollback
+
+***********************************************************************/
+
+ULONG WanIfVlanMarking_GetEntryCount(ANSC_HANDLE hInsContext);
+ANSC_HANDLE WanIfVlanMarking_GetEntry(ANSC_HANDLE hInsContext, ULONG nIndex, ULONG* pInsNumber);
+BOOL WanIfVlanMarking_GetParamIntValue(ANSC_HANDLE hInsContext, char* ParamName, int* pInt);
+BOOL WanIfVlanMarking_SetParamIntValue(ANSC_HANDLE hInsContext, char* ParamName, int iValue);
+BOOL WanIfVlanMarking_Validate(ANSC_HANDLE hInsContext, char* ParamName, BOOL bValue);
+ULONG WanIfVlanMarking_Commit(ANSC_HANDLE hInsContext);
+ULONG WanIfVlanMarking_Rollback(ANSC_HANDLE hInsContext);
+
+#if defined(FEATURE_SUPPORT_VLAN_DISCOVERY)
+/***********************************************************************
+
+ APIs for Object:
+
+    X_RDK_WanManager.Interface.{i}.VirtualInterface.{i}.VLANDiscovery.
+
+    *  WanIfVlanDiscoveryCfg_GetParamUlongValue
+    *  WanIfVlanDiscoveryCfg_SetParamUlongValue
+    *  WanIfVlanDiscoveryCfg_GetParamBoolValue
+    *  WanIfVlanDiscoveryCfg_SetParamBoolValue
+    *  WanIfVlanDiscoveryCfg_Validate
+    *  WanIfVlanDiscoveryCfg_Commit
+    *  WanIfVlanDiscoveryCfg_Rollback
+
+***********************************************************************/
+
+BOOL WanIfVlanDiscoveryCfg_GetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG* puLong);
+BOOL WanIfVlanDiscoveryCfg_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG uValue);
+ULONG WanIfVlanDiscoveryCfg_GetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL* pBool);
+BOOL WanIfVlanDiscoveryCfg_SetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL bValue);
+BOOL WanIfVlanDiscoveryCfg_Validate(ANSC_HANDLE hInsContext, char* ParamName, BOOL bValue);
+ULONG WanIfVlanDiscoveryCfg_Commit(ANSC_HANDLE hInsContext);
+ULONG WanIfVlanDiscoveryCfg_Rollback(ANSC_HANDLE hInsContext);
+
+/***********************************************************************
+
+ APIs for Object:
+
+    X_RDK_WanManager.Interface.{i}.VirtualInterface.{i}.VLANDiscovery.Tag.{i}.
+
+    *  WanIfVlanDiscoveryTagCfg_GetEntryCount
+    *  WanIfVlanDiscoveryTagCfg_GetEntry
+    *  WanIfVlanDiscoveryTagCfg_GetParamUlongValue
+    *  WanIfVlanDiscoveryTagCfg_SetParamUlongValue
+    *  WanIfVlanDiscoveryTagCfg_Validate
+    *  WanIfVlanDiscoveryTagCfg_Commit
+    *  WanIfVlanDiscoveryTagCfg_Rollback
+
+***********************************************************************/
+
+ULONG WanIfVlanDiscoveryTagCfg_GetEntryCount(ANSC_HANDLE hInsContext);
+ANSC_HANDLE WanIfVlanDiscoveryTagCfg_GetEntry(ANSC_HANDLE hInsContext, ULONG nIndex, ULONG* pInsNumber);
+BOOL WanIfVlanDiscoveryTagCfg_GetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG* puLong);
+BOOL WanIfVlanDiscoveryTagCfg_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG uValue);
+BOOL WanIfVlanDiscoveryTagCfg_Validate(ANSC_HANDLE hInsContext, char* ParamName, BOOL bValue);
+ULONG WanIfVlanDiscoveryTagCfg_Commit(ANSC_HANDLE hInsContext);
+ULONG WanIfVlanDiscoveryTagCfg_Rollback(ANSC_HANDLE hInsContext);
+#endif /* FEATURE_SUPPORT_VLAN_DISCOVERY */
+#endif /* _WANMGR_DML_IFACE_V2_APIS_H_ */
+#endif /* WAN_MANAGER_UNIFICATION_ENABLED */

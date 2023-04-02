@@ -52,8 +52,6 @@
 #define DATA_SKB_MARKING_LOCATION "/tmp/skb_marking.conf"
 #define WAN_DBUS_PATH             "/com/cisco/spvtg/ccsp/wanmanager"
 #define WAN_COMPONENT_NAME        "eRT.com.cisco.spvtg.ccsp.wanmanager"
-#define MARKING_TABLE             "Device.X_RDK_WanManager.CPEInterface.%d.Marking."
-
 extern WANMGR_DATA_ST gWanMgrDataBase;
 extern char g_Subsystem[32];
 extern ANSC_HANDLE bus_handle;
@@ -176,7 +174,12 @@ static int get_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFACE*
 
     _ansc_memset(param_name, 0, sizeof(param_name));
     _ansc_memset(param_value, 0, sizeof(param_value));
+#if defined(WAN_MANAGER_UNIFICATION_ENABLED)
+     //Needs to remove this hardcoded value when we adapt updated data structure
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_ENABLE_MAPT, instancenum, 1);
+#else
     _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_ENABLE_MAPT, instancenum);
+#endif /** WAN_MANAGER_UNIFICATION_ENABLED */
     retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
     if (retPsmGet == CCSP_SUCCESS)
     {
@@ -209,7 +212,12 @@ static int get_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFACE*
 
     _ansc_memset(param_name, 0, sizeof(param_name));
     _ansc_memset(param_value, 0, sizeof(param_value));
+#if defined(WAN_MANAGER_UNIFICATION_ENABLED)
+     //Needs to remove this hardcoded value when we adapt updated data structure
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_ENABLE_DSLITE, instancenum, 1);
+#else
     _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_ENABLE_DSLITE, instancenum);
+#endif /** WAN_MANAGER_UNIFICATION_ENABLED */
     retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
     if (retPsmGet == CCSP_SUCCESS)
     {
@@ -229,7 +237,12 @@ static int get_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFACE*
 
     _ansc_memset(param_name, 0, sizeof(param_name));
     _ansc_memset(param_value, 0, sizeof(param_value));
+#if defined(WAN_MANAGER_UNIFICATION_ENABLED)
+     //Needs to remove this hardcoded value when we adapt updated data structure
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_ENABLE_IPOE, instancenum, 1);
+#else
     _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_ENABLE_IPOE, instancenum);
+#endif /** WAN_MANAGER_UNIFICATION_ENABLED */
     retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
     if (retPsmGet == CCSP_SUCCESS)
     {
@@ -419,7 +432,12 @@ static int write_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFAC
     {
         _ansc_sprintf(param_value, "FALSE");
     }
+#if defined(WAN_MANAGER_UNIFICATION_ENABLED)
+     //Needs to remove this hardcoded value when we adapt updated data structure
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_ENABLE_MAPT, instancenum, 1);
+#else
     _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_ENABLE_MAPT, instancenum);
+#endif /** WAN_MANAGER_UNIFICATION_ENABLED */
     WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
 
     memset(param_value, 0, sizeof(param_value));
@@ -432,7 +450,12 @@ static int write_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFAC
     {
         _ansc_sprintf(param_value, "FALSE");
     }
+#if defined(WAN_MANAGER_UNIFICATION_ENABLED)
+     //Needs to remove this hardcoded value when we adapt updated data structure
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_ENABLE_DSLITE, instancenum, 1);
+#else
     _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_ENABLE_DSLITE, instancenum);
+#endif /** WAN_MANAGER_UNIFICATION_ENABLED */
     WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
 
     memset(param_value, 0, sizeof(param_value));
@@ -445,7 +468,12 @@ static int write_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFAC
     {
         _ansc_sprintf(param_value, "FALSE");
     }
+#if defined(WAN_MANAGER_UNIFICATION_ENABLED)
+     //Needs to remove this hardcoded value when we adapt updated data structure
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_ENABLE_IPOE, instancenum, 1);
+#else
     _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_ENABLE_IPOE, instancenum);
+#endif /** WAN_MANAGER_UNIFICATION_ENABLED */
     WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
 
     memset(param_value, 0, sizeof(param_value));
@@ -1400,7 +1428,13 @@ static ANSC_STATUS WanMgr_WanConfInit (DML_WANMGR_CONFIG* pWanConfig)
 
     memset(param_name, 0, sizeof(param_name));
     memset(param_value, 0, sizeof(param_value));
+
+#if defined(WAN_MANAGER_UNIFICATION_ENABLED)
+    //Needs to remove this hardcoded value when we adapt updated data structure
+    _ansc_sprintf(param_name, PSM_WANMANAGER_GROUP_POLICY, 1); 
+#else
     _ansc_sprintf(param_name, PSM_WANMANAGER_WANPOLICY);
+#endif /** WAN_MANAGER_UNIFICATION_ENABLED */
     retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
     if (retPsmGet == CCSP_SUCCESS && param_value[0] != '\0')
         wan_policy = atoi(param_value);

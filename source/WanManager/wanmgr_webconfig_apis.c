@@ -207,7 +207,11 @@ pErr WanMgr_Process_Webconfig_Request(void *Data)
 
                     }
                 }
+#if defined(WAN_MANAGER_UNIFICATION_ENABLED)
+                WanIf_SetParamBoolValue((ANSC_HANDLE)pWanDmlIfaceData, PARAM_NAME_WAN_REFRESH, true);
+#else
                 WanIfCfg_SetParamBoolValue((ANSC_HANDLE)pWanDmlIfaceData, PARAM_NAME_WAN_REFRESH, true);
+#endif /** WAN_MANAGER_UNIFICATION_ENABLED */
             }
             else
             {

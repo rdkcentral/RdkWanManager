@@ -47,7 +47,13 @@
 #define PPP_IPCP_DNS_SERVERS         "Device.PPP.Interface.%d.IPCP.DNSServers"
 #define PPP_IPV6CP_REMOTE_IDENTIFIER "Device.PPP.Interface.%d.IPv6CP.RemoteInterfaceIdentifier"
 
-#define WANMGR_IFACE_WAN_STATUS                      "Device.X_RDK_WanManager.CPEInterface.%d.Wan.Status"
+#if defined(WAN_MANAGER_UNIFICATION_ENABLED)
+#define MARKING_TABLE             "Device.X_RDK_WanManager.Interface.%d.Marking."
+#define WANMGR_IFACE_WAN_STATUS   "Device.X_RDK_WanManager.Interface.%d.VirtualInterface.1.Status"
+#else
+#define MARKING_TABLE             "Device.X_RDK_WanManager.CPEInterface.%d.Marking."
+#define WANMGR_IFACE_WAN_STATUS   "Device.X_RDK_WanManager.CPEInterface.%d.Wan.Status"
+#endif 
 
 struct IFACE_INFO
 {

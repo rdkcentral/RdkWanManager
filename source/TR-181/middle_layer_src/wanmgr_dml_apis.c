@@ -234,6 +234,12 @@ LONG WanManager_GetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, ch
         ret = 0;
     }
 
+    if (strcmp(ParamName, "Version") == 0)
+    {
+        snprintf(pValue, pulSize, "%s", WAN_MANAGER_VERSION);
+        ret = 0;
+    }
+
     return ret;
 }
 
@@ -298,3 +304,153 @@ ULONG WanManager_Commit(ANSC_HANDLE hInsContext)
 
     return ret;
 }
+
+#if defined(WAN_MANAGER_UNIFICATION_ENABLED)
+BOOL
+WanManagerGroup_IsUpdated
+    (
+        ANSC_HANDLE                 hInsContext
+    )
+{
+    return TRUE;
+}
+
+ULONG
+WanManagerGroup_Synchronize
+    (
+        ANSC_HANDLE                 hInsContext
+    )
+{
+    return ANSC_STATUS_SUCCESS;
+}
+
+ULONG WanManagerGroup_GetEntryCount(ANSC_HANDLE hInsContext)
+{
+    ULONG count = 0;
+    WanMgr_RdkBus_getWanGroupCount((int)&count);
+    return count;
+}
+
+ANSC_HANDLE WanManagerGroup_GetEntry(ANSC_HANDLE hInsContext, ULONG nIndex, ULONG* pInsNumber)
+{
+    WanMgr_Config_Data_t*   pWanConfigData = WanMgr_GetConfigData_locked();
+    if(pWanConfigData != NULL)
+    {
+        *pInsNumber = nIndex + 1;
+        WanMgrDml_GetConfigData_release(pWanConfigData);
+
+        return pWanConfigData;
+    }
+
+    return NULL;
+}
+
+BOOL
+WanManagerGroup_GetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL* pBool)
+{
+    BOOL ret = FALSE;
+
+    WanMgr_Config_Data_t*   pWanConfigData = WanMgr_GetConfigData_locked();
+    if(pWanConfigData != NULL)
+    {
+        DML_WANMGR_CONFIG* pWanDmlData = &(pWanConfigData->data);
+
+        if (strcmp(ParamName, "ResetSelectedInterface") == 0)
+        {
+            *pBool= pWanDmlData->ResetActiveInterface;
+            ret = TRUE;
+        }
+
+        WanMgrDml_GetConfigData_release(pWanConfigData);
+    }
+
+    return ret;
+}
+
+BOOL WanManagerGroup_SetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL bValue)
+{
+    BOOL ret = FALSE;
+
+    WanMgr_Config_Data_t*   pWanConfigData = WanMgr_GetConfigData_locked();
+    if(pWanConfigData != NULL)
+    {
+        DML_WANMGR_CONFIG* pWanDmlData = &(pWanConfigData->data);
+
+
+        if (strcmp(ParamName, "ResetSelectedInterface") == 0)
+        {
+            pWanDmlData->ResetActiveInterface = bValue;
+            ret = TRUE;
+        }
+
+        WanMgrDml_GetConfigData_release(pWanConfigData);
+    }
+
+    return ret;
+}
+
+BOOL
+WanManagerGroup_GetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG* puLong)
+{
+    BOOL ret = FALSE;
+
+    WanMgr_Config_Data_t*   pWanConfigData = WanMgr_GetConfigData_locked();
+    if(pWanConfigData != NULL)
+    {
+        DML_WANMGR_CONFIG* pWanDmlData = &(pWanConfigData->data);
+
+        if (strcmp(ParamName, "Policy") == 0)
+        {
+            *puLong= pWanDmlData->Policy;
+            ret = TRUE;
+        }
+
+        WanMgrDml_GetConfigData_release(pWanConfigData);
+    }
+
+    return ret;
+}
+
+BOOL
+WanManagerGroup_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG uValue)
+{
+    BOOL ret = FALSE;
+    ANSC_STATUS retStatus;
+
+    WanMgr_Config_Data_t*   pWanConfigData = WanMgr_GetConfigData_locked();
+    if(pWanConfigData != NULL)
+    {
+        DML_WANMGR_CONFIG* pWanDmlData = &(pWanConfigData->data);
+
+        if (strcmp(ParamName, "Policy") == 0)
+        {
+            retStatus = WanMgr_RdkBus_setWanPolicy((DML_WAN_POLICY)uValue);
+            if(retStatus == ANSC_STATUS_SUCCESS)
+            {
+                if(pWanDmlData->Policy != uValue)
+                {
+                    pWanDmlData->Policy = uValue;
+                    pWanDmlData->PolicyChanged = TRUE;
+                }
+                ret = TRUE;
+            }
+        }
+
+        WanMgrDml_GetConfigData_release(pWanConfigData);
+    }
+
+    return ret;
+}
+
+ULONG WanManagerGroup_Validate(ANSC_HANDLE hInsContext, char* pReturnParamName, ULONG* puLength)
+{
+    return TRUE;
+}
+
+ULONG WanManagerGroup_Commit(ANSC_HANDLE hInsContext)
+{
+    ULONG ret = 0;
+
+    return ret;
+}
+#endif /* WAN_MANAGER_UNIFICATION_ENABLED */

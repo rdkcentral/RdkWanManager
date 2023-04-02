@@ -38,10 +38,16 @@
      Wan Part
  */
 
+#if defined(WAN_MANAGER_UNIFICATION_ENABLED)
+#define TABLE_NAME_WAN_INTERFACE           "Device.X_RDK_WanManager.Interface."
+#define PARAM_NAME_WAN_REFRESH             "Reset"
+#else
 #define TABLE_NAME_WAN_INTERFACE           "Device.X_RDK_WanManager.CPEInterface."
+#define PARAM_NAME_WAN_REFRESH             "Refresh"
+#endif 
+
 #define TABLE_NAME_WAN_MARKING             "Marking."
 
-#define PARAM_NAME_WAN_REFRESH             "Refresh"
 #define PARAM_NAME_MARK_ALIAS              "Alias"
 #define PARAM_NAME_IF_NAME                 "Name"
 #define PARAM_NAME_ETHERNET_PRIORITY_MARK  "EthernetPriorityMark"

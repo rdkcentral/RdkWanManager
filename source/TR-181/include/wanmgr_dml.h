@@ -29,6 +29,7 @@
 #define PAM_IF_PARAM_NAME           "Device.IP.Interface.%d.Name"
 #define DML_WAN_IFACE_PRIORITY_MAX  255
 #define REMOTE_INTERFACE_NAME       "brRWAN"
+#define WAN_MANAGER_VERSION         "1.5"
 
 typedef enum _WANMGR_IFACE_SELECTION_STATUS
 {
@@ -259,6 +260,7 @@ typedef struct _DATAMODEL_PPP
 typedef struct _DML_WANIFACE_INFO
 {
     CHAR                        Name[BUFLEN_64];
+    CHAR                        Alias[BUFLEN_64];
     BOOL                        Enable;
     INT                         Priority;
     DML_WAN_IFACE_TYPE          Type;

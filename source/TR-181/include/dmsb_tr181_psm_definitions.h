@@ -37,9 +37,6 @@
 #define PSM_WANMANAGER_IF_TYPE                              "dmsb.wanmanager.if.%d.Type"
 #define PSM_WANMANAGER_IF_PRIORITY                          "dmsb.wanmanager.if.%d.Priority"
 #define PSM_WANMANAGER_IF_SELECTIONTIMEOUT                  "dmsb.wanmanager.if.%d.SelectionTimeout"
-#define PSM_WANMANAGER_IF_WAN_ENABLE_MAPT                   "dmsb.wanmanager.if.%d.EnableMAPT"
-#define PSM_WANMANAGER_IF_WAN_ENABLE_DSLITE                 "dmsb.wanmanager.if.%d.EnableDSLite"
-#define PSM_WANMANAGER_IF_WAN_ENABLE_IPOE                   "dmsb.wanmanager.if.%d.EnableIPoE"
 #define PSM_WANMANAGER_IF_WAN_REBOOTONCONFIGURATION         "dmsb.wanmanager.if.%d.RebootOnConfiguration"
 #define PSM_WANMANAGER_IF_WAN_PPP_ENABLE                    "dmsb.wanmanager.if.%d.PPPEnable"
 #define PSM_WANMANAGER_IF_WAN_PPP_LINKTYPE                  "dmsb.wanmanager.if.%d.PPPLinkType"
@@ -49,6 +46,19 @@
 #define PSM_WANMANAGER_IF_HOTSTANDBY                        "dmsb.wanmanager.if.%d.HotStandby"
 #define PSM_WANMANAGER_IF_GROUP                             "dmsb.wanmanager.if.%d.Group"
 #define PSM_SELFHEAL_REBOOT_STATUS                          "dmsb.selfheal.rebootstatus"
+
+#if defined(WAN_MANAGER_UNIFICATION_ENABLED)
+#define PSM_WANMANAGER_GROUPCOUNT                           "dmsb.wanmanager.group.Count"
+#define PSM_WANMANAGER_GROUP_POLICY                         "dmsb.wanmanager.group.%d.policy"
+#define PSM_WANMANAGER_IF_VIRTUALIFCOUNT                    "dmsb.wanmanager.if.%d.VirtualInterfaceifcount"
+#define PSM_WANMANAGER_IF_WAN_ENABLE_MAPT                   "dmsb.wanmanager.if.%d.VirtualInterface.%d.EnableMAPT"
+#define PSM_WANMANAGER_IF_WAN_ENABLE_DSLITE                 "dmsb.wanmanager.if.%d.VirtualInterface.%d.EnableDSLite"
+#define PSM_WANMANAGER_IF_WAN_ENABLE_IPOE                   "dmsb.wanmanager.if.%d.VirtualInterface.%d.EnableIPoE"
+#else
+#define PSM_WANMANAGER_IF_WAN_ENABLE_MAPT                   "dmsb.wanmanager.if.%d.EnableMAPT"
+#define PSM_WANMANAGER_IF_WAN_ENABLE_DSLITE                 "dmsb.wanmanager.if.%d.EnableDSLite"
+#define PSM_WANMANAGER_IF_WAN_ENABLE_IPOE                   "dmsb.wanmanager.if.%d.EnableIPoE"
+#endif /** WAN_MANAGER_UNIFICATION_ENABLED */
 
 #define PSM_MESH_WAN_IFNAME                                     "dmsb.Mesh.WAN.Interface.Name"
 

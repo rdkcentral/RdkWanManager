@@ -58,5 +58,16 @@ BOOL WanManager_SetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, ch
 LONG WanManager_GetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, char* pValue, ULONG* pUlSize);
 BOOL WanManager_GetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL* pBool);
 BOOL WanManager_SetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL bValue);
-
+#if defined(WAN_MANAGER_UNIFICATION_ENABLED)
+BOOL WanManagerGroup_IsUpdated(ANSC_HANDLE hInsContext);
+ULONG WanManagerGroup_Synchronize(ANSC_HANDLE hInsContext);
+ULONG WanManagerGroup_GetEntryCount(ANSC_HANDLE hInsContext);
+ANSC_HANDLE WanManagerGroup_GetEntry(ANSC_HANDLE hInsContext, ULONG nIndex, ULONG* pInsNumber);
+BOOL WanManagerGroup_GetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG* puLong);
+BOOL WanManagerGroup_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG uValue);
+BOOL WanManagerGroup_GetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL* pBool);
+BOOL WanManagerGroup_SetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL bValue);
+ULONG WanManagerGroup_Validate(ANSC_HANDLE hInsContext, char* pReturnParamName, ULONG* puLength);
+ULONG WanManagerGroup_Commit(ANSC_HANDLE hInsContext);
+#endif /* WAN_MANAGER_UNIFICATION_ENABLED */
 #endif //_WANMGR_DML_APIS_H_
