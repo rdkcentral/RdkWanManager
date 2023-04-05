@@ -485,7 +485,6 @@ static void *WanManagerSyseventHandler(void *args)
     async_id_t lan_ula_enable_asyncid;
     async_id_t lan_ipv6_enable_asyncid;
     async_id_t wan_status_asyncid;
-    async_id_t wan_service_status_asyncid;
     async_id_t radvd_restart_asyncid;
     async_id_t ipv6_down_asyncid;
 #ifdef NTP_STATUS_SYNC_EVENT
@@ -513,9 +512,6 @@ static void *WanManagerSyseventHandler(void *args)
 
     sysevent_set_options(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_WAN_STATUS, TUPLE_FLAG_EVENT);
     sysevent_setnotification(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_WAN_STATUS,  &wan_status_asyncid);
-
-    sysevent_set_options(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_WAN_SERVICE_STATUS, TUPLE_FLAG_EVENT);
-    sysevent_setnotification(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_WAN_SERVICE_STATUS, &wan_service_status_asyncid);
 
     sysevent_set_options(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_RADVD_RESTART, TUPLE_FLAG_EVENT);
     sysevent_setnotification(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_RADVD_RESTART, &radvd_restart_asyncid);
@@ -682,13 +678,6 @@ static void *WanManagerSyseventHandler(void *args)
                 }
             }
 #endif /* RDKB_EXTENDER_ENABLED */
-            else if (strcmp(name, SYSEVENT_WAN_SERVICE_STATUS) == 0)
-            {
-                CcspTraceInfo(("%s %d - received notification event %s:%s\n", __FUNCTION__, __LINE__, name, val ));
-                if (strcmp(val, SYSEVENT_VALUE_STARTED) == 0) {
-                    do_toggle_v6_status();
-                }
-            }
             else if (strcmp(name, SYSEVENT_RADVD_RESTART) == 0)
             {
                 sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_SERVICE_ROUTED_STATUS, "", 0);
