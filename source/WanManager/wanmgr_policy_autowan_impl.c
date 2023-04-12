@@ -1807,12 +1807,22 @@ static WcFmobPolicyState_t State_WanInterfaceValidated(WanMgr_AutoWan_SMInfo_t *
     if (isAnyRemoteInterfaceActive() == 0)
     {
         wanmgr_setwanstart();
-        wanmgr_sshd_restart();
-
-        TelemetryRestoreStatus = STATUS_SWITCHOVER_STARTED;
-
-        retState = Transition_WanInterfaceUp(pSmInfo);
         CcspTraceInfo(("%s %d - Remote Interface Down \n", __FUNCTION__, __LINE__));
+
+        char wan_st[BUFLEN_16] = {0};
+        sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_WAN_SERVICE_STATUS, wan_st, sizeof(wan_st));
+        if(!strncmp(wan_st, "starting", sizeof(wan_st)) || !strncmp(wan_st, "started", sizeof(wan_st)) )
+        {
+            CcspTraceInfo(("%s %d - SYSEVENT_WAN_SERVICE_STATUS is started . WAN_SERVICE_STATUS:%s \n", __FUNCTION__, __LINE__,wan_st));
+            wanmgr_sshd_restart();
+            TelemetryRestoreStatus = STATUS_SWITCHOVER_STARTED;
+
+            retState = Transition_WanInterfaceUp(pSmInfo);
+        }
+        else
+        {
+            CcspTraceInfo(("%s %d - SYSEVENT_WAN_SERVICE_STATUS is not started yet. WAN_SERVICE_STATUS:%s \n", __FUNCTION__, __LINE__,wan_st));
+        }
     }
     return retState;
 }
