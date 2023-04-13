@@ -221,6 +221,7 @@ static void NetMonitor_DoToggleV6Status(bool flag)
     else
     {
         DBG_MONITOR_PRINT("%s-%d: No Toggle Needed \n", __FUNCTION__, __LINE__);
+        sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV6_TOGGLE, "FALSE", 0); 
     }
 }
 
