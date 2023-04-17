@@ -265,6 +265,7 @@ int wanmanager_mapt_feature();
 ANSC_STATUS wanmgr_setwanstart();
 ANSC_STATUS wanmgr_setwanstop();
 ANSC_STATUS wanmgr_sshd_restart();
+ANSC_STATUS wanmgr_services_restart();
 ANSC_STATUS wanmgr_setwanrestart();
 INT wanmgr_isWanStarted();
 INT WanMgr_IsWanStopped(void);

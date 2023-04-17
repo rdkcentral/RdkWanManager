@@ -1012,6 +1012,32 @@ ANSC_STATUS wanmgr_sshd_restart()
     return ANSC_STATUS_SUCCESS;
 }
 
+#ifdef SNMPV3_ENABLED
+static ANSC_STATUS wanmgr_snmpv3_restart()
+{
+
+    CcspTraceInfo(("%s %d\n", __FUNCTION__, __LINE__));
+
+    // Restart snmpv3 service
+    if (access("/lib/rdk/handlesnmpv3.sh", F_OK) == 0)
+    {
+        v_secure_system("sh /lib/rdk/handlesnmpv3.sh &");
+        return ANSC_STATUS_SUCCESS;
+    }
+
+    return ANSC_STATUS_FAILURE;
+}
+#endif // SNMPV3_ENABLED
+
+ANSC_STATUS wanmgr_services_restart()
+{
+    wanmgr_sshd_restart();
+#ifdef SNMPV3_ENABLED
+    wanmgr_snmpv3_restart();
+#endif // SNMPV3_ENABLED
+    return ANSC_STATUS_SUCCESS;
+}
+
 ANSC_STATUS wanmgr_firewall_restart(void)
 {
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, "", 0);
