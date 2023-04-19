@@ -2571,6 +2571,7 @@ static eWanState_t wan_state_ipv6_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
                 (pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV6Status == IHC_STARTED))
         {
             sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, NULL, 0);
+            Force_IPv6_toggle(pInterface->Wan.Name); //Force Ipv6 toggle to update default route
             WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_IPV6_UP, pInterface->Wan.Name);
         }
         pInterface->IP.Ipv6Renewed = FALSE;
@@ -2777,6 +2778,7 @@ static eWanState_t wan_state_dual_stack_active(WanMgr_IfaceSM_Controller_t* pWan
                 (pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV6Status == IHC_STARTED))
         {
             sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, NULL, 0);
+            Force_IPv6_toggle(pInterface->Wan.Name); //Force Ipv6 toggle to update default route
             WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_IPV6_UP, pInterface->Wan.Name);
         }
         pInterface->IP.Ipv6Renewed = FALSE;
@@ -2920,6 +2922,7 @@ static eWanState_t wan_state_mapt_active(WanMgr_IfaceSM_Controller_t* pWanIfaceC
                 (pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV6Status == IHC_STARTED))
         {
             sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, NULL, 0);
+            Force_IPv6_toggle(pInterface->Wan.Name); //Force Ipv6 toggle to update default route
             WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_IPV6_UP, pInterface->Wan.Name);
         }
         pInterface->IP.Ipv6Renewed = FALSE;

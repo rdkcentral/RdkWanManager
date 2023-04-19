@@ -833,6 +833,28 @@ static int do_toggle_v6_status (void)
     return ret;
 }
 
+/*
+ * @brief Utility function used to toggle ipv6 triggered from ISM.
+ * This function will not check existing default route.
+ * @param : Interface name.
+ * @return Returns NONE.
+*/
+int Force_IPv6_toggle (char* wanInterface)
+{
+    int ret = 0;
+    CcspTraceInfo(("%s %d force toggle initiated\n", __FUNCTION__, __LINE__));
+    ret = v_secure_system("sysctl -w net.ipv6.conf.%s.disable_ipv6=1", wanInterface);
+    if(ret != 0) {
+        CcspTraceWarning(("%s: Failure in executing command via v_secure_system. ret:[%d] \n",__FUNCTION__,ret));
+    }
+    ret = v_secure_system("sysctl -w net.ipv6.conf.%s.disable_ipv6=0", wanInterface);
+    if(ret != 0) {
+        CcspTraceWarning(("%s: Failure in executing command via v_secure_system. ret:[%d] \n", __FUNCTION__,ret));
+    }
+
+    return ret;
+}
+
 void wanmgr_Ipv6Toggle()
 {
     char v6Toggle[BUFLEN_128] = {0};

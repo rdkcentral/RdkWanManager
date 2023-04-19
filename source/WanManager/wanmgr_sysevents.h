@@ -285,6 +285,14 @@ ANSC_STATUS wanmgr_firewall_restart(void);
 */
 void wanmgr_Ipv6Toggle();
 
+/*
+ * @brief Utility function used to toggle ipv6 triggered from ISM.
+ * This function will not check existing default route.
+ * @param : Interface name.
+ * @return Returns NONE.
+*/
+int Force_IPv6_toggle (char* wanInterface);
+
 #ifdef FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE
 /*
  * @brief Utility function used to get current wan interface name.
