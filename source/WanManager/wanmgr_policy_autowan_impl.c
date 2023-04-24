@@ -32,6 +32,7 @@
 #include <time.h>
 #include <pthread.h>
 #include "secure_wrapper.h"
+#include "platform_hal.h"
 #ifdef ENABLE_FEATURE_TELEMETRY2_0
 #include <telemetry_busmessage_sender.h>
 #endif
@@ -1111,6 +1112,44 @@ static int WanMgr_Policy_CheckAndStopUDHCPClientOverWanInterface(char *ifname, c
     }
 }
 
+static ANSC_STATUS WanMgr_getUdhcpcClientID (char * buff, int len)
+{
+    if (buff == NULL || len <= 0)
+    {
+        CcspTraceError(("%s %d: invalid args\n", __FUNCTION__, __LINE__));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    char mac[32] = {0};
+    char tmp[32] = {0};
+    if (platform_hal_GetBaseMacAddress (tmp) != RETURN_OK)
+    {
+        CcspTraceError(("%s %d: unable to get Base MAC Address\n", __FUNCTION__, __LINE__));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    // remove the : character
+    for (int i = 0, j = 0; i < strlen(tmp); i++)
+    {
+        if (tmp[i] == ':')
+            continue;
+        mac[j] = tmp[i];
+        j++;
+    }
+
+    if (strlen(mac) == 0 )
+    {
+        CcspTraceError(("%s %d: unable to get Base MAC Address from %s\n", __FUNCTION__, __LINE__, tmp));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    snprintf(buff, len, "0x3D:%s", mac);
+
+    return ANSC_STATUS_SUCCESS;
+    
+    
+}
+
 static int WanMgr_Policy_CheckAndStartUDHCPClientOverWanInterface(char *IfaceName, WanStarCallSource_t enCallSource, char* pidfile, char* script)
 {
     int iPIDofBackupWAN = -1;
@@ -1141,7 +1180,13 @@ static int WanMgr_Policy_CheckAndStartUDHCPClientOverWanInterface(char *IfaceNam
 
     /* To start local udhcpc server over interface to check whether it is getting leases or not */
     memset(command, 0, sizeof(command));
-    snprintf(command, sizeof(command), "/sbin/udhcpc -t 5 -n -O 125 -i %s -p %s -s %s", IfaceName, pidfile, script);
+
+    // Add Client Identifier 
+    char clientId[32] = {0};
+
+    WanMgr_getUdhcpcClientID(clientId, sizeof(clientId));
+
+    snprintf(command, sizeof(command), "/sbin/udhcpc -t 5 -n -O 125 -i %s -p %s -s %s -x %s", IfaceName, pidfile, script, clientId);
     WanManager_DoSystemAction("StartingUDHCPCviaWAN:", command);
 
     CcspTraceInfo(("%s-%d : %s WAN: Cmd Str[%s]\n",__FUNCTION__, __LINE__, logPrefixString,command));
