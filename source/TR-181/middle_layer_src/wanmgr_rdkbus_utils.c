@@ -664,6 +664,13 @@ static ANSC_STATUS WanMgr_RdkBus_GetInterfaceInstanceInOtherAgent( WAN_NOTIFY_EN
                 }
 
                 //Compare ifname
+#ifdef _HUB4_PRODUCT_REQ_
+                // The base interface name is ptm0 in vlanmanager but in wanmanager we have dsl0 this needs to addressed in wan unification.
+                if(0 == strncmp(acTmpReturnValue, "ptm0", 4))
+                {
+                     strncpy(acTmpReturnValue, "dsl0", 4);
+                }
+#endif
                 if( 0 == strncmp(acTmpReturnValue, pIfName, BUFLEN_256) )
                 {
                     char  tmpTableParam[BUFLEN_256] = { 0 };
