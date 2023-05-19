@@ -497,6 +497,12 @@ int WanManager_Ipv6AddrUtil(char *ifname, Ipv6OperType opr, int preflft, int val
 
                 CcspTraceInfo(("%s-%d: Successfully del addr and route from Interface %s, prefix=%s, prefixAddr=%s \n",
        	                               __FUNCTION__, __LINE__, ifname, prefix, prefixAddr));
+
+                memset(cmdLine, 0, sizeof(cmdLine));
+                snprintf(cmdLine, sizeof(cmdLine), "ip -6 route delete default");
+                if (WanManager_DoSystemActionWithStatus("ip -6 route delete default", cmdLine) != 0)
+                    CcspTraceError(("failed to run cmd: %s", cmdLine));
+
             }
             else
             {
