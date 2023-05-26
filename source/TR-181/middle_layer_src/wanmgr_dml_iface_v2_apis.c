@@ -4171,7 +4171,7 @@ WanIfPPPCfg_Rollback
 **********************************************************************/
 ULONG WanIfVlanCfg_GetEntryCount(ANSC_HANDLE hInsContext)
 {
-    ULONG count = 0;
+    ULONG count = 1;
     return count;
 }
 
