@@ -75,17 +75,17 @@ static INT WanMgr_Policy_FM_SelectWANActive(WanMgr_Policy_Controller_t* pWanCont
             if(pWanDmlIfaceData != NULL)
             {
                 DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
-                if (pWanIfaceData->Wan.Enable == TRUE)
+                if (pWanIfaceData->Selection.Enable == TRUE)
                 {
-                    if((pWanController->AllowRemoteInterfaces == FALSE) && (pWanIfaceData->Wan.IfaceType == REMOTE_IFACE))
+                    if((pWanController->AllowRemoteInterfaces == FALSE) && (pWanIfaceData->IfaceType == REMOTE_IFACE))
                         {
                             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
                             continue;
                         }
-                    if((pWanIfaceData->Wan.Priority >= 0) && (pWanIfaceData->Wan.Priority < iActivePriority))
+                    if((pWanIfaceData->Selection.Priority >= 0) && (pWanIfaceData->Selection.Priority < iActivePriority))
                     {
                         iActiveWanIdx = uiLoopCount;
-                        iActivePriority = pWanIfaceData->Wan.Priority;
+                        iActivePriority = pWanIfaceData->Selection.Priority;
                     }
                 }
 
@@ -122,8 +122,8 @@ static WcFmobPolicyState_t Transition_WanInterfaceFixed(WanMgr_Policy_Controller
     }
 
     //ActiveLink
-    pFixedInterface->Wan.ActiveLink = TRUE;
-    pFixedInterface->SelectionStatus = WAN_IFACE_ACTIVE;
+    pFixedInterface->Selection.ActiveLink = TRUE;
+    pFixedInterface->Selection.Status = WAN_IFACE_ACTIVE;
 
     CcspTraceInfo(("%s %d - State changed to STATE_FIXED_WAN_INTERFACE_DOWN \n", __FUNCTION__, __LINE__));
     return STATE_FIXED_WAN_INTERFACE_DOWN;
@@ -168,7 +168,7 @@ static WcFmobPolicyState_t State_FixingWanInterface(WanMgr_Policy_Controller_t* 
         return ANSC_STATUS_FAILURE;
     }
 
-    if(pWanController->WanEnable == FALSE || pWanController->PolicyChanged == TRUE)
+    if(pWanController->WanEnable == FALSE || pWanController->GroupCfgChanged == TRUE)
     {
         return STATE_FIXED_WAN_SM_EXIT;
     }
@@ -198,16 +198,16 @@ static WcFmobPolicyState_t State_FixedWanInterfaceDown(WanMgr_Policy_Controller_
         return STATE_FIXING_WAN_INTERFACE;
     }
 
-    if(pWanController->WanEnable == FALSE || pWanController->PolicyChanged == TRUE)
+    if(pWanController->WanEnable == FALSE || pWanController->GroupCfgChanged == TRUE)
     {
             return STATE_FIXED_WAN_TEARING_DOWN;
     }
 
     if( pWanController->WanEnable == TRUE &&
-        (pFixedInterface->Phy.Status == WAN_IFACE_PHY_STATUS_UP ||
-         pFixedInterface->Phy.Status == WAN_IFACE_PHY_STATUS_INITIALIZING) &&
-        pFixedInterface->Wan.Status == WAN_IFACE_STATUS_DISABLED &&
-        pFixedInterface->Wan.LinkStatus == WAN_IFACE_LINKSTATUS_DOWN )
+        (pFixedInterface->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_UP ||
+         pFixedInterface->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_INITIALIZING) &&
+        pFixedInterface->VirtIfList->Status == WAN_IFACE_STATUS_DISABLED &&
+        pFixedInterface->VirtIfList->VLAN.Status == WAN_IFACE_LINKSTATUS_DOWN )
     {
         return Transition_FixedInterfaceUp(pWanController);
     }
@@ -230,8 +230,8 @@ static WcFmobPolicyState_t State_FixedWanInterfaceUp(WanMgr_Policy_Controller_t*
     }
 
     if( pWanController->WanEnable == FALSE ||
-        pWanController->PolicyChanged == TRUE ||
-        pFixedInterface->Phy.Status == WAN_IFACE_PHY_STATUS_DOWN)
+        pWanController->GroupCfgChanged == TRUE ||
+        pFixedInterface->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_DOWN)
     {
         return Transition_FixedInterfaceDown(pWanController);
     }
@@ -253,10 +253,10 @@ static WcFmobPolicyState_t State_WaitingForInterfaceSMExit(WanMgr_Policy_Control
         return STATE_FIXED_WAN_TEARING_DOWN;
     }
 
-    pFixedInterface->Wan.ActiveLink = FALSE;
-    pFixedInterface->SelectionStatus = WAN_IFACE_NOT_SELECTED;
+    pFixedInterface->Selection.ActiveLink = FALSE;
+    pFixedInterface->Selection.Status = WAN_IFACE_NOT_SELECTED;
 
-    if(pFixedInterface->Wan.Status != WAN_IFACE_STATUS_DISABLED)
+    if(pFixedInterface->VirtIfList->Status != WAN_IFACE_STATUS_DISABLED)
     {
         return STATE_FIXED_WAN_TEARING_DOWN;
     }
@@ -315,7 +315,7 @@ ANSC_STATUS WanMgr_Policy_FixedModeOnBootupPolicy(void)
         if(pWanConfigData != NULL)
         {
             WanPolicyCtrl.WanEnable = pWanConfigData->data.Enable;
-            WanPolicyCtrl.PolicyChanged = pWanConfigData->data.PolicyChanged;
+            WanPolicyCtrl.GroupCfgChanged = pWanConfigData->data.GroupCfgChanged;
             WanPolicyCtrl.AllowRemoteInterfaces = pWanConfigData->data.AllowRemoteInterfaces;
             WanMgrDml_GetConfigData_release(pWanConfigData);
         }

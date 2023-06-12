@@ -343,14 +343,14 @@ ULONG WanIf_GetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, char* 
             if (strcmp(ParamName, "BaseInterface") == 0)
             {
                /* collect value */
-               if ( ( sizeof( pWanDmlIface->Phy.Path ) - 1 ) < *pUlSize )
+               if ( ( sizeof( pWanDmlIface->BaseInterface ) - 1 ) < *pUlSize )
                {
-                   AnscCopyString( pValue, pWanDmlIface->Phy.Path );
+                   AnscCopyString( pValue, pWanDmlIface->BaseInterface );
                    ret = 0;
                }
                else
                {
-                   *pUlSize = sizeof( pWanDmlIface->Phy.Path );
+                   *pUlSize = sizeof( pWanDmlIface->BaseInterface );
                    ret = 1;
                }
             }
@@ -423,8 +423,7 @@ BOOL WanIf_SetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, char* p
             /* check the parameter name and set the corresponding value */
             if (strcmp(ParamName, "BaseInterface") == 0)
             {
-                AnscCopyString(pWanDmlIface->Phy.Path, pString);
-                WanMgr_SetRestartWanInfo(WAN_PHY_PATH_PARAM_NAME, pWanDmlIface->uiIfaceIdx, pString);
+                AnscCopyString(pWanDmlIface->BaseInterface, pString);
                 ret = TRUE;
             }
 
@@ -492,13 +491,22 @@ BOOL WanIf_GetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL* pBo
 
             if (strcmp(ParamName, "Reset") == 0)
             {
-                *pBool = pWanDmlIface->Wan.Refresh;
+                *pBool = FALSE; 
+                for(int virIf_id=0; virIf_id< pWanDmlIface->NoOfVirtIfs; virIf_id++)
+                {
+                    DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIfaceById(pWanDmlIface->VirtIfList, virIf_id);
+                    if(p_VirtIf->Reset == TRUE)
+                    {
+                        *pBool = p_VirtIf->Reset;
+                        break;
+                    }
+                }
                 ret = TRUE;
             }
 
             if (strcmp(ParamName, "ActiveLink") == 0)
             {
-                if (pWanDmlIface->SelectionStatus == WAN_IFACE_ACTIVE)
+                if (pWanDmlIface->Selection.Status == WAN_IFACE_ACTIVE)
                 {
                     *pBool = TRUE;
                 }
@@ -580,7 +588,11 @@ BOOL WanIf_SetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL bVal
             }
             if (strcmp(ParamName, "Reset") == 0)
             {
-                pWanDmlIface->Wan.Refresh = bValue;
+                for(int virIf_id=0; virIf_id< pWanDmlIface->NoOfVirtIfs; virIf_id++)
+                {
+                    DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIfaceById(pWanDmlIface->VirtIfList, virIf_id);
+                    p_VirtIf->Reset = bValue;
+                }
                 ret = TRUE;
             }
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
@@ -629,20 +641,12 @@ BOOL WanIf_GetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG* p
             /* check the parameter name and return the corresponding value */
             if (strcmp(ParamName, "OperationalStatus") == 0)
             {
-                *puLong = pWanDmlIface->Wan.OperationalStatus;
+                *puLong = pWanDmlIface->VirtIfList->OperationalStatus;
                 ret = TRUE;
             }
             if (strcmp(ParamName, "Status") == 0)
             {
-                if (pWanDmlIface->SelectionStatus == WAN_IFACE_ACTIVE)
-                {
-                    *puLong = 2; //Todo define ENUM
-                }
-                else
-		        {
-                    *puLong = 1;  //Todo define ENUM
-                }
-
+                *puLong = pWanDmlIface->Selection.Status;
                 ret = TRUE;
             }
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
@@ -691,7 +695,7 @@ BOOL WanIf_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG uV
             /* check the parameter name and set the corresponding value */
             if (strcmp(ParamName, "OperationalStatus") == 0)
             {
-                pWanDmlIface->Wan.OperationalStatus = uValue;
+                pWanDmlIface->VirtIfList->OperationalStatus = uValue;
                 ret = TRUE;
             }
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
@@ -828,7 +832,7 @@ BOOL WanIfSelectionCfg_GetParamIntValue(ANSC_HANDLE hInsContext, char* ParamName
             /* check the parameter name and set the corresponding value */
             if (strcmp(ParamName, "Priority") == 0)
             {
-                *pInt = pWanDmlIface->Wan.Priority;
+                *pInt = pWanDmlIface->Selection.Priority;
                 ret = TRUE;
             }
 
@@ -895,7 +899,7 @@ BOOL WanIfSelectionCfg_SetParamIntValue(ANSC_HANDLE hInsContext, char* ParamName
                     WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pIfaceDmlEntry->data.uiIfaceIdx);
                     if(pWanDmlIfaceData != NULL)
                     {
-                        pWanDmlIface->Wan.Priority = iValue;
+                        pWanDmlIface->Selection.Priority = iValue;
                         WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
                         return TRUE;
                     }
@@ -946,18 +950,18 @@ BOOL WanIfSelectionCfg_GetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamNa
             /* check the parameter name and return the corresponding value */
             if (strcmp(ParamName, "Timeout") == 0)
             {
-                *puLong = pWanDmlIface->Wan.SelectionTimeout;
+                *puLong = pWanDmlIface->Selection.Timeout;
                 ret = TRUE;
             }
             if (strcmp(ParamName, "Status") == 0)
             {
-                if( ( pWanDmlIface->SelectionStatus == WAN_IFACE_SELECTED ) ||
-                    ( pWanDmlIface->SelectionStatus == WAN_IFACE_ACTIVE ) )
+                if( ( pWanDmlIface->Selection.Status == WAN_IFACE_SELECTED ) ||
+                    ( pWanDmlIface->Selection.Status == WAN_IFACE_ACTIVE ) )
                 {
                     *puLong = WAN_IFACE_SELECTED;
                 }
-                else if ( ( pWanDmlIface->SelectionStatus == WAN_IFACE_UNKNOWN ) ||
-                          ( pWanDmlIface->SelectionStatus == WAN_IFACE_NOT_SELECTED ) )
+                else if ( ( pWanDmlIface->Selection.Status == WAN_IFACE_UNKNOWN ) ||
+                          ( pWanDmlIface->Selection.Status == WAN_IFACE_NOT_SELECTED ) )
 		        {
                     *puLong = WAN_IFACE_NOT_SELECTED;
                 }
@@ -969,12 +973,12 @@ BOOL WanIfSelectionCfg_GetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamNa
             }
             if (strcmp(ParamName, "Priority") == 0)
             {
-                *puLong = pWanDmlIface->Wan.Priority;
+                *puLong = pWanDmlIface->Selection.Priority;
                 ret = TRUE;
             }
 	    if (strcmp(ParamName, "Group") == 0)
             {
-                *puLong = pWanDmlIface->Wan.Group;
+                *puLong = pWanDmlIface->Selection.Group;
                 ret = TRUE;
             }
 
@@ -1028,7 +1032,7 @@ BOOL WanIfSelectionCfg_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamNa
             /* check the parameter name and set the corresponding value */
             if (strcmp(ParamName, "Timeout") == 0)
             {
-                pWanDmlIface->Wan.SelectionTimeout = uValue;
+                pWanDmlIface->Selection.Timeout = uValue;
                 ret = TRUE;
             }
             if( strcmp(ParamName, "Group") == 0)
@@ -1038,31 +1042,31 @@ BOOL WanIfSelectionCfg_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamNa
                 {
                     CcspTraceWarning(("%s %d Group Id(%d) is not supported. MAX_INTERFACE_GROUP %d \n", __FUNCTION__, __LINE__,uValue,MAX_INTERFACE_GROUP));
                 }
-                else if(pWanDmlIface->Wan.Group != uValue)
+                else if(pWanDmlIface->Selection.Group != uValue)
                 {
                     /*Update GroupIfaceListChanged */
                     WANMGR_IFACE_GROUP* pWanIfaceGroup = WanMgr_GetIfaceGroup_locked((uValue -1));
                     if (pWanIfaceGroup != NULL)
                     {
                         CcspTraceInfo(("%s %d Group(%d) configuration changed  \n", __FUNCTION__, __LINE__,uValue));
-                        pWanIfaceGroup->GroupIfaceListChanged = TRUE;
+                        pWanIfaceGroup->ConfigChanged = TRUE;
                         /* Add Interface to New group Available list */
                         pWanIfaceGroup->InterfaceAvailable |= (1<<pIfaceDmlEntry->data.uiIfaceIdx);
                         WanMgrDml_GetIfaceGroup_release();
                         pWanIfaceGroup = NULL;
                     }
 
-                    pWanIfaceGroup = WanMgr_GetIfaceGroup_locked((pWanDmlIface->Wan.Group -1));
+                    pWanIfaceGroup = WanMgr_GetIfaceGroup_locked((pWanDmlIface->Selection.Group -1));
                     if (pWanIfaceGroup != NULL)
                     {
-                        CcspTraceInfo(("%s %d Group(%d) configuration changed  \n", __FUNCTION__, __LINE__,pWanDmlIface->Wan.Group));
-                        pWanIfaceGroup->GroupIfaceListChanged = TRUE;
+                        CcspTraceInfo(("%s %d Group(%d) configuration changed  \n", __FUNCTION__, __LINE__,pWanDmlIface->Selection.Group));
+                        pWanIfaceGroup->ConfigChanged = TRUE;
                         /* Remove Interface from Old group Available list */
                         pWanIfaceGroup->InterfaceAvailable &= ~(1<<pIfaceDmlEntry->data.uiIfaceIdx);
                         WanMgrDml_GetIfaceGroup_release();
                     }
 
-                    pWanDmlIface->Wan.Group = uValue;
+                    pWanDmlIface->Selection.Group = uValue;
                 }
                 ret = TRUE;
             }
@@ -1113,13 +1117,13 @@ BOOL WanIfSelectionCfg_GetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamNam
 #ifndef RBUS_BUILD_FLAG_ENABLE
             if (strcmp(ParamName, "Enable") == 0)
             {
-                *pBool = pWanDmlIface->Wan.Enable;
+                *pBool = pWanDmlIface->Selection.Enable;
                 ret = TRUE;
             }
 #endif //RBUS_BUILD_FLAG_ENABLE
             if (strcmp(ParamName, "RequiresReboot") == 0)
             {
-                *pBool = pWanDmlIface->Wan.RebootOnConfiguration;
+                *pBool = pWanDmlIface->Selection.RequiresReboot;
                 ret = TRUE;
             }
 
@@ -1170,14 +1174,14 @@ BOOL WanIfSelectionCfg_SetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamNam
 #ifndef RBUS_BUILD_FLAG_ENABLE
             if (strcmp(ParamName, "Enable") == 0)
             {
-                pWanDmlIface->Wan.Enable  = bValue;
+                pWanDmlIface->Selection.Enable  = bValue;
                 ret = TRUE;
             }
 #endif //RBUS_BUILD_FLAG_ENABLE
 
             if (strcmp(ParamName, "RequiresReboot") == 0)
             {
-                pWanDmlIface->Wan.RebootOnConfiguration = bValue;
+                pWanDmlIface->Selection.RequiresReboot = bValue;
                 ret = TRUE;
             }
 
@@ -1325,7 +1329,17 @@ ULONG WanIfSelectionCfg_Rollback(ANSC_HANDLE hInsContext)
 ULONG WanVirtualIf_GetEntryCount(ANSC_HANDLE hInsContext)
 {
     ULONG count = 0;
-    WanMgr_RdkBus_getWanVirtualIfCount((int)&count);;
+    WanMgr_Iface_Data_t* pIfaceDmlEntry = (WanMgr_Iface_Data_t*) hInsContext;
+    if(pIfaceDmlEntry != NULL)
+    {
+        WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pIfaceDmlEntry->data.uiIfaceIdx);
+        if(pWanDmlIfaceData != NULL)
+        {
+            DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
+            count = pWanDmlIface->NoOfVirtIfs;
+            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+        }
+    }
     return count;
 }
 
@@ -1360,16 +1374,10 @@ ANSC_HANDLE WanVirtualIf_GetEntry(ANSC_HANDLE hInsContext, ULONG nIndex, ULONG* 
     WanMgr_Iface_Data_t* pIfaceDmlEntry = (WanMgr_Iface_Data_t*) hInsContext;
     if(pIfaceDmlEntry != NULL)
     {
-        WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pIfaceDmlEntry->data.uiIfaceIdx);
-        if(pWanDmlIfaceData != NULL)
-        {
-            DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
+        pDmlEntry = (ANSC_HANDLE) WanMgr_getVirtualIface_locked(pIfaceDmlEntry->data.uiIfaceIdx, nIndex);
 
-            *pInsNumber = nIndex + 1;
-            pDmlEntry = (ANSC_HANDLE) pWanDmlIfaceData;
-
-            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
-        }
+        *pInsNumber = nIndex + 1;
+        WanMgr_VirtualIfaceData_release(pDmlEntry);
     }
 
     return pDmlEntry;
@@ -1463,47 +1471,36 @@ BOOL WanVirtualIf_GetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BO
 {
     BOOL ret = FALSE;
 
-    WanMgr_Iface_Data_t* pIfaceDmlEntry = (WanMgr_Iface_Data_t*) hInsContext;
-    if(pIfaceDmlEntry != NULL)
+    DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIface_locked(((DML_VIRTUAL_IFACE*) hInsContext)->baseIfIdx, ((DML_VIRTUAL_IFACE*) hInsContext)->VirIfIdx);
+    if(p_VirtIf != NULL)
     {
-        WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pIfaceDmlEntry->data.uiIfaceIdx);
-        if(pWanDmlIfaceData != NULL)
+        //* check the parameter name and return the corresponding value */
+        if (strcmp(ParamName, "Enable") == 0)
         {
-            DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
-
-            //* check the parameter name and return the corresponding value */
-            if (strcmp(ParamName, "Enable") == 0)
-            {
-                *pBool = TRUE;
-                ret = TRUE;
-            }
-            if (strcmp(ParamName, "EnableDSLite") == 0)
-            {
-                *pBool = pWanDmlIface->Wan.EnableDSLite;
-                ret = TRUE;
-            }
-            if (strcmp(ParamName, "EnableIPoEHealthCheck") == 0)
-            {
-                *pBool = pWanDmlIface->Wan.EnableIPoE;
-                ret = TRUE;
-            }
-            if (strcmp(ParamName, "EnableMAPT") == 0)
-            {
-                *pBool = pWanDmlIface->Wan.EnableMAPT;
-                ret = TRUE;
-            }
-            if (strcmp(ParamName, "EnableDHCP") == 0)
-            {
-                *pBool = pWanDmlIface->Wan.EnableDHCP;
-                ret = TRUE;
-            }
-            if (strcmp(ParamName, "Reset") == 0)
-            {
-                *pBool = FALSE;
-                ret = TRUE;
-            }
-            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+            *pBool = p_VirtIf->Enable;
+            ret = TRUE;
         }
+        if (strcmp(ParamName, "EnableDSLite") == 0)
+        {
+            *pBool = p_VirtIf->EnableDSLite;
+            ret = TRUE;
+        }
+        if (strcmp(ParamName, "EnableIPoEHealthCheck") == 0)
+        {
+            *pBool = p_VirtIf->EnableIPoE;
+            ret = TRUE;
+        }
+        if (strcmp(ParamName, "EnableMAPT") == 0)
+        {
+            *pBool = p_VirtIf->EnableMAPT;
+            ret = TRUE;
+        }
+        if (strcmp(ParamName, "Reset") == 0)
+        {
+            *pBool = FALSE;
+            ret = TRUE;
+        }
+        WanMgr_VirtualIfaceData_release(p_VirtIf);
     }
 
     return ret;
@@ -1537,52 +1534,36 @@ BOOL WanVirtualIf_SetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BO
 {
     BOOL ret = FALSE;
 
-    WanMgr_Iface_Data_t* pIfaceDmlEntry = (WanMgr_Iface_Data_t*) hInsContext;
-    if(pIfaceDmlEntry != NULL)
+    DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIface_locked(((DML_VIRTUAL_IFACE*) hInsContext)->baseIfIdx, ((DML_VIRTUAL_IFACE*) hInsContext)->VirIfIdx);
+    if(p_VirtIf != NULL)
     {
-        WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pIfaceDmlEntry->data.uiIfaceIdx);
-        if(pWanDmlIfaceData != NULL)
+        /* check the parameter name and set the corresponding value */
+        if (strcmp(ParamName, "Enable") == 0)
         {
-            DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
-
-            /* check the parameter name and set the corresponding value */
-            if (strcmp(ParamName, "Enable") == 0)
-            {
-                //Todo
-                ret = FALSE;
-            }
-            if (strcmp(ParamName, "EnableDSLite") == 0)
-            {
-                pWanDmlIface->Wan.EnableDSLite = bValue;
-                ret = TRUE;
-            }
-            if (strcmp(ParamName, "EnableIPoEHealthCheck") == 0)
-            {
-                pWanDmlIface->Wan.EnableIPoE = bValue;
-                ret = TRUE;
-            }
-            if (strcmp(ParamName, "EnableMAPT") == 0)
-            {
-                pWanDmlIface->Wan.EnableMAPT = bValue;
-                ret = TRUE;
-            }
-            if (strcmp(ParamName, "EnableDHCP") == 0)
-            {
-                if (bValue != pWanDmlIface->Wan.EnableDHCP)
-                {
-                    // setting RefreshDHCP so interface state machine can apply changes
-                    pWanDmlIface->Wan.RefreshDHCP = TRUE;
-                }
-                pWanDmlIface->Wan.EnableDHCP = bValue;
-                ret = TRUE;
-            }
-            if (strcmp(ParamName, "Reset") == 0)
-            {
-                //Todo
-                ret = TRUE;
-            }
-            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+            p_VirtIf->Enable = bValue;
+            ret = FALSE;
         }
+        if (strcmp(ParamName, "EnableDSLite") == 0)
+        {
+            p_VirtIf->EnableDSLite = bValue;
+            ret = TRUE;
+        }
+        if (strcmp(ParamName, "EnableIPoEHealthCheck") == 0)
+        {
+            p_VirtIf->EnableIPoE = bValue;
+            ret = TRUE;
+        }
+        if (strcmp(ParamName, "EnableMAPT") == 0)
+        {
+            p_VirtIf->EnableMAPT = bValue;
+            ret = TRUE;
+        }
+        if (strcmp(ParamName, "Reset") == 0)
+        {
+            //Todo
+            ret = TRUE;
+        }
+        WanMgr_VirtualIfaceData_release(p_VirtIf);
     }
 
     return ret;
@@ -1623,38 +1604,41 @@ ULONG WanVirtualIf_GetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName,
 {
     ULONG ret = -1;
 
-    WanMgr_Iface_Data_t* pIfaceDmlEntry = (WanMgr_Iface_Data_t*) hInsContext;
-    if(pIfaceDmlEntry != NULL)
+    DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIface_locked(((DML_VIRTUAL_IFACE*) hInsContext)->baseIfIdx, ((DML_VIRTUAL_IFACE*) hInsContext)->VirIfIdx);
+    if(p_VirtIf != NULL)
     {
-        WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pIfaceDmlEntry->data.uiIfaceIdx);
-        if(pWanDmlIfaceData != NULL)
+        if (strcmp(ParamName, "Name") == 0)
         {
-            DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
-
-            if (strcmp(ParamName, "Name") == 0)
+            /* collect value */
+            if ( ( sizeof( p_VirtIf->Name ) - 1 ) < *pUlSize )
             {
-                /* collect value */
-                if ( ( sizeof( pWanDmlIface->Wan.Name ) - 1 ) < *pUlSize )
-                {
-                    AnscCopyString( pValue, pWanDmlIface->Wan.Name );
-                    ret = 0;
-                }
-                else
-                {
-                    *pUlSize = sizeof( pWanDmlIface->Wan.Name );
-                    ret = 1;
-                }
+                AnscCopyString( pValue, p_VirtIf->Name );
+                ret = 0;
             }
-            
-            if (strcmp(ParamName, "Alias") == 0)
+            else
             {
-               /* collect value */
-               AnscCopyString( pValue, "" );
-               ret = 0;
+                *pUlSize = sizeof( p_VirtIf->Name );
+                ret = 1;
             }
-
-            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
         }
+
+        if (strcmp(ParamName, "Alias") == 0)
+        {
+            /* collect value */
+            if ( ( sizeof( p_VirtIf->Alias ) - 1 ) < *pUlSize )
+            {
+                AnscCopyString( pValue, p_VirtIf->Alias );
+                ret = 0;
+            }
+            else
+            {
+                *pUlSize = sizeof( p_VirtIf->Alias );
+                ret = 1;
+            }
+
+            ret = 0;
+        }
+        WanMgr_VirtualIfaceData_release(p_VirtIf);
     }
 
     return ret;
@@ -1688,32 +1672,26 @@ BOOL WanVirtualIf_SetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, 
 {
     BOOL ret = FALSE;
 
-    WanMgr_Iface_Data_t* pIfaceDmlEntry = (WanMgr_Iface_Data_t*) hInsContext;
-    if(pIfaceDmlEntry != NULL)
+    DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIface_locked(((DML_VIRTUAL_IFACE*) hInsContext)->baseIfIdx, ((DML_VIRTUAL_IFACE*) hInsContext)->VirIfIdx);
+    if(p_VirtIf != NULL)
     {
-        WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pIfaceDmlEntry->data.uiIfaceIdx);
-        if(pWanDmlIfaceData != NULL)
+        /* check the parameter name and set the corresponding value */
+        if (strcmp(ParamName, "Alias") == 0)
         {
-            DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
-
-            /* check the parameter name and set the corresponding value */
-            if (strcmp(ParamName, "Alias") == 0)
-            {
-                ret = TRUE;
-            }
-
-            /* check the parameter name and set the corresponding value */
-            if (strcmp(ParamName, "Name") == 0)
-            {
-                AnscCopyString(pWanDmlIface->Wan.Name, pString);
-#if defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_)
-                WanMgr_SetRestartWanInfo(WAN_NAME_PARAM_NAME, pWanDmlIface->uiIfaceIdx, pString);
-#endif
-                ret = TRUE;
-            }
-
-            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+            AnscCopyString(p_VirtIf->Alias, pString);
+            ret = TRUE;
         }
+
+        /* check the parameter name and set the corresponding value */
+        if (strcmp(ParamName, "Name") == 0)
+        {
+            AnscCopyString(p_VirtIf->Name, pString);
+#if defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_)
+            WanMgr_SetRestartWanInfo(WAN_NAME_PARAM_NAME, p_VirtIf->VirIfIdx, pString);
+#endif
+            ret = TRUE;
+        }
+        WanMgr_VirtualIfaceData_release(p_VirtIf);
     }
 
     return ret;
@@ -1747,36 +1725,28 @@ BOOL WanVirtualIf_GetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, U
 {
     BOOL ret = FALSE;
 
-    WanMgr_Iface_Data_t* pIfaceDmlEntry = (WanMgr_Iface_Data_t*) hInsContext;
-    if(pIfaceDmlEntry != NULL)
+    DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIface_locked(((DML_VIRTUAL_IFACE*) hInsContext)->baseIfIdx, ((DML_VIRTUAL_IFACE*) hInsContext)->VirIfIdx);
+    if(p_VirtIf != NULL)
     {
-        WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pIfaceDmlEntry->data.uiIfaceIdx);
-        if(pWanDmlIfaceData != NULL)
+        /* check the parameter name and return the corresponding value */
+#if !RBUS_BUILD_FLAG_ENABLE
+        if (strcmp(ParamName, "Status") == 0)
         {
-            DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
-
-            /* check the parameter name and return the corresponding value */
-#if !RBUS_BUILD_FLAG_ENABLE
-            if (strcmp(ParamName, "Status") == 0)
-            {
-                *puLong = pWanDmlIface->Wan.Status;
-                ret = TRUE;
-            }
-#endif
-#if !RBUS_BUILD_FLAG_ENABLE
-            if (strcmp(ParamName, "VlanStatus") == 0)
-            {
-                *puLong = pWanDmlIface->Wan.LinkStatus;
-                ret = TRUE;
-            }
-#endif
-            if (strcmp(ParamName, "Timeout") == 0)
-            {
-                *puLong = 0;
-                ret = TRUE;
-            }
-            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+            *puLong = p_VirtIf->Status;
+            ret = TRUE;
+	}
+        if (strcmp(ParamName, "VlanStatus") == 0)
+        {
+            *puLong = p_VirtIf->VLAN.Status;
+            ret = TRUE;
         }
+#endif
+        if (strcmp(ParamName, "Timeout") == 0)
+        {
+            *puLong = p_VirtIf->VLAN.Timeout;
+            ret = TRUE;
+        }
+        WanMgr_VirtualIfaceData_release(p_VirtIf);
     }
 
     return ret;
@@ -1810,36 +1780,28 @@ BOOL WanVirtualIf_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, U
 {
     BOOL ret = FALSE;
 
-    WanMgr_Iface_Data_t* pIfaceDmlEntry = (WanMgr_Iface_Data_t*) hInsContext;
-    if(pIfaceDmlEntry != NULL)
+    DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIface_locked(((DML_VIRTUAL_IFACE*) hInsContext)->baseIfIdx, ((DML_VIRTUAL_IFACE*) hInsContext)->VirIfIdx);
+    if(p_VirtIf != NULL)
     {
-        WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pIfaceDmlEntry->data.uiIfaceIdx);
-        if(pWanDmlIfaceData != NULL)
+        /* check the parameter name and set the corresponding value */
+#if !RBUS_BUILD_FLAG_ENABLE
+	if (strcmp(ParamName, "Status") == 0)
         {
-            DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
-
-            /* check the parameter name and set the corresponding value */
-#if !RBUS_BUILD_FLAG_ENABLE
-            if (strcmp(ParamName, "Status") == 0)
-            {
-                pWanDmlIface->Wan.Status = uValue;
-                ret = TRUE;
-            }
-#endif
-#if !RBUS_BUILD_FLAG_ENABLE
-            if (strcmp(ParamName, "VlanStatus") == 0)
-            {
-                pWanDmlIface->Wan.LinkStatus = uValue;
-                ret = TRUE;
-            }
-#endif
-            if (strcmp(ParamName, "Timeout") == 0)
-            {
-                //Todo
-                ret = TRUE;
-            }
-            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+            p_VirtIf->Status = uValue;
+            ret = TRUE;
+	}
+        if (strcmp(ParamName, "VlanStatus") == 0)
+        {
+            p_VirtIf->VLAN.Status = uValue;
+            ret = TRUE;
         }
+#endif
+        if (strcmp(ParamName, "Timeout") == 0)
+        {
+            p_VirtIf->VLAN.Timeout = uValue;
+            ret = TRUE;
+        }
+        WanMgr_VirtualIfaceData_release(p_VirtIf);
     }
 
     return ret;
@@ -1892,28 +1854,12 @@ ULONG WanVirtualIf_Commit(ANSC_HANDLE hInsContext)
 {
     ULONG ret = -1;
 
-    ANSC_STATUS result;
-
-    WanMgr_Iface_Data_t* pIfaceDmlEntry = (WanMgr_Iface_Data_t*) hInsContext;
-    if(pIfaceDmlEntry != NULL)
+    DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIface_locked(((DML_VIRTUAL_IFACE*) hInsContext)->baseIfIdx, ((DML_VIRTUAL_IFACE*) hInsContext)->VirIfIdx);
+    if(p_VirtIf != NULL)
     {
-        WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pIfaceDmlEntry->data.uiIfaceIdx);
-        if(pWanDmlIfaceData != NULL)
-        {
-            DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
-
-            result = DmlSetWanIfCfg( pWanDmlIface->uiInstanceNumber, pWanDmlIface );
-            if(result != ANSC_STATUS_SUCCESS)
-            {
-                AnscTraceError(("%s: Failed \n", __FUNCTION__));
-            }
-            else
-            {
-                ret = 0;
-            }
-
-            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
-        }
+        write_Virtual_Interface_ToPSM((p_VirtIf->baseIfIdx +1), p_VirtIf->VirIfIdx, p_VirtIf);
+        ret =0;
+        WanMgr_VirtualIfaceData_release(p_VirtIf);
     }
 
     return ret;
@@ -1982,43 +1928,37 @@ ULONG WanVirtualIf_Rollback(ANSC_HANDLE hInsContext)
 BOOL WanIfIpCfg_GetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG* puLong)
 {
     BOOL ret = FALSE;
-
-    WanMgr_Iface_Data_t* pIfaceDmlEntry = (WanMgr_Iface_Data_t*) hInsContext;
-    if(pIfaceDmlEntry != NULL)
+    DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIface_locked(((DML_VIRTUAL_IFACE*) hInsContext)->baseIfIdx, ((DML_VIRTUAL_IFACE*) hInsContext)->VirIfIdx);
+    if(p_VirtIf != NULL)
     {
-        WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pIfaceDmlEntry->data.uiIfaceIdx);
-        if(pWanDmlIfaceData != NULL)
-        {
-            DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
 
-            /* check the parameter name and set the corresponding value */
-            if (strcmp(ParamName, "IPv4Status") == 0)
-            {
-                *puLong = pWanDmlIface->IP.Ipv4Status;
-                ret = TRUE;
-            }
-            if (strcmp(ParamName, "IPv6Status") == 0)
-            {
-                *puLong = pWanDmlIface->IP.Ipv6Status;
-                ret = TRUE;
-            }
-            if (strcmp(ParamName, "Mode") == 0)
-            {
-                *puLong = 0;
-                ret = TRUE;
-            }
-            if (strcmp(ParamName, "IPv4Source") == 0)
-            {
-                *puLong = 0;
-                ret = TRUE;
-            }
-            if (strcmp(ParamName, "IPv6Source") == 0)
-            {
-                *puLong = 0;
-                ret = TRUE;
-            }
-            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+        /* check the parameter name and set the corresponding value */
+        if (strcmp(ParamName, "IPv4Status") == 0)
+        {
+            *puLong = p_VirtIf->IP.Ipv4Status;
+            ret = TRUE;
         }
+        if (strcmp(ParamName, "IPv6Status") == 0)
+        {
+            *puLong = p_VirtIf->IP.Ipv6Status;
+            ret = TRUE;
+        }
+        if (strcmp(ParamName, "Mode") == 0)
+        {
+            *puLong = p_VirtIf->IP.Mode;
+            ret = TRUE;
+        }
+        if (strcmp(ParamName, "IPv4Source") == 0)
+        {
+            *puLong = p_VirtIf->IP.IPv4Source;
+            ret = TRUE;
+        }
+        if (strcmp(ParamName, "IPv6Source") == 0)
+        {
+            *puLong = p_VirtIf->IP.IPv6Source;
+            ret = TRUE;
+        }
+        WanMgr_VirtualIfaceData_release(p_VirtIf);
     }
 
     return ret;
@@ -2052,42 +1992,51 @@ BOOL WanIfIpCfg_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULO
 {
     BOOL ret = FALSE;
 
-    WanMgr_Iface_Data_t* pIfaceDmlEntry = (WanMgr_Iface_Data_t*) hInsContext;
-    if(pIfaceDmlEntry != NULL)
+    DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIface_locked(((DML_VIRTUAL_IFACE*) hInsContext)->baseIfIdx, ((DML_VIRTUAL_IFACE*) hInsContext)->VirIfIdx);
+    if(p_VirtIf != NULL)
     {
-        WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pIfaceDmlEntry->data.uiIfaceIdx);
-        if(pWanDmlIfaceData != NULL)
+        /* check the parameter name and set the corresponding value */
+        if (strcmp(ParamName, "IPv4Status") == 0)
         {
-            DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
-
-            /* check the parameter name and set the corresponding value */
-            if (strcmp(ParamName, "IPv4Status") == 0)
-            {
-                pWanDmlIface->IP.Ipv4Status = uValue;
-                ret = TRUE;
-            }
-            if (strcmp(ParamName, "IPv6Status") == 0)
-            {
-                pWanDmlIface->IP.Ipv6Status = uValue;
-                ret = TRUE;
-            }
-            if (strcmp(ParamName, "Mode") == 0)
-            {
-                //Todo
-                ret = TRUE;
-            }
-            if (strcmp(ParamName, "IPv4Source") == 0)
-            {
-                //Todo
-                ret = TRUE;
-            }
-            if (strcmp(ParamName, "IPv6Source") == 0)
-            {
-                //Todo
-                ret = TRUE;
-            }
-            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+            p_VirtIf->IP.Ipv4Status = uValue;
+            ret = TRUE;
         }
+        if (strcmp(ParamName, "IPv6Status") == 0)
+        {
+            p_VirtIf->IP.Ipv6Status = uValue;
+            ret = TRUE;
+        }
+        if (strcmp(ParamName, "Mode") == 0)
+        {
+            if(p_VirtIf->IP.Mode != uValue)
+            {
+                p_VirtIf->IP.Mode = uValue;
+                p_VirtIf->IP.RefreshDHCP = TRUE;
+                CcspTraceInfo(("%s %d IP.%s changed for %s to %d. Refreshing DHCP \n", __FUNCTION__, __LINE__, ParamName, p_VirtIf->Name, p_VirtIf->IP.Mode));
+            }
+            ret = TRUE;
+        }
+        if (strcmp(ParamName, "IPv4Source") == 0)
+        {
+            if(p_VirtIf->IP.IPv4Source != uValue)
+            {
+                p_VirtIf->IP.IPv4Source = uValue;
+                p_VirtIf->IP.RefreshDHCP = TRUE;
+                CcspTraceInfo(("%s %d IP.%s changed for %s to %d. Refreshing DHCP \n", __FUNCTION__, __LINE__, ParamName, p_VirtIf->Name,p_VirtIf->IP.IPv4Source));
+            }
+            ret = TRUE;
+        }
+        if (strcmp(ParamName, "IPv6Source") == 0)
+        {
+            if(p_VirtIf->IP.IPv6Source != uValue)
+            {
+                p_VirtIf->IP.IPv6Source = uValue;
+                p_VirtIf->IP.RefreshDHCP = TRUE;
+                CcspTraceInfo(("%s %d IP.%s changed for %s to %d. Refreshing DHCP \n", __FUNCTION__, __LINE__, ParamName, p_VirtIf->Name,p_VirtIf->IP.IPv4Source));
+            }
+            ret = TRUE;
+        }
+        WanMgr_VirtualIfaceData_release(p_VirtIf);
     }
 
     return ret;
@@ -2127,34 +2076,26 @@ BOOL WanIfIpCfg_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULO
 ULONG WanIfIpCfg_GetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, char* pValue, ULONG* pUlSize)
 {
     ULONG ret = -1;
-
-
-    WanMgr_Iface_Data_t* pIfaceDmlEntry = (WanMgr_Iface_Data_t*) hInsContext;
-    if(pIfaceDmlEntry != NULL)
+    DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIface_locked(((DML_VIRTUAL_IFACE*) hInsContext)->baseIfIdx, ((DML_VIRTUAL_IFACE*) hInsContext)->VirIfIdx);
+    if(p_VirtIf != NULL)
     {
-        WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pIfaceDmlEntry->data.uiIfaceIdx);
-        if(pWanDmlIfaceData != NULL)
+        /* check the parameter name and set the corresponding value */
+        if (strcmp(ParamName, "Interface") == 0)
         {
-            DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
-
-            /* check the parameter name and set the corresponding value */
-            if (strcmp(ParamName, "Interface") == 0)
+            /* collect value */
+            if ( ( sizeof( p_VirtIf->IP.Interface ) - 1 ) < *pUlSize )
             {
-                /* collect value */
-                if ( ( sizeof( pWanDmlIface->IP.Path ) - 1 ) < *pUlSize )
-                {
-                    AnscCopyString( pValue, pWanDmlIface->IP.Path );
-                    ret = 0;
-                }
-                else
-                {
-                    *pUlSize = sizeof( pWanDmlIface->IP.Path );
-                    ret = 1;
-                }
+                AnscCopyString( pValue, p_VirtIf->IP.Interface );
+                ret = 0;
             }
-
-            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+            else
+            {
+                *pUlSize = sizeof( p_VirtIf->IP.Interface );
+                ret = 1;
+            }
         }
+
+        WanMgr_VirtualIfaceData_release(p_VirtIf);
     }
 
     return ret;
@@ -2188,23 +2129,16 @@ BOOL WanIfIpCfg_SetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, ch
 {
     BOOL ret = FALSE;
 
-    WanMgr_Iface_Data_t* pIfaceDmlEntry = (WanMgr_Iface_Data_t*) hInsContext;
-    if(pIfaceDmlEntry != NULL)
+    DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIface_locked(((DML_VIRTUAL_IFACE*) hInsContext)->baseIfIdx, ((DML_VIRTUAL_IFACE*) hInsContext)->VirIfIdx);
+    if(p_VirtIf != NULL)
     {
-        WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pIfaceDmlEntry->data.uiIfaceIdx);
-        if(pWanDmlIfaceData != NULL)
+        /* check the parameter name and set the corresponding value */
+        if (strcmp(ParamName, "Interface") == 0)
         {
-            DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
-
-            /* check the parameter name and set the corresponding value */
-            if (strcmp(ParamName, "Interface") == 0)
-            {
-                AnscCopyString(pWanDmlIface->IP.Path, pString);
-                ret = TRUE;
-            }
-
-            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+            AnscCopyString(p_VirtIf->IP.Interface, pString);
+            ret = TRUE;
         }
+        WanMgr_VirtualIfaceData_release(p_VirtIf);
     }
 
     return ret;
@@ -2255,7 +2189,17 @@ BOOL WanIfIpCfg_Validate(ANSC_HANDLE hInsContext, char* pReturnParamName, ULONG*
 **********************************************************************/
 ULONG WanIfIpCfg_Commit(ANSC_HANDLE hInsContext)
 {
-    return 0;
+    ULONG ret = -1;
+
+    DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIface_locked(((DML_VIRTUAL_IFACE*) hInsContext)->baseIfIdx, ((DML_VIRTUAL_IFACE*) hInsContext)->VirIfIdx);
+    if(p_VirtIf != NULL)
+    {
+        write_Virtual_Interface_ToPSM((p_VirtIf->baseIfIdx +1), p_VirtIf->VirIfIdx, p_VirtIf);
+        ret =0;
+        WanMgr_VirtualIfaceData_release(p_VirtIf);
+    }
+
+    return ret;
 }
 
 /**********************************************************************
@@ -2321,24 +2265,16 @@ ULONG WanIfIpCfg_Rollback(ANSC_HANDLE hInsContext)
 BOOL WanIfMapt_GetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG* puLong)
 {
     BOOL ret = FALSE;
-
-    WanMgr_Iface_Data_t* pIfaceDmlEntry = (WanMgr_Iface_Data_t*) hInsContext;
-    if(pIfaceDmlEntry != NULL)
+    DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIface_locked(((DML_VIRTUAL_IFACE*) hInsContext)->baseIfIdx, ((DML_VIRTUAL_IFACE*) hInsContext)->VirIfIdx);
+    if(p_VirtIf != NULL)
     {
-        WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pIfaceDmlEntry->data.uiIfaceIdx);
-        if(pWanDmlIfaceData != NULL)
+        /* check the parameter name and set the corresponding value */
+        if (strcmp(ParamName, "MAPTStatus") == 0)
         {
-            DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
-
-            /* check the parameter name and set the corresponding value */
-            if (strcmp(ParamName, "MAPTStatus") == 0)
-            {
-                *puLong = pWanDmlIface->MAP.MaptStatus;
-                ret = TRUE;
-            }
-
-            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+            *puLong = p_VirtIf->MAP.MaptStatus;
+            ret = TRUE;
         }
+        WanMgr_VirtualIfaceData_release(p_VirtIf);
     }
 
     return ret;
@@ -2371,26 +2307,18 @@ BOOL WanIfMapt_GetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULON
 BOOL WanIfMapt_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG uValue)
 {
     BOOL ret = FALSE;
-
-    WanMgr_Iface_Data_t* pIfaceDmlEntry = (WanMgr_Iface_Data_t*) hInsContext;
-    if(pIfaceDmlEntry != NULL)
+    DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIface_locked(((DML_VIRTUAL_IFACE*) hInsContext)->baseIfIdx, ((DML_VIRTUAL_IFACE*) hInsContext)->VirIfIdx);
+    if(p_VirtIf != NULL)
     {
-        WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pIfaceDmlEntry->data.uiIfaceIdx);
-        if(pWanDmlIfaceData != NULL)
+        /* check the parameter name and set the corresponding value */
+        if (strcmp(ParamName, "MAPTStatus") == 0)
         {
-            DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
-
-            /* check the parameter name and set the corresponding value */
-            if (strcmp(ParamName, "MAPTStatus") == 0)
-            {
 #ifdef FEATURE_MAPT
-                pWanDmlIface->MAP.MaptStatus = uValue;
-                ret = TRUE;
+            p_VirtIf->MAP.MaptStatus = uValue;
+            ret = TRUE;
 #endif /* * FEATURE_MAPT */
-            }
-
-            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
         }
+        WanMgr_VirtualIfaceData_release(p_VirtIf);
     }
 
     return ret;
@@ -2430,35 +2358,25 @@ BOOL WanIfMapt_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULON
 ULONG WanIfMapt_GetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, char* pValue, ULONG* pUlSize)
 {
     ULONG ret = -1;
-
-
-
-    WanMgr_Iface_Data_t* pIfaceDmlEntry = (WanMgr_Iface_Data_t*) hInsContext;
-    if(pIfaceDmlEntry != NULL)
+    DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIface_locked(((DML_VIRTUAL_IFACE*) hInsContext)->baseIfIdx, ((DML_VIRTUAL_IFACE*) hInsContext)->VirIfIdx);
+    if(p_VirtIf != NULL)
     {
-        WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pIfaceDmlEntry->data.uiIfaceIdx);
-        if(pWanDmlIfaceData != NULL)
+        /* check the parameter name and set the corresponding value */
+        if (strcmp(ParamName, "Path") == 0)
         {
-            DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
-
-            /* check the parameter name and set the corresponding value */
-            if (strcmp(ParamName, "Path") == 0)
+            /* collect value */
+            if ( ( sizeof( p_VirtIf->MAP.Path ) - 1 ) < *pUlSize )
             {
-                /* collect value */
-                if ( ( sizeof( pWanDmlIface->MAP.Path ) - 1 ) < *pUlSize )
-                {
-                    AnscCopyString( pValue, pWanDmlIface->MAP.Path );
-                    ret = 0;
-                }
-                else
-                {
-                    *pUlSize = sizeof( pWanDmlIface->MAP.Path );
-                    ret = 1;
-                }
+                AnscCopyString( pValue, p_VirtIf->MAP.Path );
+                ret = 0;
             }
-
-            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+            else
+            {
+                *pUlSize = sizeof( p_VirtIf->MAP.Path );
+                ret = 1;
+            }
         }
+        WanMgr_VirtualIfaceData_release(p_VirtIf);
     }
 
     return ret;
@@ -2492,26 +2410,18 @@ ULONG WanIfMapt_GetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, ch
 BOOL WanIfMapt_SetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, char* pString)
 {
     BOOL ret = FALSE;
-
-    WanMgr_Iface_Data_t* pIfaceDmlEntry = (WanMgr_Iface_Data_t*) hInsContext;
-    if(pIfaceDmlEntry != NULL)
+    DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIface_locked(((DML_VIRTUAL_IFACE*) hInsContext)->baseIfIdx, ((DML_VIRTUAL_IFACE*) hInsContext)->VirIfIdx);
+    if(p_VirtIf != NULL)
     {
-        WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pIfaceDmlEntry->data.uiIfaceIdx);
-        if(pWanDmlIfaceData != NULL)
+        /* check the parameter name and set the corresponding value */
+        if (strcmp(ParamName, "Path") == 0)
         {
-            DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
-
-            /* check the parameter name and set the corresponding value */
-            if (strcmp(ParamName, "Path") == 0)
-            {
 #ifdef FEATURE_MAPT
-                AnscCopyString(pWanDmlIface->MAP.Path, pString);
-                ret = TRUE;
+            AnscCopyString(p_VirtIf->MAP.Path, pString);
+            ret = TRUE;
 #endif /* * FEATURE_MAPT */
-            }
-
-            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
         }
+        WanMgr_VirtualIfaceData_release(p_VirtIf);
     }
 
     return ret;
@@ -2628,24 +2538,16 @@ ULONG WanIfMapt_Rollback(ANSC_HANDLE hInsContext)
 BOOL WanIfDSLite_GetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG* puLong)
 {
     BOOL ret = FALSE;
-
-    WanMgr_Iface_Data_t* pIfaceDmlEntry = (WanMgr_Iface_Data_t*) hInsContext;
-    if(pIfaceDmlEntry != NULL)
+    DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIface_locked(((DML_VIRTUAL_IFACE*) hInsContext)->baseIfIdx, ((DML_VIRTUAL_IFACE*) hInsContext)->VirIfIdx);
+    if(p_VirtIf != NULL)
     {
-        WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pIfaceDmlEntry->data.uiIfaceIdx);
-        if(pWanDmlIfaceData != NULL)
+        /* check the parameter name and set the corresponding value */
+        if (strcmp(ParamName, "Status") == 0)
         {
-            DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
-
-            /* check the parameter name and set the corresponding value */
-            if (strcmp(ParamName, "Status") == 0)
-            {
-                *puLong = pWanDmlIface->DSLite.Status;
-                ret = TRUE;
-            }
-
-            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+            *puLong = p_VirtIf->DSLite.Status;
+            ret = TRUE;
         }
+        WanMgr_VirtualIfaceData_release(p_VirtIf);
     }
 
     return ret;
@@ -2679,23 +2581,16 @@ BOOL WanIfDSLite_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, UL
 {
     BOOL ret = FALSE;
 
-    WanMgr_Iface_Data_t* pIfaceDmlEntry = (WanMgr_Iface_Data_t*) hInsContext;
-    if(pIfaceDmlEntry != NULL)
+    DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIface_locked(((DML_VIRTUAL_IFACE*) hInsContext)->baseIfIdx, ((DML_VIRTUAL_IFACE*) hInsContext)->VirIfIdx);
+    if(p_VirtIf != NULL)
     {
-        WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pIfaceDmlEntry->data.uiIfaceIdx);
-        if(pWanDmlIfaceData != NULL)
+        /* check the parameter name and set the corresponding value */
+        if (strcmp(ParamName, "Status") == 0)
         {
-            DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
-
-            /* check the parameter name and set the corresponding value */
-            if (strcmp(ParamName, "Status") == 0)
-            {
-                pWanDmlIface->DSLite.Status = uValue;
-                ret = TRUE;
-            }
-
-            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+            p_VirtIf->DSLite.Status = uValue;
+            ret = TRUE;
         }
+        WanMgr_VirtualIfaceData_release(p_VirtIf);
     }
 
     return ret;
@@ -2735,36 +2630,25 @@ BOOL WanIfDSLite_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, UL
 ULONG WanIfDSLite_GetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, char* pValue, ULONG* pUlSize)
 {
     ULONG ret = -1;
-
-
-
-    WanMgr_Iface_Data_t* pIfaceDmlEntry = (WanMgr_Iface_Data_t*) hInsContext;
-    if(pIfaceDmlEntry != NULL)
+    DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIface_locked(((DML_VIRTUAL_IFACE*) hInsContext)->baseIfIdx, ((DML_VIRTUAL_IFACE*) hInsContext)->VirIfIdx);
+    if(p_VirtIf != NULL)
     {
-        WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pIfaceDmlEntry->data.uiIfaceIdx);
-        if(pWanDmlIfaceData != NULL)
+        /* check the parameter name and set the corresponding value */
+        if (strcmp(ParamName, "Path") == 0)
         {
-            DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
-
-            /* check the parameter name and set the corresponding value */
-            if (strcmp(ParamName, "Path") == 0)
+            /* collect value */
+            if ( ( sizeof( p_VirtIf->DSLite.Path ) - 1 ) < *pUlSize )
             {
-                /* collect value */
-                if ( ( sizeof( pWanDmlIface->DSLite.Path ) - 1 ) < *pUlSize )
-                {
-                    AnscCopyString( pValue, pWanDmlIface->DSLite.Path );
-                    ret = 0;
-                }
-                else
-                {
-                    *pUlSize = sizeof( pWanDmlIface->DSLite.Path );
-                    ret = 1;
-                }
+                AnscCopyString( pValue, p_VirtIf->DSLite.Path );
+                ret = 0;
             }
-
-
-            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+            else
+            {
+                *pUlSize = sizeof( p_VirtIf->DSLite.Path );
+                ret = 1;
+            }
         }
+        WanMgr_VirtualIfaceData_release(p_VirtIf);
     }
 
     return ret;
@@ -2797,24 +2681,16 @@ ULONG WanIfDSLite_GetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, 
 BOOL WanIfDSLite_SetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, char* pString)
 {
     BOOL ret = FALSE;
-
-    WanMgr_Iface_Data_t* pIfaceDmlEntry = (WanMgr_Iface_Data_t*) hInsContext;
-    if(pIfaceDmlEntry != NULL)
+    DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIface_locked(((DML_VIRTUAL_IFACE*) hInsContext)->baseIfIdx, ((DML_VIRTUAL_IFACE*) hInsContext)->VirIfIdx);
+    if(p_VirtIf != NULL)
     {
-        WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pIfaceDmlEntry->data.uiIfaceIdx);
-        if(pWanDmlIfaceData != NULL)
+        /* check the parameter name and set the corresponding value */
+        if (strcmp(ParamName, "Path") == 0)
         {
-            DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
-
-            /* check the parameter name and set the corresponding value */
-            if (strcmp(ParamName, "Path") == 0)
-            {
-                AnscCopyString(pWanDmlIface->DSLite.Path, pString);
-                ret = TRUE;
-            }
-
-            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+            AnscCopyString(p_VirtIf->DSLite.Path, pString);
+            ret = TRUE;
         }
+        WanMgr_VirtualIfaceData_release(p_VirtIf);
     }
 
     return ret;
@@ -3566,44 +3442,26 @@ WanIfPPPCfg_GetParamUlongValue
     )
 {
     BOOL ret = FALSE;
-
-    WanMgr_Iface_Data_t* pIfaceDmlEntry = (WanMgr_Iface_Data_t*) hInsContext;
-    if(pIfaceDmlEntry != NULL)
+    DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIface_locked(((DML_VIRTUAL_IFACE*) hInsContext)->baseIfIdx, ((DML_VIRTUAL_IFACE*) hInsContext)->VirIfIdx);
+    if(p_VirtIf != NULL)
     {
-        WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pIfaceDmlEntry->data.uiIfaceIdx);
-        if(pWanDmlIfaceData != NULL)
+        /* check the parameter name and return the corresponding value */
+        if (strcmp(ParamName, "IPCPStatus") == 0)
         {
-            DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
-
-            /* check the parameter name and return the corresponding value */
-            if (strcmp(ParamName, "IPCPStatus") == 0)
-            {
-                *puLong = pWanDmlIface->PPP.IPCPStatus;
-                ret = TRUE;
-            }
-            if (strcmp(ParamName, "IPv6CPStatus") == 0)
-            {
-                *puLong = pWanDmlIface->PPP.IPV6CPStatus;
-                ret = TRUE;
-            }
-            if (strcmp(ParamName, "LCPStatus") == 0)
-            {
-                *puLong = pWanDmlIface->PPP.LCPStatus;
-                ret = TRUE;
-            }
-            if (strcmp(ParamName, "Status") == 0)
-            {
-                *puLong = pWanDmlIface->PPP.LinkStatus;
-                ret = TRUE;
-            }
-            if (strcmp(ParamName, "LinkType") == 0)
-            {
-                *puLong = pWanDmlIface->PPP.LinkType;
-                ret = TRUE;
-            }
-
-            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+            *puLong = p_VirtIf->PPP.IPCPStatus;
+            ret = TRUE;
         }
+        if (strcmp(ParamName, "IPv6CPStatus") == 0)
+        {
+            *puLong = p_VirtIf->PPP.IPV6CPStatus;
+            ret = TRUE;
+        }
+        if (strcmp(ParamName, "Status") == 0)
+        {
+            *puLong = p_VirtIf->PPP.LinkStatus;
+            ret = TRUE;
+        }
+        WanMgr_VirtualIfaceData_release(p_VirtIf);
     }
 
     /* CcspTraceWarning(("Unsupported parameter '%s'\n", ParamName)); */
@@ -3656,65 +3514,30 @@ WanIfPPPCfg_SetParamUlongValue
     pthread_t IPCPHandlerThread;
     pthread_t IPV6CPHandlerThread;
 
-    WanMgr_Iface_Data_t* pIfaceDmlEntry = (WanMgr_Iface_Data_t*) hInsContext;
-    if(pIfaceDmlEntry != NULL)
+    DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIface_locked(((DML_VIRTUAL_IFACE*) hInsContext)->baseIfIdx, ((DML_VIRTUAL_IFACE*) hInsContext)->VirIfIdx);
+    if(p_VirtIf != NULL)
     {
-        WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pIfaceDmlEntry->data.uiIfaceIdx);
-        if(pWanDmlIfaceData != NULL)
+
+        /* check the parameter name and set the corresponding value */
+        if (strcmp(ParamName, "IPCPStatus") == 0)
         {
-            DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
-
-            /* check the parameter name and set the corresponding value */
-            if (strcmp(ParamName, "IPCPStatus") == 0)
-            {
-                pWanDmlIface->PPP.IPCPStatus = uValue;
-                pInterface = (char *) malloc(64);
-                if (pInterface != NULL)
-                {
-                    strncpy(pInterface, pWanDmlIface->Wan.Name, 64);
-                    iErrorCode = pthread_create( &IPCPHandlerThread, NULL, &IPCPStateChangeHandler, (void*) pInterface );
-                    if( 0 != iErrorCode )
-                    {
-                        CcspTraceInfo(("%s %d - Failed to handle IPCP event change   %d\n", __FUNCTION__, __LINE__, iErrorCode ));
-                    }
-                    ret = TRUE;
-                }
-            }
-            if (strcmp(ParamName, "IPv6CPStatus") == 0)
-            {
-                pWanDmlIface->PPP.IPV6CPStatus = uValue;
-                pInterface = (char *) malloc(64);
-                if (pInterface != NULL)
-                {
-                    strncpy(pInterface, pWanDmlIface->Wan.Name, 64);
-                    iErrorCode = pthread_create( &IPCPHandlerThread, NULL, &IPV6CPStateChangeHandler, (void*) pInterface );
-                    if( 0 != iErrorCode )
-                    {
-                        CcspTraceInfo(("%s %d - Failed to handle IPV6CP event change   %d\n", __FUNCTION__, __LINE__, iErrorCode ));
-                    }
-                    ret = TRUE;
-                }
-            }
-            if (strcmp(ParamName, "LCPStatus") == 0)
-            {
-                pWanDmlIface->PPP.LCPStatus = uValue;
-                ret = TRUE;
-            }
-            if (strcmp(ParamName, "Status") == 0)
-            {
-                pWanDmlIface->PPP.LinkStatus = uValue;
-                ret = TRUE;
-            }
-            if (strcmp(ParamName, "LinkType") == 0)
-            {
-                pWanDmlIface->PPP.LinkType = uValue;
-                ret = TRUE;
-            }
-            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+            p_VirtIf->PPP.IPCPStatus = uValue;
+            p_VirtIf->PPP.IPCPStatusChanged = TRUE;
+            ret = TRUE;
         }
+        if (strcmp(ParamName, "IPv6CPStatus") == 0)
+        {
+            p_VirtIf->PPP.IPV6CPStatus = uValue;
+            p_VirtIf->PPP.IPV6CPStatusChanged = TRUE;
+            ret = TRUE;
+        }
+        if (strcmp(ParamName, "Status") == 0)
+        {
+            p_VirtIf->PPP.LinkStatus = uValue;
+            ret = TRUE;
+        }
+        WanMgr_VirtualIfaceData_release(p_VirtIf);
     }
-
-
     /* CcspTraceWarning(("Unsupported parameter '%s'\n", ParamName)); */
     return ret;
 }
@@ -3769,33 +3592,26 @@ WanIfPPPCfg_GetParamStringValue
 {
     ULONG ret = -1;
 
-
-    WanMgr_Iface_Data_t* pIfaceDmlEntry = (WanMgr_Iface_Data_t*) hInsContext;
-    if(pIfaceDmlEntry != NULL)
+    DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIface_locked(((DML_VIRTUAL_IFACE*) hInsContext)->baseIfIdx, ((DML_VIRTUAL_IFACE*) hInsContext)->VirIfIdx);
+    if(p_VirtIf != NULL)
     {
-        WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pIfaceDmlEntry->data.uiIfaceIdx);
-        if(pWanDmlIfaceData != NULL)
+        /* check the parameter name and set the corresponding value */
+        if (strcmp(ParamName, "Interface") == 0)
         {
-            DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
-
-            /* check the parameter name and set the corresponding value */
-            if (strcmp(ParamName, "Interface") == 0)
+            /* collect value */
+            if ( ( sizeof( p_VirtIf->PPP.Interface ) - 1 ) < *pUlSize )
             {
-               /* collect value */
-               if ( ( sizeof( pWanDmlIface->PPP.Path ) - 1 ) < *pUlSize )
-               {
-                   AnscCopyString( pValue, pWanDmlIface->PPP.Path);
-                   ret = 0;
-               }
-               else
-               {
-                   *pUlSize = sizeof( pWanDmlIface->PPP.Path );
-                   ret = 1;
-               }
+                AnscCopyString( pValue, p_VirtIf->PPP.Interface);
+                ret = 0;
             }
-
-            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+            else
+            {
+                *pUlSize = sizeof( p_VirtIf->PPP.Interface );
+                ret = 1;
+            }
         }
+
+        WanMgr_VirtualIfaceData_release(p_VirtIf);
     }
 
     return ret;
@@ -3841,24 +3657,16 @@ WanIfPPPCfg_SetParamStringValue
     )
 {
     BOOL ret = FALSE;
-
-    WanMgr_Iface_Data_t* pIfaceDmlEntry = (WanMgr_Iface_Data_t*) hInsContext;
-    if(pIfaceDmlEntry != NULL)
+    DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIface_locked(((DML_VIRTUAL_IFACE*) hInsContext)->baseIfIdx, ((DML_VIRTUAL_IFACE*) hInsContext)->VirIfIdx);
+    if(p_VirtIf != NULL)
     {
-        WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pIfaceDmlEntry->data.uiIfaceIdx);
-        if(pWanDmlIfaceData != NULL)
+        /* check the parameter name and set the corresponding value */
+        if (strcmp(ParamName, "Interface") == 0)
         {
-            DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
-            /* check the parameter name and set the corresponding value */
-            if (strcmp(ParamName, "Interface") == 0)
-            {
-                AnscCopyString(pWanDmlIface->PPP.Path, pString);
-                WanMgr_SetRestartWanInfo(WAN_PPP_PATH_PARAM_NAME, pWanDmlIface->uiIfaceIdx, pString);
-                ret = TRUE;
-            }
-
-            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+            AnscCopyString(p_VirtIf->PPP.Interface, pString);
+            ret = TRUE;
         }
+        WanMgr_VirtualIfaceData_release(p_VirtIf);
     }
 
     return ret;
@@ -3903,37 +3711,7 @@ WanIfPPPCfg_GetParamBoolValue
         BOOL*                       pBool
     )
 {
-    BOOL ret = FALSE;
-
-    WanMgr_Iface_Data_t* pIfaceDmlEntry = (WanMgr_Iface_Data_t*) hInsContext;
-    if(pIfaceDmlEntry != NULL)
-    {
-        WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pIfaceDmlEntry->data.uiIfaceIdx);
-        if(pWanDmlIfaceData != NULL)
-        {
-            DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
-            /* check the parameter name and return the corresponding value */
-            if (strcmp(ParamName, "Enable") == 0)
-            {
-                *pBool = pWanDmlIface->PPP.Enable;
-                ret = TRUE;
-            }
-            if (strcmp(ParamName, "IPCPEnable") == 0)
-            {
-                *pBool = pWanDmlIface->PPP.IPCPEnable;
-                ret = TRUE;
-            }
-            if (strcmp(ParamName, "IPv6CPEnable") == 0)
-            {
-                *pBool = pWanDmlIface->PPP.IPV6CPEnable;
-                ret = TRUE;
-            }
-
-            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
-        }
-    }
-
-    return ret;
+    return TRUE;
 }
 
 /**********************************************************************
@@ -3975,38 +3753,8 @@ WanIfPPPCfg_SetParamBoolValue
         BOOL                        bValue
     )
 {
-    BOOL ret = FALSE;
-
-    WanMgr_Iface_Data_t* pIfaceDmlEntry = (WanMgr_Iface_Data_t*) hInsContext;
-    if(pIfaceDmlEntry != NULL)
-    {
-        WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pIfaceDmlEntry->data.uiIfaceIdx);
-        if(pWanDmlIfaceData != NULL)
-        {
-            DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
-
-            /* check the parameter name and set the corresponding value */
-            if (strcmp(ParamName, "Enable") == 0)
-            {
-                pWanDmlIface->PPP.Enable = bValue;
-                ret = TRUE;
-            }
-            if (strcmp(ParamName, "IPCPEnable") == 0)
-            {
-                pWanDmlIface->PPP.IPCPEnable = bValue;
-                ret = TRUE;
-            }
-            if (strcmp(ParamName, "IPv6CPEnable") == 0)
-            {
-                pWanDmlIface->PPP.IPV6CPEnable = bValue;
-                ret = TRUE;
-            }
-            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
-        }
-    }
-
     /* CcspTraceWarning(("Unsupported parameter '%s'\n", ParamName)); */
-    return ret;
+    return TRUE;
 }
 
 /**********************************************************************
@@ -4077,28 +3825,12 @@ WanIfPPPCfg_Commit
 {
     ULONG ret = -1;
 
-    ANSC_STATUS result;
-
-    WanMgr_Iface_Data_t* pIfaceDmlEntry = (WanMgr_Iface_Data_t*) hInsContext;
-    if(pIfaceDmlEntry != NULL)
+    DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIface_locked(((DML_VIRTUAL_IFACE*) hInsContext)->baseIfIdx, ((DML_VIRTUAL_IFACE*) hInsContext)->VirIfIdx);
+    if(p_VirtIf != NULL)
     {
-        WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pIfaceDmlEntry->data.uiIfaceIdx);
-        if(pWanDmlIfaceData != NULL)
-        {
-            DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
-
-            result = DmlSetWanIfCfg( pWanDmlIface->uiInstanceNumber, pWanDmlIface );
-            if(result != ANSC_STATUS_SUCCESS)
-            {
-                AnscTraceError(("%s: Failed \n", __FUNCTION__));
-            }
-            else
-            {
-                ret = 0;
-            }
-
-            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
-        }
+        write_Virtual_Interface_ToPSM((p_VirtIf->baseIfIdx +1), p_VirtIf->VirIfIdx, p_VirtIf);
+        ret =0;
+        WanMgr_VirtualIfaceData_release(p_VirtIf);
     }
 
     return ret;
@@ -4145,6 +3877,8 @@ WanIfPPPCfg_Rollback
     *  WanIfVlanCfg_Synchronize
     *  WanIfVlanCfg_GetParamStringValue
     *  WanIfVlanCfg_SetParamStringValue
+    *  WanIfVlanCfg_GetParamUlongValue
+    *  WanIfVlanCfg_SetParamUlongValue
     *  WanIfVlanCfg_Validate
     *  WanIfVlanCfg_Commit
     *  WanIfVlanCfg_Rollback
@@ -4171,7 +3905,13 @@ WanIfPPPCfg_Rollback
 **********************************************************************/
 ULONG WanIfVlanCfg_GetEntryCount(ANSC_HANDLE hInsContext)
 {
-    ULONG count = 1;
+    ULONG count = 0;
+    DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIface_locked(((DML_VIRTUAL_IFACE*) hInsContext)->baseIfIdx, ((DML_VIRTUAL_IFACE*) hInsContext)->VirIfIdx);
+    if(p_VirtIf != NULL)
+    {
+            count = p_VirtIf->VLAN.NoOfInterfaceEntries;
+            WanMgr_VirtualIfaceData_release(p_VirtIf);
+    }
     return count;
 }
 
@@ -4203,19 +3943,11 @@ ANSC_HANDLE WanIfVlanCfg_GetEntry(ANSC_HANDLE hInsContext, ULONG nIndex, ULONG* 
 {
     ANSC_HANDLE pDmlEntry = NULL;
 
-    WanMgr_Iface_Data_t* pIfaceDmlEntry = (WanMgr_Iface_Data_t*) hInsContext;
-    if(pIfaceDmlEntry != NULL)
+    pDmlEntry = WanMgr_getVlanIface_locked(((DML_VIRTUAL_IFACE*) hInsContext)->baseIfIdx, ((DML_VIRTUAL_IFACE*) hInsContext)->VirIfIdx, nIndex);
+    if(pDmlEntry != NULL)
     {
-        WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pIfaceDmlEntry->data.uiIfaceIdx);
-        if(pWanDmlIfaceData != NULL)
-        {
-            DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
-
-            *pInsNumber = nIndex + 1;
-            pDmlEntry = (ANSC_HANDLE) pWanDmlIfaceData;
-
-            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
-        }
+        *pInsNumber = nIndex + 1;
+        WanMgr_VlanIfaceMutex_release(pDmlEntry);
     }
 
     return pDmlEntry;
@@ -4330,25 +4062,17 @@ WanIfVlanCfg_GetParamStringValue
     )
 {
     ULONG ret = -1;
-
-    WanMgr_Iface_Data_t* pIfaceDmlEntry = (WanMgr_Iface_Data_t*) hInsContext;
-    if(pIfaceDmlEntry != NULL)
+    DML_VLAN_IFACE_TABLE* pVlan = WanMgr_getVlanIface_locked(((DML_VLAN_IFACE_TABLE*) hInsContext)->baseIfIdx, ((DML_VLAN_IFACE_TABLE*) hInsContext)->VirIfIdx, ((DML_VLAN_IFACE_TABLE*) hInsContext)->Index);
+    if(pVlan != NULL)
     {
-        WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pIfaceDmlEntry->data.uiIfaceIdx);
-        if(pWanDmlIfaceData != NULL)
+        /* check the parameter name and set the corresponding value */
+        if (strcmp(ParamName, "Interface") == 0)
         {
-            DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
-
-            /* check the parameter name and set the corresponding value */
-            if (strcmp(ParamName, "Interface") == 0)
-            {
-               /* collect value */
-                AnscCopyString( pValue, "");
-                ret = 0;
-            }
-
-            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+            /* collect value */
+            AnscCopyString( pValue, pVlan->Interface);
+            ret = 0;
         }
+        WanMgr_VlanIfaceMutex_release(pVlan);
     }
 
     return ret;
@@ -4394,23 +4118,17 @@ WanIfVlanCfg_SetParamStringValue
     )
 {
     BOOL ret = FALSE;
-
-    WanMgr_Iface_Data_t* pIfaceDmlEntry = (WanMgr_Iface_Data_t*) hInsContext;
-    if(pIfaceDmlEntry != NULL)
+    DML_VLAN_IFACE_TABLE* pVlan = WanMgr_getVlanIface_locked(((DML_VLAN_IFACE_TABLE*) hInsContext)->baseIfIdx, ((DML_VLAN_IFACE_TABLE*) hInsContext)->VirIfIdx, ((DML_VLAN_IFACE_TABLE*) hInsContext)->Index);
+    if(pVlan != NULL)
     {
-        WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pIfaceDmlEntry->data.uiIfaceIdx);
-        if(pWanDmlIfaceData != NULL)
+
+        /* check the parameter name and set the corresponding value */
+        if (strcmp(ParamName, "Interface") == 0)
         {
-            DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
-
-            /* check the parameter name and set the corresponding value */
-            if (strcmp(ParamName, "Interface") == 0)
-            {
-                ret = TRUE;
-            }
-
-            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+            AnscCopyString(pVlan->Interface, pString);
+            ret = TRUE;
         }
+        WanMgr_VlanIfaceMutex_release(pVlan);
     }
 
     return ret;
@@ -4456,20 +4174,6 @@ WanIfVlanCfg_GetParamUlongValue
     )
 {
     BOOL ret = FALSE;
-
-    WanMgr_Iface_Data_t* pIfaceDmlEntry = (WanMgr_Iface_Data_t*) hInsContext;
-    if(pIfaceDmlEntry != NULL)
-    {
-        WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pIfaceDmlEntry->data.uiIfaceIdx);
-        if(pWanDmlIfaceData != NULL)
-        {
-            DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
-
-            /* check the parameter name and return the corresponding value */
-            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
-        }
-    }
-
     /* CcspTraceWarning(("Unsupported parameter '%s'\n", ParamName)); */
     return ret;
 
@@ -4515,19 +4219,6 @@ WanIfVlanCfg_SetParamUlongValue
     )
 {
     BOOL ret = FALSE;
-
-    WanMgr_Iface_Data_t* pIfaceDmlEntry = (WanMgr_Iface_Data_t*) hInsContext;
-    if(pIfaceDmlEntry != NULL)
-    {
-        WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pIfaceDmlEntry->data.uiIfaceIdx);
-        if(pWanDmlIfaceData != NULL)
-        {
-            DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
-
-            /* check the parameter name and set the corresponding value */
-            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
-        }
-    }
 
     /* CcspTraceWarning(("Unsupported parameter '%s'\n", ParamName)); */
     return ret;
@@ -4599,8 +4290,14 @@ WanIfVlanCfg_Commit
         ANSC_HANDLE                 hInsContext
     )
 {
-    ULONG ret = 0;
-
+    ULONG ret = -1;
+    DML_VLAN_IFACE_TABLE* pVlan = WanMgr_getVlanIface_locked(((DML_VLAN_IFACE_TABLE*) hInsContext)->baseIfIdx, ((DML_VLAN_IFACE_TABLE*) hInsContext)->VirIfIdx, ((DML_VLAN_IFACE_TABLE*) hInsContext)->Index);
+    if(pVlan != NULL)
+    {
+        write_VlanInterface_ParametersToPSM(pVlan);
+        ret =0;
+        WanMgr_VlanIfaceMutex_release(pVlan);
+    }
     return ret;
 }
 
@@ -4669,8 +4366,15 @@ WanIfVlanCfg_Rollback
 **********************************************************************/
 ULONG WanIfVlanMarking_GetEntryCount(ANSC_HANDLE hInsContext)
 {
+
     ULONG count = 0;
-    count = 1;
+    DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIface_locked(((DML_VIRTUAL_IFACE*) hInsContext)->baseIfIdx, ((DML_VIRTUAL_IFACE*) hInsContext)->VirIfIdx);
+    if(p_VirtIf != NULL)
+    {
+            count = p_VirtIf->VLAN.NoOfMarkingEntries;
+            WanMgr_VirtualIfaceData_release(p_VirtIf);
+    }
+
     return count;
 }
 
@@ -4702,21 +4406,12 @@ ANSC_HANDLE WanIfVlanMarking_GetEntry(ANSC_HANDLE hInsContext, ULONG nIndex, ULO
 {
     ANSC_HANDLE pDmlEntry = NULL;
 
-    WanMgr_Iface_Data_t* pIfaceDmlEntry = (WanMgr_Iface_Data_t*) hInsContext;
-    if(pIfaceDmlEntry != NULL)
+    pDmlEntry = WanMgr_getVirtualMarking_locked(((DML_VIRTUAL_IFACE*) hInsContext)->baseIfIdx, ((DML_VIRTUAL_IFACE*) hInsContext)->VirIfIdx, nIndex);
+    if(pDmlEntry != NULL)
     {
-        WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pIfaceDmlEntry->data.uiIfaceIdx);
-        if(pWanDmlIfaceData != NULL)
-        {
-            DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
-
-            *pInsNumber = nIndex + 1;
-            pDmlEntry = (ANSC_HANDLE) pWanDmlIfaceData;
-
-            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
-        }
+        *pInsNumber = nIndex + 1;
+        WanMgr_VirtMarkingMutex_release(pDmlEntry);
     }
-
     return pDmlEntry;
 }
 
@@ -4748,24 +4443,17 @@ BOOL WanIfVlanMarking_GetParamIntValue(ANSC_HANDLE hInsContext, char* ParamName,
 {
     BOOL ret = FALSE;
 
-    WanMgr_Iface_Data_t* pIfaceDmlEntry = (WanMgr_Iface_Data_t*) hInsContext;
-    if(pIfaceDmlEntry != NULL)
+    DML_VIRTIF_MARKING* p_virtMarking = WanMgr_getVirtualMarking_locked(((DML_VIRTIF_MARKING*) hInsContext)->baseIfIdx, ((DML_VIRTIF_MARKING*) hInsContext)->VirIfIdx, ((DML_VIRTIF_MARKING*) hInsContext)->VirtMarkingInstanceNumber);
+    if(p_virtMarking != NULL)
     {
-        WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pIfaceDmlEntry->data.uiIfaceIdx);
-        if(pWanDmlIfaceData != NULL)
+
+        /* check the parameter name and return the corresponding value */
+        if (strcmp(ParamName, "Entry") == 0)
         {
-            DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
-
-            /* check the parameter name and return the corresponding value */
-            if (strcmp(ParamName, "Entry") == 0)
-            {
-                //TODO
-                *pInt = 0;
-                ret = TRUE;
-            }
-
-            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+            *pInt = p_virtMarking->Entry;
+            ret = TRUE;
         }
+        WanMgr_VirtMarkingMutex_release(p_virtMarking);
     }
 
     return ret;
@@ -4799,23 +4487,17 @@ BOOL WanIfVlanMarking_SetParamIntValue(ANSC_HANDLE hInsContext, char* ParamName,
 {
     BOOL ret = FALSE;
 
-    WanMgr_Iface_Data_t* pIfaceDmlEntry = (WanMgr_Iface_Data_t*) hInsContext;
-    if(pIfaceDmlEntry != NULL)
+    DML_VIRTIF_MARKING* p_virtMarking = WanMgr_getVirtualMarking_locked(((DML_VIRTIF_MARKING*) hInsContext)->baseIfIdx, ((DML_VIRTIF_MARKING*) hInsContext)->VirIfIdx, ((DML_VIRTIF_MARKING*) hInsContext)->VirtMarkingInstanceNumber);
+    if(p_virtMarking != NULL)
     {
-        WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pIfaceDmlEntry->data.uiIfaceIdx);
-        if(pWanDmlIfaceData != NULL)
+
+        /* check the parameter name and return the corresponding value */
+        if (strcmp(ParamName, "Entry") == 0)
         {
-            DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
-
-            /* check the parameter name and set the corresponding value */
-            if (strcmp(ParamName, "Entry") == 0)
-            {
-                //Todo
-                ret = TRUE;
-            }
-
-            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+            p_virtMarking->Entry = iValue;
+            ret = TRUE;
         }
+        WanMgr_VirtMarkingMutex_release(p_virtMarking);
     }
 
     return ret;
@@ -4888,6 +4570,13 @@ WanIfVlanMarking_Commit
     )
 {
     ULONG ret = 0;
+
+    DML_VIRTIF_MARKING* p_virtMarking = WanMgr_getVirtualMarking_locked(((DML_VIRTIF_MARKING*) hInsContext)->baseIfIdx, ((DML_VIRTIF_MARKING*) hInsContext)->VirIfIdx, ((DML_VIRTIF_MARKING*) hInsContext)->VirtMarkingInstanceNumber);
+    if(p_virtMarking != NULL)
+    {
+        write_VirtMarking_ParametersToPSM(p_virtMarking);
+        WanMgr_VirtMarkingMutex_release(p_virtMarking);
+    }
 
     return ret;
 }

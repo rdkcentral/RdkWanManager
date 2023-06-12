@@ -30,61 +30,7 @@
 
 //Minimum SelectionTimeOut Value
 #define SELECTION_TIMEOUT_DEFAULT_MIN 20
-#define MAX_INTERFACE_GROUP           2
 #define MAX_WAN_INTERFACE_ENTRY       32
-#define REMOTE_INTERFACE_GROUP        2
-//WAN CONFIG
-typedef struct _WANMGR_CONFIG_DATA_
-{
-    DML_WANMGR_CONFIG       data;
-} WanMgr_Config_Data_t;
-
-
-//WAN IFACE
-typedef struct _WANMGR_IFACE_DATA_
-{
-    DML_WAN_IFACE           data;
-}WanMgr_Iface_Data_t;
-
-
-typedef struct _WANMGR_IFACECTRL_DATA_
-{
-    UINT                        ulTotalNumbWanInterfaces;
-    WanMgr_Iface_Data_t*        pIface;
-    UINT                        update;
-}WanMgr_IfaceCtrl_Data_t;
-
-typedef struct _WANMGR_IFACE_GROUP_DATA_
-{
-    pthread_t          ThreadId;
-    UINT               GroupState;
-    UINT               InterfaceAvailable;
-    UINT               SelectedInterface;
-    BOOL               GroupIfaceListChanged;
-    UINT               GroupSelectionTimeOut;
-}WANMGR_IFACE_GROUP;
-
-typedef struct _WANMGR_IFACE_GROUP_
-{
-    UINT                      ulTotalNumbWanIfaceGroup;
-    WANMGR_IFACE_GROUP        Group[MAX_INTERFACE_GROUP];
-}WanMgr_IfaceGroup_t;
-
-typedef struct _WANMGR_DATA_ST_
-{
-    //Mutex
-    pthread_mutex_t             gDataMutex;
-
-    //WAN CONFIG
-    WanMgr_Config_Data_t        Config;
-
-    //WAN IFACE
-    WanMgr_IfaceCtrl_Data_t     IfaceCtrl;
-
-    //Iface Group
-    WanMgr_IfaceGroup_t         IfaceGroup;
-} WANMGR_DATA_ST;
-
 
 //WAN CONFIG
 WanMgr_Config_Data_t* WanMgr_GetConfigData_locked(void);
@@ -94,7 +40,10 @@ void WanMgr_SetConfigData_Default(DML_WANMGR_CONFIG* pWanDmlConfig);
 //WAN IFACE
 UINT WanMgr_IfaceData_GetTotalWanIface(void);
 WanMgr_Iface_Data_t* WanMgr_GetIfaceData_locked(UINT iface_index);
+DML_VIRTUAL_IFACE* WanMgr_getVirtualIface_locked(UINT baseIfidx, UINT virtIfIdx);
+void WanMgr_VirtualIfaceData_release(DML_VIRTUAL_IFACE* pVirtIf);
 WanMgr_Iface_Data_t* WanMgr_GetIfaceDataByName_locked(char* iface_name);
+DML_VIRTUAL_IFACE* WanMgr_GetVirtualIfaceByName_locked(char* iface_name);
 void WanMgrDml_GetIfaceData_release(WanMgr_Iface_Data_t* pWanIfaceData);
 void WanMgr_IfaceData_Init(WanMgr_Iface_Data_t* pIfaceData, UINT uiInstNumber);
 ANSC_STATUS WanMgr_WanDataInit(void);
@@ -110,5 +59,22 @@ ANSC_STATUS WanMgr_Data_Delete(void);
 
 // WAN MGR REMOTE INTERFACE
 ANSC_STATUS WanMgr_Remote_IfaceData_configure(char *remoteCPEMac, int *iface_index);
-void WanMgr_Remote_IfaceData_Init(WanMgr_Iface_Data_t* pIfaceData, UINT iface_index);
+void WanMgr_Remote_IfaceData_Update(WanMgr_Iface_Data_t* pIfaceData, UINT iface_index);
+
+ANSC_STATUS WanMgr_WanConfigInit(void);
+ANSC_STATUS WanMgr_WanIfaceConfInit(WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl);
+
+UINT WanMgr_GetTotalNoOfGroups();
+DML_VIRTUAL_IFACE* WanMgr_getVirtualIfaceById(DML_VIRTUAL_IFACE* virIface, UINT inst);
+ANSC_STATUS WanMgr_AddVirtualToList(DML_VIRTUAL_IFACE** head, DML_VIRTUAL_IFACE *newNode);
+
+DML_VIRTIF_MARKING* WanMgr_getVirtMakingById(DML_VIRTIF_MARKING* marking, UINT inst);
+ANSC_STATUS WanMgr_AddVirtMarkingToList(DML_VIRTIF_MARKING** head, DML_VIRTIF_MARKING *newNode);
+DML_VLAN_IFACE_TABLE* WanMgr_getVirtVlanIfById(DML_VLAN_IFACE_TABLE* VlanIface, UINT inst);
+ANSC_STATUS WanMgr_AddVirtVlanIfToList(DML_VLAN_IFACE_TABLE** head, DML_VLAN_IFACE_TABLE *newNode);
+
+DML_VLAN_IFACE_TABLE* WanMgr_getVlanIface_locked(UINT baseIfidx, UINT virtIfIdx, UINT vlanid);
+void WanMgr_VlanIfaceMutex_release(DML_VLAN_IFACE_TABLE* vlanIf);
+DML_VIRTIF_MARKING* WanMgr_getVirtualMarking_locked(UINT baseIfidx, UINT virtIfIdx, UINT Markingid);
+void WanMgr_VirtMarkingMutex_release(DML_VIRTIF_MARKING* virtMarking);
 #endif  //_WANMGR_DATA_H_

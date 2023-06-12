@@ -53,7 +53,13 @@ WanManager_GetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG* p
 
         if (strcmp(ParamName, "Policy") == 0)
         {
-            *puLong= pWanDmlData->Policy;
+            WANMGR_IFACE_GROUP* pWanIfaceGroup = WanMgr_GetIfaceGroup_locked((0));
+            if (pWanIfaceGroup != NULL)
+            {
+                *puLong = pWanIfaceGroup->Policy;
+                WanMgrDml_GetIfaceGroup_release();
+            }
+
             ret = TRUE;
         }
         if (strcmp(ParamName, "RestorationDelay") == 0)
@@ -89,13 +95,18 @@ WanManager_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG uV
             }else
 #endif
             {
-                retStatus = WanMgr_RdkBus_setWanPolicy((DML_WAN_POLICY)uValue);
+                retStatus = WanMgr_RdkBus_setWanPolicy((DML_WAN_POLICY)uValue, 0); 
                 if(retStatus == ANSC_STATUS_SUCCESS)
                 {
-                    if(pWanDmlData->Policy != uValue)
+                    WANMGR_IFACE_GROUP* pWanIfaceGroup = WanMgr_GetIfaceGroup_locked((0)); 
+                    if (pWanIfaceGroup != NULL)
                     {
-                        pWanDmlData->Policy = uValue;
-                        pWanDmlData->PolicyChanged = TRUE;
+                        if(pWanIfaceGroup->Policy != uValue)
+                        {
+                            pWanIfaceGroup->Policy = uValue;
+                            pWanIfaceGroup->ConfigChanged = TRUE;
+                        }
+                        WanMgrDml_GetIfaceGroup_release();
                     }
                     ret = TRUE;
                 }
@@ -137,7 +148,12 @@ WanManager_GetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL* pBo
 
         if (strcmp(ParamName, "ResetActiveInterface") == 0)
         {
-            *pBool= pWanDmlData->ResetActiveInterface;
+            WANMGR_IFACE_GROUP* pWanIfaceGroup = WanMgr_GetIfaceGroup_locked((0)); 
+            if (pWanIfaceGroup != NULL)
+            {
+                *pBool = pWanIfaceGroup->ResetSelectedInterface;
+                WanMgrDml_GetIfaceGroup_release();
+            }
             ret = TRUE;
         }
 
@@ -262,7 +278,12 @@ BOOL WanManager_SetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL
 
         if (strcmp(ParamName, "ResetActiveInterface") == 0)
         {
-            pWanDmlData->ResetActiveInterface = bValue;
+            WANMGR_IFACE_GROUP* pWanIfaceGroup = WanMgr_GetIfaceGroup_locked((0)); 
+            if (pWanIfaceGroup != NULL)
+            {
+                pWanIfaceGroup->ResetSelectedInterface = bValue;
+                WanMgrDml_GetIfaceGroup_release();
+            }
             ret = TRUE;
         }
 
@@ -326,20 +347,18 @@ WanManagerGroup_Synchronize
 
 ULONG WanManagerGroup_GetEntryCount(ANSC_HANDLE hInsContext)
 {
-    ULONG count = 0;
-    WanMgr_RdkBus_getWanGroupCount((int)&count);
-    return count;
+    return WanMgr_GetTotalNoOfGroups();
 }
 
 ANSC_HANDLE WanManagerGroup_GetEntry(ANSC_HANDLE hInsContext, ULONG nIndex, ULONG* pInsNumber)
 {
-    WanMgr_Config_Data_t*   pWanConfigData = WanMgr_GetConfigData_locked();
-    if(pWanConfigData != NULL)
+    WANMGR_IFACE_GROUP* pWanIfaceGroup = WanMgr_GetIfaceGroup_locked(nIndex);
+    if(pWanIfaceGroup != NULL)
     {
         *pInsNumber = nIndex + 1;
-        WanMgrDml_GetConfigData_release(pWanConfigData);
+        WanMgrDml_GetIfaceGroup_release();
 
-        return pWanConfigData;
+        return pWanIfaceGroup;
     }
 
     return NULL;
@@ -350,18 +369,17 @@ WanManagerGroup_GetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL
 {
     BOOL ret = FALSE;
 
-    WanMgr_Config_Data_t*   pWanConfigData = WanMgr_GetConfigData_locked();
-    if(pWanConfigData != NULL)
+    WANMGR_IFACE_GROUP* pWanIfaceGroup = WanMgr_GetIfaceGroup_locked(((WANMGR_IFACE_GROUP*) hInsContext)->groupIdx);
+    if(pWanIfaceGroup != NULL)
     {
-        DML_WANMGR_CONFIG* pWanDmlData = &(pWanConfigData->data);
 
         if (strcmp(ParamName, "ResetSelectedInterface") == 0)
         {
-            *pBool= pWanDmlData->ResetActiveInterface;
+            *pBool= pWanIfaceGroup->ResetSelectedInterface;
             ret = TRUE;
         }
 
-        WanMgrDml_GetConfigData_release(pWanConfigData);
+        WanMgrDml_GetIfaceGroup_release();
     }
 
     return ret;
@@ -371,19 +389,15 @@ BOOL WanManagerGroup_SetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName,
 {
     BOOL ret = FALSE;
 
-    WanMgr_Config_Data_t*   pWanConfigData = WanMgr_GetConfigData_locked();
-    if(pWanConfigData != NULL)
+    WANMGR_IFACE_GROUP* pWanIfaceGroup = WanMgr_GetIfaceGroup_locked(((WANMGR_IFACE_GROUP*) hInsContext)->groupIdx);
+    if(pWanIfaceGroup != NULL)
     {
-        DML_WANMGR_CONFIG* pWanDmlData = &(pWanConfigData->data);
-
-
         if (strcmp(ParamName, "ResetSelectedInterface") == 0)
         {
-            pWanDmlData->ResetActiveInterface = bValue;
+            pWanIfaceGroup->ResetSelectedInterface = bValue;
             ret = TRUE;
         }
-
-        WanMgrDml_GetConfigData_release(pWanConfigData);
+        WanMgrDml_GetIfaceGroup_release();
     }
 
     return ret;
@@ -394,18 +408,15 @@ WanManagerGroup_GetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULO
 {
     BOOL ret = FALSE;
 
-    WanMgr_Config_Data_t*   pWanConfigData = WanMgr_GetConfigData_locked();
-    if(pWanConfigData != NULL)
+    WANMGR_IFACE_GROUP* pWanIfaceGroup = WanMgr_GetIfaceGroup_locked(((WANMGR_IFACE_GROUP*) hInsContext)->groupIdx);
+    if(pWanIfaceGroup != NULL)
     {
-        DML_WANMGR_CONFIG* pWanDmlData = &(pWanConfigData->data);
-
         if (strcmp(ParamName, "Policy") == 0)
         {
-            *puLong= pWanDmlData->Policy;
+            *puLong= pWanIfaceGroup->Policy;
             ret = TRUE;
         }
-
-        WanMgrDml_GetConfigData_release(pWanConfigData);
+        WanMgrDml_GetIfaceGroup_release();
     }
 
     return ret;
@@ -417,26 +428,23 @@ WanManagerGroup_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULO
     BOOL ret = FALSE;
     ANSC_STATUS retStatus;
 
-    WanMgr_Config_Data_t*   pWanConfigData = WanMgr_GetConfigData_locked();
-    if(pWanConfigData != NULL)
+    WANMGR_IFACE_GROUP* pWanIfaceGroup = WanMgr_GetIfaceGroup_locked(((WANMGR_IFACE_GROUP*) hInsContext)->groupIdx);
+    if(pWanIfaceGroup != NULL)
     {
-        DML_WANMGR_CONFIG* pWanDmlData = &(pWanConfigData->data);
-
         if (strcmp(ParamName, "Policy") == 0)
         {
-            retStatus = WanMgr_RdkBus_setWanPolicy((DML_WAN_POLICY)uValue);
+            retStatus = WanMgr_RdkBus_setWanPolicy((DML_WAN_POLICY)uValue, pWanIfaceGroup->groupIdx);
             if(retStatus == ANSC_STATUS_SUCCESS)
             {
-                if(pWanDmlData->Policy != uValue)
+                if(pWanIfaceGroup->Policy != uValue)
                 {
-                    pWanDmlData->Policy = uValue;
-                    pWanDmlData->PolicyChanged = TRUE;
+                    pWanIfaceGroup->Policy = uValue;
+                    pWanIfaceGroup->ConfigChanged = TRUE;
                 }
                 ret = TRUE;
             }
         }
-
-        WanMgrDml_GetConfigData_release(pWanConfigData);
+        WanMgrDml_GetIfaceGroup_release();
     }
 
     return ret;

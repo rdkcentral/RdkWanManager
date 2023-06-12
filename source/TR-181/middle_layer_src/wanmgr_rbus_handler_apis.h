@@ -86,6 +86,7 @@
 #else
 #define WANMGR_INFACE                                 "Device.X_RDK_WanManager.CPEInterface.{i}."
 #define WANMGR_INFACE_TABLE                           "Device.X_RDK_WanManager.CPEInterface"
+#define WANMGR_VIRTUAL_INFACE_TABLE                   "Device.X_RDK_WanManager.CPEInterface"
 #define WANMGR_INFACE_PHY_STATUS                      "Device.X_RDK_WanManager.CPEInterface.{i}.Phy.Status"
 #define WANMGR_INFACE_WAN_STATUS                      "Device.X_RDK_WanManager.CPEInterface.{i}.Wan.Status"
 #define WANMGR_INFACE_WAN_LINKSTATUS                  "Device.X_RDK_WanManager.CPEInterface.{i}.Wan.LinkStatus"

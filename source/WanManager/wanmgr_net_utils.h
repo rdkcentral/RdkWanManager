@@ -83,7 +83,7 @@ typedef enum
  * @param isPPP indicates PPP enabled or nor
  * @return ANSC_STATUS_SUCCESS upon success else returned error code.
  ***************************************************************************/
-uint32_t WanManager_StartDhcpv6Client(char *pcInterfaceName);
+uint32_t WanManager_StartDhcpv6Client(DML_VIRTUAL_IFACE* pVirtIf, IFACE_TYPE IfaceType);
 
 /***************************************************************************
  * @brief API used to stop Dhcpv6 client application.
@@ -97,7 +97,7 @@ ANSC_STATUS WanManager_StopDhcpv6Client(char * iface_name);
  * @param intf Interface name on which the dhcpv4 needs to start
  * @return ANSC_STATUS_SUCCESS upon success else returned error code.
  ***************************************************************************/
-uint32_t WanManager_StartDhcpv4Client(char* intf);
+uint32_t WanManager_StartDhcpv4Client(DML_VIRTUAL_IFACE* pVirtIf, char* baseInterface ,IFACE_TYPE IfaceType);
 
 /***************************************************************************
  * @brief API used to stop Dhcpv4 client application.
@@ -206,23 +206,6 @@ int WanManager_GetBCastFromIpSubnetMask(const char *inIpStr, const char *inSubne
  * @return RETURN_OK upon success else returned error code.
  ****************************************************************************/
 int WanManager_AddGatewayRoute(const WANMGR_IPV4_DATA* ipv4Info);
-
-/***************************************************************************
- * @brief API used to start PPP client application.
- * @param pcInterfaceName Interface name on which the dhcpv6 needs to start
- * @param isPPP indicates PPP enabled or nor
- * @return ANSC_STATUS_SUCCESS upon success else returned error code.
- ***************************************************************************/
-ANSC_STATUS WanManager_CreatePPPSession(DML_WAN_IFACE* pInterface);
-
-/***************************************************************************
- * @brief API used to start PPP client application.
- * @param pcInterfaceName Interface name on which the dhcpv6 needs to start
- * @param isPPP indicates PPP enabled or nor
- * @return ANSC_STATUS_SUCCESS upon success else returned error code.
- ***************************************************************************/
-ANSC_STATUS WanManager_DeletePPPSession(DML_WAN_IFACE* pInterface);
-
 
 ANSC_STATUS WanManager_getGloballyUniqueIfAddr6(const char *ifname, char *ipAddr, uint32_t *prefixLen);
 bool IsDefaultRoutePresent(char *IfaceName, bool IsV4);

@@ -63,6 +63,7 @@ typedef struct WanMgr_IfaceSM_Ctrl_st
 {
     BOOL                    WanEnable;
     INT                     interfaceIdx;
+    INT                     VirIfIdx;
 #ifdef FEATURE_IPOE_HEALTH_CHECK
     UINT                    IhcPid;
     wanmgr_ihc_status_t     IhcV4Status;
@@ -77,9 +78,9 @@ typedef struct WanMgr_IfaceSM_Ctrl_st
 
 
 
-void WanManager_UpdateInterfaceStatus(DML_WAN_IFACE* pIfaceData, wanmgr_iface_status_t iface_status);
+void WanManager_UpdateInterfaceStatus(DML_VIRTUAL_IFACE* pVirtIf, wanmgr_iface_status_t iface_status);
 
-void WanMgr_IfaceSM_Init(WanMgr_IfaceSM_Controller_t* pWanIfaceSMCtrl, INT iface_idx);
+void WanMgr_IfaceSM_Init(WanMgr_IfaceSM_Controller_t* pWanIfaceSMCtrl, INT iface_idx, INT VirIfIdx);
 int WanMgr_StartInterfaceStateMachine(WanMgr_IfaceSM_Controller_t *wanIf);
-BOOL WanMgr_Get_ISM_RunningStatus ();
+BOOL WanMgr_Get_ISM_RunningStatus (UINT ifIndex);
 #endif /*_WANMGR_INTERFACE_SM_H_*/

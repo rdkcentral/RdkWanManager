@@ -96,7 +96,6 @@ extern ANSC_HANDLE bus_handle;
 extern int sysevent_fd;
 extern token_t sysevent_token;
 
-#define DATAMODEL_PARAM_LENGTH 256
 
 
 #if defined (DUID_UUID_ENABLE)
@@ -355,7 +354,6 @@ static void* Dhcpv6HandlingThread( void *arg );
 static int get_index_from_path(const char *path);
 static void* DmlHandlePPPCreateRequestThread( void *arg );
 static void createDummyWanBridge(char * iface_name);
-static void deleteDummyWanBridgeIfExist(char * iface_name);
 static INT IsIPObtained(char *pInterfaceName);
 
 static ANSC_STATUS SetDataModelParamValues( char *pComponent, char *pBus, char *pParamName, char *pParamVal, enum dataType_e type, BOOLEAN bCommit )
@@ -535,28 +533,22 @@ int WanManager_Ipv6AddrUtil(char *ifname, Ipv6OperType opr, int preflft, int val
     return 0;
 }
 
-uint32_t WanManager_StartDhcpv6Client(char * iface_name)
+uint32_t WanManager_StartDhcpv6Client(DML_VIRTUAL_IFACE* pVirtIf, IFACE_TYPE IfaceType)
 {
-    if (iface_name == NULL)
+    if (pVirtIf == NULL)
     {
         CcspTraceError(("%s %d: Invalid args \n", __FUNCTION__, __LINE__));
         return 0;
     }
 
     uint32_t pid = 0;
-    WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceDataByName_locked(iface_name);
+    dhcp_params params;
+    memset (&params, 0, sizeof(dhcp_params));
+    params.ifname = pVirtIf->Name;
+    params.ifType = IfaceType;
 
-    if(pWanDmlIfaceData != NULL)
-    {
-        dhcp_params params;
-        memset (&params, 0, sizeof(dhcp_params));
-        params.ifname = pWanDmlIfaceData->data.Wan.Name;
-        params.ifType = pWanDmlIfaceData->data.Wan.IfaceType;
-
-        CcspTraceInfo(("Enter WanManager_StartDhcpv6Client for  %s \n", pWanDmlIfaceData->data.Wan.Name));
-        pid = start_dhcpv6_client(&params);
-        WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
-    }
+    CcspTraceInfo(("Enter WanManager_StartDhcpv6Client for  %s \n", pVirtIf->Name));
+    pid = start_dhcpv6_client(&params);
 
     return pid;
 }
@@ -588,38 +580,33 @@ ANSC_STATUS WanManager_StopDhcpv6Client(char * iface_name)
     return ret;
 }
 
-uint32_t WanManager_StartDhcpv4Client(char * iface_name)
+uint32_t WanManager_StartDhcpv4Client(DML_VIRTUAL_IFACE* pVirtIf, char* baseInterface, IFACE_TYPE IfaceType)
 {
-    if (iface_name == NULL)
+    if (pVirtIf == NULL)
     {
         CcspTraceError(("%s %d: Invalid args \n", __FUNCTION__, __LINE__));
         return 0;
     }
 
+    dhcp_params params;
     uint32_t pid = 0;
-    WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceDataByName_locked(iface_name);
-    if(pWanDmlIfaceData != NULL)
-    {
-        dhcp_params params;
 
-        memset (&params, 0, sizeof(dhcp_params));
-        params.ifname = pWanDmlIfaceData->data.Wan.Name;
-        params.ifType = pWanDmlIfaceData->data.Wan.IfaceType;
+    memset (&params, 0, sizeof(dhcp_params));
+    params.ifname = pVirtIf->Name;
+    params.ifType = IfaceType;
 
 #if defined(_HUB4_PRODUCT_REQ_)
         /*TODO:
 	 * This is a SKY specific change. This should be moved to hal 
 	 *after enabling CONFIGURABLE_WAN_INTERFACE in all SKy devices.
 	*/
-	if (strncmp(pWanDmlIfaceData->data.Name, "eth", 3) == 0)
+	if (strncmp(pVirtIf->Name, "eth", 3) == 0)
 	{
             params.opt |= DHCPV4_OPT_43;
 	}
 #endif
-        CcspTraceInfo(("Starting DHCPv4 Client for iface: %s \n", params.ifname));
-        pid = start_dhcpv4_client(&params);
-        WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
-    }
+    CcspTraceInfo(("Starting DHCPv4 Client for iface: %s \n", params.ifname));
+    pid = start_dhcpv4_client(&params);
 
     return pid;
 }
@@ -646,30 +633,6 @@ ANSC_STATUS WanManager_StopDhcpv4Client(char * iface_name, unsigned char IsRelea
     return ret;
 }
 
-void WanUpdateDhcp6cProcessId(char *currentBaseIfName)
-{
-    INT           wanIndex = -1;
-    int processId = 0;
-    char cmdLine[BUFLEN_128];
-    char out[BUFLEN_128] = {0};
-
-    snprintf(cmdLine, sizeof(cmdLine)-1, "pidof %s", DHCPV6_CLIENT_NAME);
-    _get_shell_output(cmdLine, out, sizeof(out));
-    CcspTraceError(("%s Updating dibbler client pid %s\n", __func__, out));
-    processId = atoi(out);
-
-    WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceDataByName_locked(currentBaseIfName);
-    if (pWanDmlIfaceData != NULL)
-    {
-        pWanDmlIfaceData->data.IP.Dhcp6cPid = processId;		
-        WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
-    }
-    else
-    {
-        CcspTraceError(("%s Failed to get index for %s\n", __FUNCTION__, currentBaseIfName));
-        return;
-    }
-}
 
 #ifdef FEATURE_MAPT
 const char *nat44PostRoutingTable = "OUTBOUND_POSTROUTING";
@@ -2084,231 +2047,6 @@ ANSC_HANDLE WanManager_AddIfaceMarking(DML_WAN_IFACE* pWanDmlIface, ULONG* pInsN
 
 #endif /* * FEATURE_802_1P_COS_MARKING */
 
-ANSC_STATUS WanManager_CreatePPPSession(DML_WAN_IFACE* pInterface)
-{
-    pthread_t pppThreadId;
-    INT iErrorCode;
-    char wan_iface_name[10] = {0};
-
-    /* Remove erouter0 dummy wan bridge if exists */
-    deleteDummyWanBridgeIfExist(pInterface->Wan.Name);
-    if (pInterface->PPP.LinkType == WAN_IFACE_PPP_LINK_TYPE_PPPoA)
-    {
-        strncpy(wan_iface_name, BASE_IFNAME_PPPoA, strlen(BASE_IFNAME_PPPoA));
-    }
-    else if (pInterface->PPP.LinkType == WAN_IFACE_PPP_LINK_TYPE_PPPoE)
-    {
-        strncpy(wan_iface_name, BASE_IFNAME_PPPoE, strlen(BASE_IFNAME_PPPoE));
-    }
-    else
-    {
-        strncpy(wan_iface_name, DEFAULT_IFNAME, strlen(DEFAULT_IFNAME));
-    }    
-    if (syscfg_set_commit(NULL, SYSCFG_WAN_INTERFACE_NAME, wan_iface_name) != 0)
-    {
-        CcspTraceError(("%s %d - syscfg_set failed to set Interafce=%s \n", __FUNCTION__, __LINE__, wan_iface_name ));
-    }else{
-        CcspTraceInfo(("%s %d - syscfg_set successfully to set Interafce=%s \n", __FUNCTION__, __LINE__, wan_iface_name ));
-    }
-
-    iErrorCode = pthread_create( &pppThreadId, NULL, &DmlHandlePPPCreateRequestThread, (void*)pInterface );
-    if( 0 != iErrorCode )
-    {
-        CcspTraceInfo(("%s %d - Failed to start VLAN refresh thread EC:%d\n", __FUNCTION__, __LINE__, iErrorCode ));
-        return ANSC_STATUS_FAILURE;
-    }
-    return ANSC_STATUS_SUCCESS;
-}
-
-static void* DmlHandlePPPCreateRequestThread( void *arg )
-{
-    char acSetParamName[DATAMODEL_PARAM_LENGTH] = {0};
-    char acSetParamValue[DATAMODEL_PARAM_LENGTH] = {0};
-    char adslPassword[DATAMODEL_PARAM_LENGTH] = {0};
-    char adslUserName[DATAMODEL_PARAM_LENGTH] = {0};
-    INT  iPPPInstance = -1;
-
-    DML_WAN_IFACE* pInterface = (DML_WAN_IFACE *) arg;
-
-    if( NULL == pInterface )
-    {
-        CcspTraceError(("%s Invalid Memory\n", __FUNCTION__));
-        return (void *)ANSC_STATUS_FAILURE;
-    }
-
-    pthread_detach(pthread_self());
-
-    //Create PPP Interface
-    if( -1 == iPPPInstance )
-    {
-        char  acTableName[ 128 ] = { 0 };
-        INT   iNewTableInstance  = -1;
-
-        snprintf( acTableName, sizeof(acTableName)-1, "%s", PPP_INTERFACE_TABLE );
-        if ( CCSP_SUCCESS != CcspBaseIf_AddTblRow (
-             bus_handle,
-             PPPMGR_COMPONENT_NAME,
-             PPPMGR_DBUS_PATH,
-             0,  /* session id */
-             acTableName,
-             &iNewTableInstance
-           ) )
-       {
-            CcspTraceError(("%s Failed to add table %s\n", __FUNCTION__,acTableName));
-            return (void *)ANSC_STATUS_FAILURE;
-       }
-
-       //Assign new instance
-       iPPPInstance = iNewTableInstance;
-    }
-
-    CcspTraceInfo(("%s %d PPP Interface Instance:%d\n",__FUNCTION__, __LINE__, iPPPInstance));
-    snprintf( acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s%d.", PPP_INTERFACE_TABLE, iPPPInstance);
-    CcspTraceInfo(("%s %d Set ppp path to %s \n", __FUNCTION__,__LINE__ ,acSetParamValue ));
-    strncpy(pInterface->PPP.Path, acSetParamValue,sizeof(pInterface->PPP.Path)-1);
-    WanMgr_SetRestartWanInfo(WAN_PPP_PATH_PARAM_NAME, pInterface->uiIfaceIdx, acSetParamValue);
-
-    //Set Lower Layer
-    snprintf( acSetParamName, DATAMODEL_PARAM_LENGTH, PPP_INTERFACE_LOWERLAYERS, iPPPInstance );
-    snprintf( acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", pInterface->Phy.Path );
-    WanMgr_RdkBus_SetParamValues( PPPMGR_COMPONENT_NAME, PPPMGR_DBUS_PATH, acSetParamName, acSetParamValue, ccsp_string, FALSE );
-
-    //Set Alias
-    snprintf( acSetParamName, DATAMODEL_PARAM_LENGTH, PPP_INTERFACE_ALIAS, iPPPInstance );
-    snprintf( acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", pInterface->Wan.Name );
-    WanMgr_RdkBus_SetParamValues( PPPMGR_COMPONENT_NAME, PPPMGR_DBUS_PATH, acSetParamName, acSetParamValue, ccsp_string, FALSE );
-
-    CcspTraceError(("%s Going to call GetAdslUsernameAndPassword \n", __FUNCTION__ ));
-
-#ifdef _HUB4_PRODUCT_REQ_
-    if (GetAdslUsernameAndPassword(adslUserName, adslPassword) != ANSC_STATUS_SUCCESS )
-    {
-        CcspTraceError(("%s Failed to get ADSL username and password \n", __FUNCTION__ ));
-    }
-#endif
-    CcspTraceError(("%s adslusername = %s adslpassword = %s \n", __FUNCTION__, adslUserName, adslPassword));
-    //Set Username
-    snprintf( acSetParamName, DATAMODEL_PARAM_LENGTH, PPP_INTERFACE_USERNAME, iPPPInstance );
-    snprintf( acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", adslUserName );
-    WanMgr_RdkBus_SetParamValues( PPPMGR_COMPONENT_NAME, PPPMGR_DBUS_PATH, acSetParamName, acSetParamValue, ccsp_string, TRUE );
-
-    //Set Password
-    snprintf( acSetParamName, DATAMODEL_PARAM_LENGTH, PPP_INTERFACE_PASSWORD, iPPPInstance );
-    snprintf( acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", adslPassword );
-    WanMgr_RdkBus_SetParamValues( PPPMGR_COMPONENT_NAME, PPPMGR_DBUS_PATH, acSetParamName, acSetParamValue, ccsp_string, TRUE );
-
-    //Set IPCPEnable
-    snprintf( acSetParamName, DATAMODEL_PARAM_LENGTH, PPP_INTERFACE_IPCP_ENABLE, iPPPInstance );
-    if (pInterface->PPP.IPCPEnable == TRUE)
-    {
-        snprintf( acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", "true" );
-    }
-    else
-    {
-        snprintf( acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", "false" );
-    }
-    WanMgr_RdkBus_SetParamValues( PPPMGR_COMPONENT_NAME, PPPMGR_DBUS_PATH, acSetParamName, acSetParamValue, ccsp_boolean, TRUE );
-
-    //Set IPv6CPEnable
-    snprintf( acSetParamName, DATAMODEL_PARAM_LENGTH, PPP_INTERFACE_IPV6CP_ENABLE, iPPPInstance );
-    if (pInterface->PPP.IPV6CPEnable == TRUE)
-    {
-        snprintf( acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", "true" );
-    }
-    else
-    {
-        snprintf( acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", "false" );
-    }
-    WanMgr_RdkBus_SetParamValues( PPPMGR_COMPONENT_NAME, PPPMGR_DBUS_PATH, acSetParamName, acSetParamValue, ccsp_boolean, TRUE );
-
-    //Set LinkType
-    snprintf( acSetParamName, DATAMODEL_PARAM_LENGTH, PPP_INTERFACE_LINKTYPE, iPPPInstance );
-    if (pInterface->PPP.LinkType == WAN_IFACE_PPP_LINK_TYPE_PPPoA)
-    {
-        snprintf( acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", "PPPoA" );
-    }
-    else if (pInterface->PPP.LinkType == WAN_IFACE_PPP_LINK_TYPE_PPPoE)
-    {
-        snprintf( acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", "PPPoE" );
-    }
-    WanMgr_RdkBus_SetParamValues( PPPMGR_COMPONENT_NAME, PPPMGR_DBUS_PATH, acSetParamName, acSetParamValue, ccsp_string, TRUE );
-
-    //Set PPP Enable
-    snprintf( acSetParamName, DATAMODEL_PARAM_LENGTH, PPP_INTERFACE_ENABLE, iPPPInstance );
-    if (pInterface->PPP.Enable == TRUE)
-    {
-        snprintf( acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", "true" );
-    }
-    else
-    {
-        snprintf( acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", "false" );
-    }
-    WanMgr_RdkBus_SetParamValues( PPPMGR_COMPONENT_NAME, PPPMGR_DBUS_PATH, acSetParamName, acSetParamValue, ccsp_boolean, TRUE );
-
-
-    CcspTraceInfo(("%s %d Successfully created PPP %s interface \n", __FUNCTION__,__LINE__, pInterface->Wan.Name ));
-
-    //Clean exit
-    pthread_exit(NULL);
-
-    return NULL;
-}
-
-ANSC_STATUS WanManager_DeletePPPSession(DML_WAN_IFACE* pInterface)
-{
-    char acSetParamName[256] = {0};
-    char acSetParamValue[256] = {0};
-    INT  iPPPInstance = -1;
-
-    if( NULL == pInterface )
-    {
-        CcspTraceError(("%s Invalid Memory\n", __FUNCTION__));
-        return ANSC_STATUS_FAILURE;
-    }
-    memset( acSetParamName, 0, DATAMODEL_PARAM_LENGTH );
-    memset( acSetParamValue, 0, DATAMODEL_PARAM_LENGTH );
-
-    iPPPInstance = get_index_from_path(pInterface->PPP.Path);
-    if (iPPPInstance == -1)
-    {
-        CcspTraceInfo(("%s %d PPP path is invalid \n",__FUNCTION__, __LINE__));
-        return ANSC_STATUS_FAILURE;
-    }
-
-    //Set PPP Enable
-    snprintf( acSetParamName, DATAMODEL_PARAM_LENGTH, PPP_INTERFACE_ENABLE, iPPPInstance );
-    snprintf( acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", "false" );
-    WanMgr_RdkBus_SetParamValues( PPPMGR_COMPONENT_NAME, PPPMGR_DBUS_PATH, acSetParamName, acSetParamValue, ccsp_boolean, TRUE );
-
-    //Delete PPP Instance
-    snprintf( acSetParamName, DATAMODEL_PARAM_LENGTH, PPP_INTERFACE_INSTANCE, iPPPInstance );
-    if ( CCSP_SUCCESS != CcspBaseIf_DeleteTblRow (
-                            bus_handle,
-                            PPPMGR_COMPONENT_NAME,
-                            PPPMGR_DBUS_PATH,
-                            0, /* session id */
-                            acSetParamName))
-     {
-         CcspTraceError(("%s Failed to delete table %s\n", __FUNCTION__, acSetParamName));
-         return ANSC_STATUS_FAILURE;
-     }
-
-    CcspTraceInfo(("%s %d Successfully deleted PPP interface \n", __FUNCTION__,__LINE__ ));
-
-    sleep(2);
-
-    /* Create a dummy wan bridge */
-    if (syscfg_set_commit(NULL, SYSCFG_WAN_INTERFACE_NAME, DEFAULT_IFNAME) != 0)
-    {
-        CcspTraceError(("%s %d - syscfg_set failed to set Interafce=%s \n", __FUNCTION__, __LINE__, DEFAULT_IFNAME ));
-    }else{
-        CcspTraceInfo(("%s %d - syscfg_set successfully to set Interafce=%s \n", __FUNCTION__, __LINE__, DEFAULT_IFNAME ));
-    }
-    createDummyWanBridge(pInterface->Wan.Name);
-
-    return ANSC_STATUS_SUCCESS;
-}
-
 int WanManager_AddGatewayRoute(const WANMGR_IPV4_DATA* pIpv4Info)
 {
     char cmd[BUFLEN_128]={0};
@@ -2418,45 +2156,6 @@ static void createDummyWanBridge(char * iface_name)
     return;
 }
 
-static void deleteDummyWanBridgeIfExist(char * iface_name)
-{
-    char resultBuff[256];
-    FILE *fp = NULL;
-    int ret = 0;
-    memset(resultBuff, '\0', sizeof(resultBuff));
-    fp = v_secure_popen("r","ip -d link show %s | tail -n +2 | grep bridge", iface_name);
-    if (fp != NULL)
-    {
-        fgets(resultBuff, sizeof(resultBuff), fp);
-        if (resultBuff[0] == '\0')
-        {
-            // Empty result. No bridge found.
-            CcspTraceInfo(("%s bridge interface is not exists in the system \n", iface_name));
-        }
-        else
-        {
-            CcspTraceInfo(("%s bridge interface is found in the system, so delete it \n", iface_name));
-            /* Down the interface before we delete it. */
-            ret = v_secure_system("ifconfig %s down", iface_name);
-	    if(ret != 0) {
-                CcspTraceWarning(("%s:Failure in executing command via v_secure_system. ret:[%d] \n",__FUNCTION__,ret));
-            }
-            ret = v_secure_system("brctl delbr %s", iface_name);
-	    if(ret != 0) {
-                CcspTraceWarning(("%s:Failure in executing command via v_secure_system. ret:[%d] \n",__FUNCTION__,ret));
-            }
-
-        }
-        ret = v_secure_pclose(fp);
-	if(ret !=0)
-	{
-	    CcspTraceError(("%s: Failed in closing pipe ret %d \n",__FUNCTION__,ret));
-	}
-    }
-
-    return;
-}
-
 ANSC_STATUS WanManager_CheckGivenPriorityExists(INT IfIndex, UINT uiTotalIfaces, INT priority, BOOL *Status)
 {
     ANSC_STATUS             retStatus    = ANSC_STATUS_SUCCESS;
@@ -2481,7 +2180,7 @@ ANSC_STATUS WanManager_CheckGivenPriorityExists(INT IfIndex, UINT uiTotalIfaces,
                 WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
                 continue;
             }
-            if(pWanIfaceData->Wan.Priority == priority)
+            if(pWanIfaceData->Selection.Priority == priority)
             {
                 *Status = TRUE;
                 WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
@@ -2517,9 +2216,9 @@ ANSC_STATUS WanManager_CheckGivenTypeExists(INT IfIndex, UINT uiTotalIfaces, DML
                 WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
                 continue;
             }
-            if(pWanIfaceData->Wan.Type == priorityType)
+            if(pWanIfaceData->Type == priorityType)
             {
-                if ( pWanIfaceData->Wan.Priority == priority)
+                if ( pWanIfaceData->Selection.Priority == priority)
                 {
                     *Status = TRUE;
                     WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
@@ -2638,26 +2337,26 @@ void* ThreadWanMgr_MonitorAndUpdateIpStatus( void *arg )
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
             break;
         }
-        ipstatus = IsIPObtained(pFixedInterface->Wan.Name);
+        ipstatus = IsIPObtained(pFixedInterface->VirtIfList->Name);
         if (ipstatus != 0)
         {
             if (ipstatus == 1)
             {
-                pFixedInterface->IP.Ipv4Status = WAN_IFACE_IPV4_STATE_UP;
+                pFixedInterface->VirtIfList->IP.Ipv4Status = WAN_IFACE_IPV4_STATE_UP;
             }
             if (ipstatus == 2)
             {
-                pFixedInterface->IP.Ipv6Status = WAN_IFACE_IPV6_STATE_UP;
+                pFixedInterface->VirtIfList->IP.Ipv6Status = WAN_IFACE_IPV6_STATE_UP;
             }
-            CcspTraceInfo(("%s-%d : IP Monitor Successful, Interface(%s) \n", __FUNCTION__, __LINE__, pFixedInterface->Wan.Name));
+            CcspTraceInfo(("%s-%d : IP Monitor Successful, Interface(%s) \n", __FUNCTION__, __LINE__, pFixedInterface->VirtIfList->Name));
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
             break;
         }
         if (counter >= IPMONITOR_WAIT_MAX_TIMEOUT)
         {
-            pFixedInterface->IP.Ipv4Status = WAN_IFACE_IPV4_STATE_DOWN;
-            pFixedInterface->IP.Ipv6Status = WAN_IFACE_IPV6_STATE_DOWN;
-            CcspTraceWarning(("%s-%d : IP Monitor timer expire, Interface(%s) \n", __FUNCTION__, __LINE__, pFixedInterface->Wan.Name));
+            pFixedInterface->VirtIfList->IP.Ipv4Status = WAN_IFACE_IPV4_STATE_DOWN;
+            pFixedInterface->VirtIfList->IP.Ipv6Status = WAN_IFACE_IPV6_STATE_DOWN;
+            CcspTraceWarning(("%s-%d : IP Monitor timer expire, Interface(%s) \n", __FUNCTION__, __LINE__, pFixedInterface->VirtIfList->Name));
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
             break;
         }

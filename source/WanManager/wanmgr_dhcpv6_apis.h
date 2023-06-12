@@ -334,8 +334,7 @@ WanMgr_DmlStartDHCP6Client
  * @param msg - Pointer to msg_payload_t structure contains Dhcpv6 configuration as part of ipc message
  * @return ANSC_STATUS_SUCCESS upon success else error code returned.
  */
-ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_WAN_IFACE* pIfaceData);
-void* IPV6CPStateChangeHandler (void *arg);
+ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf);
 
 void _get_shell_output(FILE *fp, char * out, int len);
 
@@ -343,6 +342,6 @@ void _get_shell_output(FILE *fp, char * out, int len);
  * @brief Set v6 prefixe required for lan configuration
  * @return RETURN_OK on success else RETURN_ERR
  ************************************************************************************/
-int setUpLanPrefixIPv6(DML_WAN_IFACE* pIfaceData);
+int setUpLanPrefixIPv6(DML_VIRTUAL_IFACE* pVirtIf);
 
 #endif //_WANMGR_DHCPV6_APIS_H_

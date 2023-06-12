@@ -115,6 +115,7 @@ extern token_t sysevent_token;
 #define VLAN_ETHLINK_TABLE_FORMAT          "Device.X_RDK_Ethernet.Link.%d."
 #define VLAN_ETHLINK_REFRESH_PARAM_NAME    "Device.X_RDK_Ethernet.Link.%d.X_RDK_Refresh"
 #define VLAN_ETHLINK_ENABLE_PARAM_NAME     "Device.X_RDK_Ethernet.Link.%d.Enable"
+#define VLAN_TERMINATION_TABLE             "Device.X_RDK_Ethernet.VLANTermination."
 //XDSL Manager
 #define DSL_COMPONENT_NAME "eRT.com.cisco.spvtg.ccsp.xdslmanager"
 #define DSL_COMPONENT_PATH "/com/cisco/spvtg/ccsp/xdslmanager"
@@ -157,8 +158,6 @@ ANSC_STATUS WanMgr_RdkBus_GetParamValueFromAnyComp( char * pQuery, char *pValue)
 int WanMgr_RdkBus_GetParamValuesFromDB( char *pParamName, char *pReturnVal, int ReturnValLength );
 int WanMgr_RdkBus_SetParamValuesToDB( char *pParamName, char *pParamVal );
 
-ANSC_STATUS WanMgr_RdkBus_getWanPolicy(DML_WAN_POLICY *wan_policy);
-ANSC_STATUS WanMgr_RdkBus_setWanPolicy(DML_WAN_POLICY wan_policy);
 ANSC_STATUS WanMgr_RdkBus_setWanEnableToPsm(BOOL WanEnable);
 ANSC_STATUS WanMgr_RdkBus_setAllowRemoteIfaceToPsm(BOOL Enable);
 ANSC_STATUS WanMgr_RdkBus_updateInterfaceUpstreamFlag(char *phyPath, BOOL flag);
@@ -168,25 +167,17 @@ ANSC_STATUS DmlGetInstanceByKeywordFromPandM(char *ifname, int *piInstanceNumber
 ANSC_STATUS WanMgr_RdkBus_SetRequestIfComponent(char *pPhyPath, char *pInputparamName, char *pInputParamValue, enum dataType_e type);
 ANSC_STATUS WaitForInterfaceComponentReady(char *pPhyPath);
 
-ANSC_STATUS WanMgr_RestartGetPhyStatus (DML_WAN_IFACE *pWanIfaceData);
-ANSC_STATUS WanMgr_RestartGetLinkStatus (DML_WAN_IFACE *pWanIfaceData);
+ANSC_STATUS WanMgr_RestartGetBaseInterfaceStatus (DML_WAN_IFACE *pWanIfaceData);
 ANSC_STATUS WanMgr_RdkBus_setDhcpv6DnsServerInfo(void);
-bool WanMgr_RestartUpdatePPPinfo(DML_WAN_IFACE *pWanIfaceData);
 
 #ifdef FEATURE_RDKB_AUTO_PORT_SWITCH
 void WanMgr_SetPortCapabilityForEthIntf(DML_WAN_POLICY eWanPolicy);
 #endif  //FEATURE_RDKB_AUTO_PORT_SWITCH
 
 #if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
-ANSC_STATUS WanMgr_RdkBus_setWanIpInterfaceData(DML_WAN_IFACE *pWanIfaceData);
+ANSC_STATUS WanMgr_RdkBus_setWanIpInterfaceData(DML_VIRTUAL_IFACE*  pVirtIf);
 #endif
 
-void WanMgr_RdkBus_setEthernetUpstream(bool setVal);
 ANSC_STATUS WanMgr_RdkBusDeleteVlanLink(DML_WAN_IFACE* pInterface );
-
-#if defined(WAN_MANAGER_UNIFICATION_ENABLED)
-ANSC_STATUS WanMgr_RdkBus_getWanGroupCount(int *wan_group_count);
-ANSC_STATUS WanMgr_RdkBus_getWanVirtualIfCount(int *wan_vif_count);
-#endif /** WAN_MANAGER_UNIFICATION_ENABLED */
 
 #endif /* _WANMGR_RDKBUS_UTILS_H_ */

@@ -104,14 +104,14 @@ static ANSC_STATUS wanmgr_dchpv4_get_ipc_msg_info(WANMGR_IPV4_DATA* pDhcpv4Data,
 }
 
 
-ANSC_STATUS wanmgr_handle_dhcpv4_event_data(DML_WAN_IFACE* pIfaceData)
+ANSC_STATUS wanmgr_handle_dhcpv4_event_data(DML_VIRTUAL_IFACE* pVirtIf)
 {
-    if(NULL == pIfaceData)
+    if(NULL == pVirtIf)
     {
        return ANSC_STATUS_FAILURE;
     }
 
-    ipc_dhcpv4_data_t* pDhcpcInfo = pIfaceData->IP.pIpcIpv4Data;
+    ipc_dhcpv4_data_t* pDhcpcInfo = pVirtIf->IP.pIpcIpv4Data;
     if(NULL == pDhcpcInfo)
     {
        return ANSC_STATUS_BAD_PARAMETER;
@@ -121,11 +121,11 @@ ANSC_STATUS wanmgr_handle_dhcpv4_event_data(DML_WAN_IFACE* pIfaceData)
     bool IPv4ConfigChanged = FALSE;
 
 
-    if (strcmp(pIfaceData->IP.Ipv4Data.ip, pDhcpcInfo->ip) ||
-      strcmp(pIfaceData->IP.Ipv4Data.mask, pDhcpcInfo->mask) ||
-      strcmp(pIfaceData->IP.Ipv4Data.gateway, pDhcpcInfo->gateway) ||
-      strcmp(pIfaceData->IP.Ipv4Data.dnsServer, pDhcpcInfo->dnsServer) ||
-      strcmp(pIfaceData->IP.Ipv4Data.dnsServer1, pDhcpcInfo->dnsServer1))
+    if (strcmp(pVirtIf->IP.Ipv4Data.ip, pDhcpcInfo->ip) ||
+      strcmp(pVirtIf->IP.Ipv4Data.mask, pDhcpcInfo->mask) ||
+      strcmp(pVirtIf->IP.Ipv4Data.gateway, pDhcpcInfo->gateway) ||
+      strcmp(pVirtIf->IP.Ipv4Data.dnsServer, pDhcpcInfo->dnsServer) ||
+      strcmp(pVirtIf->IP.Ipv4Data.dnsServer1, pDhcpcInfo->dnsServer1))
     {
         CcspTraceInfo(("%s %d - IPV4 configuration changed \n", __FUNCTION__, __LINE__));
         IPv4ConfigChanged = TRUE;
@@ -164,7 +164,7 @@ ANSC_STATUS wanmgr_handle_dhcpv4_event_data(DML_WAN_IFACE* pIfaceData)
             }
 #endif
             //Update isIPv4ConfigChanged flag.
-            pIfaceData->IP.Ipv4Changed = TRUE;
+            pVirtIf->IP.Ipv4Changed = TRUE;
         }
         else
         {
@@ -193,203 +193,186 @@ ANSC_STATUS wanmgr_handle_dhcpv4_event_data(DML_WAN_IFACE* pIfaceData)
             sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV4_TIME_ZONE, pDhcpcInfo->timeZone, 0);
 #endif
 #ifdef FEATURE_IPOE_HEALTH_CHECK
-            pIfaceData->IP.Ipv4Renewed = TRUE;
+            pVirtIf->IP.Ipv4Renewed = TRUE;
 #endif
         }
 
         // update current IPv4 data
-        wanmgr_dchpv4_get_ipc_msg_info(&(pIfaceData->IP.Ipv4Data), pDhcpcInfo);
-        WanManager_UpdateInterfaceStatus(pIfaceData, WANMGR_IFACE_CONNECTION_UP);
+        wanmgr_dchpv4_get_ipc_msg_info(&(pVirtIf->IP.Ipv4Data), pDhcpcInfo);
+        WanManager_UpdateInterfaceStatus(pVirtIf, WANMGR_IFACE_CONNECTION_UP);
     }
     else if (pDhcpcInfo->isExpired)
     {
         CcspTraceInfo(("DHCPC Lease expired!!!!!!!!!!\n"));
         // update current IPv4 data
-        wanmgr_dchpv4_get_ipc_msg_info(&(pIfaceData->IP.Ipv4Data), pDhcpcInfo);
-        WanManager_UpdateInterfaceStatus(pIfaceData, WANMGR_IFACE_CONNECTION_DOWN);
+        wanmgr_dchpv4_get_ipc_msg_info(&(pVirtIf->IP.Ipv4Data), pDhcpcInfo);
+        WanManager_UpdateInterfaceStatus(pVirtIf, WANMGR_IFACE_CONNECTION_DOWN);
     }
 
-
-    if (pIfaceData->IP.pIpcIpv4Data != NULL )
+    if (pVirtIf->IP.pIpcIpv4Data != NULL )
     {
         //free memory
-        free(pIfaceData->IP.pIpcIpv4Data);
-        pIfaceData->IP.pIpcIpv4Data = NULL;
+        free(pVirtIf->IP.pIpcIpv4Data);
+        pVirtIf->IP.pIpcIpv4Data = NULL;
     }
 
     return ANSC_STATUS_SUCCESS;
 }
 
-void WanMgr_UpdateIpFromCellularMgr (char *dhcpcInterface)
+void WanMgr_UpdateIpFromCellularMgr (WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
 {
     char acTmpReturnValue[256] = {0};
     char acTmpQueryParam[256] = {0};
 
-    if(NULL == dhcpcInterface)
-    {
-        return;
-    }
-
+    CcspTraceInfo(("%s %d Enter \n", __FUNCTION__, __LINE__));
     //get iface data
-    WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceDataByName_locked(dhcpcInterface);
-    if(pWanDmlIfaceData != NULL)
+    if(pWanIfaceCtrl != NULL)
     {
-        DML_WAN_IFACE* pIfaceData = &(pWanDmlIfaceData->data);
-        //check if previously message was already handled
-        if(pIfaceData->IP.pIpcIpv4Data == NULL)
+        DML_WAN_IFACE* pIfaceData = pWanIfaceCtrl->pIfaceData;
+        DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIfaceById(pIfaceData->VirtIfList, pWanIfaceCtrl->VirIfIdx);
+        //check if previously message was already handled. 
+        //TODO: This is a workaround for cellular. We should remove check for ipv4 state. get Ip from cellular manager only if IPV4_STATE_DOWN.
+        if(p_VirtIf->IP.pIpcIpv4Data == NULL && p_VirtIf->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_DOWN)
         {
             //allocate
-            pIfaceData->IP.pIpcIpv4Data = (ipc_dhcpv4_data_t*) malloc(sizeof(ipc_dhcpv4_data_t));
-            if(pIfaceData->IP.pIpcIpv4Data != NULL)
+            p_VirtIf->IP.pIpcIpv4Data = (ipc_dhcpv4_data_t*) malloc(sizeof(ipc_dhcpv4_data_t));
+            if(p_VirtIf->IP.pIpcIpv4Data != NULL)
             {
-                memset(pIfaceData->IP.pIpcIpv4Data, 0, sizeof(ipc_dhcpv4_data_t));
+                memset(p_VirtIf->IP.pIpcIpv4Data, 0, sizeof(ipc_dhcpv4_data_t));
 
-                pIfaceData->IP.pIpcIpv4Data->isExpired = FALSE;
-                pIfaceData->IP.pIpcIpv4Data->addressAssigned = TRUE;
+                p_VirtIf->IP.pIpcIpv4Data->isExpired = FALSE;
+                p_VirtIf->IP.pIpcIpv4Data->addressAssigned = TRUE;
                 /* we don't receive ntp time offset value from cellular network */
-                pIfaceData->IP.pIpcIpv4Data->isTimeOffsetAssigned = FALSE;
+                p_VirtIf->IP.pIpcIpv4Data->isTimeOffsetAssigned = FALSE;
 
                 //GET IP address
-                snprintf( acTmpQueryParam, sizeof(acTmpQueryParam ),"%s%s", pIfaceData->Phy.Path, CELLULARMGR_IPADDRESS);
+                snprintf( acTmpQueryParam, sizeof(acTmpQueryParam ),"%s%s", pIfaceData->BaseInterface, CELLULARMGR_IPADDRESS);
                 memset( acTmpReturnValue, 0, sizeof( acTmpReturnValue ) );
                 if ( ANSC_STATUS_FAILURE == WanMgr_RdkBus_GetParamValues( CELLULARMGR_COMPONENT_NAME, CELLULARMGR_DBUS_PATH, acTmpQueryParam, acTmpReturnValue ) )
                 {
                     CcspTraceError(("%s %d Failed to get param value for paramname %s \n", __FUNCTION__, __LINE__, acTmpQueryParam));
-                    WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
                     return;
                 }
                 if (acTmpReturnValue[0] != '\0')
                 {
-                    strncpy (pIfaceData->IP.pIpcIpv4Data->ip, acTmpReturnValue, BUFLEN_32);
+                    strncpy (p_VirtIf->IP.pIpcIpv4Data->ip, acTmpReturnValue, BUFLEN_32);
                 }
                 else
                 {
-                    strncpy (pIfaceData->IP.pIpcIpv4Data->dhcpState, DHCP_STATE_DOWN, BUFLEN_64);
-                    pIfaceData->IP.pIpcIpv4Data->addressAssigned = FALSE;
+                    strncpy (p_VirtIf->IP.pIpcIpv4Data->dhcpState, DHCP_STATE_DOWN, BUFLEN_64);
+                    p_VirtIf->IP.pIpcIpv4Data->addressAssigned = FALSE;
                 }
                 //get gateway IP
                 memset( acTmpReturnValue, 0, sizeof( acTmpReturnValue ) );
                 memset( acTmpQueryParam, 0, sizeof( acTmpQueryParam ) );
-                snprintf( acTmpQueryParam, sizeof(acTmpQueryParam ),"%s%s", pIfaceData->Phy.Path, CELLULARMGR_GATEWAY);
+                snprintf( acTmpQueryParam, sizeof(acTmpQueryParam ),"%s%s", pIfaceData->BaseInterface, CELLULARMGR_GATEWAY);
 
                 if ( ANSC_STATUS_FAILURE == WanMgr_RdkBus_GetParamValues( CELLULARMGR_COMPONENT_NAME, CELLULARMGR_DBUS_PATH, acTmpQueryParam, acTmpReturnValue ) )
                 {
                     CcspTraceError(("%s %d Failed to get param value for paramname %s \n", __FUNCTION__, __LINE__, acTmpQueryParam));
-                    WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
                     return;
                 }
                 if (acTmpReturnValue[0] != '\0')
                 {
-                    strncpy (pIfaceData->IP.pIpcIpv4Data->gateway, acTmpReturnValue, BUFLEN_32);
+                    strncpy (p_VirtIf->IP.pIpcIpv4Data->gateway, acTmpReturnValue, BUFLEN_32);
                 }
                 else
                 {
-                    strncpy (pIfaceData->IP.pIpcIpv4Data->dhcpState, DHCP_STATE_DOWN, BUFLEN_64);
-                    pIfaceData->IP.pIpcIpv4Data->addressAssigned = FALSE;
+                    strncpy (p_VirtIf->IP.pIpcIpv4Data->dhcpState, DHCP_STATE_DOWN, BUFLEN_64);
+                    p_VirtIf->IP.pIpcIpv4Data->addressAssigned = FALSE;
                 }
                 //Query for DNS Servers
                 memset( acTmpReturnValue, 0, sizeof( acTmpReturnValue ) );
                 memset( acTmpQueryParam, 0, sizeof( acTmpQueryParam ) );
-                snprintf( acTmpQueryParam, sizeof(acTmpQueryParam ),"%s%s", pIfaceData->Phy.Path, CELLULARMGR_PRIMARY_DNS);
+                snprintf( acTmpQueryParam, sizeof(acTmpQueryParam ),"%s%s", pIfaceData->BaseInterface, CELLULARMGR_PRIMARY_DNS);
 
                 if ( ANSC_STATUS_FAILURE == WanMgr_RdkBus_GetParamValues( CELLULARMGR_COMPONENT_NAME, CELLULARMGR_DBUS_PATH, acTmpQueryParam, acTmpReturnValue ) )
                 {
                     CcspTraceError(("%s %d Failed to get param value for paramname %s \n", __FUNCTION__, __LINE__, acTmpQueryParam));
-                    WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
                     return;
                 }
                 if (acTmpReturnValue[0] != '\0')
                 {
-                    strncpy (pIfaceData->IP.pIpcIpv4Data->dnsServer, acTmpReturnValue, BUFLEN_64);
+                    strncpy (p_VirtIf->IP.pIpcIpv4Data->dnsServer, acTmpReturnValue, BUFLEN_64);
                 }
                 else
                 {
-                    strncpy (pIfaceData->IP.pIpcIpv4Data->dhcpState, DHCP_STATE_DOWN, BUFLEN_64);
-                    pIfaceData->IP.pIpcIpv4Data->addressAssigned = FALSE;
+                    strncpy (p_VirtIf->IP.pIpcIpv4Data->dhcpState, DHCP_STATE_DOWN, BUFLEN_64);
+                    p_VirtIf->IP.pIpcIpv4Data->addressAssigned = FALSE;
                 }
 
                 memset( acTmpReturnValue, 0, sizeof( acTmpReturnValue ) );
                 memset( acTmpQueryParam, 0, sizeof( acTmpQueryParam ) );
-                snprintf( acTmpQueryParam, sizeof(acTmpQueryParam ),"%s%s", pIfaceData->Phy.Path, CELLULARMGR_SECONDARY_DNS);
+                snprintf( acTmpQueryParam, sizeof(acTmpQueryParam ),"%s%s", pIfaceData->BaseInterface, CELLULARMGR_SECONDARY_DNS);
 
                 if ( ANSC_STATUS_FAILURE == WanMgr_RdkBus_GetParamValues( CELLULARMGR_COMPONENT_NAME, CELLULARMGR_DBUS_PATH, acTmpQueryParam, acTmpReturnValue ) )
                 {
                     CcspTraceError(("%s %d Failed to get param value for paramname %s \n", __FUNCTION__, __LINE__, acTmpQueryParam));
-                    WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
                     return;
                 }
                 if (acTmpReturnValue[0] != '\0')
                 {
-                    strncpy (pIfaceData->IP.pIpcIpv4Data->dnsServer1, acTmpReturnValue, BUFLEN_64);
-                }
-                else
-                {
-                    strncpy (pIfaceData->IP.pIpcIpv4Data->dhcpState, DHCP_STATE_DOWN, BUFLEN_64);
-                    pIfaceData->IP.pIpcIpv4Data->addressAssigned = FALSE;
+                    strncpy (p_VirtIf->IP.pIpcIpv4Data->dnsServer1, acTmpReturnValue, BUFLEN_64);
                 }
 
                 //update iface name 
-                strncpy(pIfaceData->IP.pIpcIpv4Data->dhcpcInterface, dhcpcInterface, sizeof(pIfaceData->IP.pIpcIpv4Data->dhcpcInterface) - 1);
+                strncpy(p_VirtIf->IP.pIpcIpv4Data->dhcpcInterface, p_VirtIf->Name, sizeof(p_VirtIf->IP.pIpcIpv4Data->dhcpcInterface) - 1);
 
                 //query mask
                 memset( acTmpReturnValue, 0, sizeof( acTmpReturnValue ) );
                 memset( acTmpQueryParam, 0, sizeof( acTmpQueryParam ) );
-                snprintf( acTmpQueryParam, sizeof(acTmpQueryParam ),"%s%s", pIfaceData->Phy.Path, CELLULARMGR_SUBNET_MASK);
+                snprintf( acTmpQueryParam, sizeof(acTmpQueryParam ),"%s%s", pIfaceData->BaseInterface, CELLULARMGR_SUBNET_MASK);
 
                 if ( ANSC_STATUS_FAILURE == WanMgr_RdkBus_GetParamValues( CELLULARMGR_COMPONENT_NAME, CELLULARMGR_DBUS_PATH, acTmpQueryParam, acTmpReturnValue ) )
                 {
                     CcspTraceError(("%s %d Failed to get param value for paramname %s \n", __FUNCTION__, __LINE__, acTmpQueryParam));
-                    WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
                     return;
                 }
                 if (acTmpReturnValue[0] != '\0')
                 {
-                    strncpy (pIfaceData->IP.pIpcIpv4Data->mask, acTmpReturnValue, BUFLEN_32);
+                    strncpy (p_VirtIf->IP.pIpcIpv4Data->mask, acTmpReturnValue, BUFLEN_32);
                 }
                 else
                 {
-                    strncpy (pIfaceData->IP.pIpcIpv4Data->dhcpState, DHCP_STATE_DOWN, BUFLEN_64);
-                    pIfaceData->IP.pIpcIpv4Data->addressAssigned = FALSE;
+                    strncpy (p_VirtIf->IP.pIpcIpv4Data->dhcpState, DHCP_STATE_DOWN, BUFLEN_64);
+                    p_VirtIf->IP.pIpcIpv4Data->addressAssigned = FALSE;
                 }
 
                 //query mtu size
 
                 memset( acTmpReturnValue, 0, sizeof( acTmpReturnValue ) );
                 memset( acTmpQueryParam, 0, sizeof( acTmpQueryParam ) );
-                snprintf( acTmpQueryParam, sizeof(acTmpQueryParam ),"%s%s", pIfaceData->Phy.Path, CELLULARMGR_MTU_SIZE);
+                snprintf( acTmpQueryParam, sizeof(acTmpQueryParam ),"%s%s", pIfaceData->BaseInterface, CELLULARMGR_MTU_SIZE);
 
                 if ( ANSC_STATUS_FAILURE == WanMgr_RdkBus_GetParamValues( CELLULARMGR_COMPONENT_NAME, CELLULARMGR_DBUS_PATH, acTmpQueryParam, acTmpReturnValue ) )
                 {
                     CcspTraceError(("%s %d Failed to get param value for paramname %s \n", __FUNCTION__, __LINE__, acTmpQueryParam));
-                    WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
                     return;
                 }
                 if (acTmpReturnValue[0] != '\0')
                 {
-                    pIfaceData->IP.pIpcIpv4Data->mtuSize = atoi(acTmpReturnValue);
-                    pIfaceData->IP.pIpcIpv4Data->mtuAssigned = TRUE;
+                    p_VirtIf->IP.pIpcIpv4Data->mtuSize = atoi(acTmpReturnValue);
+                    p_VirtIf->IP.pIpcIpv4Data->mtuAssigned = TRUE;
                 }
                 else
                 {
-                    strncpy (pIfaceData->IP.pIpcIpv4Data->dhcpState, DHCP_STATE_DOWN, BUFLEN_64);
-                    pIfaceData->IP.pIpcIpv4Data->addressAssigned = FALSE;
+                    strncpy (p_VirtIf->IP.pIpcIpv4Data->dhcpState, DHCP_STATE_DOWN, BUFLEN_64);
+                    p_VirtIf->IP.pIpcIpv4Data->addressAssigned = FALSE;
                 }
 
                 //update Ipv4 data
-                wanmgr_handle_dhcpv4_event_data(pIfaceData);
+                wanmgr_handle_dhcpv4_event_data(p_VirtIf);
             }    
         }
-
         //IPv6 data
 
         memset( acTmpReturnValue, 0, sizeof( acTmpReturnValue ) );
         memset( acTmpQueryParam, 0, sizeof( acTmpQueryParam ) );
-        snprintf( acTmpQueryParam, sizeof(acTmpQueryParam ),"%s%s", pIfaceData->Phy.Path, CELLULARMGR_IPv6_ADDRESS);
+        snprintf( acTmpQueryParam, sizeof(acTmpQueryParam ),"%s%s", pIfaceData->BaseInterface, CELLULARMGR_IPv6_ADDRESS);
 
         if ( ANSC_STATUS_FAILURE == WanMgr_RdkBus_GetParamValues( CELLULARMGR_COMPONENT_NAME, CELLULARMGR_DBUS_PATH, acTmpQueryParam, acTmpReturnValue ) )
         {
             CcspTraceError(("%s %d Failed to get param value for paramname %s \n", __FUNCTION__, __LINE__, acTmpQueryParam));
-            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
             return;
         }
         if (acTmpReturnValue[0] != '\0')
@@ -414,7 +397,6 @@ void WanMgr_UpdateIpFromCellularMgr (char *dhcpcInterface)
             if (sock < 0)
             {
                 CcspTraceInfo(("%s %d: Failed to create the socket , error = [%d][%s]\n", __FUNCTION__, __LINE__, errno, strerror(errno)));
-                WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
                 return;
             }
 
@@ -424,7 +406,6 @@ void WanMgr_UpdateIpFromCellularMgr (char *dhcpcInterface)
             {
                 CcspTraceInfo(("%s %d: Failed to write in fifo , error = [%d][%s]\n", __FUNCTION__, __LINE__, errno, strerror(errno)));
                 close(sock);
-                WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
                 return;
             }
 
@@ -433,153 +414,129 @@ void WanMgr_UpdateIpFromCellularMgr (char *dhcpcInterface)
         }
     }
 
-    if(pWanDmlIfaceData != NULL)
-    {
-        WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
-    }
     return NULL;
 }
 
-void* IPCPStateChangeHandler (void *arg)
+ANSC_STATUS IPCPStateChangeHandler (DML_VIRTUAL_IFACE* pVirtIf) 
 {
     char acTmpReturnValue[256] = {0};
     char acTmpQueryParam[256] = {0};
     char *token = NULL;
     int index = -1;
 
-    const char *dhcpcInterface = (char *) arg;
-    if(NULL == dhcpcInterface)
-    {
-       return (void *)ANSC_STATUS_FAILURE;
-    }
-    pthread_detach(pthread_self());
 
     //get iface data
-    WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceDataByName_locked(dhcpcInterface);
-    if(pWanDmlIfaceData != NULL)
+    if(pVirtIf == NULL)
     {
-        DML_WAN_IFACE* pIfaceData = &(pWanDmlIfaceData->data);
+        CcspTraceError(("%s %d Invalid memory \n", __FUNCTION__, __LINE__));
+    }
 
-        // Get PPP instance number
-        sscanf(pIfaceData->PPP.Path, "%*[^0-9]%d", &index);
+    // Get PPP instance number
+    sscanf(pVirtIf->PPP.Interface, "%*[^0-9]%d", &index);
 
-        //check if previously message was already handled
-        if(pIfaceData->IP.pIpcIpv4Data == NULL)
+    //check if previously message was already handled
+    if(pVirtIf->IP.pIpcIpv4Data == NULL)
+    {
+        //allocate
+        pVirtIf->IP.pIpcIpv4Data = (ipc_dhcpv4_data_t*) malloc(sizeof(ipc_dhcpv4_data_t));
+        if(pVirtIf->IP.pIpcIpv4Data != NULL)
         {
-            //allocate
-            pIfaceData->IP.pIpcIpv4Data = (ipc_dhcpv4_data_t*) malloc(sizeof(ipc_dhcpv4_data_t));
-            if(pIfaceData->IP.pIpcIpv4Data != NULL)
+            switch (pVirtIf->PPP.IPCPStatus)
             {
-                switch (pIfaceData->PPP.IPCPStatus)
-                {
-                     case WAN_IFACE_IPCP_STATUS_UP:
-                     {
-                         /* We don't receive MTU from PPP so we need to assign default MTU size */
-                         pIfaceData->IP.pIpcIpv4Data->mtuAssigned = FALSE;
-                         pIfaceData->IP.pIpcIpv4Data->mtuSize = 0;
+                case WAN_IFACE_IPCP_STATUS_UP:
+                    {
+                        /* We don't receive MTU from PPP so we need to assign default MTU size */
+                        pVirtIf->IP.pIpcIpv4Data->mtuAssigned = FALSE;
+                        pVirtIf->IP.pIpcIpv4Data->mtuSize = 0;
                         /* we don't receive ntp time offset value from ppp */
-                         pIfaceData->IP.pIpcIpv4Data->isTimeOffsetAssigned = FALSE;
-                         pIfaceData->IP.pIpcIpv4Data->timeOffset = 0;
-                         pIfaceData->IP.pIpcIpv4Data->isExpired = FALSE;
-                         pIfaceData->IP.pIpcIpv4Data->addressAssigned = TRUE;
-                         strncpy (pIfaceData->IP.pIpcIpv4Data->dhcpState, DHCP_STATE_UP, BUFLEN_64);
+                        pVirtIf->IP.pIpcIpv4Data->isTimeOffsetAssigned = FALSE;
+                        pVirtIf->IP.pIpcIpv4Data->timeOffset = 0;
+                        pVirtIf->IP.pIpcIpv4Data->isExpired = FALSE;
+                        pVirtIf->IP.pIpcIpv4Data->addressAssigned = TRUE;
+                        strncpy (pVirtIf->IP.pIpcIpv4Data->dhcpState, DHCP_STATE_UP, BUFLEN_64);
 
-                         //Query for Local IP address
-                         snprintf( acTmpQueryParam, sizeof(acTmpQueryParam ), PPP_IPCP_LOCAL_IPADDRESS, index );
-                         memset( acTmpReturnValue, 0, sizeof( acTmpReturnValue ) );
-                         if ( ANSC_STATUS_FAILURE == WanMgr_RdkBus_GetParamValues( PPPMGR_COMPONENT_NAME, PPPMGR_DBUS_PATH, acTmpQueryParam, acTmpReturnValue ) )
-                         {
-                             CcspTraceError(("%s %d Failed to get param value for paramname %s \n", __FUNCTION__, __LINE__, acTmpQueryParam));
-                             goto EXIT;
-                         }
-                         if (acTmpReturnValue[0] != '\0')
-                         {
-                             strncpy (pIfaceData->IP.pIpcIpv4Data->ip, acTmpReturnValue, BUFLEN_32);
-                         }
-                         else
-                         {
-                             strncpy (pIfaceData->IP.pIpcIpv4Data->dhcpState, DHCP_STATE_DOWN, BUFLEN_64);
-                             pIfaceData->IP.pIpcIpv4Data->addressAssigned = FALSE;
-                         }
+                        //Query for Local IP address
+                        snprintf( acTmpQueryParam, sizeof(acTmpQueryParam ), PPP_IPCP_LOCAL_IPADDRESS, index );
+                        memset( acTmpReturnValue, 0, sizeof( acTmpReturnValue ) );
+                        if ( ANSC_STATUS_FAILURE == WanMgr_RdkBus_GetParamValues( PPPMGR_COMPONENT_NAME, PPPMGR_DBUS_PATH, acTmpQueryParam, acTmpReturnValue ) )
+                        {
+                            CcspTraceError(("%s %d Failed to get param value for paramname %s \n", __FUNCTION__, __LINE__, acTmpQueryParam));
+                            return ANSC_STATUS_FAILURE;
+                        }
+                        if (acTmpReturnValue[0] != '\0')
+                        {
+                            strncpy (pVirtIf->IP.pIpcIpv4Data->ip, acTmpReturnValue, BUFLEN_32);
+                        }
+                        else
+                        {
+                            strncpy (pVirtIf->IP.pIpcIpv4Data->dhcpState, DHCP_STATE_DOWN, BUFLEN_64);
+                            pVirtIf->IP.pIpcIpv4Data->addressAssigned = FALSE;
+                        }
 
-                         //Query for Remote IP address
-                         snprintf( acTmpQueryParam, sizeof(acTmpQueryParam ), PPP_IPCP_REMOTEIPADDRESS, index );
-                         memset( acTmpReturnValue, 0, sizeof( acTmpReturnValue ) );
-                         if ( ANSC_STATUS_FAILURE == WanMgr_RdkBus_GetParamValues( PPPMGR_COMPONENT_NAME, PPPMGR_DBUS_PATH, acTmpQueryParam, acTmpReturnValue ) )
-                         {
-                             CcspTraceError(("%s %d Failed to get param value for paramname %s \n", __FUNCTION__, __LINE__, acTmpQueryParam));
-                             goto EXIT;
-                         }
-                         if (acTmpReturnValue[0] != '\0')
-                         {
-                              strncpy (pIfaceData->IP.pIpcIpv4Data->gateway, acTmpReturnValue, BUFLEN_32);
-                         }
-                         else
-                         {
-                             strncpy (pIfaceData->IP.pIpcIpv4Data->dhcpState, DHCP_STATE_DOWN, BUFLEN_64);
-                             pIfaceData->IP.pIpcIpv4Data->addressAssigned = FALSE;
-                         }
-                         //Query for DNS Servers
-                         snprintf( acTmpQueryParam, sizeof(acTmpQueryParam ), PPP_IPCP_DNS_SERVERS, index );
-                         memset( acTmpReturnValue, 0, sizeof( acTmpReturnValue ) );
-                         if ( ANSC_STATUS_FAILURE == WanMgr_RdkBus_GetParamValues( PPPMGR_COMPONENT_NAME, PPPMGR_DBUS_PATH, acTmpQueryParam, acTmpReturnValue ) )
-                         {
-                             CcspTraceError(("%s %d Failed to get param value for paramname %s \n", __FUNCTION__, __LINE__, acTmpQueryParam));
-                             goto EXIT;
-                         }
-                         if (acTmpReturnValue[0] != '\0')
-                         {
-                             //Return first DNS Server
-                             token = strtok(acTmpReturnValue, ",");
-                             if (token != NULL)
-                             {
-                                 strncpy (pIfaceData->IP.pIpcIpv4Data->dnsServer, token,sizeof(pIfaceData->IP.pIpcIpv4Data->dnsServer)-1);
-                                 //Return first DNS Server
-                                 token = strtok(NULL, ",");
-                                 if (token != NULL)
-                                 {
-                                     strncpy (pIfaceData->IP.pIpcIpv4Data->dnsServer1, token,sizeof(pIfaceData->IP.pIpcIpv4Data->dnsServer1)-1);
-                                 }
-                             }
-                         }
+                        //Query for Remote IP address
+                        snprintf( acTmpQueryParam, sizeof(acTmpQueryParam ), PPP_IPCP_REMOTEIPADDRESS, index );
+                        memset( acTmpReturnValue, 0, sizeof( acTmpReturnValue ) );
+                        if ( ANSC_STATUS_FAILURE == WanMgr_RdkBus_GetParamValues( PPPMGR_COMPONENT_NAME, PPPMGR_DBUS_PATH, acTmpQueryParam, acTmpReturnValue ) )
+                        {
+                            CcspTraceError(("%s %d Failed to get param value for paramname %s \n", __FUNCTION__, __LINE__, acTmpQueryParam));
+                            return ANSC_STATUS_FAILURE;
+                        }
+                        if (acTmpReturnValue[0] != '\0')
+                        {
+                            strncpy (pVirtIf->IP.pIpcIpv4Data->gateway, acTmpReturnValue, BUFLEN_32);
+                        }
+                        else
+                        {
+                            strncpy (pVirtIf->IP.pIpcIpv4Data->dhcpState, DHCP_STATE_DOWN, BUFLEN_64);
+                            pVirtIf->IP.pIpcIpv4Data->addressAssigned = FALSE;
+                        }
+                        //Query for DNS Servers
+                        snprintf( acTmpQueryParam, sizeof(acTmpQueryParam ), PPP_IPCP_DNS_SERVERS, index );
+                        memset( acTmpReturnValue, 0, sizeof( acTmpReturnValue ) );
+                        if ( ANSC_STATUS_FAILURE == WanMgr_RdkBus_GetParamValues( PPPMGR_COMPONENT_NAME, PPPMGR_DBUS_PATH, acTmpQueryParam, acTmpReturnValue ) )
+                        {
+                            CcspTraceError(("%s %d Failed to get param value for paramname %s \n", __FUNCTION__, __LINE__, acTmpQueryParam));
+                            return ANSC_STATUS_FAILURE;
+                        }
+                        if (acTmpReturnValue[0] != '\0')
+                        {
+                            //Return first DNS Server
+                            token = strtok(acTmpReturnValue, ",");
+                            if (token != NULL)
+                            {
+                                strncpy (pVirtIf->IP.pIpcIpv4Data->dnsServer, token,sizeof(pVirtIf->IP.pIpcIpv4Data->dnsServer)-1);
+                                //Return first DNS Server
+                                token = strtok(NULL, ",");
+                                if (token != NULL)
+                                {
+                                    strncpy (pVirtIf->IP.pIpcIpv4Data->dnsServer1, token,sizeof(pVirtIf->IP.pIpcIpv4Data->dnsServer1)-1);
+                                }
+                            }
+                        }
 
-                          strncpy(pIfaceData->IP.pIpcIpv4Data->dhcpcInterface, dhcpcInterface, sizeof(pIfaceData->IP.pIpcIpv4Data->dhcpcInterface) - 1);
-                          strncpy(pIfaceData->IP.pIpcIpv4Data->mask, P2P_SUB_NET_MASK, sizeof(pIfaceData->IP.pIpcIpv4Data->mask)-1);
-                          wanmgr_handle_dhcpv4_event_data(pIfaceData);
-                         break;
-                     }
-                     case WAN_IFACE_IPCP_STATUS_DOWN:
-                     {
-                         /* We don't receive MTU from PPP so we need to assign default MTU size */
-                         pIfaceData->IP.pIpcIpv4Data->mtuAssigned = FALSE;
-                         pIfaceData->IP.pIpcIpv4Data->mtuSize = 0;
-                         /* we don't receive ntp time offset value from ppp */
-                         pIfaceData->IP.pIpcIpv4Data->isTimeOffsetAssigned = FALSE;
-                         pIfaceData->IP.pIpcIpv4Data->timeOffset = 0;
-                         strncpy (pIfaceData->IP.pIpcIpv4Data->dhcpcInterface, dhcpcInterface, sizeof(pIfaceData->IP.pIpcIpv4Data->dhcpcInterface) - 1);
-                         strncpy (pIfaceData->IP.pIpcIpv4Data->dhcpState, DHCP_STATE_DOWN, sizeof(pIfaceData->IP.pIpcIpv4Data->dhcpState)-1);
-                         pIfaceData->IP.pIpcIpv4Data->addressAssigned = FALSE;
-                         wanmgr_handle_dhcpv4_event_data(pIfaceData);
-                         break;
-                     }
-                }
-
+                        strncpy(pVirtIf->IP.pIpcIpv4Data->dhcpcInterface, pVirtIf->Name, sizeof(pVirtIf->IP.pIpcIpv4Data->dhcpcInterface) - 1);
+                        strncpy(pVirtIf->IP.pIpcIpv4Data->mask, P2P_SUB_NET_MASK, sizeof(pVirtIf->IP.pIpcIpv4Data->mask)-1);
+                        break;
+                    }
+                case WAN_IFACE_IPCP_STATUS_DOWN:
+                    {
+                        /* We don't receive MTU from PPP so we need to assign default MTU size */
+                        pVirtIf->IP.pIpcIpv4Data->mtuAssigned = FALSE;
+                        pVirtIf->IP.pIpcIpv4Data->mtuSize = 0;
+                        /* we don't receive ntp time offset value from ppp */
+                        pVirtIf->IP.pIpcIpv4Data->isTimeOffsetAssigned = FALSE;
+                        pVirtIf->IP.pIpcIpv4Data->timeOffset = 0;
+                        strncpy (pVirtIf->IP.pIpcIpv4Data->dhcpcInterface, pVirtIf->Name, sizeof(pVirtIf->IP.pIpcIpv4Data->dhcpcInterface) - 1);
+                        strncpy (pVirtIf->IP.pIpcIpv4Data->dhcpState, DHCP_STATE_DOWN, sizeof(pVirtIf->IP.pIpcIpv4Data->dhcpState)-1);
+                        pVirtIf->IP.pIpcIpv4Data->addressAssigned = FALSE;
+                        break;
+                    }
             }
+
         }
-
     }
 
-EXIT:
-    if(pWanDmlIfaceData != NULL)
-    {
-        WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
-    }
-    if (arg != NULL)
-    {
-        free(arg);
-    }
-
-    return NULL;
+    return ANSC_STATUS_SUCCESS;
 }
 
 static ANSC_STATUS DhcpcDmlScan()

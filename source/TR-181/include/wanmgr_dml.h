@@ -29,6 +29,8 @@
 #define PAM_IF_PARAM_NAME           "Device.IP.Interface.%d.Name"
 #define DML_WAN_IFACE_PRIORITY_MAX  255
 #define REMOTE_INTERFACE_NAME       "brRWAN"
+#define REMOTE_INTERFACE_GROUP        2
+#define MAX_INTERFACE_GROUP           2
 #define WAN_MANAGER_VERSION         "1.5"
 
 typedef enum _WANMGR_IFACE_SELECTION_STATUS
@@ -161,6 +163,22 @@ typedef enum _DML_WAN_IFACE_IP_STATE
     WAN_IFACE_IP_STATE_UP = 1,
     WAN_IFACE_IP_STATE_DOWN,
 } DML_WAN_IFACE_IP_STATE;
+
+typedef enum _DML_WAN_IP_SOURCE
+{
+    DML_WAN_IP_SOURCE_STATIC = 1,
+    DML_WAN_IP_SOURCE_DHCP,
+    DML_WAN_IP_SOURCE_PPP,
+} DML_WAN_IP_SOURCE;
+
+typedef enum _DML_WAN_IP_MODE
+{
+    DML_WAN_IP_MODE_IPV4_ONLY = 1,
+    DML_WAN_IP_MODE_IPV6_ONLY,
+    DML_WAN_IP_MODE_DUAL_STACK,
+    DML_WAN_IP_MODE_NO_IP
+} DML_WAN_IP_MODE;
+
 /*
  *  Wan Marking object
  */
@@ -188,12 +206,6 @@ typedef struct _DATAMODEL_MARKING
 } DATAMODEL_MARKING;
 
 /*** RDK WAN Interface ***/
-typedef struct _DML_WANIFACE_PHY
-{
-    CHAR                         Path[BUFLEN_64];
-    DML_WAN_IFACE_PHY_STATUS     Status;
-} DML_WANIFACE_PHY;
-
 typedef enum _DML_WAN_IFACE_IPCP_STATUS
 {
     WAN_IFACE_IPCP_STATUS_DOWN = 1,
@@ -206,31 +218,12 @@ typedef enum _DML_WAN_IFACE_IPV6CP_STATUS
     WAN_IFACE_IPV6CP_STATUS_UP,
 } DML_WAN_IFACE_IPV6CP_STATUS;
 
-typedef enum _DML_WAN_IFACE_LCP_STATUS
-{
-    WAN_IFACE_LCP_STATUS_DOWN = 1,
-    WAN_IFACE_LCP_STATUS_UP,
-} DML_WAN_IFACE_LCP_STATUS;
-
 typedef enum _DML_WAN_IFACE_PPP_LINK_STATUS
 {
     WAN_IFACE_PPP_LINK_STATUS_DOWN = 1,
+    WAN_IFACE_PPP_LINK_STATUS_CONFIGURING,
     WAN_IFACE_PPP_LINK_STATUS_UP,
 } DML_WAN_IFACE_PPP_LINK_STATUS;
-
-typedef enum _DML_WAN_IFACE_LINK_TYPE
-{
-    WAN_IFACE_PPP_LINK_TYPE_PPPoA = 1,
-    WAN_IFACE_PPP_LINK_TYPE_PPPoE,
-} DML_WAN_IFACE_LINK_TYPE;
-
-typedef enum _PPP_CONNECTION_EVENTS
-{
-    PPP_LINK_STATE_CHANGED = 1,
-    PPP_LCP_STATE_CHANGED,
-    PPP_IPCP_STATE_CHANGED,
-    PPP_IPV6CP_STATE_CHANGED
-} DML_PPP_STATE_CHANGED_EVENTS;
 
 typedef enum _IFACE_TYPE 
 {
@@ -247,40 +240,13 @@ typedef enum {
 typedef struct _DATAMODEL_PPP
 {
     BOOL                          Enable;
-    CHAR                          Path[BUFLEN_64];
-    BOOL                          IPCPEnable;
-    BOOL                          IPV6CPEnable;
+    CHAR                          Interface[BUFLEN_64];
     DML_WAN_IFACE_IPCP_STATUS     IPCPStatus;
     DML_WAN_IFACE_IPV6CP_STATUS   IPV6CPStatus;
-    DML_WAN_IFACE_LCP_STATUS      LCPStatus;
+    BOOL                          IPCPStatusChanged;
+    BOOL                          IPV6CPStatusChanged;
     DML_WAN_IFACE_PPP_LINK_STATUS LinkStatus;
-    DML_WAN_IFACE_LINK_TYPE       LinkType;
 } DATAMODEL_PPP;
-
-typedef struct _DML_WANIFACE_INFO
-{
-    CHAR                        Name[BUFLEN_64];
-    CHAR                        Alias[BUFLEN_64];
-    BOOL                        Enable;
-    INT                         Priority;
-    DML_WAN_IFACE_TYPE          Type;
-    UINT                        SelectionTimeout;
-    BOOL                        EnableMAPT;
-    BOOL                        EnableDSLite;
-    BOOL                        EnableIPoE;
-    BOOL                        ActiveLink;
-    DML_WAN_IFACE_STATUS        Status;
-    DML_WAN_IFACE_STATUS        RemoteStatus;
-    DML_WAN_IFACE_LINKSTATUS    LinkStatus;
-    BOOL                        Refresh;
-    DML_WAN_IFACE_OPER_STATUS   OperationalStatus;
-    BOOL                        RebootOnConfiguration;
-    BOOL                        EnableDHCP;
-    BOOL                        RefreshDHCP;
-    IFACE_TYPE                  IfaceType;
-    UINT                        Group;
-} DML_WANIFACE_INFO;
-
 
 typedef struct _WANMGR_IPV4_DATA
 {
@@ -329,9 +295,13 @@ typedef struct _WANMGR_IPV6_DATA
 
 typedef struct _DML_WANIFACE_IP
 {
-    CHAR                        Path[BUFLEN_64];
+    CHAR                        Interface[BUFLEN_64];
     DML_WAN_IFACE_IPV4_STATUS   Ipv4Status;
     DML_WAN_IFACE_IPV6_STATUS   Ipv6Status;
+    DML_WAN_IP_SOURCE           IPv4Source;
+    DML_WAN_IP_SOURCE           IPv6Source;
+    BOOL                        RefreshDHCP;
+    DML_WAN_IP_MODE             Mode;
     BOOL                        Ipv4Changed;
     BOOL                        Ipv6Changed;
 #ifdef FEATURE_IPOE_HEALTH_CHECK
@@ -389,7 +359,7 @@ typedef struct _DML_WANIFACE_DSLITE
 
 typedef struct _DML_WANIFACE_SUBSCRIBE
 {
-    UINT PhyStatusSub;
+    UINT BaseInterfaceStatusSub;
     UINT WanStatusSub;
     UINT WanLinkStatusSub;
     UINT WanEnableSub;
@@ -398,7 +368,8 @@ typedef struct _DML_WANIFACE_SUBSCRIBE
 typedef enum
 {
     WAN_STATE_EXIT = 0,
-    WAN_STATE_CONFIGURING_WAN,
+    WAN_STATE_VLAN_CONFIGURING,
+    WAN_STATE_PPP_CONFIGURING,
     WAN_STATE_VALIDATING_WAN,
     WAN_STATE_OBTAINING_IP_ADDRESSES,
     WAN_STATE_IPV4_LEASED,
@@ -412,6 +383,91 @@ typedef enum
     WAN_STATE_STANDBY
 } eWanState_t;
 
+typedef struct _WANMGR_IFACE_GROUP_DATA_
+{
+    pthread_t          ThreadId;
+    UINT               State;
+    UINT               groupIdx;
+    UINT               InterfaceAvailable;
+    UINT               SelectedInterface;
+    UINT               SelectionTimeOut;
+    DML_WAN_POLICY     Policy;
+    BOOLEAN            ConfigChanged;
+    BOOLEAN            ResetSelectedInterface;
+}WANMGR_IFACE_GROUP;
+
+typedef struct _WANMGR_IFACE_GROUP_
+{
+    UINT                       ulTotalNumbWanIfaceGroup;
+    WANMGR_IFACE_GROUP*        Group;
+}WanMgr_IfaceGroup_t;
+
+typedef struct _DML_VIRTIF_MARKING
+{
+    struct _DML_VIRTIF_MARKING* next;
+    ULONG                       VirtMarkingInstanceNumber;
+    UINT                        VirIfIdx;
+    UINT                        baseIfIdx;
+    UINT                        Entry;
+}DML_VIRTIF_MARKING;
+
+typedef struct _DML_VLAN_IFACE_TABLE
+{
+    struct _DML_VLAN_IFACE_TABLE* next;
+    ULONG                       Index;
+    UINT                        VirIfIdx;
+    UINT                        baseIfIdx;
+    CHAR                        Interface[BUFLEN_128];;
+}DML_VLAN_IFACE_TABLE;
+
+typedef struct _DML_VIRTUALIF_VLAN
+{
+    BOOL                        Enable;
+    CHAR                        VLANInUse[BUFLEN_128];
+    UINT                        ActiveIndex;
+    UINT                        Timeout;
+    UINT                        NoOfInterfaceEntries;
+    DML_VLAN_IFACE_TABLE*       InterfaceList;
+    UINT                        NoOfMarkingEntries;
+    DML_VIRTIF_MARKING*         VirtMarking;
+    DML_WAN_IFACE_LINKSTATUS    Status;
+} DML_VIRTUALIF_VLAN;
+
+typedef struct _DML_VIRTUAL_IFACE
+{
+    struct _DML_VIRTUAL_IFACE*  next;
+    UINT                        VirIfIdx;
+    UINT                        baseIfIdx;
+    CHAR                        Name[BUFLEN_64];
+    CHAR                        Alias[BUFLEN_64];
+    BOOL                        Enable; 
+    BOOL                        EnableMAPT;
+    BOOL                        EnableDSLite;
+    BOOL                        EnableIPoE;
+    DML_WAN_IFACE_STATUS        Status;
+    DML_WAN_IFACE_STATUS        RemoteStatus;
+    DML_VIRTUALIF_VLAN          VLAN;
+    BOOL                        Reset;
+    DML_WAN_IFACE_OPER_STATUS   OperationalStatus;
+    DML_WANIFACE_IP             IP;
+    DATAMODEL_PPP               PPP;
+    DML_WANIFACE_MAP            MAP;
+    DML_WANIFACE_DSLITE         DSLite;
+    eWanState_t                 eCurrentState; 
+    BOOLEAN                     Interface_SM_Running;  // flag to check whether Interface State machine is running
+} DML_VIRTUAL_IFACE;
+
+typedef struct _DML_IFACE_SELECTION
+{
+    BOOL                        Enable; 
+    INT                         Priority;
+    UINT                        Timeout;
+    WANMGR_IFACE_SELECTION      Status;
+    BOOL                        ActiveLink;
+    UINT                        Group;
+    BOOL                        RequiresReboot;
+} DML_IFACE_SELECTION;
+
 typedef struct _DML_WAN_INTERFACE
 {
     UINT                        uiIfaceIdx;
@@ -419,22 +475,21 @@ typedef struct _DML_WAN_INTERFACE
     CHAR                        Name[BUFLEN_64];
     CHAR                        DisplayName[BUFLEN_64];
     CHAR                        AliasName[BUFLEN_64];
-    WANMGR_IFACE_SELECTION      SelectionStatus;
     BOOL                        MonitorOperStatus;
     BOOL                        WanConfigEnabled;
     BOOL                        CustomConfigEnable;
     CHAR                        CustomConfigPath[BUFLEN_128];
     DML_WAN_IFACE_SCAN_STATUS   InterfaceScanStatus;
     CHAR                        RemoteCPEMac[BUFLEN_128];
-    DML_WANIFACE_PHY            Phy;
-    DML_WANIFACE_INFO           Wan;
-    DML_WANIFACE_IP             IP;
-    DATAMODEL_PPP               PPP;
-    DML_WANIFACE_MAP            MAP;
-    DML_WANIFACE_DSLITE         DSLite;
+    CHAR                        BaseInterface[BUFLEN_128];
+    DML_WAN_IFACE_TYPE          Type; //TODO: Comcast use
+    DML_WAN_IFACE_PHY_STATUS    BaseInterfaceStatus;
+    DML_IFACE_SELECTION         Selection;
+    IFACE_TYPE                  IfaceType;
+    DML_WANIFACE_SUBSCRIBE      Sub; // TODO: NEW_DESIGN : remove
     DATAMODEL_MARKING           Marking;
-    DML_WANIFACE_SUBSCRIBE      Sub;
-    eWanState_t                 eCurrentState; 
+    UINT                        NoOfVirtIfs;
+    DML_VIRTUAL_IFACE*          VirtIfList;
 } DML_WAN_IFACE;
 
 
@@ -442,11 +497,8 @@ typedef struct _DML_WAN_INTERFACE
 typedef struct _DML_WANMGR_CONFIG_
 {
     BOOLEAN Enable;
-    DML_WAN_POLICY Policy;
-    BOOLEAN PolicyChanged;
     DEVICE_NETWORKING_MODE DeviceNwMode;
     BOOLEAN DeviceNwModeChanged;    // Set if DeviceNwMode is changed and config needs to be applied
-    BOOLEAN ResetActiveInterface;
     BOOLEAN ResetFailOverScan;
     BOOLEAN AllowRemoteInterfaces;
     CHAR    InterfaceAvailableStatus[BUFLEN_64];
@@ -454,7 +506,40 @@ typedef struct _DML_WANMGR_CONFIG_
     CHAR    CurrentActiveInterface[BUFLEN_64];
     CHAR    CurrentStandbyInterface[BUFLEN_64];
     UINT    RestorationDelay;
-    BOOLEAN Interface_SM_Running;  // flag to check whether Interface State machine is running
 } DML_WANMGR_CONFIG;
 
+//WAN CONFIG
+typedef struct _WANMGR_CONFIG_DATA_
+{
+    DML_WANMGR_CONFIG       data;
+} WanMgr_Config_Data_t;
+
+
+//WAN IFACE
+typedef struct _WANMGR_IFACE_DATA_
+{
+    DML_WAN_IFACE           data;
+}WanMgr_Iface_Data_t;
+
+typedef struct _WANMGR_IFACECTRL_DATA_
+{
+    UINT                        ulTotalNumbWanInterfaces;
+    WanMgr_Iface_Data_t*        pIface;
+    UINT                        update;
+}WanMgr_IfaceCtrl_Data_t;
+
+typedef struct _WANMGR_DATA_ST_
+{
+    //Mutex
+    pthread_mutex_t             gDataMutex;
+
+    //WAN CONFIG
+    WanMgr_Config_Data_t        Config;
+
+    //WAN IFACE
+    WanMgr_IfaceCtrl_Data_t     IfaceCtrl;
+
+    //Iface Group
+    WanMgr_IfaceGroup_t         IfaceGroup;
+} WANMGR_DATA_ST;
 #endif //_WANMGR_DML_H_

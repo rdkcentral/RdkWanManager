@@ -34,7 +34,6 @@ typedef  struct _WANMGR_FAILOVER_CONTROLLER_
     UINT                    CurrentActiveGroup;
     UINT                    HighestValidGroup;
     struct timespec         GroupSelectionTimer;
-    BOOL                    PolicyChanged;
     UINT                    RestorationDelay;
     BOOL                    ResetScan;
     DML_WAN_IFACE_PHY_STATUS PhyState;

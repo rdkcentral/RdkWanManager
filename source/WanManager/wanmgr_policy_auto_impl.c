@@ -72,7 +72,7 @@ static WcAwPolicyState_t Transition_ReconfigurePlatform (WanMgr_Policy_Controlle
 static WcAwPolicyState_t Transition_ActivatingInterface (WanMgr_Policy_Controller_t * pWanController);
 static WcAwPolicyState_t Transistion_WanInterfaceDown (WanMgr_Policy_Controller_t * pWanController);
 static WcAwPolicyState_t Transistion_WanInterfaceUp (WanMgr_Policy_Controller_t * pWanController);
-static WcAwPolicyState_t Transition_ResetActiveInterface (WanMgr_Policy_Controller_t * pWanController);
+static WcAwPolicyState_t Transition_ResetSelectedInterface (WanMgr_Policy_Controller_t * pWanController);
 static WcAwPolicyState_t Transition_RebootDevice (void);
 
 static int WanMgr_RdkBus_AddAllIntfsToLanBridge (WanMgr_Policy_Controller_t * pWanController, BOOL AddToBridge)
@@ -95,7 +95,7 @@ static int WanMgr_RdkBus_AddAllIntfsToLanBridge (WanMgr_Policy_Controller_t * pW
         DML_WAN_IFACE * pWanIfaceData = &(pWanDmlIfaceData->data);
         if(pWanDmlIfaceData != NULL)
         {
-            strncpy (PhyPath, pWanIfaceData->Phy.Path, sizeof(PhyPath)-1);
+            strncpy (PhyPath, pWanIfaceData->BaseInterface, sizeof(PhyPath)-1);
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
 
             if (strlen(PhyPath) > 0)
@@ -103,7 +103,7 @@ static int WanMgr_RdkBus_AddAllIntfsToLanBridge (WanMgr_Policy_Controller_t * pW
                 ret = WanMgr_RdkBus_AddIntfToLanBridge(PhyPath, AddToBridge);
                 if (ret == ANSC_STATUS_FAILURE)
                 {
-                    CcspTraceError(("%s %d: unable to config LAN bridge for index %d Phy.Path %s\n", __FUNCTION__, __LINE__, uiLoopCount, PhyPath));
+                    CcspTraceError(("%s %d: unable to config LAN bridge for index %d BaseInterface %s\n", __FUNCTION__, __LINE__, uiLoopCount, PhyPath));
                 }
                 memset (PhyPath, 0, sizeof(PhyPath));
             }
@@ -129,9 +129,9 @@ static int WanMgr_SetActiveLink (WanMgr_Policy_Controller_t * pWanController, bo
 
     // set ActiveLink in Interface data
     DML_WAN_IFACE* pIfaceData = &(pWanController->pWanActiveIfaceData->data);
-    if(pIfaceData->Wan.ActiveLink != storeValue)
+    if(pIfaceData->Selection.ActiveLink != storeValue)
     {
-        pIfaceData->Wan.ActiveLink = storeValue;
+        pIfaceData->Selection.ActiveLink = storeValue;
 
         // save ActiveLink value in PSM
         if (DmlSetWanActiveLinkInPSMDB(pWanController->activeInterfaceIdx, storeValue) != ANSC_STATUS_SUCCESS)
@@ -165,11 +165,11 @@ static int WanMgr_GetPrevSelectedInterface (WanMgr_Policy_Controller_t* pWanCont
             if(pWanDmlIfaceData != NULL)
             {
                 DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
-                if(pWanController->GroupInst == pWanIfaceData->Wan.Group)
+                if(pWanController->GroupInst == pWanIfaceData->Selection.Group)
                 {
-                    if (pWanIfaceData->Wan.ActiveLink == TRUE)
+                    if (pWanIfaceData->Selection.ActiveLink == TRUE)
                     {
-                        if (pWanIfaceData->Wan.Enable != TRUE)
+                        if (pWanIfaceData->Selection.Enable != TRUE)
                         {
                             CcspTraceInfo(("%s %d: Previous ActiveLink Interface Index:%d is Wan disabled, So setting ActiveLink to FALSE and saving it to PSM\n",
                                         __FUNCTION__, __LINE__, uiLoopCount));
@@ -178,7 +178,7 @@ static int WanMgr_GetPrevSelectedInterface (WanMgr_Policy_Controller_t* pWanCont
                                 CcspTraceError(("%s-%d: Failed to set ActiveLink in PSM, SelectedInterface %d \n",
                                             __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
                             }
-                            pWanIfaceData->Wan.ActiveLink = FALSE;
+                            pWanIfaceData->Selection.ActiveLink = FALSE;
                             uiInterfaceIdx = -1;
                         }
                         else
@@ -199,7 +199,7 @@ static int WanMgr_GetPrevSelectedInterface (WanMgr_Policy_Controller_t* pWanCont
 
 /*
  * WanMgr_Policy_Auto_GetHighPriorityIface()
- * - returns highest priority interface that is Wan.Enable == TRUE && Wan.Status == WAN_IFACE_STATUS_DISABLED
+ * - returns highest priority interface that is Selection.Enable == TRUE && VirtIfList->Status == WAN_IFACE_STATUS_DISABLED
  */
 static void WanMgr_Policy_Auto_GetHighPriorityIface(WanMgr_Policy_Controller_t * pWanController)
 {
@@ -220,24 +220,24 @@ static void WanMgr_Policy_Auto_GetHighPriorityIface(WanMgr_Policy_Controller_t *
         if(pWanDmlIfaceData != NULL)
         {
             DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
-            if(pWanController->GroupInst == pWanIfaceData->Wan.Group)
+            if(pWanController->GroupInst == pWanIfaceData->Selection.Group)
             {
                 //Check Iface Wan Enable and Wan Status
-                if ((pWanIfaceData->Wan.Enable == TRUE) && 
-                        (pWanIfaceData->Wan.Priority >= 0) &&
-                        (pWanIfaceData->Wan.Status == WAN_IFACE_STATUS_DISABLED))
+                if ((pWanIfaceData->Selection.Enable == TRUE) && 
+                        (pWanIfaceData->Selection.Priority >= 0) &&
+                        (pWanIfaceData->VirtIfList->Status == WAN_IFACE_STATUS_DISABLED))
                 {
-                    if((pWanController->AllowRemoteInterfaces == FALSE) && (pWanIfaceData->Wan.IfaceType == REMOTE_IFACE))
+                    if((pWanController->AllowRemoteInterfaces == FALSE) && (pWanIfaceData->IfaceType == REMOTE_IFACE))
                     {
                         WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
                         continue;
                     }
                     // pWanIfaceData - is Wan-Enabled & has valid Priority
-                    if(pWanIfaceData->Wan.Priority < iSelPriority)
+                    if(pWanIfaceData->Selection.Priority < iSelPriority)
                     {
                         // update Primary iface with high priority iface
                         iSelInterface = uiLoopCount;
-                        iSelPriority = pWanIfaceData->Wan.Priority;
+                        iSelPriority = pWanIfaceData->Selection.Priority;
                     }
                 }
             }
@@ -273,12 +273,20 @@ static void WanMgr_UpdateControllerData (WanMgr_Policy_Controller_t* pWanControl
     if(pWanConfigData != NULL)
     {
         pWanController->WanEnable = pWanConfigData->data.Enable;
-        pWanController->PolicyChanged = pWanConfigData->data.PolicyChanged;
         pWanController->AllowRemoteInterfaces = pWanConfigData->data.AllowRemoteInterfaces;
 
         WanMgrDml_GetConfigData_release(pWanConfigData);
     }
     pWanController->TotalIfaces = WanMgr_IfaceData_GetTotalWanIface();
+
+    //Update group info
+    WANMGR_IFACE_GROUP* pWanIfaceGroup = WanMgr_GetIfaceGroup_locked((pWanController->GroupInst - 1));
+    if (pWanIfaceGroup != NULL)
+    {
+        pWanController->GroupCfgChanged = pWanIfaceGroup->ConfigChanged;
+        pWanController->ResetSelectedInterface = pWanIfaceGroup->ResetSelectedInterface;
+        WanMgrDml_GetIfaceGroup_release();
+    }
 
 }
 
@@ -303,10 +311,10 @@ static int WanMgr_ResetActiveLinkOnAllIface (WanMgr_Policy_Controller_t* pWanCon
         if(pWanDmlIfaceData != NULL)
         {
             DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
-            if(pWanController->GroupInst == pWanIfaceData->Wan.Group)
+            if(pWanController->GroupInst == pWanIfaceData->Selection.Group)
             {
                 CcspTraceInfo(("%s %d: setting Interface index:%d, ActiveLink = FALSE and saving it in PSM \n", __FUNCTION__, __LINE__, uiLoopCount));
-                pWanIfaceData->Wan.ActiveLink = FALSE;
+                pWanIfaceData->Selection.ActiveLink = FALSE;
                 if (DmlSetWanActiveLinkInPSMDB(uiLoopCount, FALSE) != ANSC_STATUS_SUCCESS)
                 {
                     CcspTraceError(("%s %d: Failed to set ActiveLink in PSM, SelectedInterface %d \n",
@@ -359,12 +367,12 @@ static void WanMgr_ResetIfaceTable (WanMgr_Policy_Controller_t* pWanController)
         if(pWanDmlIfaceData != NULL)
         {
             DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
-            if(pWanController->GroupInst == pWanIfaceData->Wan.Group)
+            if(pWanController->GroupInst == pWanIfaceData->Selection.Group)
             {
-                if (pWanIfaceData->Wan.Status == WAN_IFACE_STATUS_INVALID)
+                if (pWanIfaceData->VirtIfList->Status == WAN_IFACE_STATUS_INVALID)
                 {
-                    pWanIfaceData->Wan.Status = WAN_IFACE_STATUS_DISABLED;
-                    CcspTraceInfo(("%s-%d: Wan.Status=Disabled, Interface-Idx=%d, Interface-Name=%s\n",
+                    pWanIfaceData->VirtIfList->Status = WAN_IFACE_STATUS_DISABLED;
+                    CcspTraceInfo(("%s-%d: VirtIfList->Status=Disabled, Interface-Idx=%d, Interface-Name=%s\n",
                                 __FUNCTION__, __LINE__, uiLoopCount, pWanIfaceData->DisplayName));
                 }
             }
@@ -397,9 +405,9 @@ static bool WanMgr_CheckIfSelectedIfaceOnlyPossibleWanLink (WanMgr_Policy_Contro
         if(pWanDmlIfaceData != NULL)
         {
             DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
-            if(pWanController->GroupInst == pWanIfaceData->Wan.Group)
+            if(pWanController->GroupInst == pWanIfaceData->Selection.Group)
             {
-                if (pWanIfaceData->Wan.Enable == TRUE)
+                if (pWanIfaceData->Selection.Enable == TRUE)
                 {
                     WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
                     return FALSE;
@@ -410,26 +418,6 @@ static bool WanMgr_CheckIfSelectedIfaceOnlyPossibleWanLink (WanMgr_Policy_Contro
     }
     return TRUE; 
 
-}
-
-
-
-/*
- * WanMgr_GetResetActiveInterfaceFlag()
- * - returns the value of ResetActiveLinkFlag
- */
-static bool WanMgr_GetResetActiveInterfaceFlag ()
-{
-    bool ret = FALSE;
-
-    WanMgr_Config_Data_t*   pWanConfigData = WanMgr_GetConfigData_locked();
-    if(pWanConfigData != NULL)
-    {
-        ret = pWanConfigData->data.ResetActiveInterface;
-        WanMgrDml_GetConfigData_release(pWanConfigData);
-    }
-
-    return ret;
 }
 
 /*
@@ -445,14 +433,30 @@ static int WanMgr_StartIfaceStateMachine (WanMgr_Policy_Controller_t * pWanContr
         return ANSC_STATUS_FAILURE;
     }
 
-    WanMgr_IfaceSM_Controller_t wanIfCtrl;
-    WanMgr_IfaceSM_Init(&wanIfCtrl, pWanController->activeInterfaceIdx);
-    if (WanMgr_StartInterfaceStateMachine(&wanIfCtrl) != 0)
-    {
-        CcspTraceError(("%s %d: Unable to start interface state machine \n", __FUNCTION__, __LINE__));
-        return ANSC_STATUS_FAILURE;
-    }
+    DML_WAN_IFACE* pIfaceData = &(pWanController->pWanActiveIfaceData->data);
 
+    for(int VirtId=0; VirtId < pIfaceData->NoOfVirtIfs; VirtId++)
+    {
+        DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIface_locked(pWanController->activeInterfaceIdx, VirtId);
+        if(p_VirtIf != NULL)
+        {
+            if (p_VirtIf->Enable == FALSE)
+            {
+                CcspTraceError(("%s %d: virtual if(%d) : %s is not enabled. Not starting VISM\n", __FUNCTION__, __LINE__,p_VirtIf->VirIfIdx, p_VirtIf->Alias));
+                WanMgr_VirtualIfaceData_release(p_VirtIf);
+                continue;
+            }
+            WanMgr_VirtualIfaceData_release(p_VirtIf);
+        }
+
+        WanMgr_IfaceSM_Controller_t wanIfCtrl;
+        WanMgr_IfaceSM_Init(&wanIfCtrl, pWanController->activeInterfaceIdx, VirtId); 
+        if (WanMgr_StartInterfaceStateMachine(&wanIfCtrl) != 0)
+        {
+            CcspTraceError(("%s %d: Unable to start interface state machine \n", __FUNCTION__, __LINE__));
+            return ANSC_STATUS_FAILURE;
+        }
+    }
     return ANSC_STATUS_SUCCESS;
 
 }
@@ -483,7 +487,7 @@ static WcAwPolicyState_t Transition_Start (WanMgr_Policy_Controller_t* pWanContr
             DML_WAN_IFACE * pActiveInterface = &(pWanDmlIfaceData->data);
             if (pActiveInterface != NULL)
             {
-                strncpy (phyPath, pActiveInterface->Phy.Path, sizeof(phyPath)-1);
+                strncpy (phyPath, pActiveInterface->BaseInterface, sizeof(phyPath)-1);
                 WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
                 if (strstr(phyPath, "Ethernet") != NULL)
                 {
@@ -528,7 +532,7 @@ static WcAwPolicyState_t Transition_InterfaceSelected (WanMgr_Policy_Controller_
 
     // update the  controller SelectedTimeOut for new selected active iface
     DML_WAN_IFACE* pActiveInterface = &(pWanController->pWanActiveIfaceData->data);
-    pWanController->InterfaceSelectionTimeOut = pActiveInterface->Wan.SelectionTimeout;
+    pWanController->InterfaceSelectionTimeOut = pActiveInterface->Selection.Timeout;
     CcspTraceInfo(("%s %d: selected interface idx=%d, name=%s, selectionTimeOut=%d \n",
                 __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx, pActiveInterface->DisplayName,
                 pWanController->InterfaceSelectionTimeOut));
@@ -547,7 +551,7 @@ static WcAwPolicyState_t Transition_InterfaceSelected (WanMgr_Policy_Controller_
 /*
  * Transition_InterfaceInvalid()
  * - called when interface failed to be validated before its SelectionTimeout, or WAN disbaled for interface
- * - Mark the selected interface as Invalid (Wan.Status = Invalid)
+ * - Mark the selected interface as Invalid (VirtIfList->Status = Invalid)
  * - Set ActiveLink to FALSE, and persist it in PSM
  * - Deselect the interface
  * - Return to Selecting Interface State
@@ -561,10 +565,10 @@ static WcAwPolicyState_t Transition_InterfaceInvalid (WanMgr_Policy_Controller_t
         return STATE_AUTO_WAN_ERROR;
     }
 
-    // set Wan.Status = INVALID and Wan.ActiveLink as FALSE for selected interface before deselecting it
+    // set VirtIfList->Status = INVALID and ActiveLink as FALSE for selected interface before deselecting it
     DML_WAN_IFACE* pIfaceData = &(pWanController->pWanActiveIfaceData->data);
-    CcspTraceInfo(("%s %d: setting Interface index:%d, Wan.Status=InValid \n", __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
-    pIfaceData->Wan.Status = WAN_IFACE_STATUS_INVALID;
+    CcspTraceInfo(("%s %d: setting Interface index:%d, VirtIfList->Status=InValid \n", __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
+    pIfaceData->VirtIfList->Status = WAN_IFACE_STATUS_INVALID;
 
     // set ActiveLink = FALSE and save it to PSM
     CcspTraceInfo(("%s %d: setting Interface index:%d, ActiveLink = False and saving it in PSM \n", __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
@@ -586,7 +590,7 @@ static WcAwPolicyState_t Transition_InterfaceInvalid (WanMgr_Policy_Controller_t
 /*
  * Transition_TryingNextInterface()
  * - no interface selected yet
- * - Select an interface with highest priority - iface with Wan.Status = Disabled
+ * - Select an interface with highest priority - iface with VirtIfList->Status = Disabled
  * - if unable to select an interface, then mark all interface disabled
  * - got to Selecting Interface State in all cases
  */
@@ -611,7 +615,7 @@ static WcAwPolicyState_t Transition_TryingNextInterface (WanMgr_Policy_Controlle
 /*
  * Transition_InterfaceFound()
  * selected iface is PHY UP
- * Set SelectionStatus to “Active” and start Interface State Machine thread
+ * Set Selection.Status to “Active” and start Interface State Machine thread
  * Go to Scanning Interface State
  */
 static WcAwPolicyState_t Transition_InterfaceFound (WanMgr_Policy_Controller_t * pWanController)
@@ -622,9 +626,9 @@ static WcAwPolicyState_t Transition_InterfaceFound (WanMgr_Policy_Controller_t *
         return STATE_AUTO_WAN_ERROR;
     }
 
-    // Set SelectionStatus = SELECTED & start Interface State Machine
+    // Set Selection.Status = SELECTED & start Interface State Machine
     DML_WAN_IFACE * pActiveInterface = &(pWanController->pWanActiveIfaceData->data);
-    pActiveInterface->SelectionStatus = WAN_IFACE_SELECTED;
+    pActiveInterface->Selection.Status = WAN_IFACE_SELECTED;
 
     if (WanMgr_StartIfaceStateMachine (pWanController) != ANSC_STATUS_SUCCESS)
     {
@@ -632,7 +636,7 @@ static WcAwPolicyState_t Transition_InterfaceFound (WanMgr_Policy_Controller_t *
     }
 
     // update the  controller SelectedTimeOut for new selected active iface
-    pWanController->InterfaceSelectionTimeOut = pActiveInterface->Wan.SelectionTimeout;
+    pWanController->InterfaceSelectionTimeOut = pActiveInterface->Selection.Timeout;
     CcspTraceInfo(("%s %d: selected interface idx=%d, name=%s, selectionTimeOut=%d \n",
                 __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx, pActiveInterface->DisplayName,
                 pWanController->InterfaceSelectionTimeOut));
@@ -649,7 +653,7 @@ static WcAwPolicyState_t Transition_InterfaceFound (WanMgr_Policy_Controller_t *
 /*
  * Transition_InterfaceDeselect()
  * - Selected interface is Phy DOWN
- * - Set SelectionStatus to “NOT_SELECTED”, the iface sm thread teardown
+ * - Set Selection.Status to “NOT_SELECTED”, the iface sm thread teardown
  * - Go to Waiting Interface Teardown State 
  */
 static WcAwPolicyState_t Transition_InterfaceDeselect (WanMgr_Policy_Controller_t * pWanController)
@@ -661,8 +665,8 @@ static WcAwPolicyState_t Transition_InterfaceDeselect (WanMgr_Policy_Controller_
     }
 
     DML_WAN_IFACE * pActiveInterface = &(pWanController->pWanActiveIfaceData->data);
-    CcspTraceInfo(("%s %d: SelectionStatus set to NOT_SELECTED. Tearing down iface state machine\n", __FUNCTION__, __LINE__));
-    pActiveInterface->SelectionStatus = WAN_IFACE_NOT_SELECTED;
+    CcspTraceInfo(("%s %d: Selection.Status set to NOT_SELECTED. Tearing down iface state machine\n", __FUNCTION__, __LINE__));
+    pActiveInterface->Selection.Status = WAN_IFACE_NOT_SELECTED;
 
     return STATE_AUTO_WAN_INTERFACE_TEARDOWN;
 
@@ -727,13 +731,20 @@ static WcAwPolicyState_t Transition_RestartSelectionInterface (WanMgr_Policy_Con
         return STATE_AUTO_WAN_ERROR;
     }
 
-    // reset ResetActiveInterface to FALSE
+    // reset ResetSelectedInterface to FALSE
+    WANMGR_IFACE_GROUP* pWanIfaceGroup = WanMgr_GetIfaceGroup_locked((pWanController->GroupInst - 1));
+    if (pWanIfaceGroup != NULL)
+    {
+        pWanIfaceGroup->ResetSelectedInterface = FALSE;
+        pWanController->ResetSelectedInterface = FALSE;
+        WanMgrDml_GetIfaceGroup_release();
+    }
+
     WanMgr_Config_Data_t*   pWanConfigData = WanMgr_GetConfigData_locked();
     if(pWanConfigData != NULL)
     {
         CcspTraceInfo(("%s %d: Resetting FO scan thread\n", __FUNCTION__, __LINE__));
         pWanConfigData->data.ResetFailOverScan = TRUE;
-        pWanConfigData->data.ResetActiveInterface = FALSE;
         WanMgrDml_GetConfigData_release(pWanConfigData);
     }
 
@@ -760,7 +771,7 @@ static WcAwPolicyState_t Transition_RestartSelectionInterface (WanMgr_Policy_Con
 /*
  * Transition_ReconfigurePlatform()
  * - need to reconfigure platform
- * - Set SelectionStatus to “NOT_SELECTED”, this will trigger the interface state machine thread teardown.
+ * - Set Selection.Status to “NOT_SELECTED”, this will trigger the interface state machine thread teardown.
  * - Go to Rebooting Platform
  */
 static WcAwPolicyState_t Transition_ReconfigurePlatform (WanMgr_Policy_Controller_t * pWanController)
@@ -771,10 +782,10 @@ static WcAwPolicyState_t Transition_ReconfigurePlatform (WanMgr_Policy_Controlle
         return STATE_AUTO_WAN_ERROR;
     }
 
-    // set SelectionStatus = WAN_IFACE_NOT_SELECTED, to tear down iface sm 
+    // set Selection.Status = WAN_IFACE_NOT_SELECTED, to tear down iface sm 
     DML_WAN_IFACE * pActiveInterface = &(pWanController->pWanActiveIfaceData->data);
-    pActiveInterface->SelectionStatus = WAN_IFACE_NOT_SELECTED;
-    CcspTraceInfo(("%s %d: setting SelectionStatus for interface:%d as NOT_SELECTED \n", __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
+    pActiveInterface->Selection.Status = WAN_IFACE_NOT_SELECTED;
+    CcspTraceInfo(("%s %d: setting Selection.Status for interface:%d as NOT_SELECTED \n", __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
 
     return STATE_AUTO_WAN_REBOOT_PLATFORM;
 }
@@ -817,7 +828,7 @@ static WcAwPolicyState_t Transistion_WanInterfaceUp (WanMgr_Policy_Controller_t 
         return STATE_AUTO_WAN_ERROR;
     }
 
-    if (WanMgr_Get_ISM_RunningStatus() == TRUE)
+    if (WanMgr_Get_ISM_RunningStatus(pWanController->activeInterfaceIdx) == TRUE)
     {
         CcspTraceInfo(("%s %d: Waiting to start new interface state machine \n", __FUNCTION__, __LINE__));
         return STATE_AUTO_WAN_INTERFACE_DOWN;
@@ -835,11 +846,11 @@ static WcAwPolicyState_t Transistion_WanInterfaceUp (WanMgr_Policy_Controller_t 
 }
 
 /*
- * Transition_ResetActiveInterface()
- * - Set SelectionStatus to “NOT_SELECTED”, this will trigger the interface state machine thread teardown
+ * Transition_ResetSelectedInterface()
+ * - Set Selection.Status to “NOT_SELECTED”, this will trigger the interface state machine thread teardown
  */
 
-static WcAwPolicyState_t Transition_ResetActiveInterface (WanMgr_Policy_Controller_t * pWanController)
+static WcAwPolicyState_t Transition_ResetSelectedInterface (WanMgr_Policy_Controller_t * pWanController)
 {
     if ((pWanController == NULL) || (pWanController->pWanActiveIfaceData == NULL)) 
     {
@@ -848,8 +859,8 @@ static WcAwPolicyState_t Transition_ResetActiveInterface (WanMgr_Policy_Controll
     }
 
     DML_WAN_IFACE* pWanIfaceData = &(pWanController->pWanActiveIfaceData->data);
-    pWanIfaceData->SelectionStatus = WAN_IFACE_NOT_SELECTED;
-    CcspTraceInfo(("%s %d: SelectionStatus set to NOT_SELECTED. moving to State_WaitingForIfaceTearDown()\n", __FUNCTION__, __LINE__));
+    pWanIfaceData->Selection.Status = WAN_IFACE_NOT_SELECTED;
+    CcspTraceInfo(("%s %d: Selection.Status set to NOT_SELECTED. moving to State_WaitingForIfaceTearDown()\n", __FUNCTION__, __LINE__));
 
     return STATE_AUTO_WAN_INTERFACE_TEARDOWN;
 }
@@ -913,7 +924,7 @@ static WcAwPolicyState_t State_SelectingInterface (WanMgr_Policy_Controller_t * 
         return STATE_AUTO_WAN_ERROR;
     }
 
-    if(pWanController->WanEnable == FALSE || pWanController->PolicyChanged == TRUE)
+    if(pWanController->WanEnable == FALSE || pWanController->GroupCfgChanged == TRUE)
     {
         return STATE_AUTO_WAN_SM_EXIT;
     }
@@ -930,8 +941,8 @@ static WcAwPolicyState_t State_SelectingInterface (WanMgr_Policy_Controller_t * 
 
 /* State_WaitForInterface()
  * - If selected interface is WAN disabled, them make it Invalid
- * - If the Phy.Status flag is set to "UP", the Interface Found Transition will be called
- * - If the selected interface is the only Interface enabled (Wan.Enable = TRUE), stay in this state (Wait for Interface State)
+ * - If the BaseInterfaceStatus flag is set to "UP", the Interface Found Transition will be called
+ * - If the selected interface is the only Interface enabled (Selection.Enable = TRUE), stay in this state (Wait for Interface State)
  * - If the WAN scan timer expires (and the interface selected is not the only possible interface), the Interface Invalid Transition will be called
  */
 static WcAwPolicyState_t State_WaitForInterface (WanMgr_Policy_Controller_t * pWanController)
@@ -942,24 +953,24 @@ static WcAwPolicyState_t State_WaitForInterface (WanMgr_Policy_Controller_t * pW
         return STATE_AUTO_WAN_ERROR;
     }
 
-    if(pWanController->WanEnable == FALSE || pWanController->PolicyChanged == TRUE)
+    if(pWanController->WanEnable == FALSE || pWanController->GroupCfgChanged == TRUE)
     {
         return STATE_AUTO_WAN_SM_EXIT;
     }
 
     DML_WAN_IFACE * pActiveInterface = &(pWanController->pWanActiveIfaceData->data);
 
-    if (pActiveInterface->Wan.Enable == FALSE)
+    if (pActiveInterface->Selection.Enable == FALSE)
     {
         CcspTraceInfo(("%s %d: WAN disabled on selected interface %d\n", __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
         return Transition_InterfaceInvalid(pWanController);
     }
 
     // check if Phy is UP
-    if (pActiveInterface->Phy.Status == WAN_IFACE_PHY_STATUS_UP)
+    if (pActiveInterface->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_UP)
     {
         // Phy is UP for selected iface
-        CcspTraceInfo(("%s %d: selected interface index:%d is PHY UP\n", __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
+        CcspTraceInfo(("%s %d: selected interface index:%d is BaseInterface UP\n", __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
         CcspTraceInfo(("%s %d: stopping timer\n", __FUNCTION__, __LINE__));
         memset(&(pWanController->SelectionTimeOutStart), 0, sizeof(struct timespec));
         return Transition_InterfaceFound(pWanController);
@@ -982,9 +993,9 @@ static WcAwPolicyState_t State_WaitForInterface (WanMgr_Policy_Controller_t * pW
 
 /*
  * State_ScanningInterface()
- * - If the selected interface is the only Interface enabled (Wan.Enable = TRUE), the Interface Validated Transition will be called
- * - If the Phy.Status flag is set to "DOWN", the Interface Deselected Transition will be called
- * - If the Wan.Status is set to "UP", indicating that the interface was validated, the Interface Validated Transition will be called
+ * - If the selected interface is the only Interface enabled (Selection.Enable = TRUE), the Interface Validated Transition will be called
+ * - If the BaseInterfaceStatus flag is set to "DOWN", the Interface Deselected Transition will be called
+ * - If the VirtIfList->Status is set to "UP", indicating that the interface was validated, the Interface Validated Transition will be called
  * - If the WAN scan timer expires (and the interface selected is not the only possible interface), the Interface Deselected Transition will be called.
  */
 static WcAwPolicyState_t State_ScanningInterface (WanMgr_Policy_Controller_t * pWanController)
@@ -995,9 +1006,9 @@ static WcAwPolicyState_t State_ScanningInterface (WanMgr_Policy_Controller_t * p
         return STATE_AUTO_WAN_ERROR;
     }
 
-    if(pWanController->WanEnable == FALSE || pWanController->PolicyChanged == TRUE)
+    if(pWanController->WanEnable == FALSE || pWanController->GroupCfgChanged == TRUE)
     {
-        CcspTraceInfo(("%s %d: Scanning Interface index : %d, WanEnable = %d, pWanController->PolicyChanged = %d", __FUNCTION__, __LINE__, pWanController->WanEnable, pWanController->PolicyChanged));
+        CcspTraceInfo(("%s %d: Scanning Interface index : %d, WanEnable = %d, pWanController->GroupCfgChanged = %d", __FUNCTION__, __LINE__, pWanController->WanEnable, pWanController->GroupCfgChanged));
         return Transition_InterfaceDeselect(pWanController);
     }
 
@@ -1012,16 +1023,16 @@ static WcAwPolicyState_t State_ScanningInterface (WanMgr_Policy_Controller_t * p
     }
 
     // If Phy is not UP or Interace is WAN disabled, move to interface deselect transition
-    if ((pActiveInterface->Phy.Status != WAN_IFACE_PHY_STATUS_UP) || (pActiveInterface->Wan.Enable == FALSE))
+    if ((pActiveInterface->BaseInterfaceStatus != WAN_IFACE_PHY_STATUS_UP) || (pActiveInterface->Selection.Enable == FALSE))
     { 
-        CcspTraceInfo(("%s %d: selected interface index:%d is Phy = %s, Wan.Enable = %d\n", __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx, 
-                    (pActiveInterface->Phy.Status == WAN_IFACE_PHY_STATUS_UP)?"UP":"DOWN", pActiveInterface->Wan.Enable));
+        CcspTraceInfo(("%s %d: selected interface index:%d is BaseInetrfaceStatus = %s, Selection.Enable = %d\n", __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx, 
+                    (pActiveInterface->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_UP)?"UP":"DOWN", pActiveInterface->Selection.Enable));
         return Transition_InterfaceDeselect(pWanController);
     }
 
     // checked if iface is validated or only interface enabled
-    if ((pActiveInterface->Wan.Status == WAN_IFACE_STATUS_UP) || 
-            (pActiveInterface->Wan.Status == WAN_IFACE_STATUS_STANDBY))
+    if ((pActiveInterface->VirtIfList->Status == WAN_IFACE_STATUS_UP) || 
+            (pActiveInterface->VirtIfList->Status == WAN_IFACE_STATUS_STANDBY))
     {
         CcspTraceInfo(("%s %d: Interface validated\n", __FUNCTION__, __LINE__));
         return Transition_InterfaceValidated(pWanController);
@@ -1048,7 +1059,7 @@ static WcAwPolicyState_t State_ScanningInterface (WanMgr_Policy_Controller_t * p
  * State_WaitingForIfaceTearDown()
  * - wait for iface state machine to go down
  * - After the Interface State Machine thread terminate
- *       check for ResetActiveInterface flag - if TRUE goto Restart Selection Transition
+ *       check for ResetSelectedInterface flag - if TRUE goto Restart Selection Transition
  *       else go to iface invalid transition
  */
 static WcAwPolicyState_t State_WaitingForIfaceTearDown (WanMgr_Policy_Controller_t * pWanController)
@@ -1060,22 +1071,22 @@ static WcAwPolicyState_t State_WaitingForIfaceTearDown (WanMgr_Policy_Controller
     }
 
     // check if iface sm is running
-    if (WanMgr_Get_ISM_RunningStatus() == TRUE)
+    if (WanMgr_Get_ISM_RunningStatus(pWanController->activeInterfaceIdx) == TRUE)
     {
         return STATE_AUTO_WAN_INTERFACE_TEARDOWN;
     }
 
-    if(pWanController->WanEnable == FALSE || pWanController->PolicyChanged == TRUE)
+    if(pWanController->WanEnable == FALSE || pWanController->GroupCfgChanged == TRUE)
     {
         return STATE_AUTO_WAN_TEARING_DOWN;
     }
 
     CcspTraceInfo(("%s %d: Iface state machine has exited\n", __FUNCTION__, __LINE__));
 
-    // check ResetActiveInterface
-    if (WanMgr_GetResetActiveInterfaceFlag() == TRUE)
+    // check ResetSelectedInterface
+    if (pWanController->ResetSelectedInterface == TRUE)
     {
-        CcspTraceInfo(("%s %d: ResetActiveInterface flag detected\n", __FUNCTION__, __LINE__));
+        CcspTraceInfo(("%s %d: ResetSelectedInterface flag detected\n", __FUNCTION__, __LINE__));
         return Transition_RestartSelectionInterface(pWanController);
     }
 
@@ -1086,7 +1097,7 @@ static WcAwPolicyState_t State_WaitingForIfaceTearDown (WanMgr_Policy_Controller
 /*
  * State_InterfaceReconfiguration()
  * interfaces that are not selected must be added to LAN bridge
- * Check the HW configstatus (WAN/LAN), if the current HW config is LAN and the Wan.RebootOnConfiguration is set to “TRUE”
+ * Check the HW configstatus (WAN/LAN), if the current HW config is LAN and the Selection.RequiresReboot is set to “TRUE”
  */
 static WcAwPolicyState_t State_InterfaceReconfiguration (WanMgr_Policy_Controller_t * pWanController)
 {
@@ -1112,7 +1123,7 @@ static WcAwPolicyState_t State_InterfaceReconfiguration (WanMgr_Policy_Controlle
         if(pWanDmlIfaceData != NULL)
         {
             DML_WAN_IFACE * pWanIfaceData = &(pWanDmlIfaceData->data);
-            strncpy (PhyPath, pWanIfaceData->Phy.Path, sizeof(PhyPath)-1);
+            strncpy (PhyPath, pWanIfaceData->BaseInterface, sizeof(PhyPath)-1);
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
 
             if ((strlen(PhyPath) > 0) && (strstr(PhyPath, "Ethernet")))
@@ -1120,7 +1131,7 @@ static WcAwPolicyState_t State_InterfaceReconfiguration (WanMgr_Policy_Controlle
                 ret = WanMgr_RdkBus_AddIntfToLanBridge(PhyPath, TRUE);
                 if (ret == ANSC_STATUS_FAILURE)
                 {
-                    CcspTraceError(("%s %d: unable to config LAN bridge for index %d Phy.Path %s\n", __FUNCTION__, __LINE__, uiLoopCount, PhyPath));
+                    CcspTraceError(("%s %d: unable to config LAN bridge for index %d BaseInterface %s\n", __FUNCTION__, __LINE__, uiLoopCount, PhyPath));
                 }
                 memset (PhyPath, 0, sizeof(PhyPath));
             }
@@ -1144,19 +1155,19 @@ static WcAwPolicyState_t State_InterfaceReconfiguration (WanMgr_Policy_Controlle
         if(pWanDmlIfaceData != NULL)
         {
             DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
-            if (strstr(pWanIfaceData->Phy.Path, "Ethernet") == NULL)
+            if (strstr(pWanIfaceData->BaseInterface, "Ethernet") == NULL)
             {
                 // no hardware configuration needed for this interface
                 WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
                 continue;
             }
 
-            CurrIntfHwRebootConfig = pWanIfaceData->Wan.RebootOnConfiguration;
-            strncpy(PhyPath, pWanIfaceData->Phy.Path,  sizeof(PhyPath) - 1);
+            CurrIntfHwRebootConfig = pWanIfaceData->Selection.RequiresReboot;
+            strncpy(PhyPath, pWanIfaceData->BaseInterface,  sizeof(PhyPath) - 1);
 
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
 
-            CcspTraceInfo (("%s %d: Interfce idx:%d has Phy.PAth :%s and RebootOnConfiguration:%d\n", __FUNCTION__, __LINE__, uiLoopCount, PhyPath, CurrIntfHwRebootConfig));
+            CcspTraceInfo (("%s %d: Interfce idx:%d has BaseInterface :%s and RebootRequired:%d\n", __FUNCTION__, __LINE__, uiLoopCount, PhyPath, CurrIntfHwRebootConfig));
 
             // get WAN Hardware configuration 
             UINT index = 0;
@@ -1221,7 +1232,7 @@ static WcAwPolicyState_t State_InterfaceReconfiguration (WanMgr_Policy_Controlle
         return Transition_ReconfigurePlatform (pWanController);
     }
 
-    if (WanMgr_Get_ISM_RunningStatus() != TRUE)
+    if (WanMgr_Get_ISM_RunningStatus(pWanController->activeInterfaceIdx) != TRUE)
     {
         return Transistion_WanInterfaceDown (pWanController);
     }
@@ -1243,7 +1254,7 @@ static WcAwPolicyState_t State_RebootingPlatform (WanMgr_Policy_Controller_t * p
     }
 
     // check if interface state machine is still running
-    if (WanMgr_Get_ISM_RunningStatus() == TRUE)
+    if (WanMgr_Get_ISM_RunningStatus(pWanController->activeInterfaceIdx) == TRUE)
     {
         CcspTraceInfo(("%s %d: Iface state machine still running..\n", __FUNCTION__, __LINE__));
         return STATE_AUTO_WAN_REBOOT_PLATFORM;
@@ -1255,7 +1266,7 @@ static WcAwPolicyState_t State_RebootingPlatform (WanMgr_Policy_Controller_t * p
 /*
  * State_WanInterfaceActive()
  * - If the ResetActiveLink flag is set to "TRUE", the Reset Active Interface Transition will be called
- * - If the Phy.Status flag is set to "DOWN", the WAN Interface Down Transition will be called
+ * - If the BaseInterfaceStatus flag is set to "DOWN", the WAN Interface Down Transition will be called
  */
 static WcAwPolicyState_t State_WanInterfaceActive (WanMgr_Policy_Controller_t * pWanController)
 {
@@ -1265,21 +1276,21 @@ static WcAwPolicyState_t State_WanInterfaceActive (WanMgr_Policy_Controller_t * 
         return STATE_AUTO_WAN_ERROR;
     }
 
-    // check ResetActiveInterface
+    // check ResetSelectedInterface
     if ((pWanController->WanEnable == FALSE) 
-            || (pWanController->PolicyChanged == TRUE) 
-            || (WanMgr_GetResetActiveInterfaceFlag() == TRUE))
+            || (pWanController->GroupCfgChanged == TRUE) 
+            || (pWanController->ResetSelectedInterface == TRUE))
     {
-        CcspTraceInfo(("%s %d: ResetActiveInterface flag detected\n", __FUNCTION__, __LINE__));
-        return Transition_ResetActiveInterface (pWanController);
+        CcspTraceInfo(("%s %d: ResetSelectedInterface flag detected\n", __FUNCTION__, __LINE__));
+        return Transition_ResetSelectedInterface (pWanController);
     }
 
     // check if PHY is still UP
     DML_WAN_IFACE * pActiveInterface = &(pWanController->pWanActiveIfaceData->data);
-    if (pActiveInterface->Phy.Status != WAN_IFACE_PHY_STATUS_UP ||
-            pActiveInterface->Wan.Enable == FALSE)
+    if (pActiveInterface->BaseInterfaceStatus != WAN_IFACE_PHY_STATUS_UP ||
+            pActiveInterface->Selection.Enable == FALSE)
     {
-        CcspTraceInfo(("%s %d: interface:%d is PHY down\n", __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
+        CcspTraceInfo(("%s %d: interface:%d is BaseInterface down\n", __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
         if (WanMgr_SetGroupSelectedIface (pWanController->GroupInst, (pWanController->activeInterfaceIdx+1)) != ANSC_STATUS_SUCCESS)
         {
             CcspTraceError(("%s %d: Failed to set GroupSelectedInterface %d \n",
@@ -1294,7 +1305,7 @@ static WcAwPolicyState_t State_WanInterfaceActive (WanMgr_Policy_Controller_t * 
 /*
  * State_WanInterfaceDown ()
  * - If the ResetActiveLink flag is set to "TRUE", the Reset Active Interface Transition will be called
- * - If the Phy.Status flag is set to "UP", the WAN Interface Up Transition will be called
+ * - If the BaseInterfaceStatus flag is set to "UP", the WAN Interface Up Transition will be called
  */
 static WcAwPolicyState_t State_WanInterfaceDown (WanMgr_Policy_Controller_t * pWanController)
 {
@@ -1305,17 +1316,17 @@ static WcAwPolicyState_t State_WanInterfaceDown (WanMgr_Policy_Controller_t * pW
     }
 
     if ((pWanController->WanEnable == FALSE) 
-            || (pWanController->PolicyChanged == TRUE) 
-            || (WanMgr_GetResetActiveInterfaceFlag() == TRUE))
+            || (pWanController->GroupCfgChanged == TRUE) 
+            || (pWanController->ResetSelectedInterface == TRUE))
     {
-        CcspTraceInfo(("%s %d: ResetActiveInterface flag detected\n", __FUNCTION__, __LINE__));
-        return Transition_ResetActiveInterface (pWanController);
+        CcspTraceInfo(("%s %d: ResetSelectedInterface flag detected\n", __FUNCTION__, __LINE__));
+        return Transition_ResetSelectedInterface (pWanController);
     }
 
     // check if PHY is UP
     DML_WAN_IFACE * pActiveInterface = &(pWanController->pWanActiveIfaceData->data);
-    if (pActiveInterface->Phy.Status == WAN_IFACE_PHY_STATUS_UP &&
-            pActiveInterface->Wan.Enable == TRUE)
+    if (pActiveInterface->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_UP &&
+            pActiveInterface->Selection.Enable == TRUE)
     {
         if (WanMgr_SetGroupSelectedIface (pWanController->GroupInst, (pWanController->activeInterfaceIdx+1)) != ANSC_STATUS_SUCCESS)
         {
@@ -1342,9 +1353,9 @@ static WcAwPolicyState_t State_WaitingForInterfaceSMExit(WanMgr_Policy_Controlle
         return STATE_AUTO_WAN_TEARING_DOWN;
     }
 
-    pFixedInterface->SelectionStatus = WAN_IFACE_NOT_SELECTED;
+    pFixedInterface->Selection.Status = WAN_IFACE_NOT_SELECTED;
 
-    if(WanMgr_Get_ISM_RunningStatus() == TRUE)
+    if(WanMgr_Get_ISM_RunningStatus(pWanController->activeInterfaceIdx) == TRUE)
     {
         return STATE_AUTO_WAN_TEARING_DOWN;
     }
@@ -1353,7 +1364,7 @@ static WcAwPolicyState_t State_WaitingForInterfaceSMExit(WanMgr_Policy_Controlle
 
     WanMgr_ResetGroupSelectedIface(pWanController);
 
-    if(pWanController->PolicyChanged == TRUE)
+    if(pWanController->GroupCfgChanged == TRUE)
     {
         WanMgr_ResetActiveLinkOnAllIface(pWanController);
     }
@@ -1410,20 +1421,10 @@ void WanMgr_AutoWanSelectionProcess (void* arg)
         if (WanController.pWanActiveIfaceData != NULL)
         {
             DML_WAN_IFACE* pWanIfaceData = &(WanController.pWanActiveIfaceData->data);
-            WanController.InterfaceSelectionTimeOut = pWanIfaceData->Wan.SelectionTimeout;
+            WanController.InterfaceSelectionTimeOut = pWanIfaceData->Selection.Timeout;
             if (!WanController.GroupInst)
             {
-                WanController.GroupInst = pWanIfaceData->Wan.Group;
-            }
-            WANMGR_IFACE_GROUP* pWanIfaceGroup = WanMgr_GetIfaceGroup_locked((WanController.GroupInst - 1));
-            if (pWanIfaceGroup != NULL)
-            {
-                if (pWanIfaceGroup->GroupIfaceListChanged)
-                {
-                    if (aw_sm_state != STATE_AUTO_WAN_SM_EXIT)
-                        aw_sm_state = STATE_AUTO_WAN_TEARING_DOWN;
-                }
-                WanMgrDml_GetIfaceGroup_release();
+                WanController.GroupInst = pWanIfaceData->Selection.Group;
             }
         }
 
@@ -1473,13 +1474,25 @@ void WanMgr_AutoWanSelectionProcess (void* arg)
         }
 
     }
+
+    if(WanController.GroupCfgChanged == TRUE)
+    {
+        WanMgr_Config_Data_t*   pWanConfigData = WanMgr_GetConfigData_locked();
+        if(pWanConfigData != NULL)
+        {
+            CcspTraceInfo(("%s %d: Resetting FO scan thread\n", __FUNCTION__, __LINE__));
+            pWanConfigData->data.ResetFailOverScan = TRUE;
+            WanMgrDml_GetConfigData_release(pWanConfigData);
+        }
+    }
+
     WANMGR_IFACE_GROUP* pWanIfaceGroup = WanMgr_GetIfaceGroup_locked((WanController.GroupInst - 1));
     if (pWanIfaceGroup != NULL)
     {
         pWanIfaceGroup->ThreadId = 0;
         pWanIfaceGroup->SelectedInterface = 0;
-        pWanIfaceGroup->GroupIfaceListChanged = 0;
-        pWanIfaceGroup->GroupState = STATE_GROUP_STOPPED;
+        pWanIfaceGroup->ConfigChanged = 0;
+        pWanIfaceGroup->State = STATE_GROUP_STOPPED;
         WanMgrDml_GetIfaceGroup_release();
     }
     CcspTraceInfo(("%s %d - Exit from SelectionProcess Group(%d) state machine\n", __FUNCTION__, __LINE__, WanController.GroupInst));

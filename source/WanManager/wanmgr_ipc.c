@@ -74,26 +74,24 @@ static ANSC_STATUS WanMgr_IpcNewIpv4Msg(ipc_dhcpv4_data_t* pNewIpv4Msg)
     while((retStatus != ANSC_STATUS_SUCCESS) && (try < WANMGR_MAX_IPC_PROCCESS_TRY))
     {
         //get iface data
-        WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceDataByName_locked(pNewIpv4Msg->dhcpcInterface);
-        if(pWanDmlIfaceData != NULL)
+        DML_VIRTUAL_IFACE* pVirtIf = WanMgr_GetVirtualIfaceByName_locked(pNewIpv4Msg->dhcpcInterface);
+        if(pVirtIf != NULL)
         {
-            DML_WAN_IFACE* pIfaceData = &(pWanDmlIfaceData->data);
-
             //check if previously message was already handled
-            if(pIfaceData->IP.pIpcIpv4Data == NULL)
+            if(pVirtIf->IP.pIpcIpv4Data == NULL)
             {
                 //allocate
-                pIfaceData->IP.pIpcIpv4Data = (ipc_dhcpv4_data_t*) malloc(sizeof(ipc_dhcpv4_data_t));
-                if(pIfaceData->IP.pIpcIpv4Data != NULL)
+                pVirtIf->IP.pIpcIpv4Data = (ipc_dhcpv4_data_t*) malloc(sizeof(ipc_dhcpv4_data_t));
+                if(pVirtIf->IP.pIpcIpv4Data != NULL)
                 {
                     // copy data
-                    memcpy(pIfaceData->IP.pIpcIpv4Data, pNewIpv4Msg, sizeof(ipc_dhcpv4_data_t));
+                    memcpy(pVirtIf->IP.pIpcIpv4Data, pNewIpv4Msg, sizeof(ipc_dhcpv4_data_t));
                     retStatus = ANSC_STATUS_SUCCESS;
                 }
             }
 
             //release lock
-            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+            WanMgr_VirtualIfaceData_release(pVirtIf);
         }
 
         if(retStatus != ANSC_STATUS_SUCCESS)
@@ -115,26 +113,24 @@ static ANSC_STATUS WanMgr_IpcNewIpv6Msg(ipc_dhcpv6_data_t* pNewIpv6Msg)
     while((retStatus != ANSC_STATUS_SUCCESS) && (try < WANMGR_MAX_IPC_PROCCESS_TRY))
     {
         //get iface data
-        WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceDataByName_locked(pNewIpv6Msg->ifname);
-        if(pWanDmlIfaceData != NULL)
+        DML_VIRTUAL_IFACE* pVirtIf = WanMgr_GetVirtualIfaceByName_locked(pNewIpv6Msg->ifname);
+        if(pVirtIf != NULL)
         {
-            DML_WAN_IFACE* pIfaceData = &(pWanDmlIfaceData->data);
-
             //check if previously message was already handled
-            if(pIfaceData->IP.pIpcIpv6Data == NULL)
+            if(pVirtIf->IP.pIpcIpv6Data == NULL)
             {
                 //allocate
-                pIfaceData->IP.pIpcIpv6Data = (ipc_dhcpv6_data_t*) malloc(sizeof(ipc_dhcpv6_data_t));
-                if(pIfaceData->IP.pIpcIpv6Data != NULL)
+                pVirtIf->IP.pIpcIpv6Data = (ipc_dhcpv6_data_t*) malloc(sizeof(ipc_dhcpv6_data_t));
+                if(pVirtIf->IP.pIpcIpv6Data != NULL)
                 {
                     // copy data
-                    memcpy(pIfaceData->IP.pIpcIpv6Data, pNewIpv6Msg, sizeof(ipc_dhcpv6_data_t));
+                    memcpy(pVirtIf->IP.pIpcIpv6Data, pNewIpv6Msg, sizeof(ipc_dhcpv6_data_t));
                     retStatus = ANSC_STATUS_SUCCESS;
                 }
             }
 
             //release lock
-            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+            WanMgr_VirtualIfaceData_release(pVirtIf);
         }
 
         if(retStatus != ANSC_STATUS_SUCCESS)
@@ -149,15 +145,12 @@ static ANSC_STATUS WanMgr_IpcNewIpv6Msg(ipc_dhcpv6_data_t* pNewIpv6Msg)
 
 ANSC_STATUS WanMgr_SetInterfaceStatus(char *ifName, wanmgr_iface_status_t state)
 {
-    WanMgr_Iface_Data_t* pWanDmlIfaceData = NULL;
-    DML_WAN_IFACE*          pIfaceData = NULL;
+    DML_VIRTUAL_IFACE* pVirtIf = WanMgr_GetVirtualIfaceByName_locked(ifName);
 
-    pWanDmlIfaceData = WanMgr_GetIfaceDataByName_locked(ifName);
-    if(pWanDmlIfaceData != NULL)
+    if(pVirtIf != NULL)
     {
-        pIfaceData = &(pWanDmlIfaceData->data);
-        WanManager_UpdateInterfaceStatus(pIfaceData, state);
-        WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+        WanManager_UpdateInterfaceStatus(pVirtIf, state);
+        WanMgr_VirtualIfaceData_release(pVirtIf);
         return ANSC_STATUS_SUCCESS;
     }
     return ANSC_STATUS_FAILURE;
@@ -324,7 +317,7 @@ static void* IpcServerThread( void *arg )
                 case DHCP6C_STATE_CHANGED:
                     if (WanMgr_IpcNewIpv6Msg(&(ipc_msg.data.dhcpv6)) != ANSC_STATUS_SUCCESS)
                     {
-                        CcspTraceError(("[%s-%d] Failed to proccess DHCPv6 state change message \n", __FUNCTION__, __LINE__));
+                        CcspTraceError(("[%s-%d] Failed to proccess DHCPv6 state change message for %s \n", __FUNCTION__, __LINE__,ipc_msg.data.dhcpv6.ifname));
                     }
                     break;
 #ifdef FEATURE_IPOE_HEALTH_CHECK

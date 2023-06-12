@@ -28,6 +28,7 @@
 #include "wanmgr_rdkbus_apis.h"
 #include "wanmgr_rdkbus_common.h"
 #include "wanmgr_rdkbus_utils.h"
+#include "wanmgr_interface_sm.h"
 
 #include "ansc_platform.h"
 #include "ipc_msg.h"
@@ -41,9 +42,9 @@
  * @param msg - Pointer to msg_payload_t structure contains Dhcpv4 configuration as part of ipc message
  * @return ANSC_STATUS_SUCCESS upon success else error code returned.
  */
-ANSC_STATUS wanmgr_handle_dhcpv4_event_data(DML_WAN_IFACE* pIfaceData);
-void* IPCPStateChangeHandler (void *arg);
-void WanMgr_UpdateIpFromCellularMgr (char *dhcpcInterface);
+ANSC_STATUS wanmgr_handle_dhcpv4_event_data(DML_VIRTUAL_IFACE* pVirtIf);
+ANSC_STATUS IPCPStateChangeHandler (DML_VIRTUAL_IFACE* pVirtIf);
+void WanMgr_UpdateIpFromCellularMgr (WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
 
 /**********************************************************************
                 STRUCTURE AND CONSTANT DEFINITIONS

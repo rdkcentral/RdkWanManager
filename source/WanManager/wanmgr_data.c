@@ -52,11 +52,8 @@ void WanMgr_SetConfigData_Default(DML_WANMGR_CONFIG* pWanDmlConfig)
     if(pWanDmlConfig != NULL)
     {
         pWanDmlConfig->Enable = TRUE;
-        pWanDmlConfig->Policy = FIXED_MODE;
-        pWanDmlConfig->ResetActiveInterface = FALSE;
         pWanDmlConfig->ResetFailOverScan = FALSE;
         pWanDmlConfig->AllowRemoteInterfaces = FALSE;
-        pWanDmlConfig->PolicyChanged = FALSE;
         memset(pWanDmlConfig->InterfaceAvailableStatus, 0, BUFLEN_64);
         memset(pWanDmlConfig->InterfaceActiveStatus, 0, BUFLEN_64);
 
@@ -73,14 +70,6 @@ void WanMgr_SetIfaceGroup_Default(WanMgr_IfaceGroup_t *pWanIfacegroup)
     if(pWanIfacegroup != NULL)
     {
         pWanIfacegroup->ulTotalNumbWanIfaceGroup = MAX_INTERFACE_GROUP;
-        for(int i = 0; i < MAX_INTERFACE_GROUP; i++)
-	{
-            pWanIfacegroup->Group[i].ThreadId = 0;
-            pWanIfacegroup->Group[i].GroupState = 0;
-            pWanIfacegroup->Group[i].InterfaceAvailable = 0;
-            pWanIfacegroup->Group[i].SelectedInterface = 0;
-            pWanIfacegroup->Group[i].GroupIfaceListChanged = 0;
-	}
     }
 }
 
@@ -110,7 +99,160 @@ void WanMgr_IfaceCtrl_Delete(WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl)
     }
 }
 
+ANSC_STATUS WanMgr_Group_Configure()
+{
+    ANSC_STATUS ret = ANSC_STATUS_FAILURE;
+    CcspTraceInfo(("%s %d Initialize Wan Group Conf \n", __FUNCTION__, __LINE__));
+    if(pthread_mutex_lock(&gWanMgrDataBase.gDataMutex) == 0)
+    {
+        WanMgr_IfaceGroup_t *pWanIfacegroup = &(gWanMgrDataBase.IfaceGroup);
+
+        if(pWanIfacegroup != NULL)
+        {
+            DmlGetTotalNoOfGroups(&(pWanIfacegroup->ulTotalNumbWanIfaceGroup));
+            CcspTraceInfo(("%s %d - Total no of Groups %d\n",__FUNCTION__,__LINE__,pWanIfacegroup->ulTotalNumbWanIfaceGroup));
+
+            pWanIfacegroup->Group = (WANMGR_IFACE_GROUP *) AnscAllocateMemory( sizeof(WANMGR_IFACE_GROUP) * pWanIfacegroup->ulTotalNumbWanIfaceGroup);
+            if(pWanIfacegroup->Group == NULL)
+            {
+                CcspTraceError(("%s %d: AnscAllocateMemory failed \n", __FUNCTION__, __LINE__));
+                return ret;
+            }
+            for(int i = 0; i < pWanIfacegroup->ulTotalNumbWanIfaceGroup; i++)
+            {
+                pWanIfacegroup->Group[i].groupIdx = i;
+                pWanIfacegroup->Group[i].ThreadId = 0;
+                pWanIfacegroup->Group[i].State = STATE_GROUP_STOPPED;
+                pWanIfacegroup->Group[i].InterfaceAvailable = 0;
+                pWanIfacegroup->Group[i].SelectedInterface = 0;
+                pWanIfacegroup->Group[i].SelectionTimeOut = 0;
+                pWanIfacegroup->Group[i].ConfigChanged = FALSE;
+                pWanIfacegroup->Group[i].ResetSelectedInterface = FALSE;
+                pWanIfacegroup->Group[i].Policy = AUTOWAN_MODE;
+                WanMgr_RdkBus_getWanPolicy(&(pWanIfacegroup->Group[i].Policy), i);
+                CcspTraceInfo(("%s %d Group[%d] Policy : %d \n", __FUNCTION__, __LINE__, i, pWanIfacegroup->Group[i].Policy));
+            }
+        }
+        WanMgrDml_GetIfaceData_release(NULL);
+    }
+    return ANSC_STATUS_SUCCESS;
+}
 /******** WANMGR IFACE FUNCTIONS ********/
+ANSC_STATUS WanMgr_VirtIfConfVLAN(DML_VIRTUAL_IFACE *p_VirtIf, UINT Ifid)
+{
+    if(p_VirtIf ==NULL)
+    {
+        CcspTraceError(("%s %d Invalid memory \n", __FUNCTION__, __LINE__));
+    }
+
+    for(int i =0; i < p_VirtIf->VLAN.NoOfInterfaceEntries; i++)
+    {
+        DML_VLAN_IFACE_TABLE* p_VlanIf = (DML_VLAN_IFACE_TABLE *) AnscAllocateMemory( sizeof(DML_VLAN_IFACE_TABLE));
+        if(p_VlanIf == NULL)
+        {
+            CcspTraceError(("%s %d: AnscAllocateMemory failed \n", __FUNCTION__, __LINE__));
+            return;
+        }
+        p_VlanIf->Index = i;
+        p_VlanIf->VirIfIdx = p_VirtIf->VirIfIdx;
+        p_VlanIf->baseIfIdx = p_VirtIf->baseIfIdx;
+
+        memset(p_VlanIf->Interface,0, sizeof(p_VlanIf->Interface));
+
+        char param_value[256]={0};
+        char param_name[512]={0};
+        int retPsmGet = CCSP_SUCCESS;
+        _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_VLAN_INTERFACE_ENTRY, (Ifid+1), (p_VirtIf->VirIfIdx +1),(i+1));
+        retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
+        AnscCopyString(p_VlanIf->Interface, param_value);
+
+        CcspTraceInfo(("%s %d Adding Vlan Interface entry %d \n", __FUNCTION__, __LINE__, p_VlanIf->Index));
+        WanMgr_AddVirtVlanIfToList(&(p_VirtIf->VLAN.InterfaceList), p_VlanIf);
+    }
+
+    for(int i =0; i < p_VirtIf->VLAN.NoOfMarkingEntries; i++)
+    {
+        DML_VIRTIF_MARKING* p_Marking = (DML_VIRTIF_MARKING *) AnscAllocateMemory( sizeof(DML_VIRTIF_MARKING));
+        if(p_Marking == NULL)
+        {
+            CcspTraceError(("%s %d: AnscAllocateMemory failed \n", __FUNCTION__, __LINE__));
+            return;
+        }
+        p_Marking->VirtMarkingInstanceNumber = i;
+        p_Marking->VirIfIdx = p_VirtIf->VirIfIdx;
+        p_Marking->baseIfIdx = p_VirtIf->baseIfIdx;
+        p_Marking->Entry = 0;
+
+        char param_value[256]={0};
+        char param_name[512]={0};
+        int retPsmGet = CCSP_SUCCESS;
+        _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_VLAN_MARKING_ENTRY, (Ifid+1), (p_VirtIf->VirIfIdx +1),(i+1));
+        retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
+        if (retPsmGet == CCSP_SUCCESS)
+        {
+            _ansc_sscanf(param_value, "%d", &(p_Marking->Entry));
+        }
+
+        CcspTraceInfo(("%s %d Adding Marking entry %d \n", __FUNCTION__, __LINE__, p_Marking->VirtMarkingInstanceNumber));
+        WanMgr_AddVirtMarkingToList(&(p_VirtIf->VLAN.VirtMarking),p_Marking);
+    }
+}
+ANSC_STATUS WanMgr_WanIfaceConfInit(WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl)
+{
+    CcspTraceInfo(("%s %d Initialize Wan Iface Conf \n", __FUNCTION__, __LINE__));
+    if(pWanIfaceCtrl != NULL)
+    {
+        ANSC_STATUS result;
+        UINT        uiTotalIfaces;
+        UINT        idx;
+
+        result = DmlGetTotalNoOfWanInterfaces(&uiTotalIfaces);
+        if(result == ANSC_STATUS_FAILURE) {
+            return ANSC_STATUS_FAILURE;
+        }
+
+        pWanIfaceCtrl->pIface = (WanMgr_Iface_Data_t*) AnscAllocateMemory( sizeof(WanMgr_Iface_Data_t) * MAX_WAN_INTERFACE_ENTRY);
+        if( NULL == pWanIfaceCtrl->pIface )
+        {
+            return ANSC_STATUS_FAILURE;
+        }
+
+        pWanIfaceCtrl->ulTotalNumbWanInterfaces = uiTotalIfaces;
+
+        //Memset all memory
+        memset( pWanIfaceCtrl->pIface, 0, ( sizeof(WanMgr_Iface_Data_t) * MAX_WAN_INTERFACE_ENTRY ) );
+
+        //Get static interface configuration from PSM data store
+        for( idx = 0 ; idx < uiTotalIfaces ; idx++ )
+        {
+            WanMgr_Iface_Data_t*  pIfaceData  = &(pWanIfaceCtrl->pIface[idx]);
+            WanMgr_IfaceData_Init(pIfaceData, idx);
+            get_Wan_Interface_ParametersFromPSM((idx+1), &(pIfaceData->data));
+
+            CcspTraceInfo(("%s %d No Of Virtual Interfaces %d \n", __FUNCTION__, __LINE__, pIfaceData->data.NoOfVirtIfs));
+
+            for(int i=0; i< pIfaceData->data.NoOfVirtIfs; i++)
+            {
+                DML_VIRTUAL_IFACE* p_VirtIf = (DML_VIRTUAL_IFACE *) AnscAllocateMemory( sizeof(DML_VIRTUAL_IFACE) );
+                if(p_VirtIf == NULL)
+                {
+                    CcspTraceError(("%s %d: AnscAllocateMemory failed \n", __FUNCTION__, __LINE__));
+                    return;
+                }
+                WanMgr_VirtIface_Init(p_VirtIf, i);
+                p_VirtIf->baseIfIdx = idx; //Add base interface index 
+                get_Virtual_Interface_FromPSM((idx+1), i , p_VirtIf);
+                CcspTraceInfo(("%s %d Adding %d \n", __FUNCTION__, __LINE__, p_VirtIf->VirIfIdx));
+                WanMgr_VirtIfConfVLAN(p_VirtIf, idx);
+                WanMgr_AddVirtualToList(&(pIfaceData->data.VirtIfList), p_VirtIf);
+            }
+        }
+        // initialize
+        pWanIfaceCtrl->update = 0;
+    }
+
+    return ANSC_STATUS_SUCCESS;
+}
 
 ANSC_STATUS WanMgr_WanDataInit(void)
 {
@@ -123,6 +265,31 @@ ANSC_STATUS WanMgr_WanDataInit(void)
 
         WanMgrDml_GetIfaceData_release(NULL);
     }
+    return retStatus;
+}
+
+ANSC_STATUS WanMgr_WanConfigInit(void)
+{
+    ANSC_STATUS retStatus = ANSC_STATUS_FAILURE;
+
+    //Wan Configuration init
+    WanMgr_Config_Data_t* pWanConfigData = WanMgr_GetConfigData_locked();
+    if(pWanConfigData != NULL)
+    {
+        retStatus = WanMgr_WanConfInit(&(pWanConfigData->data));
+
+        WanMgrDml_GetConfigData_release(pWanConfigData);
+    }
+
+    if(retStatus != ANSC_STATUS_SUCCESS)
+    {
+        return retStatus;
+    }
+
+
+    WanMgr_Group_Configure();
+    //Wan Interface Configuration init
+    retStatus = WanMgr_WanDataInit();
     return retStatus;
 }
 
@@ -159,6 +326,78 @@ WanMgr_Iface_Data_t* WanMgr_GetIfaceData_locked(UINT iface_index)
     return NULL;
 }
 
+DML_VIRTUAL_IFACE* WanMgr_getVirtualIface_locked(UINT baseIfidx, UINT virtIfIdx)
+{
+    if(pthread_mutex_lock(&gWanMgrDataBase.gDataMutex) == 0)
+    {
+        WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl = &(gWanMgrDataBase.IfaceCtrl);
+        if(baseIfidx < pWanIfaceCtrl->ulTotalNumbWanInterfaces)
+        {
+            if(pWanIfaceCtrl->pIface != NULL)
+            {
+                WanMgr_Iface_Data_t* pWanIfaceData = &(pWanIfaceCtrl->pIface[baseIfidx]);
+                return WanMgr_getVirtualIfaceById(pWanIfaceData->data.VirtIfList, virtIfIdx);
+            }
+        }
+        WanMgrDml_GetIfaceData_release(NULL);
+    }
+    return NULL;
+}
+
+DML_VLAN_IFACE_TABLE* WanMgr_getVlanIface_locked(UINT baseIfidx, UINT virtIfIdx, UINT vlanid)
+{
+    if(pthread_mutex_lock(&gWanMgrDataBase.gDataMutex) == 0)
+    {
+        WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl = &(gWanMgrDataBase.IfaceCtrl);
+        if(baseIfidx < pWanIfaceCtrl->ulTotalNumbWanInterfaces)
+        {
+            if(pWanIfaceCtrl->pIface != NULL)
+            {
+                WanMgr_Iface_Data_t* pWanIfaceData = &(pWanIfaceCtrl->pIface[baseIfidx]);
+                return WanMgr_getVirtVlanIfById((WanMgr_getVirtualIfaceById(pWanIfaceData->data.VirtIfList, virtIfIdx))->VLAN.InterfaceList, vlanid);
+            }
+        }
+        WanMgrDml_GetIfaceData_release(NULL);
+    }
+    return NULL;
+}
+
+void WanMgr_VlanIfaceMutex_release(DML_VLAN_IFACE_TABLE* vlanIf)
+{
+    WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl = &(gWanMgrDataBase.IfaceCtrl);
+    if(pWanIfaceCtrl != NULL)
+    {
+        pthread_mutex_unlock (&gWanMgrDataBase.gDataMutex);
+    }
+}
+
+DML_VIRTIF_MARKING* WanMgr_getVirtualMarking_locked(UINT baseIfidx, UINT virtIfIdx, UINT Markingid)
+{
+    if(pthread_mutex_lock(&gWanMgrDataBase.gDataMutex) == 0)
+    {
+        WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl = &(gWanMgrDataBase.IfaceCtrl);
+        if(baseIfidx < pWanIfaceCtrl->ulTotalNumbWanInterfaces)
+        {
+            if(pWanIfaceCtrl->pIface != NULL)
+            {
+                WanMgr_Iface_Data_t* pWanIfaceData = &(pWanIfaceCtrl->pIface[baseIfidx]);
+                return WanMgr_getVirtVlanIfById((WanMgr_getVirtualIfaceById(pWanIfaceData->data.VirtIfList, virtIfIdx))->VLAN.VirtMarking, Markingid);
+            }
+        }
+        WanMgrDml_GetIfaceData_release(NULL);
+    }
+    return NULL;
+}
+
+void WanMgr_VirtMarkingMutex_release(DML_VIRTIF_MARKING* virtMarking)
+{
+    WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl = &(gWanMgrDataBase.IfaceCtrl);
+    if(pWanIfaceCtrl != NULL)
+    {
+        pthread_mutex_unlock (&gWanMgrDataBase.gDataMutex);
+    }
+}
+
 WanMgr_Iface_Data_t* WanMgr_GetIfaceDataByName_locked(char* iface_name)
 {
    UINT idx;
@@ -172,7 +411,7 @@ WanMgr_Iface_Data_t* WanMgr_GetIfaceDataByName_locked(char* iface_name)
             {
                 WanMgr_Iface_Data_t* pWanIfaceData = &(pWanIfaceCtrl->pIface[idx]);
 
-                if(!strcmp(iface_name, pWanIfaceData->data.Wan.Name))
+                if(!strcmp(iface_name, pWanIfaceData->data.VirtIfList->Name)) //get the fist interface name
                 {
                     return pWanIfaceData;
                 }
@@ -181,6 +420,146 @@ WanMgr_Iface_Data_t* WanMgr_GetIfaceDataByName_locked(char* iface_name)
         WanMgrDml_GetIfaceData_release(NULL);
     }
 
+    return NULL;
+}
+
+DML_VIRTUAL_IFACE* WanMgr_GetVirtualIfaceByName_locked(char* iface_name)
+{
+   UINT idx;
+
+    if(pthread_mutex_lock(&gWanMgrDataBase.gDataMutex) == 0)
+    {
+        WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl = &(gWanMgrDataBase.IfaceCtrl);
+        if(pWanIfaceCtrl->pIface != NULL)
+        {
+            for(idx = 0; idx < pWanIfaceCtrl->ulTotalNumbWanInterfaces; idx++)
+            {
+                WanMgr_Iface_Data_t* pWanIfaceData = &(pWanIfaceCtrl->pIface[idx]);
+                DML_VIRTUAL_IFACE* virIface = pWanIfaceData->data.VirtIfList;
+                while(virIface != NULL)
+                {
+                    if(!strcmp(iface_name,virIface->Name))
+                    {
+                        return virIface;
+                    }
+                    virIface = virIface->next;
+                }
+            }
+        }
+        WanMgrDml_GetIfaceData_release(NULL);
+    }
+
+    return NULL;
+}
+
+ANSC_STATUS WanMgr_AddVirtVlanIfToList(DML_VLAN_IFACE_TABLE** head, DML_VLAN_IFACE_TABLE *newNode)
+{
+    if(NULL == newNode)
+        return ANSC_STATUS_FAILURE;
+
+    CcspTraceInfo(("%s %d Adding %d \n", __FUNCTION__, __LINE__, newNode->Index));
+    if (*head == NULL)
+    {
+        *head = newNode;
+        return ANSC_STATUS_SUCCESS;
+    }
+
+    DML_VIRTUAL_IFACE* last = *head;
+    while (last->next != NULL)
+        last = last->next;
+
+    last->next = newNode;
+    return ANSC_STATUS_SUCCESS;
+}
+
+DML_VLAN_IFACE_TABLE* WanMgr_getVirtVlanIfById(DML_VLAN_IFACE_TABLE* vlanIf, UINT inst)
+{
+    if (vlanIf == NULL) {
+        return NULL;
+    }
+
+    while(vlanIf != NULL)
+    {
+        if(vlanIf->Index == inst)
+        {
+            return vlanIf;
+        }
+        vlanIf = vlanIf->next;
+    }
+    return NULL;
+}
+
+ANSC_STATUS WanMgr_AddVirtMarkingToList(DML_VIRTIF_MARKING** head, DML_VIRTIF_MARKING *newNode)
+{
+    if(NULL == newNode)
+        return ANSC_STATUS_FAILURE;
+
+    CcspTraceInfo(("%s %d Adding %d \n", __FUNCTION__, __LINE__, newNode->VirtMarkingInstanceNumber));
+    if (*head == NULL)
+    {
+        *head = newNode;
+        return ANSC_STATUS_SUCCESS;
+    }
+
+    DML_VIRTUAL_IFACE* last = *head;
+    while (last->next != NULL)
+        last = last->next;
+
+    last->next = newNode;
+    return ANSC_STATUS_SUCCESS;
+}
+
+DML_VIRTIF_MARKING* WanMgr_getVirtMakingById(DML_VIRTIF_MARKING* marking, UINT inst)
+{
+    if (marking == NULL) {
+        return NULL;
+    }
+
+    while(marking != NULL)
+    {
+        if(marking->VirtMarkingInstanceNumber == inst)
+        {
+            return marking;
+        }
+        marking = marking->next;
+    }
+    return NULL;
+}
+
+ANSC_STATUS WanMgr_AddVirtualToList(DML_VIRTUAL_IFACE** head, DML_VIRTUAL_IFACE *newNode)
+{
+    if(NULL == newNode)
+        return ANSC_STATUS_FAILURE;
+
+    CcspTraceInfo(("%s %d Adding %d \n", __FUNCTION__, __LINE__, newNode->VirIfIdx));
+    if (*head == NULL) 
+    {
+        *head = newNode;
+        return ANSC_STATUS_SUCCESS;
+    }
+
+    DML_VIRTUAL_IFACE* last = *head;
+    while (last->next != NULL)
+        last = last->next;
+
+    last->next = newNode;
+    return ANSC_STATUS_SUCCESS;
+}
+
+DML_VIRTUAL_IFACE* WanMgr_getVirtualIfaceById(DML_VIRTUAL_IFACE* virIface, UINT inst)
+{
+    if (virIface == NULL) {
+        return NULL;
+    }
+
+    while(virIface != NULL)
+    {
+        if(virIface->VirIfIdx == inst)
+        {
+            return virIface;
+        }
+        virIface = virIface->next;
+    }
     return NULL;
 }
 
@@ -242,6 +621,28 @@ void WanMgrDml_GetIfaceData_release(WanMgr_Iface_Data_t* pWanIfaceData)
     }
 }
 
+void WanMgr_VirtualIfaceData_release(DML_VIRTUAL_IFACE* pVirtIf)
+{
+    WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl = &(gWanMgrDataBase.IfaceCtrl);
+    if(pWanIfaceCtrl != NULL)
+    {
+        pthread_mutex_unlock (&gWanMgrDataBase.gDataMutex);
+    }
+}
+
+UINT WanMgr_GetTotalNoOfGroups()
+{
+    UINT groupCount = MAX_INTERFACE_GROUP; 
+    if(pthread_mutex_lock(&(gWanMgrDataBase.gDataMutex)) == 0)
+    {
+                WanMgr_IfaceGroup_t* pWanIfaceGroup = &(gWanMgrDataBase.IfaceGroup);
+        groupCount = pWanIfaceGroup->ulTotalNumbWanIfaceGroup;
+        WanMgrDml_GetIfaceData_release(NULL);
+
+    }
+    return groupCount;
+}
+
 WANMGR_IFACE_GROUP* WanMgr_GetIfaceGroup_locked(UINT iface_index)
 {
     if(pthread_mutex_lock(&(gWanMgrDataBase.gDataMutex)) == 0)
@@ -281,140 +682,114 @@ void WanMgr_IfaceData_Init(WanMgr_Iface_Data_t* pIfaceData, UINT iface_index)
         pWanDmlIface->CustomConfigEnable = FALSE;
         memset(pWanDmlIface->CustomConfigPath,0,sizeof(pWanDmlIface->CustomConfigPath));
         memset(pWanDmlIface->RemoteCPEMac, 0, sizeof(pWanDmlIface->RemoteCPEMac));
-        pWanDmlIface->Wan.OperationalStatus = WAN_OPERSTATUS_UNKNOWN;
         pWanDmlIface->uiIfaceIdx = iface_index;
         pWanDmlIface->uiInstanceNumber = iface_index+1;
         memset(pWanDmlIface->Name, 0, 64);
         memset(pWanDmlIface->DisplayName, 0, 64);
         memset(pWanDmlIface->AliasName, 0, 64);
-        memset(pWanDmlIface->Phy.Path, 0, 64);
-        pWanDmlIface->Phy.Status = WAN_IFACE_PHY_STATUS_DOWN;
-        memset(pWanDmlIface->Wan.Name, 0, 64);
-        pWanDmlIface->Wan.Enable = FALSE;
-        pWanDmlIface->Wan.Priority = -1;
-        pWanDmlIface->Wan.Type = WAN_IFACE_TYPE_UNCONFIGURED;
-        pWanDmlIface->Wan.SelectionTimeout = 0;
-        pWanDmlIface->Wan.EnableMAPT = FALSE;
-        pWanDmlIface->Wan.EnableDSLite = FALSE;
-        pWanDmlIface->Wan.EnableIPoE = FALSE;
-        pWanDmlIface->Wan.EnableDHCP = TRUE;    // DHCP is enabled by default
-        pWanDmlIface->Wan.RefreshDHCP = FALSE;        // RefreshDHCP is set when there is a change in EnableDHCP
-        pWanDmlIface->Wan.IfaceType = LOCAL_IFACE;    // InterfaceType is Local by default
-        pWanDmlIface->Wan.ActiveLink = FALSE;
-	pWanDmlIface->SelectionStatus = WAN_IFACE_NOT_SELECTED;
-        pWanDmlIface->Wan.Status = WAN_IFACE_STATUS_DISABLED;
-        pWanDmlIface->Wan.RemoteStatus = WAN_IFACE_STATUS_DISABLED;
-        pWanDmlIface->Wan.LinkStatus = WAN_IFACE_LINKSTATUS_DOWN;
-        pWanDmlIface->Wan.Refresh = FALSE;
-        pWanDmlIface->Wan.RebootOnConfiguration = FALSE;
-	pWanDmlIface->Wan.Group = 1;
-        memset(pWanDmlIface->IP.Path, 0, 64);
-        pWanDmlIface->IP.Ipv4Status = WAN_IFACE_IPV4_STATE_DOWN;
-        pWanDmlIface->IP.Ipv6Status = WAN_IFACE_IPV6_STATE_DOWN;
-        pWanDmlIface->IP.Ipv4Changed = FALSE;
-        pWanDmlIface->IP.Ipv6Changed = FALSE;
-#ifdef FEATURE_IPOE_HEALTH_CHECK
-        pWanDmlIface->IP.Ipv4Renewed = FALSE;
-        pWanDmlIface->IP.Ipv6Renewed = FALSE;
-#endif
-        memset(&(pWanDmlIface->IP.Ipv4Data), 0, sizeof(WANMGR_IPV4_DATA));
-        memset(&(pWanDmlIface->IP.Ipv6Data), 0, sizeof(WANMGR_IPV6_DATA));
-        pWanDmlIface->IP.pIpcIpv4Data = NULL;
-        pWanDmlIface->IP.pIpcIpv6Data = NULL;
-        pWanDmlIface->MAP.MaptStatus = WAN_IFACE_MAPT_STATE_DOWN;
-        memset(pWanDmlIface->MAP.Path, 0, 64);
-        pWanDmlIface->MAP.MaptChanged = FALSE;
-        memset(pWanDmlIface->DSLite.Path, 0, 64);
-        pWanDmlIface->DSLite.Status = WAN_IFACE_DSLITE_STATE_DOWN;
-        pWanDmlIface->DSLite.Changed = FALSE;
-        pWanDmlIface->PPP.LinkStatus = WAN_IFACE_PPP_LINK_STATUS_DOWN;
-        pWanDmlIface->PPP.LCPStatus = WAN_IFACE_LCP_STATUS_DOWN;
-        pWanDmlIface->PPP.IPCPStatus = WAN_IFACE_IPCP_STATUS_DOWN;
-        pWanDmlIface->PPP.IPV6CPStatus = WAN_IFACE_IPV6CP_STATUS_DOWN;
+        memset(pWanDmlIface->BaseInterface, 0, 64);
+        pWanDmlIface->BaseInterfaceStatus = WAN_IFACE_PHY_STATUS_DOWN;
+        pWanDmlIface->Selection.Enable = FALSE;
+        pWanDmlIface->Selection.Priority = -1;
+        pWanDmlIface->Selection.Timeout = 0;
+        pWanDmlIface->IfaceType = LOCAL_IFACE;    // InterfaceType is Local by default
+        pWanDmlIface->Selection.ActiveLink = FALSE;
+	    pWanDmlIface->Selection.Status = WAN_IFACE_NOT_SELECTED;
+        pWanDmlIface->Selection.RequiresReboot = FALSE;
+	    pWanDmlIface->Selection.Group = 1;
         pWanDmlIface->InterfaceScanStatus = WAN_IFACE_STATUS_NOT_SCANNED;
 
-        pWanDmlIface->Sub.PhyStatusSub = 0;
-	pWanDmlIface->Sub.WanStatusSub = 0;
-	pWanDmlIface->Sub.WanLinkStatusSub = 0;
+        pWanDmlIface->Sub.BaseInterfaceStatusSub = 0;
+	    pWanDmlIface->Sub.WanStatusSub = 0;
+	    pWanDmlIface->Sub.WanLinkStatusSub = 0;
+
+        pWanDmlIface->NoOfVirtIfs = 1; 
+        pWanDmlIface->Type = WAN_IFACE_TYPE_UNCONFIGURED;
     }
 }
 
+void WanMgr_VirtIface_Init(DML_VIRTUAL_IFACE * pVirtIf, UINT iface_index)
+{
+    CcspTraceInfo(("%s %d Initialize Wan Virtual Iface Conf \n", __FUNCTION__, __LINE__));
+    if(pVirtIf == NULL)
+    {    
+        CcspTraceError(("%s %d: Invalid memory \n", __FUNCTION__, __LINE__));
+    }
+    pVirtIf->VirIfIdx = iface_index;
+    memset(pVirtIf->Name, 0, sizeof(pVirtIf->Name));
+    memset(pVirtIf->Alias, 0, sizeof(pVirtIf->Alias));
 
-void WanMgr_Remote_IfaceData_Init(WanMgr_Iface_Data_t* pIfaceData, UINT iface_index)
+    pVirtIf->OperationalStatus = WAN_OPERSTATUS_UNKNOWN;
+    pVirtIf->EnableMAPT = FALSE;
+    pVirtIf->EnableDSLite = FALSE;
+    pVirtIf->EnableIPoE = FALSE;
+    pVirtIf->IP.RefreshDHCP = FALSE;        // RefreshDHCP is set when there is a change in IP source
+    pVirtIf->Status = WAN_IFACE_STATUS_DISABLED;
+    pVirtIf->RemoteStatus = WAN_IFACE_STATUS_DISABLED;
+    pVirtIf->VLAN.Status = WAN_IFACE_LINKSTATUS_DOWN;
+    pVirtIf->VLAN.Enable = FALSE;
+    pVirtIf->VLAN.NoOfMarkingEntries = 0;
+    pVirtIf->VLAN.Timeout = 0;
+    pVirtIf->VLAN.ActiveIndex = -1;
+    pVirtIf->VLAN.NoOfInterfaceEntries = 0;
+    memset(pVirtIf->VLAN.VLANInUse,0, sizeof(pVirtIf->VLAN.VLANInUse));
+    pVirtIf->Reset = FALSE;
+    memset(pVirtIf->IP.Interface, 0, 64);
+    pVirtIf->IP.Ipv4Status = WAN_IFACE_IPV4_STATE_DOWN;
+    pVirtIf->IP.Ipv6Status = WAN_IFACE_IPV6_STATE_DOWN;
+    pVirtIf->IP.IPv4Source= DML_WAN_IP_SOURCE_DHCP;
+    pVirtIf->IP.IPv6Source = DML_WAN_IP_SOURCE_DHCP;
+    pVirtIf->IP.Mode = DML_WAN_IP_MODE_DUAL_STACK;
+    pVirtIf->IP.Ipv4Changed = FALSE;
+    pVirtIf->IP.Ipv6Changed = FALSE;
+#ifdef FEATURE_IPOE_HEALTH_CHECK
+    pVirtIf->IP.Ipv4Renewed = FALSE;
+    pVirtIf->IP.Ipv6Renewed = FALSE;
+#endif
+    memset(&(pVirtIf->IP.Ipv4Data), 0, sizeof(WANMGR_IPV4_DATA));
+    memset(&(pVirtIf->IP.Ipv6Data), 0, sizeof(WANMGR_IPV6_DATA));
+    pVirtIf->IP.pIpcIpv4Data = NULL;
+    pVirtIf->IP.pIpcIpv6Data = NULL;
+    pVirtIf->MAP.MaptStatus = WAN_IFACE_MAPT_STATE_DOWN;
+    memset(pVirtIf->MAP.Path, 0, 64);
+    pVirtIf->MAP.MaptChanged = FALSE;
+    memset(pVirtIf->DSLite.Path, 0, 64);
+    pVirtIf->DSLite.Status = WAN_IFACE_DSLITE_STATE_DOWN;
+    pVirtIf->DSLite.Changed = FALSE;
+    pVirtIf->PPP.Enable = FALSE;
+    pVirtIf->PPP.LinkStatus = WAN_IFACE_PPP_LINK_STATUS_DOWN;
+    pVirtIf->PPP.IPCPStatus = WAN_IFACE_IPCP_STATUS_DOWN;
+    pVirtIf->PPP.IPV6CPStatus = WAN_IFACE_IPV6CP_STATUS_DOWN;
+    pVirtIf->PPP.IPCPStatusChanged = FALSE;
+    pVirtIf->PPP.IPV6CPStatusChanged = FALSE;
+    memset(pVirtIf->PPP.Interface,0, sizeof(pVirtIf->PPP.Interface));
+
+}
+
+void WanMgr_Remote_IfaceData_Update(WanMgr_Iface_Data_t* pIfaceData, UINT iface_index)
 {
     static int remotePriority = 100;
     CcspTraceInfo(("%s %d - Enter \n", __FUNCTION__, __LINE__));
     if(pIfaceData != NULL)
     {
         DML_WAN_IFACE* pWanDmlIface = &(pIfaceData->data);
-
-        pWanDmlIface->MonitorOperStatus = FALSE;
-        pWanDmlIface->WanConfigEnabled = FALSE;
-        pWanDmlIface->CustomConfigEnable = FALSE;
-        memset(pWanDmlIface->RemoteCPEMac, 0, sizeof(pWanDmlIface->RemoteCPEMac));
-        memset(pWanDmlIface->CustomConfigPath,0,sizeof(pWanDmlIface->CustomConfigPath));
-        pWanDmlIface->Wan.OperationalStatus = WAN_OPERSTATUS_UNKNOWN;
-        pWanDmlIface->uiIfaceIdx = iface_index;
-        pWanDmlIface->uiInstanceNumber = iface_index+1;
-        memset(pWanDmlIface->Name, 0, 64);
         strcpy(pWanDmlIface->Name, REMOTE_INTERFACE_NAME); // Remote name by default
-        memset(pWanDmlIface->DisplayName, 0, 64);
-        memset(pWanDmlIface->AliasName, 0, 64);
-        memset(pWanDmlIface->Phy.Path, 0, 64);
-        pWanDmlIface->Phy.Status = WAN_IFACE_PHY_STATUS_DOWN;
-        memset(pWanDmlIface->Wan.Name, 0, 64);
-        pWanDmlIface->Wan.Enable = TRUE; // Remote wan Enable by default
-        pWanDmlIface->Wan.Priority = remotePriority;
-        pWanDmlIface->Wan.Type = WAN_IFACE_TYPE_UNCONFIGURED;
-        pWanDmlIface->Wan.SelectionTimeout = 0;
-        pWanDmlIface->Wan.EnableMAPT = FALSE;
-        pWanDmlIface->Wan.EnableDSLite = FALSE;
-        pWanDmlIface->Wan.EnableIPoE = FALSE;
-        pWanDmlIface->Wan.EnableDHCP = TRUE;    // DHCP is enabled by default
-        pWanDmlIface->Wan.RefreshDHCP = FALSE;        // RefreshDHCP is set when there is a change in EnableDHCP
-        pWanDmlIface->Wan.IfaceType = REMOTE_IFACE;    // InterfaceType is Remote by default
-        pWanDmlIface->Wan.ActiveLink = FALSE;
-        pWanDmlIface->SelectionStatus = WAN_IFACE_NOT_SELECTED;
-        pWanDmlIface->Wan.Status = WAN_IFACE_STATUS_DISABLED;
-        pWanDmlIface->Wan.LinkStatus = WAN_IFACE_LINKSTATUS_DOWN;
-        pWanDmlIface->Wan.Refresh = FALSE;
-        pWanDmlIface->Wan.RebootOnConfiguration = FALSE;
-        pWanDmlIface->Wan.Group = REMOTE_INTERFACE_GROUP;
+        pWanDmlIface->Selection.Enable = TRUE; // Remote wan Enable by default
+        pWanDmlIface->Selection.Priority = remotePriority;
+        pWanDmlIface->IfaceType = REMOTE_IFACE;    // InterfaceType is Remote by default
+        pWanDmlIface->Selection.Group = REMOTE_INTERFACE_GROUP;
+        /*Update GroupCfgChanged */
 
-        /*Update GroupIfaceListChanged */
-        WANMGR_IFACE_GROUP* pWanIfaceGroup = WanMgr_GetIfaceGroup_locked(pWanDmlIface->Wan.Group - 1);
+        WANMGR_IFACE_GROUP* pWanIfaceGroup = WanMgr_GetIfaceGroup_locked(pWanDmlIface->Selection.Group - 1);
         if (pWanIfaceGroup != NULL)
         {
-            CcspTraceInfo(("%s %d Group(%d) configuration changed  \n", __FUNCTION__, __LINE__, pWanDmlIface->Wan.Group));
+            CcspTraceInfo(("%s %d Group(%d) configuration changed  \n", __FUNCTION__, __LINE__, pWanDmlIface->Selection.Group));
             /* Add interface to remote group Available interface list */
+            pWanIfaceGroup->ConfigChanged = TRUE;
             pWanIfaceGroup->InterfaceAvailable |= (1<<pWanDmlIface->uiIfaceIdx);
             WanMgrDml_GetIfaceGroup_release();
             pWanIfaceGroup = NULL;
         }
-
-        memset(pWanDmlIface->IP.Path, 0, 64);
-        pWanDmlIface->IP.Ipv4Status = WAN_IFACE_IPV4_STATE_DOWN;
-        pWanDmlIface->IP.Ipv6Status = WAN_IFACE_IPV6_STATE_DOWN;
-        pWanDmlIface->IP.Ipv4Changed = FALSE;
-        pWanDmlIface->IP.Ipv6Changed = FALSE;
-#ifdef FEATURE_IPOE_HEALTH_CHECK
-        pWanDmlIface->IP.Ipv4Renewed = FALSE;
-        pWanDmlIface->IP.Ipv6Renewed = FALSE;
-#endif
-        memset(&(pWanDmlIface->IP.Ipv4Data), 0, sizeof(WANMGR_IPV4_DATA));
-        memset(&(pWanDmlIface->IP.Ipv6Data), 0, sizeof(WANMGR_IPV6_DATA));
-        pWanDmlIface->IP.pIpcIpv4Data = NULL;
-        pWanDmlIface->IP.pIpcIpv6Data = NULL;
-        pWanDmlIface->MAP.MaptStatus = WAN_IFACE_MAPT_STATE_DOWN;
-        memset(pWanDmlIface->MAP.Path, 0, 64);
-        pWanDmlIface->MAP.MaptChanged = FALSE;
-        memset(pWanDmlIface->DSLite.Path, 0, 64);
-        pWanDmlIface->DSLite.Status = WAN_IFACE_DSLITE_STATE_DOWN;
-        pWanDmlIface->DSLite.Changed = FALSE;
-        pWanDmlIface->PPP.LinkStatus = WAN_IFACE_PPP_LINK_STATUS_DOWN;
-        pWanDmlIface->PPP.LCPStatus = WAN_IFACE_LCP_STATUS_DOWN;
-        pWanDmlIface->PPP.IPCPStatus = WAN_IFACE_IPCP_STATUS_DOWN;
-        pWanDmlIface->PPP.IPV6CPStatus = WAN_IFACE_IPV6CP_STATUS_DOWN;
         remotePriority++;
     }
 }
@@ -462,7 +837,22 @@ ANSC_STATUS WanMgr_Remote_IfaceData_configure(char *remoteCPEMac, int  *iface_in
         if (pWanIfaceCtrl->ulTotalNumbWanInterfaces < MAX_WAN_INTERFACE_ENTRY)
         {
             pIfaceData = &(pWanIfaceCtrl->pIface[pWanIfaceCtrl->ulTotalNumbWanInterfaces]);
-            WanMgr_Remote_IfaceData_Init(pIfaceData, pWanIfaceCtrl->ulTotalNumbWanInterfaces);
+
+            WanMgr_IfaceData_Init(pIfaceData, pWanIfaceCtrl->ulTotalNumbWanInterfaces);
+
+            for(int i=0; i< pIfaceData->data.NoOfVirtIfs; i++)
+            {
+                DML_VIRTUAL_IFACE* p_VirtIf = (DML_VIRTUAL_IFACE *) AnscAllocateMemory( sizeof(DML_VIRTUAL_IFACE) );
+                if(p_VirtIf == NULL)
+                {
+                    CcspTraceError(("%s %d: AnscAllocateMemory failed \n", __FUNCTION__, __LINE__));
+                    return;
+                }
+                WanMgr_VirtIface_Init(p_VirtIf, i);
+                WanMgr_AddVirtualToList(&(pIfaceData->data.VirtIfList), p_VirtIf);
+            }
+            WanMgr_Remote_IfaceData_Update(pIfaceData, pWanIfaceCtrl->ulTotalNumbWanInterfaces);
+
             DML_WAN_IFACE* pWanDmlIface = &(pIfaceData->data);
             strcpy(pWanDmlIface->RemoteCPEMac, remoteCPEMac);
             *iface_index = pWanIfaceCtrl->ulTotalNumbWanInterfaces;
@@ -481,11 +871,12 @@ ANSC_STATUS WanMgr_Remote_IfaceData_configure(char *remoteCPEMac, int  *iface_in
 
 ANSC_STATUS WanMgr_UpdatePrevData ()
 {
+#if !defined(WAN_MANAGER_UNIFICATION_ENABLED)
     if (access(WANMGR_RESTART_INFO_FILE, F_OK) != 0)
     {
         return ANSC_STATUS_FAILURE;
     }
-
+#endif
     UINT uiLoopCount;
     int uiInterfaceIdx = -1;
 
@@ -496,27 +887,22 @@ ANSC_STATUS WanMgr_UpdatePrevData ()
         if(pWanDmlIfaceData != NULL)
         {
             DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
-#if defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_)
+#if (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_)) && !defined(WAN_MANAGER_UNIFICATION_ENABLED)
+            //TODO: Rework for WAN_MANAGER_UNIFICATION_ENABLED
             WanMgr_RestartUpdateCfg_Bool (WAN_ENABLE_CUSTOM_CONFIG_PARAM_NAME, uiLoopCount, &pWanIfaceData->CustomConfigEnable);
             WanMgr_RestartUpdateCfg_Bool (WAN_CONFIGURE_WAN_ENABLE_PARAM_NAME, uiLoopCount, &pWanIfaceData->WanConfigEnabled);
             WanMgr_RestartUpdateCfg_Bool (WAN_ENABLE_OPER_STATUS_MONITOR_PARAM_NAME, uiLoopCount, &pWanIfaceData->MonitorOperStatus);
             WanMgr_RestartUpdateCfg (WAN_CUSTOM_CONFIG_PATH_PARAM_NAME, uiLoopCount, pWanIfaceData->CustomConfigPath, sizeof(pWanIfaceData->CustomConfigPath));
-            WanMgr_RestartUpdateCfg (WAN_NAME_PARAM_NAME, uiLoopCount, pWanIfaceData->Wan.Name, sizeof(pWanIfaceData->Wan.Name));
+            WanMgr_RestartUpdateCfg (WAN_NAME_PARAM_NAME, uiLoopCount, pWanIfaceData->VirtIfList->Name, sizeof(pWanIfaceData->VirtIfList->Name));
 #endif            
-            WanMgr_RestartUpdateCfg (WAN_PHY_PATH_PARAM_NAME, uiLoopCount, pWanIfaceData->Phy.Path, sizeof(pWanIfaceData->Phy.Path));
-            if(pWanIfaceData->PPP.Enable == TRUE)
-            {
-                CcspTraceInfo(("%s %d - Update PPP path\n", __FUNCTION__, __LINE__));
-                WanMgr_RestartUpdateCfg (WAN_PPP_PATH_PARAM_NAME, uiLoopCount, pWanIfaceData->PPP.Path, sizeof(pWanIfaceData->PPP.Path));
-            }
             #if !defined(AUTOWAN_ENABLE)
-            WanMgr_RestartGetPhyStatus(pWanIfaceData);
+            WanMgr_RestartGetBaseInterfaceStatus(pWanIfaceData);
             #endif
             
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
         }
     }   
-    #ifdef RBUS_BUILD_FLAG_ENABLE
+    #if defined(RBUS_BUILD_FLAG_ENABLE) && defined(FEATURE_RDKB_INTER_DEVICE_MANAGER)
     WanMgr_RestartUpdateRemoteIface();
     #endif
     return ANSC_STATUS_SUCCESS;

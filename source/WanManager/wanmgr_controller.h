@@ -35,9 +35,8 @@ typedef  struct _WANMGR_POLICY_CONTROLLER_
     UINT                    InterfaceSelectionTimeOut;
     UINT                    TotalIfaces;
     INT                     WanOperationalMode;
-    BOOL                    PolicyChanged;
-    BOOL                    GroupChanged;
-    BOOL                    ResetActiveInterface;
+    BOOL                    GroupCfgChanged;
+    BOOL                    ResetSelectedInterface;
     BOOL                    AllowRemoteInterfaces;
     UINT                    GroupIfaceList;
     UINT                    GroupInst;
@@ -45,15 +44,16 @@ typedef  struct _WANMGR_POLICY_CONTROLLER_
 
 
 ANSC_STATUS WanController_Init_StateMachine(void);
-ANSC_STATUS WanController_Policy_Change(void);
 ANSC_STATUS WanMgr_Controller_PolicyCtrlInit(WanMgr_Policy_Controller_t* pWanPolicyCtrl);
 
 
 /* Policies routines */
+/*
 ANSC_STATUS WanMgr_Policy_FixedModePolicy(void);
 ANSC_STATUS WanMgr_Policy_FixedModeOnBootupPolicy(void);
 ANSC_STATUS WanMgr_Policy_PrimaryPriorityPolicy(void);
 ANSC_STATUS WanMgr_Policy_PrimaryPriorityOnBootupPolicy(void);
+*/
 ANSC_STATUS WanMgr_Policy_AutoWan(void);
 ANSC_STATUS WanMgr_Policy_AutoWanPolicy(void);
 

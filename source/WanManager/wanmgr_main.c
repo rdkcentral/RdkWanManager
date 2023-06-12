@@ -124,6 +124,7 @@ static void waitUntilSystemReady()
         {
             strcat(pModule,pModuleNames[i].rbusName);
             strcat(pModule," ");
+            CcspTraceInfo((" discover_components rbusModuleList[%s]\n", pModuleNames[i].rbusName));
         }
     }
 

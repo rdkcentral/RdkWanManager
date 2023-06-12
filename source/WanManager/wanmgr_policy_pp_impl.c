@@ -87,31 +87,31 @@ static void WanMgr_Policy_FM_SelectWANActive(WanMgr_Policy_Controller_t* pWanCon
                 {
                     DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
 
-                    if ((pWanIfaceData->Wan.Enable == TRUE) && 
-                        (pWanIfaceData->Wan.Priority >= 0) &&
-                        (pWanIfaceData->Phy.Status == WAN_IFACE_PHY_STATUS_UP ||
-                        pWanIfaceData->Phy.Status == WAN_IFACE_PHY_STATUS_INITIALIZING))
+                    if ((pWanIfaceData->Selection.Enable == TRUE) && 
+                        (pWanIfaceData->Selection.Priority >= 0) &&
+                        (pWanIfaceData->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_UP ||
+                        pWanIfaceData->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_INITIALIZING))
                     {
-                        if((pWanController->AllowRemoteInterfaces == FALSE) && (pWanIfaceData->Wan.IfaceType == REMOTE_IFACE))
+                        if((pWanController->AllowRemoteInterfaces == FALSE) && (pWanIfaceData->IfaceType == REMOTE_IFACE))
                         {
                             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
                             continue;
                         }
                         // pWanIfaceData - is Wan-Enabled & has valid Priority & Phy status
-                        if(pWanIfaceData->Wan.Priority < iSelPrimaryPriority) 
+                        if(pWanIfaceData->Selection.Priority < iSelPrimaryPriority) 
                         {
                             // move Primary interface as Secondary
                             iSelSecondaryInterface = iSelPrimaryInterface;
                             iSelSecondaryPriority = iSelPrimaryPriority;
                             // update Primary iface with high priority iface
                             iSelPrimaryInterface = uiLoopCount;
-                            iSelPrimaryPriority = pWanIfaceData->Wan.Priority;
+                            iSelPrimaryPriority = pWanIfaceData->Selection.Priority;
                         }
-                        else if (pWanIfaceData->Wan.Priority < iSelSecondaryPriority)
+                        else if (pWanIfaceData->Selection.Priority < iSelSecondaryPriority)
                         {
                             // pWanIfaceData - has a priority greater the selected primary but lesser the secondar iface  
                             iSelSecondaryInterface = uiLoopCount;
-                            iSelSecondaryPriority = pWanIfaceData->Wan.Priority;
+                            iSelSecondaryPriority = pWanIfaceData->Selection.Priority;
                         }
                     }
 
@@ -149,7 +149,7 @@ static bool WanMgr_CheckAllIfacesDown(void)
             {
                 DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
 
-                if (pWanIfaceData->Wan.Status != WAN_IFACE_STATUS_DISABLED)
+                if (pWanIfaceData->VirtIfList->Status != WAN_IFACE_STATUS_DISABLED)
                 {
                     bAllDown = FALSE;
                 }
@@ -195,8 +195,8 @@ static WcPpPolicyState_t Transition_PrimaryInterfaceSelected(WanMgr_Policy_Contr
         pActiveInterface = &(pWanController->pWanActiveIfaceData->data);
 
         //Set ActiveLink to FALSE
-        pActiveInterface->Wan.ActiveLink = FALSE;
-        pActiveInterface->SelectionStatus = WAN_IFACE_NOT_SELECTED;
+        pActiveInterface->Selection.ActiveLink = FALSE;
+        pActiveInterface->Selection.Status = WAN_IFACE_NOT_SELECTED;
     }
 
 
@@ -207,8 +207,8 @@ static WcPpPolicyState_t Transition_PrimaryInterfaceSelected(WanMgr_Policy_Contr
         DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
 
         //Set ActiveLink to TRUE
-        pWanIfaceData->Wan.ActiveLink = TRUE;
-        pWanIfaceData->SelectionStatus = WAN_IFACE_ACTIVE;
+        pWanIfaceData->Selection.ActiveLink = TRUE;
+        pWanIfaceData->Selection.Status = WAN_IFACE_ACTIVE;
 
         WanMgr_IfaceSM_Init(&wanIfCtrl, pWanIfaceData->uiIfaceIdx);
 
@@ -258,8 +258,8 @@ static WcPpPolicyState_t Transition_PrimaryInterfaceDeSelected(WanMgr_Policy_Con
     pActiveInterface = &(pWanController->pWanActiveIfaceData->data);
 
     //Set ActiveLink to FALSE
-    pActiveInterface->Wan.ActiveLink = FALSE;
-    pActiveInterface->SelectionStatus = WAN_IFACE_NOT_SELECTED;
+    pActiveInterface->Selection.ActiveLink = FALSE;
+    pActiveInterface->Selection.Status = WAN_IFACE_NOT_SELECTED;
 
 
     pWanController->activeInterfaceIdx = -1;
@@ -289,8 +289,8 @@ static WcPpPolicyState_t Transition_PrimaryInterfaceChanged(WanMgr_Policy_Contro
     pActiveInterface = &(pWanController->pWanActiveIfaceData->data);
 
     //Set ActiveLink to FALSE
-    pActiveInterface->Wan.ActiveLink = FALSE;
-    pActiveInterface->SelectionStatus = WAN_IFACE_NOT_SELECTED;
+    pActiveInterface->Selection.ActiveLink = FALSE;
+    pActiveInterface->Selection.Status = WAN_IFACE_NOT_SELECTED;
 
     pWanController->activeInterfaceIdx = -1;
 
@@ -306,8 +306,8 @@ static WcPpPolicyState_t Transition_PrimaryInterfaceChanged(WanMgr_Policy_Contro
             DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
 
             //Set ActiveLink to TRUE
-            pWanIfaceData->Wan.ActiveLink = TRUE;
-            pWanIfaceData->SelectionStatus = WAN_IFACE_ACTIVE;
+            pWanIfaceData->Selection.ActiveLink = TRUE;
+            pWanIfaceData->Selection.Status = WAN_IFACE_ACTIVE;
             WanMgr_IfaceSM_Init(&wanIfCtrl, pWanIfaceData->uiIfaceIdx);
 
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
@@ -339,8 +339,8 @@ static WcPpPolicyState_t Transition_SecondaryInterfaceSelected(WanMgr_Policy_Con
         pActiveInterface = &(pWanController->pWanActiveIfaceData->data);
 
         //Set ActiveLink to FALSE
-        pActiveInterface->Wan.ActiveLink = FALSE;
-        pActiveInterface->SelectionStatus = WAN_IFACE_NOT_SELECTED;
+        pActiveInterface->Selection.ActiveLink = FALSE;
+        pActiveInterface->Selection.Status = WAN_IFACE_NOT_SELECTED;
     }
 
 
@@ -356,8 +356,8 @@ static WcPpPolicyState_t Transition_SecondaryInterfaceSelected(WanMgr_Policy_Con
     DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
 
     //Set ActiveLink to TRUE
-    pWanIfaceData->Wan.ActiveLink = TRUE;
-    pWanIfaceData->SelectionStatus = WAN_IFACE_ACTIVE;
+    pWanIfaceData->Selection.ActiveLink = TRUE;
+    pWanIfaceData->Selection.Status = WAN_IFACE_ACTIVE;
     WanMgr_IfaceSM_Init(&wanIfCtrl, pWanIfaceData->uiIfaceIdx);
 
     WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
@@ -386,8 +386,8 @@ static WcPpPolicyState_t Transition_SecondaryInterfaceDeSelected(WanMgr_Policy_C
         pActiveInterface = &(pWanController->pWanActiveIfaceData->data);
 
         //Set ActiveLink to FALSE
-        pActiveInterface->Wan.ActiveLink = FALSE;
-        pActiveInterface->SelectionStatus = WAN_IFACE_NOT_SELECTED;
+        pActiveInterface->Selection.ActiveLink = FALSE;
+        pActiveInterface->Selection.Status = WAN_IFACE_NOT_SELECTED;
     }
 
     pWanController->activeInterfaceIdx = -1;
@@ -416,10 +416,10 @@ static WcPpPolicyState_t Transition_SecondaryInterfaceUp(WanMgr_Policy_Controlle
     {
         DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
 
-        if (pWanIfaceData->Wan.Enable == TRUE &&
-            pWanIfaceData->Wan.Status == WAN_IFACE_STATUS_DISABLED &&
-            pWanIfaceData->Phy.Status == WAN_IFACE_PHY_STATUS_UP &&
-            pWanIfaceData->Wan.LinkStatus == WAN_IFACE_LINKSTATUS_DOWN)
+        if (pWanIfaceData->Selection.Enable == TRUE &&
+            pWanIfaceData->VirtIfList->Status == WAN_IFACE_STATUS_DISABLED &&
+            pWanIfaceData->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_UP &&
+            pWanIfaceData->VirtIfList->VLAN.Status == WAN_IFACE_LINKSTATUS_DOWN)
         {
             WanMgr_IfaceSM_Init(&wanIfCtrl, pWanIfaceData->uiIfaceIdx);
             bSecondaryUp = true;
@@ -464,7 +464,7 @@ static WcPpPolicyState_t State_WanDown(WanMgr_Policy_Controller_t* pWanControlle
         return ANSC_STATUS_FAILURE;
     }
 
-    if(pWanController->WanEnable == FALSE || pWanController->PolicyChanged == TRUE)
+    if(pWanController->WanEnable == FALSE || pWanController->GroupCfgChanged == TRUE)
     {
         if(pWanController->activeInterfaceIdx > -1)
         {
@@ -521,14 +521,14 @@ static WcPpPolicyState_t State_PrimaryWanActive(WanMgr_Policy_Controller_t* pWan
 
     pActiveInterface = &(pWanController->pWanActiveIfaceData->data);
 
-   if(pWanController->WanEnable == FALSE || pWanController->PolicyChanged == TRUE)
+   if(pWanController->WanEnable == FALSE || pWanController->GroupCfgChanged == TRUE)
     {
         return STATE_INTERFACE_DOWN;
     }
 
     if( pWanController->WanEnable == FALSE ||
-        pActiveInterface->Phy.Status == WAN_IFACE_PHY_STATUS_DOWN ||
-        pActiveInterface->Wan.Enable == FALSE)
+        pActiveInterface->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_DOWN ||
+        pActiveInterface->Selection.Enable == FALSE)
     {
         return Transition_PrimaryInterfaceDeSelected(pWanController);
     }
@@ -572,14 +572,14 @@ static WcPpPolicyState_t State_SecondaryWanActive(WanMgr_Policy_Controller_t* pW
 
     pActiveInterface = &(pWanController->pWanActiveIfaceData->data);
 
-    if(pWanController->WanEnable == FALSE || pWanController->PolicyChanged == TRUE)
+    if(pWanController->WanEnable == FALSE || pWanController->GroupCfgChanged == TRUE)
     {
         return STATE_INTERFACE_DOWN;
     }
 
     if( pWanController->WanEnable == FALSE ||
-        pActiveInterface->Phy.Status == WAN_IFACE_PHY_STATUS_DOWN ||
-        pActiveInterface->Wan.Enable == FALSE)
+        pActiveInterface->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_DOWN ||
+        pActiveInterface->Selection.Enable == FALSE)
     {
         return Transition_SecondaryInterfaceDeSelected(pWanController);
     }
@@ -625,16 +625,16 @@ static WcPpPolicyState_t State_PrimaryWanActiveSecondaryWanUp(WanMgr_Policy_Cont
 
     pActiveInterface = &(pWanController->pWanActiveIfaceData->data);
 
-    if(pWanController->WanEnable == FALSE || pWanController->PolicyChanged == TRUE)
+    if(pWanController->WanEnable == FALSE || pWanController->GroupCfgChanged == TRUE)
     {
         return STATE_INTERFACE_DOWN;
     }
 
-    /* Phy.Status of the Active Primary Interface is DOWN, or Wan.Enable of the Active Primary Interface
+    /* BaseInterfaceStatus of the Active Primary Interface is DOWN, or Selection.Enable of the Active Primary Interface
     is FALSE, or Global Enable is FALSE */
     if (pWanController->WanEnable != TRUE ||
-        pActiveInterface->Wan.Enable != TRUE ||
-        pActiveInterface->Phy.Status == WAN_IFACE_PHY_STATUS_DOWN)
+        pActiveInterface->Selection.Enable != TRUE ||
+        pActiveInterface->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_DOWN)
     {
         return Transition_SecondaryInterfaceSelected(pWanController);
     }
@@ -679,10 +679,10 @@ static WcPpPolicyState_t State_WaitingForInterfaceSMExit(WanMgr_Policy_Controlle
     }
 
     /* Set ActiveLink to FALSE since Fixed Interface is changed */
-    pFixedInterface->Wan.ActiveLink = FALSE;
-    pFixedInterface->SelectionStatus = WAN_IFACE_NOT_SELECTED;
+    pFixedInterface->Selection.ActiveLink = FALSE;
+    pFixedInterface->Selection.Status = WAN_IFACE_NOT_SELECTED;
 
-    if(pFixedInterface->Wan.Status != WAN_IFACE_STATUS_DISABLED)
+    if(pFixedInterface->VirtIfList->Status != WAN_IFACE_STATUS_DISABLED)
     {
         return STATE_TEARING_DOWN;
     }
@@ -740,7 +740,7 @@ ANSC_STATUS WanMgr_Policy_PrimaryPriorityPolicy(void)
         if(pWanConfigData != NULL)
         {
             WanPolicyCtrl.WanEnable = pWanConfigData->data.Enable;
-            WanPolicyCtrl.PolicyChanged = pWanConfigData->data.PolicyChanged;
+            WanPolicyCtrl.GroupCfgChanged = pWanConfigData->data.GroupCfgChanged;
             WanPolicyCtrl.AllowRemoteInterfaces = pWanConfigData->data.AllowRemoteInterfaces;
 
             WanMgrDml_GetConfigData_release(pWanConfigData);

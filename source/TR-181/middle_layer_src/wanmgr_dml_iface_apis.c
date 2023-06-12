@@ -604,7 +604,7 @@ BOOL WanIfCfg_GetParamIntValue(ANSC_HANDLE hInsContext, char* ParamName, int* pI
             /* check the parameter name and set the corresponding value */
             if (strcmp(ParamName, "Priority") == 0)
             {
-                *pInt = pWanDmlIface->Wan.Priority;
+                *pInt = pWanDmlIface->Selection.Priority;
                 ret = TRUE;
             }
 
@@ -671,7 +671,7 @@ BOOL WanIfCfg_SetParamIntValue(ANSC_HANDLE hInsContext, char* ParamName, int iVa
                     WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pIfaceDmlEntry->data.uiIfaceIdx);
                     if(pWanDmlIfaceData != NULL)
                     {
-                        pWanDmlIface->Wan.Priority = iValue;
+                        pWanDmlIface->Selection.Priority = iValue;
                         WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
                         return TRUE;
                     }
@@ -722,42 +722,42 @@ BOOL WanIfCfg_GetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG
             /* check the parameter name and return the corresponding value */
             if (strcmp(ParamName, "SelectionTimeout") == 0)
             {
-                *puLong = pWanDmlIface->Wan.SelectionTimeout;
+                *puLong = pWanDmlIface->Selection.Timeout;
                 ret = TRUE;
             }
 #if !RBUS_BUILD_FLAG_ENABLE
             if (strcmp(ParamName, "Status") == 0)
             {
-                *puLong = pWanDmlIface->Wan.Status;
+                *puLong = pWanDmlIface->VirtIfList->Status;
                 ret = TRUE;
             }
 #endif
             if (strcmp(ParamName, "Type") == 0)
             {
-                *puLong = pWanDmlIface->Wan.Type;
+                *puLong = pWanDmlIface->Type;
                 ret = TRUE;
             }
             if (strcmp(ParamName, "Priority") == 0)
             {
-                *puLong = pWanDmlIface->Wan.Priority;
+                *puLong = pWanDmlIface->Selection.Priority;
                 ret = TRUE;
             }
 #if !RBUS_BUILD_FLAG_ENABLE
             if (strcmp(ParamName, "LinkStatus") == 0)
             {
-                *puLong = pWanDmlIface->Wan.LinkStatus;
+                *puLong = pWanDmlIface->VirtIfList->VLAN.Status;
                 ret = TRUE;
             }
 
 #endif
             if (strcmp(ParamName, "OperationalStatus") == 0)
             {
-                *puLong = pWanDmlIface->Wan.OperationalStatus;
+                *puLong = pWanDmlIface->VirtIfList->OperationalStatus;
                 ret = TRUE;
             }
 	    if (strcmp(ParamName, "Group") == 0)
             {
-                *puLong = pWanDmlIface->Wan.Group;
+                *puLong = pWanDmlIface->Selection.Group;
                 ret = TRUE;
             }
 
@@ -811,48 +811,47 @@ BOOL WanIfCfg_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG
             /* check the parameter name and set the corresponding value */
             if (strcmp(ParamName, "SelectionTimeout") == 0)
             {
-                pWanDmlIface->Wan.SelectionTimeout = uValue;
+                pWanDmlIface->Selection.Timeout = uValue;
                 ret = TRUE;
             }
             if( strcmp(ParamName, "Group") == 0)
             {
-                //TODO: MAX_INTERFACE_GROUP  check should be removed after implementing dynamic group table. 
-                if(uValue > MAX_INTERFACE_GROUP)
+                if(uValue > WanMgr_GetTotalNoOfGroups())
                 {
-                    CcspTraceWarning(("%s %d Group Id(%d) is not supported. MAX_INTERFACE_GROUP %d \n", __FUNCTION__, __LINE__,uValue,MAX_INTERFACE_GROUP));
+                    CcspTraceWarning(("%s %d Group Id(%d) is not supported. MAX_INTERFACE GROUP %d \n", __FUNCTION__, __LINE__,uValue, WanMgr_GetTotalNoOfGroups()));
                 }
-                else if(pWanDmlIface->Wan.Group != uValue)
+                else if(pWanDmlIface->Selection.Group != uValue)
                 {
-                    /*Update GroupIfaceListChanged */
+                    /*Update GroupCfgChanged */
                     WANMGR_IFACE_GROUP* pWanIfaceGroup = WanMgr_GetIfaceGroup_locked((uValue -1));
                     if (pWanIfaceGroup != NULL)
                     {
                         CcspTraceInfo(("%s %d Group(%d) configuration changed  \n", __FUNCTION__, __LINE__,uValue));
-                        pWanIfaceGroup->GroupIfaceListChanged = TRUE;
+                        pWanIfaceGroup->ConfigChanged = TRUE;
                         /* Add Interface to New group Available list */
                         pWanIfaceGroup->InterfaceAvailable |= (1<<pIfaceDmlEntry->data.uiIfaceIdx);
                         WanMgrDml_GetIfaceGroup_release();
                         pWanIfaceGroup = NULL;
                     }
 
-                    pWanIfaceGroup = WanMgr_GetIfaceGroup_locked((pWanDmlIface->Wan.Group -1));
+                    pWanIfaceGroup = WanMgr_GetIfaceGroup_locked((pWanDmlIface->Selection.Group -1));
                     if (pWanIfaceGroup != NULL)
                     {
-                        CcspTraceInfo(("%s %d Group(%d) configuration changed  \n", __FUNCTION__, __LINE__,pWanDmlIface->Wan.Group));
-                        pWanIfaceGroup->GroupIfaceListChanged = TRUE;
+                        CcspTraceInfo(("%s %d Group(%d) configuration changed  \n", __FUNCTION__, __LINE__,pWanDmlIface->Selection.Group));
+                        pWanIfaceGroup->ConfigChanged = TRUE;
                         /* Remove Interface from Old group Available list */
                         pWanIfaceGroup->InterfaceAvailable &= ~(1<<pIfaceDmlEntry->data.uiIfaceIdx);
                         WanMgrDml_GetIfaceGroup_release();
                     }
 
-                    pWanDmlIface->Wan.Group = uValue;
+                    pWanDmlIface->Selection.Group = uValue;
                 }
                 ret = TRUE;
             }
             if (strcmp(ParamName, "Type") == 0)
             {
                 IfIndex =  pWanDmlIface->uiIfaceIdx;
-                priority =  pWanDmlIface->Wan.Priority;
+                priority =  pWanDmlIface->Selection.Priority;
                 WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
                 uiTotalIfaces = WanIf_GetEntryCount(NULL);
                 if ( WanManager_CheckGivenTypeExists(IfIndex, uiTotalIfaces, uValue, priority, &Status) == ANSC_STATUS_SUCCESS )
@@ -865,24 +864,25 @@ BOOL WanIfCfg_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG
                     WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pIfaceDmlEntry->data.uiIfaceIdx);
                     if(pWanDmlIfaceData != NULL)
                     {
-                        pWanDmlIface->Wan.Type = uValue;
+                        pWanDmlIface->Type = uValue;
                         WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
                         return TRUE;
                     }
                     return FALSE;
                 }
+
             }
 #if !RBUS_BUILD_FLAG_ENABLE
             if (strcmp(ParamName, "LinkStatus") == 0)
             {
-                pWanDmlIface->Wan.LinkStatus = uValue;
+                pWanDmlIface->VirtIfList->VLAN.Status = uValue;
                 ret = TRUE;
             }
 
 #endif
             if (strcmp(ParamName, "OperationalStatus") == 0)
             {
-                pWanDmlIface->Wan.OperationalStatus = uValue;
+                pWanDmlIface->VirtIfList->OperationalStatus = uValue;
                 ret = TRUE;
             }
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
@@ -932,18 +932,19 @@ BOOL WanIfCfg_GetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL* 
 #ifndef RBUS_BUILD_FLAG_ENABLE
             if (strcmp(ParamName, "Enable") == 0)
             {
-                *pBool = pWanDmlIface->Wan.Enable;
+                *pBool = pWanDmlIface->Selection.Enable;
                 ret = TRUE;
             }
 #endif //RBUS_BUILD_FLAG_ENABLE
             if (strcmp(ParamName, "Refresh") == 0)
             {
-                *pBool = pWanDmlIface->Wan.Refresh;
+                //TODO: Update all Virtual interfaces
+                *pBool = pWanDmlIface->VirtIfList->Reset;
                 ret = TRUE;
             }
             if (strcmp(ParamName, "ActiveLink") == 0)
             {
-                if (pWanDmlIface->SelectionStatus == WAN_IFACE_ACTIVE)
+                if (pWanDmlIface->Selection.Status == WAN_IFACE_ACTIVE)
                 {
                     *pBool = TRUE;
                 }
@@ -955,27 +956,26 @@ BOOL WanIfCfg_GetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL* 
             }
             if (strcmp(ParamName, "EnableDSLite") == 0)
             {
-                *pBool = pWanDmlIface->Wan.EnableDSLite;
+                *pBool = pWanDmlIface->VirtIfList->EnableDSLite;
                 ret = TRUE;
             }
             if (strcmp(ParamName, "EnableIPoEHealthCheck") == 0)
             {
-                *pBool = pWanDmlIface->Wan.EnableIPoE;
+                *pBool = pWanDmlIface->VirtIfList->EnableIPoE;
                 ret = TRUE;
             }
             if (strcmp(ParamName, "EnableMAPT") == 0)
             {
-                *pBool = pWanDmlIface->Wan.EnableMAPT;
+                *pBool = pWanDmlIface->VirtIfList->EnableMAPT;
                 ret = TRUE;
             }
             if (strcmp(ParamName, "RebootOnConfiguration") == 0)
             {
-                *pBool = pWanDmlIface->Wan.RebootOnConfiguration;
+                *pBool = pWanDmlIface->Selection.RequiresReboot;
                 ret = TRUE;
             }
             if (strcmp(ParamName, "EnableDHCP") == 0)
             {
-                *pBool = pWanDmlIface->Wan.EnableDHCP;
                 ret = TRUE;
             }
 
@@ -1026,43 +1026,38 @@ BOOL WanIfCfg_SetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL b
 #ifndef RBUS_BUILD_FLAG_ENABLE
             if (strcmp(ParamName, "Enable") == 0)
             {
-                pWanDmlIface->Wan.Enable  = bValue;
+                pWanDmlIface->Selection.Enable  = bValue;
                 ret = TRUE;
             }
 #endif //RBUS_BUILD_FLAG_ENABLE
             if (strcmp(ParamName, "Refresh") == 0)
             {
-                pWanDmlIface->Wan.Refresh = bValue;
+                //TODO: Update all Virtual interfaces
+                pWanDmlIface->VirtIfList->Reset = bValue;
                 ret = TRUE;
             }
             if (strcmp(ParamName, "EnableDSLite") == 0)
             {
-                pWanDmlIface->Wan.EnableDSLite = bValue;
+                pWanDmlIface->VirtIfList->EnableDSLite = bValue;
                 ret = TRUE;
             }
             if (strcmp(ParamName, "EnableIPoEHealthCheck") == 0)
             {
-                pWanDmlIface->Wan.EnableIPoE = bValue;
+                pWanDmlIface->VirtIfList->EnableIPoE = bValue;
                 ret = TRUE;
             }
             if (strcmp(ParamName, "EnableMAPT") == 0)
             {
-                pWanDmlIface->Wan.EnableMAPT = bValue;
+                pWanDmlIface->VirtIfList->EnableMAPT = bValue;
                 ret = TRUE;
             }
             if (strcmp(ParamName, "RebootOnConfiguration") == 0)
             {
-                pWanDmlIface->Wan.RebootOnConfiguration = bValue;
+                pWanDmlIface->Selection.RequiresReboot = bValue;
                 ret = TRUE;
             }
             if (strcmp(ParamName, "EnableDHCP") == 0)
             {
-                if (bValue != pWanDmlIface->Wan.EnableDHCP)
-                {
-                    // setting RefreshDHCP so interface state machine can apply changes
-                    pWanDmlIface->Wan.RefreshDHCP = TRUE;
-                }
-                pWanDmlIface->Wan.EnableDHCP = bValue;
                 ret = TRUE;
             }
 
@@ -1117,14 +1112,14 @@ ULONG WanIfCfg_GetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, cha
             DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
 
             /* collect value */
-            if ( ( sizeof( pWanDmlIface->Wan.Name ) - 1 ) < *pUlSize )
+            if ( ( sizeof( pWanDmlIface->VirtIfList->Name ) - 1 ) < *pUlSize )
             {
-                AnscCopyString( pValue, pWanDmlIface->Wan.Name );
+                AnscCopyString( pValue, pWanDmlIface->VirtIfList->Name );
                 ret = 0;
             }
             else
             {
-                *pUlSize = sizeof( pWanDmlIface->Wan.Name );
+                *pUlSize = sizeof( pWanDmlIface->VirtIfList->Name );
                 ret = 1;
             }
 
@@ -1174,7 +1169,7 @@ BOOL WanIfCfg_SetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, char
             /* check the parameter name and set the corresponding value */
             if (strcmp(ParamName, "Name") == 0)
             {
-                AnscCopyString(pWanDmlIface->Wan.Name, pString);
+                AnscCopyString(pWanDmlIface->VirtIfList->Name, pString);
 #if defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_)
                 WanMgr_SetRestartWanInfo(WAN_NAME_PARAM_NAME, pWanDmlIface->uiIfaceIdx, pString);
 #endif
@@ -1317,14 +1312,14 @@ ULONG WanIfPhy_GetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, cha
             if (strcmp(ParamName, "Path") == 0)
             {
                /* collect value */
-               if ( ( sizeof( pWanDmlIface->Phy.Path ) - 1 ) < *pUlSize )
+               if ( ( sizeof( pWanDmlIface->BaseInterface ) - 1 ) < *pUlSize )
                {
-                   AnscCopyString( pValue, pWanDmlIface->Phy.Path );
+                   AnscCopyString( pValue, pWanDmlIface->BaseInterface );
                    ret = 0;
                }
                else
                {
-                   *pUlSize = sizeof( pWanDmlIface->Phy.Path );
+                   *pUlSize = sizeof( pWanDmlIface->BaseInterface );
                    ret = 1;
                }
             }
@@ -1377,8 +1372,7 @@ BOOL WanIfPhy_SetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, char
             /* check the parameter name and set the corresponding value */
             if (strcmp(ParamName, "Path") == 0)
             {
-                AnscCopyString(pWanDmlIface->Phy.Path, pString);
-                WanMgr_SetRestartWanInfo(WAN_PHY_PATH_PARAM_NAME, pWanDmlIface->uiIfaceIdx, pString);
+                AnscCopyString(pWanDmlIface->BaseInterface, pString);
                 ret = TRUE;
             }
 
@@ -1430,7 +1424,7 @@ BOOL WanIfPhy_GetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG
 #if !RBUS_BUILD_FLAG_ENABLE
             if (strcmp(ParamName, "Status") == 0)
             {
-                *puLong = pWanDmlIface->Phy.Status;
+                *puLong = pWanDmlIface->BaseInterfaceStatus;
                 ret = TRUE;
             }
 #endif
@@ -1482,7 +1476,7 @@ BOOL WanIfPhy_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG
             /* check the parameter name and set the corresponding value */
             if (strcmp(ParamName, "Status") == 0)
             {
-                pWanDmlIface->Phy.Status = uValue;
+                pWanDmlIface->BaseInterfaceStatus = uValue;
                 ret = TRUE;
             }
 #endif
@@ -1618,12 +1612,12 @@ BOOL WanIfIpCfg_GetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULO
             /* check the parameter name and set the corresponding value */
             if (strcmp(ParamName, "IPv4Status") == 0)
             {
-                *puLong = pWanDmlIface->IP.Ipv4Status;
+                *puLong = pWanDmlIface->VirtIfList->IP.Ipv4Status;
                 ret = TRUE;
             }
             if (strcmp(ParamName, "IPv6Status") == 0)
             {
-                *puLong = pWanDmlIface->IP.Ipv6Status;
+                *puLong = pWanDmlIface->VirtIfList->IP.Ipv6Status;
                 ret = TRUE;
             }
 
@@ -1673,12 +1667,12 @@ BOOL WanIfIpCfg_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULO
             /* check the parameter name and set the corresponding value */
             if (strcmp(ParamName, "IPv4Status") == 0)
             {
-                pWanDmlIface->IP.Ipv4Status = uValue;
+                pWanDmlIface->VirtIfList->IP.Ipv4Status = uValue;
                 ret = TRUE;
             }
             if (strcmp(ParamName, "IPv6Status") == 0)
             {
-                pWanDmlIface->IP.Ipv6Status = uValue;
+                pWanDmlIface->VirtIfList->IP.Ipv6Status = uValue;
                 ret = TRUE;
             }
 
@@ -1737,14 +1731,14 @@ ULONG WanIfIpCfg_GetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, c
             if (strcmp(ParamName, "Path") == 0)
             {
                 /* collect value */
-                if ( ( sizeof( pWanDmlIface->IP.Path ) - 1 ) < *pUlSize )
+                if ( ( sizeof( pWanDmlIface->VirtIfList->IP.Interface ) - 1 ) < *pUlSize )
                 {
-                    AnscCopyString( pValue, pWanDmlIface->IP.Path );
+                    AnscCopyString( pValue, pWanDmlIface->VirtIfList->IP.Interface );
                     ret = 0;
                 }
                 else
                 {
-                    *pUlSize = sizeof( pWanDmlIface->IP.Path );
+                    *pUlSize = sizeof( pWanDmlIface->VirtIfList->IP.Interface );
                     ret = 1;
                 }
             }
@@ -1795,7 +1789,7 @@ BOOL WanIfIpCfg_SetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, ch
             /* check the parameter name and set the corresponding value */
             if (strcmp(ParamName, "Path") == 0)
             {
-                AnscCopyString(pWanDmlIface->IP.Path, pString);
+                AnscCopyString(pWanDmlIface->VirtIfList->IP.Interface, pString);
                 ret = TRUE;
             }
 
@@ -1929,7 +1923,7 @@ BOOL WanIfMapt_GetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULON
             /* check the parameter name and set the corresponding value */
             if (strcmp(ParamName, "MAPTStatus") == 0)
             {
-                *puLong = pWanDmlIface->MAP.MaptStatus;
+                *puLong = pWanDmlIface->VirtIfList->MAP.MaptStatus;
                 ret = TRUE;
             }
 
@@ -1980,7 +1974,7 @@ BOOL WanIfMapt_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULON
             if (strcmp(ParamName, "MAPTStatus") == 0)
             {
 #ifdef FEATURE_MAPT
-                pWanDmlIface->MAP.MaptStatus = uValue;
+                pWanDmlIface->VirtIfList->MAP.MaptStatus = uValue;
                 ret = TRUE;
 #endif /* * FEATURE_MAPT */
             }
@@ -2041,14 +2035,14 @@ ULONG WanIfMapt_GetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, ch
             if (strcmp(ParamName, "Path") == 0)
             {
                 /* collect value */
-                if ( ( sizeof( pWanDmlIface->MAP.Path ) - 1 ) < *pUlSize )
+                if ( ( sizeof( pWanDmlIface->VirtIfList->MAP.Path ) - 1 ) < *pUlSize )
                 {
-                    AnscCopyString( pValue, pWanDmlIface->MAP.Path );
+                    AnscCopyString( pValue, pWanDmlIface->VirtIfList->MAP.Path );
                     ret = 0;
                 }
                 else
                 {
-                    *pUlSize = sizeof( pWanDmlIface->MAP.Path );
+                    *pUlSize = sizeof( pWanDmlIface->VirtIfList->MAP.Path );
                     ret = 1;
                 }
             }
@@ -2101,7 +2095,7 @@ BOOL WanIfMapt_SetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, cha
             if (strcmp(ParamName, "Path") == 0)
             {
 #ifdef FEATURE_MAPT
-                AnscCopyString(pWanDmlIface->MAP.Path, pString);
+                AnscCopyString(pWanDmlIface->VirtIfList->MAP.Path, pString);
                 ret = TRUE;
 #endif /* * FEATURE_MAPT */
             }
@@ -2236,7 +2230,7 @@ BOOL WanIfDSLite_GetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, UL
             /* check the parameter name and set the corresponding value */
             if (strcmp(ParamName, "Status") == 0)
             {
-                *puLong = pWanDmlIface->DSLite.Status;
+                *puLong = pWanDmlIface->VirtIfList->DSLite.Status;
                 ret = TRUE;
             }
 
@@ -2286,7 +2280,7 @@ BOOL WanIfDSLite_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, UL
             /* check the parameter name and set the corresponding value */
             if (strcmp(ParamName, "Status") == 0)
             {
-                pWanDmlIface->DSLite.Status = uValue;
+                pWanDmlIface->VirtIfList->DSLite.Status = uValue;
                 ret = TRUE;
             }
 
@@ -2346,14 +2340,14 @@ ULONG WanIfDSLite_GetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, 
             if (strcmp(ParamName, "Path") == 0)
             {
                 /* collect value */
-                if ( ( sizeof( pWanDmlIface->DSLite.Path ) - 1 ) < *pUlSize )
+                if ( ( sizeof( pWanDmlIface->VirtIfList->DSLite.Path ) - 1 ) < *pUlSize )
                 {
-                    AnscCopyString( pValue, pWanDmlIface->DSLite.Path );
+                    AnscCopyString( pValue, pWanDmlIface->VirtIfList->DSLite.Path );
                     ret = 0;
                 }
                 else
                 {
-                    *pUlSize = sizeof( pWanDmlIface->DSLite.Path );
+                    *pUlSize = sizeof( pWanDmlIface->VirtIfList->DSLite.Path );
                     ret = 1;
                 }
             }
@@ -2405,7 +2399,7 @@ BOOL WanIfDSLite_SetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, c
             /* check the parameter name and set the corresponding value */
             if (strcmp(ParamName, "Path") == 0)
             {
-                AnscCopyString(pWanDmlIface->DSLite.Path, pString);
+                AnscCopyString(pWanDmlIface->VirtIfList->DSLite.Path, pString);
                 ret = TRUE;
             }
 
@@ -3168,27 +3162,29 @@ WanIfPPPCfg_GetParamUlongValue
             /* check the parameter name and return the corresponding value */
             if (strcmp(ParamName, "IPCPStatus") == 0)
             {
-                *puLong = pWanDmlIface->PPP.IPCPStatus;
+                *puLong = pWanDmlIface->VirtIfList->PPP.IPCPStatus;
                 ret = TRUE;
             }
             if (strcmp(ParamName, "IPv6CPStatus") == 0)
             {
-                *puLong = pWanDmlIface->PPP.IPV6CPStatus;
+                *puLong = pWanDmlIface->VirtIfList->PPP.IPV6CPStatus;
                 ret = TRUE;
             }
             if (strcmp(ParamName, "LCPStatus") == 0)
             {
-                *puLong = pWanDmlIface->PPP.LCPStatus;
                 ret = TRUE;
+                *puLong = 0;
+                CcspTraceInfo(("%s %d: %s not supported \n", __FUNCTION__, __LINE__,ParamName));
             }
             if (strcmp(ParamName, "LinkStatus") == 0)
             {
-                *puLong = pWanDmlIface->PPP.LinkStatus;
+                *puLong = pWanDmlIface->VirtIfList->PPP.LinkStatus;
                 ret = TRUE;
             }
             if (strcmp(ParamName, "LinkType") == 0)
             {
-                *puLong = pWanDmlIface->PPP.LinkType;
+                *puLong = 0;
+                CcspTraceInfo(("%s %d: %s not supported \n", __FUNCTION__, __LINE__,ParamName));
                 ret = TRUE;
             }
 
@@ -3243,8 +3239,6 @@ WanIfPPPCfg_SetParamUlongValue
     BOOL ret = FALSE;
     int iErrorCode = 0;
     char *pInterface = NULL;
-    pthread_t IPCPHandlerThread;
-    pthread_t IPV6CPHandlerThread;
 
     WanMgr_Iface_Data_t* pIfaceDmlEntry = (WanMgr_Iface_Data_t*) hInsContext;
     if(pIfaceDmlEntry != NULL)
@@ -3257,47 +3251,27 @@ WanIfPPPCfg_SetParamUlongValue
             /* check the parameter name and set the corresponding value */
             if (strcmp(ParamName, "IPCPStatus") == 0)
             {
-                pWanDmlIface->PPP.IPCPStatus = uValue;
-                pInterface = (char *) malloc(64);
-                if (pInterface != NULL)
-                {
-                    strncpy(pInterface, pWanDmlIface->Wan.Name, 64);
-                    iErrorCode = pthread_create( &IPCPHandlerThread, NULL, &IPCPStateChangeHandler, (void*) pInterface );
-                    if( 0 != iErrorCode )
-                    {
-                        CcspTraceInfo(("%s %d - Failed to handle IPCP event change   %d\n", __FUNCTION__, __LINE__, iErrorCode ));
-                    }
+                pWanDmlIface->VirtIfList->PPP.IPCPStatus = uValue;
                     ret = TRUE;
-                }
             }
             if (strcmp(ParamName, "IPv6CPStatus") == 0)
             {
-                pWanDmlIface->PPP.IPV6CPStatus = uValue;
-                pInterface = (char *) malloc(64);
-                if (pInterface != NULL)
-                {
-                    strncpy(pInterface, pWanDmlIface->Wan.Name, 64);
-                    iErrorCode = pthread_create( &IPCPHandlerThread, NULL, &IPV6CPStateChangeHandler, (void*) pInterface );
-                    if( 0 != iErrorCode )
-                    {
-                        CcspTraceInfo(("%s %d - Failed to handle IPV6CP event change   %d\n", __FUNCTION__, __LINE__, iErrorCode ));
-                    }
+                pWanDmlIface->VirtIfList->PPP.IPV6CPStatus = uValue;
                     ret = TRUE;
-                }
             }
             if (strcmp(ParamName, "LCPStatus") == 0)
             {
-                pWanDmlIface->PPP.LCPStatus = uValue;
+                CcspTraceInfo(("%s %d: %s not supported \n", __FUNCTION__, __LINE__,ParamName));
                 ret = TRUE;
             }
             if (strcmp(ParamName, "LinkStatus") == 0)
             {
-                pWanDmlIface->PPP.LinkStatus = uValue;
+                pWanDmlIface->VirtIfList->PPP.LinkStatus = uValue;
                 ret = TRUE;
             }
             if (strcmp(ParamName, "LinkType") == 0)
             {
-                pWanDmlIface->PPP.LinkType = uValue;
+                CcspTraceInfo(("%s %d: %s not supported \n", __FUNCTION__, __LINE__,ParamName));
                 ret = TRUE;
             }
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
@@ -3373,14 +3347,14 @@ WanIfPPPCfg_GetParamStringValue
             if (strcmp(ParamName, "Path") == 0)
             {
                /* collect value */
-               if ( ( sizeof( pWanDmlIface->Phy.Path ) - 1 ) < *pUlSize )
+               if ( ( sizeof( pWanDmlIface->BaseInterface ) - 1 ) < *pUlSize )
                {
-                   AnscCopyString( pValue, pWanDmlIface->PPP.Path);
+                   AnscCopyString( pValue, pWanDmlIface->VirtIfList->PPP.Interface);
                    ret = 0;
                }
                else
                {
-                   *pUlSize = sizeof( pWanDmlIface->PPP.Path );
+                   *pUlSize = sizeof( pWanDmlIface->VirtIfList->PPP.Interface );
                    ret = 1;
                }
             }
@@ -3443,8 +3417,7 @@ WanIfPPPCfg_SetParamStringValue
             /* check the parameter name and set the corresponding value */
             if (strcmp(ParamName, "Path") == 0)
             {
-                AnscCopyString(pWanDmlIface->PPP.Path, pString);
-                WanMgr_SetRestartWanInfo(WAN_PPP_PATH_PARAM_NAME, pWanDmlIface->uiIfaceIdx, pString);
+                AnscCopyString(pWanDmlIface->VirtIfList->PPP.Interface, pString);
                 ret = TRUE;
             }
 
@@ -3506,17 +3479,20 @@ WanIfPPPCfg_GetParamBoolValue
             /* check the parameter name and return the corresponding value */
             if (strcmp(ParamName, "Enable") == 0)
             {
-                *pBool = pWanDmlIface->PPP.Enable;
+                *pBool = FALSE;
+                CcspTraceInfo(("%s %d: %s not supported \n", __FUNCTION__, __LINE__,ParamName));
                 ret = TRUE;
             }
             if (strcmp(ParamName, "IPCPEnable") == 0)
             {
-                *pBool = pWanDmlIface->PPP.IPCPEnable;
+                *pBool = TRUE;
+                CcspTraceInfo(("%s %d: %s not supported \n", __FUNCTION__, __LINE__,ParamName));
                 ret = TRUE;
             }
             if (strcmp(ParamName, "IPv6CPEnable") == 0)
             {
-                *pBool = pWanDmlIface->PPP.IPV6CPEnable;
+                *pBool =TRUE;
+                CcspTraceInfo(("%s %d: %s not supported \n", __FUNCTION__, __LINE__,ParamName));
                 ret = TRUE;
             }
 
@@ -3579,17 +3555,17 @@ WanIfPPPCfg_SetParamBoolValue
             /* check the parameter name and set the corresponding value */
             if (strcmp(ParamName, "Enable") == 0)
             {
-                pWanDmlIface->PPP.Enable = bValue;
+                CcspTraceInfo(("%s %d: %s not supported \n", __FUNCTION__, __LINE__,ParamName));
                 ret = TRUE;
             }
             if (strcmp(ParamName, "IPCPEnable") == 0)
             {
-                pWanDmlIface->PPP.IPCPEnable = bValue;
+                CcspTraceInfo(("%s %d: %s not supported \n", __FUNCTION__, __LINE__,ParamName));
                 ret = TRUE;
             }
             if (strcmp(ParamName, "IPv6CPEnable") == 0)
             {
-                pWanDmlIface->PPP.IPV6CPEnable = bValue;
+                CcspTraceInfo(("%s %d: %s not supported \n", __FUNCTION__, __LINE__,ParamName));
                 ret = TRUE;
             }
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);

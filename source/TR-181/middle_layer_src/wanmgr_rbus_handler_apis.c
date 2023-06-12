@@ -200,21 +200,21 @@ rbusError_t wanMgrDmlPublishEventHandler(rbusHandle_t handle, rbusEventSubAction
         {
             if (action == RBUS_EVENT_ACTION_SUBSCRIBE)
             {
-                if (pWanDmlIface->Sub.PhyStatusSub == 0)
+                if (pWanDmlIface->Sub.BaseInterfaceStatusSub == 0)
                 {
-                    pWanDmlIface->Sub.PhyStatusSub = 1;
+                    pWanDmlIface->Sub.BaseInterfaceStatusSub = 1;
                 }
                 else
                 {
-                    pWanDmlIface->Sub.PhyStatusSub++;
+                    pWanDmlIface->Sub.BaseInterfaceStatusSub++;
                 }
-               CcspTraceInfo(("%s-%d : PhyStatus Sub(%d) \n", __FUNCTION__, __LINE__, pWanDmlIface->Sub.PhyStatusSub));
+               CcspTraceInfo(("%s-%d : BaseInterfaceStatus Sub(%d) \n", __FUNCTION__, __LINE__, pWanDmlIface->Sub.BaseInterfaceStatusSub));
             }
             else
             {
-                if (pWanDmlIface->Sub.PhyStatusSub)
-                    pWanDmlIface->Sub.PhyStatusSub--;
-               CcspTraceInfo(("%s-%d : PhyStatus UnSub(%d) \n", __FUNCTION__, __LINE__, pWanDmlIface->Sub.PhyStatusSub));
+                if (pWanDmlIface->Sub.BaseInterfaceStatusSub)
+                    pWanDmlIface->Sub.BaseInterfaceStatusSub--;
+               CcspTraceInfo(("%s-%d : BaseInterfaceStatus UnSub(%d) \n", __FUNCTION__, __LINE__, pWanDmlIface->Sub.BaseInterfaceStatusSub));
             }
         }
         else if(WANMGR_WAN_LINKSTATUS_CHECK)
@@ -229,13 +229,13 @@ rbusError_t wanMgrDmlPublishEventHandler(rbusHandle_t handle, rbusEventSubAction
                 {
                     pWanDmlIface->Sub.WanLinkStatusSub++;
                 }
-                CcspTraceInfo(("%s-%d : WanLinkStatus Sub(%d) \n", __FUNCTION__, __LINE__, pWanDmlIface->Sub.WanLinkStatusSub));
+                CcspTraceInfo(("%s-%d : VlanStatus Sub(%d) \n", __FUNCTION__, __LINE__, pWanDmlIface->Sub.WanLinkStatusSub));
             }
             else
             {
                 if (pWanDmlIface->Sub.WanLinkStatusSub)
                     pWanDmlIface->Sub.WanLinkStatusSub--;
-                CcspTraceInfo(("%s-%d : WanLinkStatus UnSub(%d) \n", __FUNCTION__, __LINE__, pWanDmlIface->Sub.WanLinkStatusSub));
+                CcspTraceInfo(("%s-%d : VlanStatus UnSub(%d) \n", __FUNCTION__, __LINE__, pWanDmlIface->Sub.WanLinkStatusSub));
             }
         }
         else if(WANMGR_WAN_STATUS_CHECK)
@@ -250,13 +250,13 @@ rbusError_t wanMgrDmlPublishEventHandler(rbusHandle_t handle, rbusEventSubAction
                 {
                     pWanDmlIface->Sub.WanStatusSub++;
                 }
-                CcspTraceInfo(("%s-%d : WanStatus Sub(%d) \n", __FUNCTION__, __LINE__, pWanDmlIface->Sub.WanStatusSub));
+                CcspTraceInfo(("%s-%d : Virtual interface Status Sub(%d) \n", __FUNCTION__, __LINE__, pWanDmlIface->Sub.WanStatusSub));
             }
             else
             {
                 if (pWanDmlIface->Sub.WanStatusSub)
                     pWanDmlIface->Sub.WanStatusSub--;
-                CcspTraceInfo(("%s-%d : WanStatus UnSub(%d) \n", __FUNCTION__, __LINE__, pWanDmlIface->Sub.WanStatusSub));
+                CcspTraceInfo(("%s-%d : Virtual interface Status UnSub(%d) \n", __FUNCTION__, __LINE__, pWanDmlIface->Sub.WanStatusSub));
             }
         }
         else if(strstr(name, WANMGR_INFACE_WAN_ENABLE_SUFFIX))
@@ -271,13 +271,13 @@ rbusError_t wanMgrDmlPublishEventHandler(rbusHandle_t handle, rbusEventSubAction
                 {
                     pWanDmlIface->Sub.WanEnableSub++;
                 }
-                CcspTraceInfo(("%s-%d : WanEnable Sub(%d) \n", __FUNCTION__, __LINE__, pWanDmlIface->Sub.WanEnableSub));
+                CcspTraceInfo(("%s-%d : Selection Enable Sub(%d) \n", __FUNCTION__, __LINE__, pWanDmlIface->Sub.WanEnableSub));
             }
             else
             {
                 if (pWanDmlIface->Sub.WanEnableSub)
                     pWanDmlIface->Sub.WanEnableSub--;
-                CcspTraceInfo(("%s-%d : WanEnable UnSub(%d) \n", __FUNCTION__, __LINE__, pWanDmlIface->Sub.WanEnableSub));
+                CcspTraceInfo(("%s-%d : Selection Enable UnSub(%d) \n", __FUNCTION__, __LINE__, pWanDmlIface->Sub.WanEnableSub));
             }
         }
         WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
@@ -289,7 +289,7 @@ rbusError_t WanMgr_Interface_GetHandler(rbusHandle_t handle, rbusProperty_t prop
 {
     char const* name = rbusProperty_GetName(property);
     rbusValue_t value;
-    UINT index = 0;
+    UINT index = 0, VirtIfIndex = 1; //Set default Virtual interface index
     char AliasName[64] = {0};
     rbusError_t ret = RBUS_ERROR_SUCCESS;
 
@@ -309,7 +309,7 @@ rbusError_t WanMgr_Interface_GetHandler(rbusHandle_t handle, rbusProperty_t prop
     else
 #endif /** WAN_MANAGER_UNIFICATION_ENABLED */
     {
-        sscanf(name, WANMGR_INFACE_TABLE".%d.", &index);
+        sscanf(name, WANMGR_VIRTUAL_INFACE_TABLE".%d.", &index, &VirtIfIndex);
     }
 
     if(index  == 0)
@@ -327,34 +327,35 @@ rbusError_t WanMgr_Interface_GetHandler(rbusHandle_t handle, rbusProperty_t prop
     if(pWanDmlIfaceData != NULL)
     {
         DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
+        DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIfaceById(pWanDmlIface->VirtIfList, (VirtIfIndex - 1));
 
         if(WANMGR_PHY_STATUS_CHECK)
         {
             char String[20] = {0};
-            WanMgr_EnumToString(pWanDmlIface->Phy.Status, ENUM_PHY, String);
+            WanMgr_EnumToString(pWanDmlIface->BaseInterfaceStatus, ENUM_PHY, String);
             rbusValue_SetString(value, String);
         }
         else if(WANMGR_WAN_LINKSTATUS_CHECK)
         {
             char String[20] = {0};
-            WanMgr_EnumToString(pWanDmlIface->Wan.LinkStatus, ENUM_WAN_LINKSTATUS, String);
+            WanMgr_EnumToString(p_VirtIf->VLAN.Status, ENUM_WAN_LINKSTATUS, String);
             rbusValue_SetString(value, String);
         }
         else if(WANMGR_WAN_STATUS_CHECK)
         {
             char String[20] = {0};
-            if(pWanDmlIface->Wan.IfaceType == REMOTE_IFACE && pWanDmlIface->Wan.RemoteStatus != WAN_IFACE_STATUS_UP)
+            if(pWanDmlIface->IfaceType == REMOTE_IFACE && p_VirtIf->RemoteStatus != WAN_IFACE_STATUS_UP)
             {
-                WanMgr_EnumToString(pWanDmlIface->Wan.RemoteStatus, ENUM_WAN_STATUS, String);
+                WanMgr_EnumToString(p_VirtIf->RemoteStatus, ENUM_WAN_STATUS, String);
             }else
             {
-                WanMgr_EnumToString(pWanDmlIface->Wan.Status, ENUM_WAN_STATUS, String);
+                WanMgr_EnumToString(p_VirtIf->Status, ENUM_WAN_STATUS, String);
             }
             rbusValue_SetString(value, String);
         }
         else if(strstr(name, WANMGR_INFACE_WAN_ENABLE_SUFFIX))
         {
-            BOOL Enable = pWanDmlIface->Wan.Enable;
+            BOOL Enable = pWanDmlIface->Selection.Enable;
             rbusValue_SetBoolean(value, Enable);
         }
         else if(strstr(name, WANMGR_INFACE_ALIASNAME_SUFFIX))
@@ -377,7 +378,7 @@ rbusError_t WanMgr_Interface_SetHandler(rbusHandle_t handle, rbusProperty_t prop
     rbusValue_t value = rbusProperty_GetValue(prop);
     rbusValueType_t type = rbusValue_GetType(value);
     rbusError_t ret = RBUS_ERROR_SUCCESS;
-    UINT index = 0;
+    UINT index = 0, VirtIfIndex = 1; //Set default Virtual interface index
     char AliasName[64] = {0};
 
     if(name == NULL)
@@ -394,7 +395,7 @@ rbusError_t WanMgr_Interface_SetHandler(rbusHandle_t handle, rbusProperty_t prop
     else
 #endif /** WAN_MANAGER_UNIFICATION_ENABLED */
     {
-        sscanf(name, WANMGR_INFACE_TABLE".%d.", &index);
+        sscanf(name, WANMGR_VIRTUAL_INFACE_TABLE".%d.", &index, &VirtIfIndex);
     }
 
     if(index  == 0)
@@ -412,17 +413,18 @@ rbusError_t WanMgr_Interface_SetHandler(rbusHandle_t handle, rbusProperty_t prop
     if(pWanDmlIfaceData != NULL)
     {
         DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
+        DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIfaceById(pWanDmlIface->VirtIfList, (VirtIfIndex - 1));
         if(strstr(name, WANMGR_INFACE_PHY_STATUS_SUFFIX))
         {
             if (type == RBUS_STRING)
             {
                 char String[20] = {0};
                 AnscCopyString(String , rbusValue_GetString(value, NULL));
-                CcspTraceInfo(("%s-%d : %s PhyStatus changed to %s\n", __FUNCTION__, __LINE__, pWanDmlIface->Name, String));
-                WanMgr_StringToEnum(&pWanDmlIface->Phy.Status, ENUM_PHY, String);
-                if (pWanDmlIface->Sub.PhyStatusSub)
+                CcspTraceInfo(("%s-%d : %s BaseInterfaceStatus changed to %s\n", __FUNCTION__, __LINE__, pWanDmlIface->Name, String));
+                WanMgr_StringToEnum(&pWanDmlIface->BaseInterfaceStatus, ENUM_PHY, String);
+                if (pWanDmlIface->Sub.BaseInterfaceStatusSub)
                 {
-                    CcspTraceInfo(("%s-%d : PhyStatus Publish Event, SubCount(%d)\n", __FUNCTION__, __LINE__, pWanDmlIface->Sub.PhyStatusSub));
+                    CcspTraceInfo(("%s-%d : BaseInterfaceStatus Publish Event, SubCount(%d)\n", __FUNCTION__, __LINE__, pWanDmlIface->Sub.BaseInterfaceStatusSub));
                     WanMgr_Rbus_EventPublishHandler(name, &String, type);
                 }
             }
@@ -437,10 +439,10 @@ rbusError_t WanMgr_Interface_SetHandler(rbusHandle_t handle, rbusProperty_t prop
             {
                 char String[20] = {0};
                 AnscCopyString(String , rbusValue_GetString(value, NULL));
-                WanMgr_StringToEnum(&pWanDmlIface->Wan.LinkStatus, ENUM_WAN_LINKSTATUS, String);
+                WanMgr_StringToEnum(&p_VirtIf->VLAN.Status, ENUM_WAN_LINKSTATUS, String);
                 if (pWanDmlIface->Sub.WanLinkStatusSub)
                 {
-                    CcspTraceInfo(("%s-%d : WanLinkStatus Publish Event, SubCount(%d)\n", __FUNCTION__, __LINE__, pWanDmlIface->Sub.WanLinkStatusSub));
+                    CcspTraceInfo(("%s-%d : VLAN Status Publish Event, SubCount(%d)\n", __FUNCTION__, __LINE__, pWanDmlIface->Sub.WanLinkStatusSub));
                     WanMgr_Rbus_EventPublishHandler(name, &String, type);
                 }
             }
@@ -455,10 +457,10 @@ rbusError_t WanMgr_Interface_SetHandler(rbusHandle_t handle, rbusProperty_t prop
             {
                 char String[20] = {0};
                 AnscCopyString(String , rbusValue_GetString(value, NULL));
-                WanMgr_StringToEnum(&pWanDmlIface->Wan.Status, ENUM_WAN_STATUS, String);
+                WanMgr_StringToEnum(&p_VirtIf->Status, ENUM_WAN_STATUS, String);
                 if (pWanDmlIface->Sub.WanStatusSub)
                 {
-                    CcspTraceInfo(("%s-%d : WanStatus Publish Event, SubCount(%d)\n", __FUNCTION__, __LINE__, pWanDmlIface->Sub.WanStatusSub));
+                    CcspTraceInfo(("%s-%d : Virtual interface Status Publish Event, SubCount(%d)\n", __FUNCTION__, __LINE__, pWanDmlIface->Sub.WanStatusSub));
                     WanMgr_Rbus_EventPublishHandler(name, &String, type);
                 }
             }
@@ -473,22 +475,22 @@ rbusError_t WanMgr_Interface_SetHandler(rbusHandle_t handle, rbusProperty_t prop
             {
                 BOOL Enable = FALSE;
                 char param_name[256] = {0};
-                _ansc_sprintf(param_name, PSM_WANMANAGER_IF_ENABLE, index);
+                _ansc_sprintf(param_name, PSM_WANMANAGER_IF_SELECTION_ENABLE, index);
                 if(rbusValue_GetBoolean(value))
                 {
-                    pWanDmlIface->Wan.Enable = TRUE;
+                    pWanDmlIface->Selection.Enable = TRUE;
                     WanMgr_RdkBus_SetParamValuesToDB(param_name,"TRUE");
                     Enable = TRUE;
                 }
                 else
                 {
-                    pWanDmlIface->Wan.Enable = FALSE;
+                    pWanDmlIface->Selection.Enable = FALSE;
                     WanMgr_RdkBus_SetParamValuesToDB(param_name,"FALSE");
                     Enable = FALSE;
                 }
                 if (pWanDmlIface->Sub.WanEnableSub)
                 {
-                    CcspTraceInfo(("%s-%d : WanEnable Publish Event, SubCount(%d)\n", __FUNCTION__, __LINE__, pWanDmlIface->Sub.WanEnableSub));
+                    CcspTraceInfo(("%s-%d : Selection Enable Publish Event, SubCount(%d)\n", __FUNCTION__, __LINE__, pWanDmlIface->Sub.WanEnableSub));
                     WanMgr_Rbus_EventPublishHandler(name, &Enable, type);
                 }
             }
@@ -724,19 +726,19 @@ static void WanMgr_Rbus_EventReceiveHandler(rbusHandle_t handle, rbusEvent_t con
 
                 if( strstr(pParamName, WANMGR_INFACE_PHY_STATUS_SUFFIX) != NULL )
                 {
-                    WanMgr_StringToEnum(&pWanIfaceData->Phy.Status, ENUM_PHY, pValue);
+                    WanMgr_StringToEnum(&pWanIfaceData->BaseInterfaceStatus, ENUM_PHY, pValue);
                 }
                 else if( strstr(pParamName, WANMGR_INFACE_WAN_LINKSTATUS_SUFFIX) != NULL )
                 {
-                    WanMgr_StringToEnum(&pWanIfaceData->Wan.LinkStatus, ENUM_WAN_LINKSTATUS, pValue);
-                    if(pWanIfaceData->Wan.LinkStatus == WAN_IFACE_LINKSTATUS_UP)
+                    WanMgr_StringToEnum(&pWanIfaceData->VirtIfList->VLAN.Status, ENUM_WAN_LINKSTATUS, pValue);
+                    if(pWanIfaceData->VirtIfList->VLAN.Status == WAN_IFACE_LINKSTATUS_UP)
                     {
-                        WanMgr_getRemoteWanIfName(pWanIfaceData->Wan.Name, sizeof(pWanIfaceData->Wan.Name));
+                        WanMgr_getRemoteWanIfName(pWanIfaceData->VirtIfList->Name, sizeof(pWanIfaceData->VirtIfList->Name));
                     }
                 }
                 else if( strstr(pParamName, WANMGR_INFACE_WAN_STATUS_SUFFIX) != NULL )
                 {
-                    WanMgr_StringToEnum(&pWanIfaceData->Wan.RemoteStatus, ENUM_WAN_STATUS, pValue);
+                    WanMgr_StringToEnum(&pWanIfaceData->VirtIfList->RemoteStatus, ENUM_WAN_STATUS, pValue);
                 }
             }
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
@@ -1069,16 +1071,24 @@ ANSC_STATUS WanMgr_Rbus_Init()
              CcspTraceInfo(("%s %d - Iterface(%d) Table (%s) Registartion Successfully, AliasName(%s)\n", __FUNCTION__, __LINE__, i, WANMGR_V1_INFACE_TABLE, AliasName));
         }
 
-        snprintf(tmpVIfTableName, sizeof(tmpVIfTableName), WANMGR_VIRTUAL_INFACE_TABLE, (i+1));
-        rc = rbusTable_registerRow(rbusHandle, tmpVIfTableName, (1), AliasName);
-        if(rc != RBUS_ERROR_SUCCESS)
+        WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(i);
+        if(pWanDmlIfaceData != NULL)
         {
-            CcspTraceError(("%s %d - VirtualInterface(%d) Table (%s) Registartion failed, Error=%d \n", __FUNCTION__, __LINE__, 1, tmpVIfTableName, rc));
-            return rc;
-        }
-        else
-        {
-             CcspTraceInfo(("%s %d - VirtualInterface(%d) Table (%s) Registartion Successfully, AliasName(%s)\n", __FUNCTION__, __LINE__, 1, tmpVIfTableName, AliasName));
+            for(int VirId=0; VirId< pWanDmlIfaceData->data.NoOfVirtIfs; VirId++)
+            {
+                snprintf(tmpVIfTableName, sizeof(tmpVIfTableName), WANMGR_VIRTUAL_INFACE_TABLE, (i+1));
+                rc = rbusTable_registerRow(rbusHandle, tmpVIfTableName, (VirId+1), AliasName); //TODO: NEW_DESIGN get Alias name for virtual table
+                if(rc != RBUS_ERROR_SUCCESS)
+                {
+                    CcspTraceError(("%s %d - VirtualInterface(%d) Table (%s) Registartion failed, Error=%d \n", __FUNCTION__, __LINE__, (VirId+1), tmpVIfTableName, rc));
+                    return rc;
+                }
+                else
+                {
+                    CcspTraceInfo(("%s %d - VirtualInterface(%d) Table (%s) Registartion Successfully, AliasName(%s)\n", __FUNCTION__, __LINE__, (VirId+1), tmpVIfTableName, AliasName));
+                }
+            }
+            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
         }
         memset(tmpVIfTableName,0,sizeof(tmpVIfTableName));
 #endif /** WAN_MANAGER_UNIFICATION_ENABLED*/
@@ -1264,7 +1274,7 @@ ANSC_STATUS WanMgr_Rbus_String_EventPublish(char *dm_event, void *dm_value)
     {
        char String[20] = {0};
        WanMgr_EnumToString((*(UINT *)dm_value), ENUM_WAN_STATUS, String);
-        CcspTraceInfo(("%s-%d : WanStatus(%s)(%d) Publish\n", __FUNCTION__, __LINE__, String, (*(UINT *)dm_value)));
+        CcspTraceInfo(("%s-%d : Virtual interface Status(%s)(%d) Publish\n", __FUNCTION__, __LINE__, String, (*(UINT *)dm_value)));
         return WanMgr_Rbus_EventPublishHandler(dm_event, &String, RBUS_STRING);
     }
     else
@@ -1425,18 +1435,18 @@ void WanMgr_WanRemoteIfaceConfigure_thread(void *arg)
         DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
         if (pDeviceChangeEvent->available != true)
         {
-            CcspTraceInfo(("%s %d: Remote device is not available. so setting interface:%d to Wan.Enable = FALSE\n", 
+            CcspTraceInfo(("%s %d: Remote device is not available. so setting interface:%d to Selection.Enable = FALSE\n", 
                             __FUNCTION__, __LINE__, cpeInterfaceIndex));
-            pWanDmlIface->Wan.Enable = FALSE;
-            pWanDmlIface->Phy.Status = WAN_IFACE_PHY_STATUS_DOWN;
+            pWanDmlIface->Selection.Enable = FALSE;
+            pWanDmlIface->BaseInterfaceStatus = WAN_IFACE_PHY_STATUS_DOWN;
 
             free(pDeviceChangeEvent);
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
             return ANSC_STATUS_SUCCESS;
         }
 
-        CcspTraceInfo(("%s %d: Setting interface:%d to Wan.Enable = TRUE\n", __FUNCTION__, __LINE__, cpeInterfaceIndex));
-        pWanDmlIface->Wan.Enable = TRUE;
+        CcspTraceInfo(("%s %d: Setting interface:%d to Selection.Enable = TRUE\n", __FUNCTION__, __LINE__, cpeInterfaceIndex));
+        pWanDmlIface->Selection.Enable = TRUE;
         WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
     }
 
@@ -1574,19 +1584,19 @@ static void CPEInterface_AsyncMethodHandler(
                 }
                 else if( WANMGR_PHY_STATUS_CHECK )
                 {
-                    WanMgr_StringToEnum(&pWanIfaceData->Phy.Status, ENUM_PHY, pValue);
+                    WanMgr_StringToEnum(&pWanIfaceData->BaseInterfaceStatus, ENUM_PHY, pValue);
                 }
                 else if( WANMGR_WAN_LINKSTATUS_CHECK )
                 {
-                    WanMgr_StringToEnum(&pWanIfaceData->Wan.LinkStatus, ENUM_WAN_LINKSTATUS, pValue);
-                    if(pWanIfaceData->Wan.LinkStatus == WAN_IFACE_LINKSTATUS_UP)
+                    WanMgr_StringToEnum(&pWanIfaceData->VirtIfList->VLAN.Status, ENUM_WAN_LINKSTATUS, pValue);
+                    if(pWanIfaceData->VirtIfList->VLAN.Status == WAN_IFACE_LINKSTATUS_UP)
                     {
-                        strncpy(pWanIfaceData->Wan.Name, REMOTE_INTERFACE_NAME, sizeof(pWanIfaceData->Wan.Name));
+                        strncpy(pWanIfaceData->VirtIfList->Name, REMOTE_INTERFACE_NAME, sizeof(pWanIfaceData->VirtIfList->Name));
                     }
                 }
                 else if( WANMGR_WAN_STATUS_CHECK )
                 {
-                    WanMgr_StringToEnum(&pWanIfaceData->Wan.RemoteStatus, ENUM_WAN_STATUS, pValue);
+                    WanMgr_StringToEnum(&pWanIfaceData->VirtIfList->RemoteStatus, ENUM_WAN_STATUS, pValue);
                 }
             }
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
@@ -1618,7 +1628,7 @@ static int WanMgr_Remote_IfaceData_index(char *macAddress)
             if(pWanDmlIfaceData != NULL)
             {
                 DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
-                if((0 == strncasecmp(pWanIfaceData->RemoteCPEMac, macAddress, BUFLEN_128)) && (pWanIfaceData->Wan.IfaceType == REMOTE_IFACE))
+                if((0 == strncasecmp(pWanIfaceData->RemoteCPEMac, macAddress, BUFLEN_128)) && (pWanIfaceData->IfaceType == REMOTE_IFACE))
                 {
                     cpeInterfaceIndex = uiLoopCount ;
                 }
@@ -1719,11 +1729,6 @@ BOOL WanMgr_Rbus_discover_components(char const *pModuleList)
         rbusModuleList[count]=token;
         count++;
         token = strtok(NULL, delimit);
-    }
-    /* print list of dependency modules name */
-    for(int i=0; i<count;i++)
-    {
-        CcspTraceInfo(("WanMgr_Rbus_discover_components rbusModuleList[%s]\n", rbusModuleList[i]));
     }
 
     /* Check list of rbus_components get registered. using rbus_api */

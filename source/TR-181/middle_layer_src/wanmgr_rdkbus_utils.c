@@ -61,34 +61,10 @@
 #include "wanmgr_dhcpv6_apis.h"
 
 #define UPSTREAM_SET_MAX_RETRY_COUNT 10 // max. retry count for Upstream set requests
+#define DATAMODEL_PARAM_LENGTH 256
 
 extern char g_Subsystem[32];
 extern ANSC_HANDLE bus_handle;
-ANSC_STATUS WanMgr_RdkBus_getWanPolicy(DML_WAN_POLICY *wan_policy)
-{
-    int result = ANSC_STATUS_SUCCESS;
-    int retPsmGet = CCSP_SUCCESS;
-    char param_value[BUFLEN_256] = {0};
-    char param_name[BUFLEN_256]= {0};
-
-    memset(param_name, 0, sizeof(param_name));
-#if defined(WAN_MANAGER_UNIFICATION_ENABLED)
-    //Needs to remove this hardcoded value when we adapt updated data structure
-    _ansc_sprintf(param_name, PSM_WANMANAGER_GROUP_POLICY, 1); 
-#else
-    _ansc_sprintf(param_name, PSM_WANMANAGER_WANPOLICY);
-#endif /** WAN_MANAGER_UNIFICATION_ENABLED */
-    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name, param_value, sizeof(param_value));
-    if (retPsmGet == CCSP_SUCCESS && param_value[0] != '\0') {
-        *wan_policy = strtol(param_value, NULL, 10);
-    }
-    else {
-        result = ANSC_STATUS_FAILURE;
-    }
-
-    return result;
-}
-
 
 ANSC_STATUS WanMgr_RdkBus_setRestorationDelay(UINT delay)
 {
@@ -103,34 +79,6 @@ ANSC_STATUS WanMgr_RdkBus_setRestorationDelay(UINT delay)
 
     snprintf(param_value, sizeof(param_value), "%d", delay);
     _ansc_sprintf(param_name, PSM_WANMANAGER_RESTORATION_DELAY);
-
-    retPsmSet = WanMgr_RdkBus_SetParamValuesToDB(param_name, param_value);
-    if (retPsmSet != CCSP_SUCCESS) {
-        AnscTraceError(("%s Error %d writing %s %s\n", __FUNCTION__, retPsmSet, param_name, param_value));
-        result = ANSC_STATUS_FAILURE;
-    }
-
-    return result;
-}
-
-ANSC_STATUS WanMgr_RdkBus_setWanPolicy(DML_WAN_POLICY wan_policy)
-{
-    int result = ANSC_STATUS_SUCCESS;
-    int retPsmSet = CCSP_SUCCESS;
-    char param_name[BUFLEN_256] = {0};
-    char param_value[BUFLEN_256] = {0};
-
-    /* Update the wan policy information in PSM */
-    memset(param_value, 0, sizeof(param_value));
-    memset(param_name, 0, sizeof(param_name));
-
-    snprintf(param_value, sizeof(param_value), "%d", wan_policy);
-#if defined(WAN_MANAGER_UNIFICATION_ENABLED)
-    //Needs to remove this hardcoded value when we adapt updated data structure
-    _ansc_sprintf(param_name, PSM_WANMANAGER_GROUP_POLICY, 1); 
-#else
-    _ansc_sprintf(param_name, PSM_WANMANAGER_WANPOLICY);
-#endif /** WAN_MANAGER_UNIFICATION_ENABLED */
 
     retPsmSet = WanMgr_RdkBus_SetParamValuesToDB(param_name, param_value);
     if (retPsmSet != CCSP_SUCCESS) {
@@ -223,7 +171,7 @@ ANSC_STATUS WaitForInterfaceComponentReady(char *pPhyPath)
 
     if (pPhyPath == NULL)
     {
-        CcspTraceInfo(("%s %d Error: phyPath is NULL \n", __FUNCTION__, __LINE__ ));
+        CcspTraceInfo(("%s %d Error: BaseInterface is NULL \n", __FUNCTION__, __LINE__ ));
         return ANSC_STATUS_FAILURE;
     }
         
@@ -273,7 +221,7 @@ ANSC_STATUS WanMgr_RdkBus_SetRequestIfComponent(char *pPhyPath, char *pInputpara
     parameterValStruct_t param_info[1] = {0};
 
     if((pPhyPath == NULL) || (pInputparamName == NULL) || (pInputParamValue == NULL)) {
-        CcspTraceInfo(("%s %d Error: phyPath/inputParamName is NULL \n", __FUNCTION__, __LINE__ ));
+        CcspTraceInfo(("%s %d Error: BaseInterface/inputParamName is NULL \n", __FUNCTION__, __LINE__ ));
         return ANSC_STATUS_FAILURE;
     }
 
@@ -333,10 +281,10 @@ void WanMgr_SetPortCapabilityForEthIntf (DML_WAN_POLICY eWanPolicy)
         if(pWanDmlIfaceData != NULL)
         {
             DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
-            if (strstr(pWanIfaceData->Phy.Path,"Ethernet") != NULL)
+            if (strstr(pWanIfaceData->BaseInterface,"Ethernet") != NULL)
             {
                 foundPhyPath = 1;
-                snprintf(dmQuery, sizeof(dmQuery)-1, "%s%s", pWanIfaceData->Phy.Path, ETH_INTERFACE_PORTCAPABILITY);
+                snprintf(dmQuery, sizeof(dmQuery)-1, "%s%s", pWanIfaceData->BaseInterface, ETH_INTERFACE_PORTCAPABILITY);
             }
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
         }
@@ -349,71 +297,6 @@ void WanMgr_SetPortCapabilityForEthIntf (DML_WAN_POLICY eWanPolicy)
     CcspTraceInfo(("%s: result[%s]\n", __FUNCTION__, (result != ANSC_STATUS_SUCCESS)?"FAILED":"SUCCESS"));
 }
 #endif  //FEATURE_RDKB_AUTO_PORT_SWITCH
-
-ANSC_STATUS WanMgr_RdkBus_updateInterfaceUpstreamFlag(char *phyPath, BOOL flag)
-{
-    char param_name[BUFLEN_256] = {0};
-    char param_value[BUFLEN_256] = {0};
-    char  pCompName[BUFLEN_64] = {0};
-    char  pCompPath[BUFLEN_64] = {0};
-    char *faultParam = NULL;
-    int ret = 0;
-    int retry_count = UPSTREAM_SET_MAX_RETRY_COUNT;
-
-    CCSP_MESSAGE_BUS_INFO *bus_info = (CCSP_MESSAGE_BUS_INFO *)bus_handle;
-    parameterValStruct_t upstream_param[1] = {0};
-    CcspTraceInfo(("%s %d Upstream[%s]\n", __FUNCTION__, __LINE__, (flag)?"UP":"Down" ));
-    if(phyPath == NULL) {
-        CcspTraceInfo(("%s %d Error: phyPath is NULL \n", __FUNCTION__, __LINE__ ));
-        return ANSC_STATUS_FAILURE;
-    }
-
-    strncpy(param_name, phyPath, sizeof(param_name)-1);
-
-    if(strstr(param_name, "DSL") != NULL) { // dsl wan interface
-        strncat(param_name, DSL_UPSTREAM_NAME, sizeof(param_name) - strlen(param_name));
-        strncpy(pCompName, DSL_COMPONENT_NAME, sizeof(pCompName));
-        strncpy(pCompPath, DSL_COMPONENT_PATH, sizeof(pCompPath));
-    }
-    else if(strstr(param_name, "Ethernet") != NULL) { // ethernet wan interface
-        strncat(param_name, ETH_UPSTREAM_NAME, sizeof(param_name) - strlen(param_name));
-        strncpy(pCompName, ETH_COMPONENT_NAME, sizeof(pCompName));
-        strncpy(pCompPath, ETH_COMPONENT_PATH, sizeof(pCompPath));
-    }
-    else if(strstr(param_name, "Cellular") != NULL) { // cellular wan interface
-        strncat(param_name, CELLULAR_UPSTREAM_NAME, sizeof(param_name) - strlen(param_name));
-        strncpy(pCompName, CELLULAR_COMPONENT_NAME, sizeof(pCompName));
-        strncpy(pCompPath, CELLULAR_COMPONENT_PATH, sizeof(pCompPath));
-    }
-
-    if(flag)
-        strncpy(param_value, "true", sizeof(param_value));
-    else
-        strncpy(param_value, "false", sizeof(param_value));
-
-    upstream_param[0].parameterName = param_name;
-    upstream_param[0].parameterValue = param_value;
-    upstream_param[0].type = ccsp_boolean;
-
-    while (retry_count--)
-    {
-        ret = CcspBaseIf_setParameterValues(bus_handle, pCompName, pCompPath,
-                                        0, 0x0,   /* session id and write id */
-                                        upstream_param, 1, TRUE,   /* Commit  */
-                                        &faultParam);
-
-        if ( ( ret != CCSP_SUCCESS ) && ( faultParam )) {
-            CcspTraceInfo(("%s CcspBaseIf_setParameterValues failed with error %d\n",__FUNCTION__, ret ));
-            bus_info->freefunc( faultParam );
-        }
-        else {
-            break;
-        }
-        usleep(500000);
-    }
-    return (ret == CCSP_SUCCESS) ? ANSC_STATUS_SUCCESS : ANSC_STATUS_FAILURE;
-}
-
 
 static ANSC_STATUS WanMgr_RdkBus_GetParamNames( char *pComponent, char *pBus, char *pParamName, char a2cReturnVal[][BUFLEN_256], int *pReturnSize )
 {
@@ -593,10 +476,13 @@ ANSC_STATUS WanMgr_RdkBus_SetParamValues( char *pComponent, char *pBus, char *pP
                                         &faultParam
                                        );
 
-    if( ( ret != CCSP_SUCCESS ) && ( faultParam != NULL ) )
+    if(ret != CCSP_SUCCESS )
     {
+        if ( faultParam != NULL )
+        {
+            bus_info->freefunc( faultParam );
+        }
         CcspTraceError(("%s-%d Failed to set %s\n",__FUNCTION__,__LINE__,pParamName));
-        bus_info->freefunc( faultParam );
         return ANSC_STATUS_FAILURE;
     }
 
@@ -695,54 +581,6 @@ static ANSC_STATUS WanMgr_RdkBus_GetInterfaceInstanceInOtherAgent( WAN_NOTIFY_EN
     }
 
     return ANSC_STATUS_SUCCESS;
-}
-
-/* * WanMgr_RdkBus_WanIfRefreshThread() */
-void* WanMgr_RdkBus_WanIfRefreshThread( void *arg )
-{
-    DML_WAN_IFACE*    pstWanIface = (DML_WAN_IFACE*)arg;
-    char    acSetParamName[BUFLEN_256];
-    INT     iVLANInstance   = -1;
-
-    //Validate buffer
-    if( NULL == pstWanIface )
-    {
-        CcspTraceError(("%s Invalid Memory\n", __FUNCTION__));
-        pthread_exit(NULL);
-    }
-
-    //detach thread from caller stack
-    pthread_detach(pthread_self());
-
-    //Need to sync with the state machine thread.
-    sleep(5);
-
-    //Get Instance for corresponding name
-    WanMgr_RdkBus_GetInterfaceInstanceInOtherAgent( NOTIFY_TO_VLAN_AGENT, pstWanIface->Name, &iVLANInstance );
-
-    //Index is not present. so no need to do anything any VLAN instance
-    if( -1 != iVLANInstance )
-    {
-       CcspTraceInfo(("%s %d VLAN Instance:%d\n",__FUNCTION__, __LINE__,iVLANInstance));
-
-        //Set VLAN EthLink Refresh
-        memset( acSetParamName, 0, sizeof(acSetParamName) );
-        snprintf( acSetParamName, sizeof(acSetParamName), VLAN_ETHLINK_REFRESH_PARAM_NAME, iVLANInstance );
-        WanMgr_RdkBus_SetParamValues( VLAN_COMPONENT_NAME, VLAN_DBUS_PATH, acSetParamName, "true", ccsp_boolean, TRUE );
-
-        CcspTraceInfo(("%s %d Successfully notified refresh event to VLAN Agent for %s interface[%s]\n", __FUNCTION__, __LINE__, pstWanIface->Name,acSetParamName));
-    }
-
-    //Free allocated resource
-    if( NULL != pstWanIface )
-    {
-        free(pstWanIface);
-        pstWanIface = NULL;
-    }
-
-    pthread_exit(NULL);
-
-    return NULL;
 }
 
 ANSC_STATUS WanMgr_RdkBusDeleteVlanLink(DML_WAN_IFACE* pInterface )
@@ -870,6 +708,7 @@ int WanMgr_RdkBus_GetParamValuesFromDB( char *pParamName, char *pReturnVal, int 
         retPsmGet = CCSP_FAILURE;
     }
 #endif
+    CcspTraceInfo(("PSM Read => %s : %s\n", pParamName, pReturnVal));
 
    return retPsmGet;
 }
@@ -901,21 +740,21 @@ int WanMgr_RdkBus_SetParamValuesToDB( char *pParamName, char *pParamVal )
     return retPsmSet;
 }
 
-ANSC_STATUS WanMgr_RestartGetPhyStatus (DML_WAN_IFACE *pWanIfaceData)
+ANSC_STATUS WanMgr_RestartGetBaseInterfaceStatus (DML_WAN_IFACE *pWanIfaceData)
 {
     //get PHY status
     char dmQuery[BUFLEN_256] = {0};
     char dmValue[BUFLEN_256] = {0};
 
-    if(pWanIfaceData->Phy.Path == NULL)
+    if(pWanIfaceData->BaseInterface == NULL)
     {
         CcspTraceError(("%s %d: Invalid args\n", __FUNCTION__, __LINE__));
         return ANSC_STATUS_FAILURE;
     }
 
-    if(strstr(pWanIfaceData->Phy.Path, "Cellular") != NULL)
+    if(strstr(pWanIfaceData->BaseInterface, "Cellular") != NULL)
     {
-        snprintf(dmQuery, sizeof(dmQuery)-1, "%s%s", pWanIfaceData->Phy.Path, CELLULARMGR_PHY_STATUS_DM_SUFFIX);
+        snprintf(dmQuery, sizeof(dmQuery)-1, "%s%s", pWanIfaceData->BaseInterface, CELLULARMGR_PHY_STATUS_DM_SUFFIX);
         if ( ANSC_STATUS_FAILURE == WanMgr_RdkBus_GetParamValueFromAnyComp (dmQuery, dmValue))
         {
             CcspTraceError(("%s-%d: %s, Failed to get param value\n", __FUNCTION__, __LINE__, dmQuery));
@@ -924,13 +763,13 @@ ANSC_STATUS WanMgr_RestartGetPhyStatus (DML_WAN_IFACE *pWanIfaceData)
 
         if(strcmp(dmValue,"true") == 0)
         {
-            pWanIfaceData->Phy.Status = WAN_IFACE_PHY_STATUS_UP;
+            pWanIfaceData->BaseInterfaceStatus = WAN_IFACE_PHY_STATUS_UP;
         }
 
     }
     else
     {
-        snprintf(dmQuery, sizeof(dmQuery)-1, "%s%s", pWanIfaceData->Phy.Path, STATUS_DM_SUFFIX);
+        snprintf(dmQuery, sizeof(dmQuery)-1, "%s%s", pWanIfaceData->BaseInterface, STATUS_DM_SUFFIX);
         if ( ANSC_STATUS_FAILURE == WanMgr_RdkBus_GetParamValueFromAnyComp (dmQuery, dmValue))
         {
             CcspTraceError(("%s-%d: %s, Failed to get param value\n", __FUNCTION__, __LINE__, dmQuery));
@@ -939,194 +778,13 @@ ANSC_STATUS WanMgr_RestartGetPhyStatus (DML_WAN_IFACE *pWanIfaceData)
 
         if(strcmp(dmValue,"Up") == 0)
         {
-            pWanIfaceData->Phy.Status = WAN_IFACE_PHY_STATUS_UP;
+            pWanIfaceData->BaseInterfaceStatus = WAN_IFACE_PHY_STATUS_UP;
         }
     }
+    CcspTraceInfo(("%s %d  %s : %s \n", __FUNCTION__, __LINE__, dmQuery, dmValue));
     return ANSC_STATUS_SUCCESS;
 }
 
-/**************************************
-  WanMgr_RestartUpdatePPPinfo 
-  If already PPP session running.Updates PPP session details and returns TRUE.
-  else return FALSE.
- ***************************************/
-bool WanMgr_RestartUpdatePPPinfo(DML_WAN_IFACE *pWanIfaceData)
-{
-    char dmQuery[BUFLEN_256] = {0};
-    char ppp_Status[BUFLEN_256]             = {0};
-    char ppp_ConnectionStatus[BUFLEN_256]   = {0};
-
-    if(pWanIfaceData->PPP.Enable == TRUE && (strlen(pWanIfaceData->PPP.Path) > 0))
-    {
-        snprintf(dmQuery, sizeof(dmQuery)-1, "%sStatus", pWanIfaceData->PPP.Path);
-        if ( ANSC_STATUS_FAILURE == WanMgr_RdkBus_GetParamValueFromAnyComp (dmQuery, ppp_Status))
-        {
-            CcspTraceError(("%s-%d: %s, Failed to get param value\n", __FUNCTION__, __LINE__, dmQuery));
-            return FALSE;
-        }
-
-        snprintf(dmQuery, sizeof(dmQuery)-1, "%sConnectionStatus", pWanIfaceData->PPP.Path);
-        if ( ANSC_STATUS_FAILURE == WanMgr_RdkBus_GetParamValueFromAnyComp (dmQuery, ppp_ConnectionStatus))
-        {
-            CcspTraceError(("%s-%d: %s, Failed to get param value\n", __FUNCTION__, __LINE__, dmQuery));
-            return FALSE;
-        }
-
-        CcspTraceInfo(("%s %d PPP entry Status: %s, ConnectionStatus: %s\n",__FUNCTION__, __LINE__, ppp_Status, ppp_ConnectionStatus));
-
-        if(!strcmp(ppp_Status, "Up") && !strcmp(ppp_ConnectionStatus, "Connected"))
-        {
-            pWanIfaceData->PPP.LinkStatus = WAN_IFACE_PPP_LINK_STATUS_UP;
-            pWanIfaceData->PPP.LCPStatus = WAN_IFACE_LCP_STATUS_UP;
-            pWanIfaceData->PPP.IPCPStatus = WAN_IFACE_IPCP_STATUS_UP;
-            pWanIfaceData->PPP.IPV6CPStatus = WAN_IFACE_IPV6CP_STATUS_UP;
-
-            //Start IPCP Status handler threads
-            {
-                pthread_t IPCPHandlerThread;
-                char *pInterface = NULL;
-                int iErrorCode = 0;
-                pInterface = (char *) malloc(64);
-
-                if (pInterface != NULL)
-                {
-                    strncpy(pInterface, pWanIfaceData->Wan.Name, 64);
-                    iErrorCode = pthread_create( &IPCPHandlerThread, NULL, &IPCPStateChangeHandler, (void*) pInterface );
-                    if( 0 != iErrorCode )
-                    {
-                        CcspTraceInfo(("%s %d - Failed to handle IPCP event change   %d\n", __FUNCTION__, __LINE__, iErrorCode ));
-                    }
-
-                }
-            }
-
-            //Start IPCPv6 Status handler threads
-            {
-                pthread_t IPV6CPHandlerThread;
-                char *pInterface = NULL;
-                int iErrorCode = 0;
-                pInterface = (char *) malloc(64);
-
-                if (pInterface != NULL)
-                {
-                    strncpy(pInterface, pWanIfaceData->Wan.Name, 64);
-                    iErrorCode = pthread_create( &IPV6CPHandlerThread, NULL, &IPV6CPStateChangeHandler, (void*) pInterface );
-                    if( 0 != iErrorCode )
-                    {
-                        CcspTraceInfo(("%s %d - Failed to handle IPCP event change   %d\n", __FUNCTION__, __LINE__, iErrorCode ));
-                    }
-
-                }
-            }
-            return TRUE;
-        }
-    }
-    return FALSE;
-
-}
-
-ANSC_STATUS WanMgr_RestartGetLinkStatus (DML_WAN_IFACE *pWanIfaceData)
-{
-    //get PHY status
-    char dmQuery[BUFLEN_256] = {0};
-    char dmValue[BUFLEN_256] = {0};
-
-    if(pWanIfaceData->PPP.Enable == TRUE)
-    {
-        if((strlen(pWanIfaceData->PPP.Path) <= 0))
-        {
-            return ANSC_STATUS_FAILURE;
-        }
-
-        snprintf(dmQuery, sizeof(dmQuery)-1, "%sEnable", pWanIfaceData->PPP.Path);
-        if ( ANSC_STATUS_FAILURE == WanMgr_RdkBus_GetParamValueFromAnyComp (dmQuery, dmValue))
-        {
-            CcspTraceError(("%s-%d: %s, Failed to get param value\n", __FUNCTION__, __LINE__, dmQuery));
-            return ANSC_STATUS_FAILURE;
-        }
-
-        if(!strcmp(dmValue, "true"))
-        {
-            pWanIfaceData->Wan.LinkStatus = WAN_IFACE_LINKSTATUS_UP;
-        }
-
-        //Get Wan.name
-        memset(dmQuery, 0, sizeof(dmQuery));
-        memset(dmValue, 0, sizeof(dmValue));
-
-        snprintf(dmQuery, sizeof(dmQuery)-1,"%sAlias", pWanIfaceData->PPP.Path);
-
-        if ( ANSC_STATUS_FAILURE == WanMgr_RdkBus_GetParamValueFromAnyComp (dmQuery, dmValue))
-        {
-            CcspTraceError(("%s-%d: %s, Failed to get param value\n", __FUNCTION__, __LINE__, dmQuery));
-            return ANSC_STATUS_FAILURE;
-        }
-
-        if(dmValue != NULL)
-        {
-            strncpy(pWanIfaceData->Wan.Name, dmValue, sizeof(pWanIfaceData->Wan.Name));
-        }
-    }
-    else if(strstr(pWanIfaceData->Phy.Path, "Cellular") != NULL)
-    {
-        snprintf(dmQuery, sizeof(dmQuery)-1, "%s%s", pWanIfaceData->Phy.Path, CELLULARMGR_LINK_STATUS_DM_SUFFIX);
-        if ( ANSC_STATUS_FAILURE == WanMgr_RdkBus_GetParamValueFromAnyComp (dmQuery, dmValue))
-        {
-            CcspTraceError(("%s-%d: %s, Failed to get param value\n", __FUNCTION__, __LINE__, dmQuery));
-            return ANSC_STATUS_FAILURE;
-        }
-
-        if(strcmp(dmValue,"true") == 0)
-        {
-            pWanIfaceData->Wan.LinkStatus = WAN_IFACE_LINKSTATUS_UP;
-
-            strncpy(pWanIfaceData->Wan.Name, CELLULARMGR_WAN_NAME, sizeof(pWanIfaceData->Wan.Name));
-        }
-    }
-    else
-    {
-        //get Vlan status
-        INT     iVLANInstance   = -1;
-        WanMgr_RdkBus_GetInterfaceInstanceInOtherAgent( NOTIFY_TO_VLAN_AGENT, pWanIfaceData->Name, &iVLANInstance );
-
-        //Index is not present. so no need to do anything any VLAN instance
-        if( -1 != iVLANInstance )
-        {
-            CcspTraceInfo(("%s %d VLAN Instance:%d\n",__FUNCTION__, __LINE__,iVLANInstance));
-
-            snprintf(dmQuery, sizeof(dmQuery)-1,VLAN_ETHLINK_STATUS_PARAM_NAME, iVLANInstance);
-
-            if ( ANSC_STATUS_FAILURE == WanMgr_RdkBus_GetParamValueFromAnyComp (dmQuery, dmValue))
-            {
-                CcspTraceError(("%s-%d: %s, Failed to get param value\n", __FUNCTION__, __LINE__, dmQuery));
-                return ANSC_STATUS_FAILURE;
-            }
-
-            if(strcmp(dmValue,"Up") == 0)
-            {
-                pWanIfaceData->Wan.LinkStatus = WAN_IFACE_LINKSTATUS_UP;
-            }
-
-            //Get Vlan interface name
-            memset(dmQuery, 0, sizeof(dmQuery));
-            memset(dmValue, 0, sizeof(dmValue));
-
-            snprintf(dmQuery, sizeof(dmQuery)-1,VLAN_ETHLINK_NAME_PARAM_NAME, iVLANInstance);
-
-            if ( ANSC_STATUS_FAILURE == WanMgr_RdkBus_GetParamValueFromAnyComp (dmQuery, dmValue))
-            {
-                CcspTraceError(("%s-%d: %s, Failed to get param value\n", __FUNCTION__, __LINE__, dmQuery));
-                return ANSC_STATUS_FAILURE;
-            }
-
-            if(dmValue != NULL)
-            {
-                strncpy(pWanIfaceData->Wan.Name, dmValue, sizeof(pWanIfaceData->Wan.Name));  
-            }
-        }
-    }
-    return ANSC_STATUS_SUCCESS;
-}
 ANSC_STATUS WanMgr_RdkBus_setDhcpv6DnsServerInfo(void)
 {
     ANSC_STATUS retStatus = ANSC_STATUS_FAILURE;
@@ -1156,102 +814,73 @@ ANSC_STATUS WanMgr_RdkBus_setDhcpv6DnsServerInfo(void)
     return retStatus;
 }
 #if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
-ANSC_STATUS WanMgr_RdkBus_setWanIpInterfaceData(DML_WAN_IFACE* pWanIfaceData)
+ANSC_STATUS WanMgr_RdkBus_setWanIpInterfaceData(DML_VIRTUAL_IFACE*  pVirtIf)
 {
     ANSC_STATUS retStatus = ANSC_STATUS_FAILURE;
-
-    if(pWanIfaceData->PPP.Enable == TRUE)
+    char dmQuery[BUFLEN_256] = {0};
+    snprintf(dmQuery, sizeof(dmQuery)-1, "%s.LowerLayers", pVirtIf->IP.Interface);
+    if(pVirtIf->PPP.Enable == TRUE)
     {
-        retStatus = WanMgr_RdkBus_SetParamValues( PAM_COMPONENT_NAME, PAM_DBUS_PATH, "Device.IP.Interface.1.LowerLayers", pWanIfaceData->PPP.Path, ccsp_string, TRUE );
-        CcspTraceInfo(("%s %d - Updating Device.IP.Interface.1.LowerLayers  => %s\n", __FUNCTION__, __LINE__, pWanIfaceData->PPP.Path));
+        retStatus = WanMgr_RdkBus_SetParamValues( PAM_COMPONENT_NAME, PAM_DBUS_PATH, dmQuery, pVirtIf->PPP.Interface, ccsp_string, TRUE );
+        CcspTraceInfo(("%s %d - Updating %s => %s\n", __FUNCTION__, __LINE__,dmQuery, pVirtIf->PPP.Interface));
     }else
     {
-        INT     iVLANInstance   = -1;
-        CHAR    VlanPath[BUFLEN_264]  = {0};
-        WanMgr_RdkBus_GetInterfaceInstanceInOtherAgent( NOTIFY_TO_VLAN_AGENT, pWanIfaceData->Name, &iVLANInstance );
-        snprintf( VlanPath, sizeof(VlanPath), VLAN_ETHLINK_TABLE_FORMAT, iVLANInstance);
-
-        retStatus = WanMgr_RdkBus_SetParamValues( PAM_COMPONENT_NAME, PAM_DBUS_PATH, "Device.IP.Interface.1.LowerLayers", VlanPath, ccsp_string, TRUE );
-        CcspTraceInfo(("%s %d - Updating Device.IP.Interface.1.LowerLayers  => %s\n", __FUNCTION__, __LINE__,VlanPath));
+        retStatus = WanMgr_RdkBus_SetParamValues( PAM_COMPONENT_NAME, PAM_DBUS_PATH, dmQuery, pVirtIf->VLAN.VLANInUse, ccsp_string, TRUE );
+        CcspTraceInfo(("%s %d - Updating %s => %s\n", __FUNCTION__, __LINE__,dmQuery,pVirtIf->VLAN.VLANInUse));
     }
     return retStatus;
 }
 #endif
-void WanMgr_RdkBus_setEthernetUpstream(bool setVal)
-{
-    int insVal = 0;
-    int uiLoopCount = 0;
-    char dmName[BUFLEN_256] = { 0 };
-    int totalIfaces = WanMgr_IfaceData_GetTotalWanIface();
 
-    for (uiLoopCount = 0; uiLoopCount <  totalIfaces; uiLoopCount++)
+ANSC_STATUS  WanMgr_RdkBus_ConfigureVlan(DML_VIRTUAL_IFACE* pVirtIf, BOOL Enable)
+{
+    if(pVirtIf ==NULL)
     {
-        WanMgr_Iface_Data_t*   pWanDmlIfaceData = WanMgr_GetIfaceData_locked(uiLoopCount);
-        if(pWanDmlIfaceData != NULL)
-        {
-            insVal = 0;
-            DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
-            if (strstr(pWanIfaceData->Phy.Path, "Ethernet") != NULL)
-            {
-                sscanf(pWanIfaceData->Phy.Path, ETH_PHY_PATH_DM, &insVal);
-                CcspTraceInfo(("%s %d: Phy.Path=[%s] return instance = [%d] \n", __FUNCTION__, __LINE__, pWanIfaceData->Phy.Path, insVal));
-            }
-            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
-            if(insVal > 0)
-            {
-                memset(dmName, 0, BUFLEN_256);
-                snprintf(dmName, "%s%d", ETH_HW_CONFIG_PHY_PATH, insVal);
-                if (WanMgr_RdkBus_updateInterfaceUpstreamFlag(dmName, setVal) != ANSC_STATUS_SUCCESS)
-                {
-                    CcspTraceError(("%s - Failed to set [%s] data model \n", __FUNCTION__, dmName));
-                }
-                else
-                {
-                    CcspTraceInfo(("%s %d: dmName=[%s] dmValue=[%d] success. \n", __FUNCTION__, __LINE__, dmName, setVal));
-                }
-            }
-        }
+        CcspTraceError(("%s Invalid Args\n", __FUNCTION__));
+        return ANSC_STATUS_FAILURE;
     }
+
+    char acSetParamName[BUFLEN_256] ={0};
+    char acSetParamValue[256] = {0};
+    ANSC_STATUS ret = ANSC_STATUS_FAILURE;
+
+    CcspTraceInfo(("%s %d %s VLAN %s\n", __FUNCTION__,__LINE__, Enable? "Enabling":"Disabling",pVirtIf->VLAN.VLANInUse));
+    snprintf( acSetParamName, sizeof(acSetParamName), "%s.Enable", pVirtIf->VLAN.VLANInUse);
+    snprintf( acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", Enable? "true":"false" );
+
+    ret = WanMgr_RdkBus_SetParamValues( VLAN_COMPONENT_NAME, VLAN_DBUS_PATH, acSetParamName, acSetParamValue, ccsp_boolean, TRUE );
+    if(ret != ANSC_STATUS_SUCCESS)
+    {
+        CcspTraceError(("%s %d DM set %s %s failed\n", __FUNCTION__,__LINE__, acSetParamName, acSetParamValue));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    CcspTraceInfo(("%s %d DM set %s %s Successful\n", __FUNCTION__,__LINE__, acSetParamName, acSetParamValue));
+    return ANSC_STATUS_SUCCESS;
 }
 
-#if defined(WAN_MANAGER_UNIFICATION_ENABLED)
-ANSC_STATUS WanMgr_RdkBus_getWanGroupCount(int *wan_group_count)
+ANSC_STATUS WanManager_ConfigurePPPSession(DML_VIRTUAL_IFACE* pVirtIf, BOOL Enable)
 {
-    int result = ANSC_STATUS_SUCCESS;
-    int retPsmGet = CCSP_SUCCESS;
-    char param_value[BUFLEN_256] = {0};
-    char param_name[BUFLEN_256]= {0};
 
-    memset(param_name, 0, sizeof(param_name));
-    _ansc_sprintf(param_name, PSM_WANMANAGER_GROUPCOUNT);
-    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name, param_value, sizeof(param_value));
-    if (retPsmGet == CCSP_SUCCESS && param_value[0] != '\0') {
-        *wan_group_count = strtol(param_value, NULL, 10);
-    }
-    else {
-        result = ANSC_STATUS_FAILURE;
+    char acSetParamName[256] = {0};
+    char acSetParamValue[256] = {0};
+    ANSC_STATUS ret = ANSC_STATUS_FAILURE;
+
+    syscfg_set_commit(NULL, SYSCFG_WAN_INTERFACE_NAME, pVirtIf->Name);
+
+    //Set PPP Enable
+    CcspTraceInfo(("%s %d %s PPP %s\n", __FUNCTION__,__LINE__, Enable? "Enabling":"Disabling",pVirtIf->PPP.Interface));
+    snprintf( acSetParamName, DATAMODEL_PARAM_LENGTH, "%s.Enable", pVirtIf->PPP.Interface );
+    snprintf( acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", Enable? "true":"false" );
+    ret = WanMgr_RdkBus_SetParamValues( PPPMGR_COMPONENT_NAME, PPPMGR_DBUS_PATH, acSetParamName, acSetParamValue, ccsp_boolean, TRUE );
+
+    if(ret != ANSC_STATUS_SUCCESS)
+    {
+        CcspTraceError(("%s %d DM set %s %s failed\n", __FUNCTION__,__LINE__, acSetParamName, acSetParamValue));
+        return ANSC_STATUS_FAILURE;
     }
 
-    return result;
+    CcspTraceInfo(("%s %d DM set %s %s Successful\n", __FUNCTION__,__LINE__, acSetParamName, acSetParamValue));
+    return ANSC_STATUS_SUCCESS;
 }
 
-ANSC_STATUS WanMgr_RdkBus_getWanVirtualIfCount(int *wan_vif_count)
-{
-    int result = ANSC_STATUS_SUCCESS;
-    int retPsmGet = CCSP_SUCCESS;
-    char param_value[BUFLEN_256] = {0};
-    char param_name[BUFLEN_256]= {0};
-
-    memset(param_name, 0, sizeof(param_name));
-    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRTUALIFCOUNT, 1);
-    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name, param_value, sizeof(param_value));
-    if (retPsmGet == CCSP_SUCCESS && param_value[0] != '\0') {
-        *wan_vif_count = strtol(param_value, NULL, 10);
-    }
-    else {
-        result = ANSC_STATUS_FAILURE;
-    }
-
-    return result;
-}
-#endif /** WAN_MANAGER_UNIFICATION_ENABLED */

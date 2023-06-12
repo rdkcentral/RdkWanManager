@@ -2353,49 +2353,48 @@ dhcpv6c_dbg_thrd(void * in)
                         unsigned int prefix_pref_time = 0;
                         unsigned int prefix_valid_time = 0;
                         char c;
-                        WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceDataByName_locked(PHY_WAN_IF_NAME);
-                        if(pWanDmlIfaceData != NULL)
+                        DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_GetVirtualIfaceByName_locked(PHY_WAN_IF_NAME);
+                        if(p_VirtIf != NULL)
                         {
-                            DML_WAN_IFACE* pIfaceData = &(pWanDmlIfaceData->data);
-                            if(pIfaceData->IP.pIpcIpv6Data == NULL)
+                            if(p_VirtIf->IP.pIpcIpv6Data == NULL)
                             {
-                                pIfaceData->IP.pIpcIpv6Data = (ipc_dhcpv6_data_t*) malloc(sizeof(ipc_dhcpv6_data_t));
-                                if(pIfaceData->IP.pIpcIpv6Data != NULL)
+                                p_VirtIf->IP.pIpcIpv6Data = (ipc_dhcpv6_data_t*) malloc(sizeof(ipc_dhcpv6_data_t));
+                                if(p_VirtIf->IP.pIpcIpv6Data != NULL)
                                 {
-                                    strncpy(pIfaceData->IP.pIpcIpv6Data->ifname, pIfaceData->Wan.Name, sizeof(pIfaceData->IP.pIpcIpv6Data->ifname));
+                                    strncpy(p_VirtIf->IP.pIpcIpv6Data->ifname, p_VirtIf->Name, sizeof(p_VirtIf->IP.pIpcIpv6Data->ifname));
                                     if(strlen(v6pref) == 0)
                                     {
-                                        pIfaceData->IP.pIpcIpv6Data->isExpired = TRUE;
+                                        p_VirtIf->IP.pIpcIpv6Data->isExpired = TRUE;
                                     }
                                     else
                                     {
-                                        pIfaceData->IP.pIpcIpv6Data->isExpired = FALSE;
-                                        pIfaceData->IP.pIpcIpv6Data->prefixAssigned = TRUE;
-                                        strncpy(pIfaceData->IP.pIpcIpv6Data->sitePrefix, v6pref, sizeof(pIfaceData->IP.pIpcIpv6Data->sitePrefix));
-                                        strncpy(pIfaceData->IP.pIpcIpv6Data->pdIfAddress, "", sizeof(pIfaceData->IP.pIpcIpv6Data->pdIfAddress));
+                                        p_VirtIf->IP.pIpcIpv6Data->isExpired = FALSE;
+                                        p_VirtIf->IP.pIpcIpv6Data->prefixAssigned = TRUE;
+                                        strncpy(p_VirtIf->IP.pIpcIpv6Data->sitePrefix, v6pref, sizeof(p_VirtIf->IP.pIpcIpv6Data->sitePrefix));
+                                        strncpy(p_VirtIf->IP.pIpcIpv6Data->pdIfAddress, "", sizeof(p_VirtIf->IP.pIpcIpv6Data->pdIfAddress));
                                         /** DNS servers. **/
                                         sysevent_get(sysevent_fd, sysevent_token,SYSEVENT_FIELD_IPV6_DNS_SERVER, dns_server, sizeof(dns_server));
                                         if (strlen(dns_server) != 0)
                                         {
-                                            pIfaceData->IP.pIpcIpv6Data->dnsAssigned = TRUE;
-                                            sscanf (dns_server, "%s %s", pIfaceData->IP.pIpcIpv6Data->nameserver,
-                                                                         pIfaceData->IP.pIpcIpv6Data->nameserver1);
+                                            p_VirtIf->IP.pIpcIpv6Data->dnsAssigned = TRUE;
+                                            sscanf (dns_server, "%s %s", p_VirtIf->IP.pIpcIpv6Data->nameserver,
+                                                                         p_VirtIf->IP.pIpcIpv6Data->nameserver1);
                                         }
                                         sscanf(iapd_pretm, "%c%u%c", &c, &prefix_pref_time, &c);
                                         sscanf(iapd_vldtm, "%c%u%c", &c, &prefix_valid_time, &c);
-                                        pIfaceData->IP.pIpcIpv6Data->prefixPltime = prefix_pref_time;
-                                        pIfaceData->IP.pIpcIpv6Data->prefixVltime = prefix_valid_time;
-                                        pIfaceData->IP.pIpcIpv6Data->maptAssigned = FALSE;
-                                        pIfaceData->IP.pIpcIpv6Data->mapeAssigned = FALSE;
-                                        pIfaceData->IP.pIpcIpv6Data->prefixCmd = 0;
+                                        p_VirtIf->IP.pIpcIpv6Data->prefixPltime = prefix_pref_time;
+                                        p_VirtIf->IP.pIpcIpv6Data->prefixVltime = prefix_valid_time;
+                                        p_VirtIf->IP.pIpcIpv6Data->maptAssigned = FALSE;
+                                        p_VirtIf->IP.pIpcIpv6Data->mapeAssigned = FALSE;
+                                        p_VirtIf->IP.pIpcIpv6Data->prefixCmd = 0;
                                     }
-                                    if (wanmgr_handle_dhcpv6_event_data(pIfaceData) != ANSC_STATUS_SUCCESS)
+                                    if (wanmgr_handle_dhcpv6_event_data(p_VirtIf) != ANSC_STATUS_SUCCESS)
                                     {
                                         CcspTraceError(("[%s-%d] Failed to send dhcpv6 data to wanmanager!!! \n", __FUNCTION__, __LINE__));
                                     }
                                 }
                             }
-                            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+                            WanMgr_VirtualIfaceData_release(p_VirtIf);
                         }
 #endif
                         // not the best place to add route, just to make it work
@@ -2543,15 +2542,15 @@ static ANSC_STATUS wanmgr_dchpv6_get_ipc_msg_info(WANMGR_IPV6_DATA* pDhcpv6Data,
     return ANSC_STATUS_SUCCESS;
 }
 
-ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_WAN_IFACE* pIfaceData)
+ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
 {
-    if(NULL == pIfaceData)
+    if(NULL == pVirtIf)
     {
        return ANSC_STATUS_FAILURE;
     }
 
-    ipc_dhcpv6_data_t* pNewIpcMsg = pIfaceData->IP.pIpcIpv6Data;
-    WANMGR_IPV6_DATA* pDhcp6cInfoCur = &(pIfaceData->IP.Ipv6Data);
+    ipc_dhcpv6_data_t* pNewIpcMsg = pVirtIf->IP.pIpcIpv6Data;
+    WANMGR_IPV6_DATA* pDhcp6cInfoCur = &(pVirtIf->IP.Ipv6Data);
     if((NULL == pDhcp6cInfoCur) || (NULL == pNewIpcMsg))
     {
        return ANSC_STATUS_BAD_PARAMETER;
@@ -2578,15 +2577,15 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_WAN_IFACE* pIfaceData)
     {
         CcspTraceInfo(("DHCP6LeaseExpired\n"));
         // update current IPv6 data
-        wanmgr_dchpv6_get_ipc_msg_info(&(pIfaceData->IP.Ipv6Data), pNewIpcMsg);
-        WanManager_UpdateInterfaceStatus(pIfaceData, WANMGR_IFACE_CONNECTION_IPV6_DOWN);
+        wanmgr_dchpv6_get_ipc_msg_info(&(pVirtIf->IP.Ipv6Data), pNewIpcMsg);
+        WanManager_UpdateInterfaceStatus(pVirtIf, WANMGR_IFACE_CONNECTION_IPV6_DOWN);
 
         //Free buffer
-        if (pIfaceData->IP.pIpcIpv6Data != NULL )
+        if (pVirtIf->IP.pIpcIpv6Data != NULL )
         {
             //free memory
-            free(pIfaceData->IP.pIpcIpv6Data);
-            pIfaceData->IP.pIpcIpv6Data = NULL;
+            free(pVirtIf->IP.pIpcIpv6Data);
+            pVirtIf->IP.pIpcIpv6Data = NULL;
         }
 
         return ANSC_STATUS_SUCCESS;
@@ -2685,7 +2684,7 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_WAN_IFACE* pIfaceData)
                 syscfg_set_string(SYSCFG_FIELD_PREVIOUS_IPV6_PREFIX, "");
                 syscfg_set_string(SYSCFG_FIELD_IPV6_PREFIX_ADDRESS, "");
 #endif
-                WanManager_UpdateInterfaceStatus(pIfaceData, WANMGR_IFACE_CONNECTION_IPV6_DOWN);
+                WanManager_UpdateInterfaceStatus(pVirtIf, WANMGR_IFACE_CONNECTION_IPV6_DOWN);
             }
         }
     }
@@ -2713,7 +2712,7 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_WAN_IFACE* pIfaceData)
         uint32_t prefixLen = 0;
         ANSC_STATUS r2;
 
-        r2 = WanManager_getGloballyUniqueIfAddr6(pIfaceData->Wan.Name, guAddr, &prefixLen);
+        r2 = WanManager_getGloballyUniqueIfAddr6(pVirtIf->Name, guAddr, &prefixLen);
 
         if (ANSC_STATUS_SUCCESS == r2)
         {
@@ -2724,7 +2723,7 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_WAN_IFACE* pIfaceData)
             if (strcmp(pDhcp6cInfoCur->address, guAddrPrefix))
             {
 #if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
-                strncpy(pIfaceData->IP.Ipv6Data.address,guAddrPrefix, sizeof(pIfaceData->IP.Ipv6Data.address));
+                strncpy(pVirtIf->IP.Ipv6Data.address,guAddrPrefix, sizeof(pVirtIf->IP.Ipv6Data.address));
                 pNewIpcMsg->addrAssigned = true;
 #else
                 syscfg_set_string(SYSCFG_FIELD_IPV6_ADDRESS, guAddrPrefix);
@@ -2759,7 +2758,7 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_WAN_IFACE* pIfaceData)
                 strcmp(Ipv6DataTemp.sitePrefix, pDhcp6cInfoCur->sitePrefix))
         {
             CcspTraceInfo(("IPv6 configuration has been changed \n"));
-            pIfaceData->IP.Ipv6Changed = TRUE;
+            pVirtIf->IP.Ipv6Changed = TRUE;
         }
         else
         {
@@ -2772,12 +2771,12 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_WAN_IFACE* pIfaceData)
             }
             sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_RADVD_RESTART, NULL, 0);
 #ifdef FEATURE_IPOE_HEALTH_CHECK
-            pIfaceData->IP.Ipv6Renewed = TRUE;
+            pVirtIf->IP.Ipv6Renewed = TRUE;
 #endif
         }
         // update current IPv6 Data
-        memcpy(&(pIfaceData->IP.Ipv6Data), &(Ipv6DataTemp), sizeof(WANMGR_IPV6_DATA));
-        pIfaceData->IP.Ipv6Status = WAN_IFACE_IPV6_STATE_UP;
+        memcpy(&(pVirtIf->IP.Ipv6Data), &(Ipv6DataTemp), sizeof(WANMGR_IPV6_DATA));
+        pVirtIf->IP.Ipv6Status = WAN_IFACE_IPV6_STATE_UP;
     }
 
 #ifdef FEATURE_MAPT
@@ -2789,19 +2788,19 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_WAN_IFACE* pIfaceData)
         MaptInfo("--------- Got a new event in Wanmanager for MAPT_CONFIG ---------");
 #endif
         //get MAP-T previous data
-        memcpy(&dhcp6cMAPTMsgBodyPrvs, &(pIfaceData->MAP.dhcp6cMAPTparameters), sizeof(ipc_mapt_data_t));
+        memcpy(&dhcp6cMAPTMsgBodyPrvs, &(pVirtIf->MAP.dhcp6cMAPTparameters), sizeof(ipc_mapt_data_t));
 
         if (memcmp(&(pNewIpcMsg->mapt), &dhcp6cMAPTMsgBodyPrvs, sizeof(ipc_mapt_data_t)) != 0)
         {
-            pIfaceData->MAP.MaptChanged = TRUE;
+            pVirtIf->MAP.MaptChanged = TRUE;
             CcspTraceInfo(("MAPT configuration has been changed \n"));
         }
 
         // store MAP-T parameters locally
-        memcpy(&(pIfaceData->MAP.dhcp6cMAPTparameters), &(pNewIpcMsg->mapt), sizeof(ipc_mapt_data_t));
+        memcpy(&(pVirtIf->MAP.dhcp6cMAPTparameters), &(pNewIpcMsg->mapt), sizeof(ipc_mapt_data_t));
 
         // update MAP-T flags
-        WanManager_UpdateInterfaceStatus(pIfaceData, WANMGR_IFACE_MAPT_START);
+        WanManager_UpdateInterfaceStatus(pVirtIf, WANMGR_IFACE_MAPT_START);
     }
     else
     {
@@ -2809,71 +2808,38 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_WAN_IFACE* pIfaceData)
         MaptInfo("--------- Got an event in Wanmanager for MAPT_STOP ---------");
 #endif
         // reset MAP-T parameters
-        memset(&(pIfaceData->MAP.dhcp6cMAPTparameters), 0, sizeof(ipc_mapt_data_t));
-        WanManager_UpdateInterfaceStatus(pIfaceData, WANMGR_IFACE_MAPT_STOP);
+        memset(&(pVirtIf->MAP.dhcp6cMAPTparameters), 0, sizeof(ipc_mapt_data_t));
+        WanManager_UpdateInterfaceStatus(pVirtIf, WANMGR_IFACE_MAPT_STOP);
     }
 #endif // FEATURE_MAPT
 
     //Free buffer
-    if (pIfaceData->IP.pIpcIpv6Data != NULL )
+    if (pVirtIf->IP.pIpcIpv6Data != NULL )
     {
         //free memory
-        free(pIfaceData->IP.pIpcIpv6Data);
-        pIfaceData->IP.pIpcIpv6Data = NULL;
+        free(pVirtIf->IP.pIpcIpv6Data);
+        pVirtIf->IP.pIpcIpv6Data = NULL;
     }
 
     return ANSC_STATUS_SUCCESS;
 } /* End of ProcessDhcp6cStateChanged() */
 
-void* IPV6CPStateChangeHandler (void *arg)
+int setUpLanPrefixIPv6(DML_VIRTUAL_IFACE* pVirtIf)
 {
-    const char *dhcpcInterface = (char *) arg;
-    if(NULL == dhcpcInterface)
-    {
-        return (void *)ANSC_STATUS_FAILURE;
-    }
-
-    pthread_detach(pthread_self());
-    WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceDataByName_locked(dhcpcInterface);
-    if(pWanDmlIfaceData != NULL)
-    {
-        DML_WAN_IFACE* pIfaceData = &(pWanDmlIfaceData->data);
-        switch (pIfaceData->PPP.IPV6CPStatus)
-        {
-            case WAN_IFACE_IPV6CP_STATUS_UP:
-                pIfaceData->IP.Dhcp6cPid = WanManager_StartDhcpv6Client(dhcpcInterface);
-                CcspTraceInfo(("%s %d - Started dibbler-client on interface %s, pid %d \n", __FUNCTION__, __LINE__, dhcpcInterface, pIfaceData->IP.Dhcp6cPid));
-                break;
-            case WAN_IFACE_IPV6CP_STATUS_DOWN:
-                WanManager_StopDhcpv6Client(dhcpcInterface);
-                WanMgr_SetInterfaceStatus(dhcpcInterface, WANMGR_IFACE_CONNECTION_IPV6_DOWN);
-                break;
-        }
-
-        WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
-    }
-
-    free (arg);
-
-    return (void *)ANSC_STATUS_SUCCESS;
-}
-
-int setUpLanPrefixIPv6(DML_WAN_IFACE* pIfaceData)
-{
-    if (pIfaceData == NULL)
+    if (pVirtIf == NULL)
     {
         CcspTraceError(("%s %d - Invalid memory \n", __FUNCTION__, __LINE__));
         return RETURN_ERR;
     }
 
-    CcspTraceInfo(("%s %d Updating SYSEVENT_CURRENT_WAN_IFNAME %s\n", __FUNCTION__, __LINE__,pIfaceData->IP.Ipv6Data.ifname));
-    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_CURRENT_WAN_IFNAME, pIfaceData->IP.Ipv6Data.ifname, 0);
+    CcspTraceInfo(("%s %d Updating SYSEVENT_CURRENT_WAN_IFNAME %s\n", __FUNCTION__, __LINE__,pVirtIf->IP.Ipv6Data.ifname));
+    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_CURRENT_WAN_IFNAME, pVirtIf->IP.Ipv6Data.ifname, 0);
 
-    int index = strcspn(pIfaceData->IP.Ipv6Data.sitePrefix, "/");
-    if (index < strlen(pIfaceData->IP.Ipv6Data.sitePrefix))
+    int index = strcspn(pVirtIf->IP.Ipv6Data.sitePrefix, "/");
+    if (index < strlen(pVirtIf->IP.Ipv6Data.sitePrefix))
     {
         char lanPrefix[BUFLEN_48] = {0};
-        strncpy(lanPrefix, pIfaceData->IP.Ipv6Data.sitePrefix, index);
+        strncpy(lanPrefix, pVirtIf->IP.Ipv6Data.sitePrefix, index);
         if ((sizeof(lanPrefix) - index) > 3)
         {
             char previousPrefix[BUFLEN_48] = {0};
@@ -2896,7 +2862,7 @@ int setUpLanPrefixIPv6(DML_WAN_IFACE* pIfaceData)
                 sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_PREVIOUS_IPV6_PREFIXPLTIME, previousPrefix_prdtime, 0);
             }
             sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_PREFIX, lanPrefix, 0);
-            sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_TR_EROUTER_DHCPV6_CLIENT_PREFIX, pIfaceData->IP.Ipv6Data.sitePrefix, 0);
+            sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_TR_EROUTER_DHCPV6_CLIENT_PREFIX, pVirtIf->IP.Ipv6Data.sitePrefix, 0);
         }
     }
 #if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
@@ -2906,11 +2872,11 @@ int setUpLanPrefixIPv6(DML_WAN_IFACE* pIfaceData)
     char set_value[BUFLEN_64] = {0};
     char cmdLine[BUFLEN_256];
 
-    WanMgr_RdkBus_setWanIpInterfaceData(pIfaceData);
+    WanMgr_RdkBus_setWanIpInterfaceData(pVirtIf);
 
-    if (pIfaceData->IP.Ipv6Data.prefixPltime != 0 && pIfaceData->IP.Ipv6Data.prefixVltime != 0)
+    if (pVirtIf->IP.Ipv6Data.prefixPltime != 0 && pVirtIf->IP.Ipv6Data.prefixVltime != 0)
     {
-        ret = dhcpv6_assign_global_ip(pIfaceData->IP.Ipv6Data.sitePrefix, COSA_DML_DHCPV6_SERVER_IFNAME, globalIP);
+        ret = dhcpv6_assign_global_ip(pVirtIf->IP.Ipv6Data.sitePrefix, COSA_DML_DHCPV6_SERVER_IFNAME, globalIP);
         if(ret != 0) {
             CcspTraceInfo(("Assign global ip error \n"));
         }
@@ -2919,7 +2885,7 @@ int setUpLanPrefixIPv6(DML_WAN_IFACE* pIfaceData)
             CcspTraceInfo(("%s Going to set [%s] address on brlan0 interface \n", __FUNCTION__, globalIP));
             memset(cmdLine, 0, sizeof(cmdLine));
             snprintf(cmdLine, sizeof(cmdLine), "ip -6 addr add %s/64 dev %s valid_lft %d preferred_lft %d",
-                    globalIP, COSA_DML_DHCPV6_SERVER_IFNAME, pIfaceData->IP.Ipv6Data.prefixVltime, pIfaceData->IP.Ipv6Data.prefixPltime);
+                    globalIP, COSA_DML_DHCPV6_SERVER_IFNAME, pVirtIf->IP.Ipv6Data.prefixVltime, pVirtIf->IP.Ipv6Data.prefixPltime);
             if (WanManager_DoSystemActionWithStatus(__FUNCTION__, cmdLine) != 0)
                 CcspTraceError(("failed to run cmd: %s", cmdLine));
 
@@ -2936,14 +2902,14 @@ int setUpLanPrefixIPv6(DML_WAN_IFACE* pIfaceData)
         sysevent_set(sysevent_fd, sysevent_token, "lan_prefix_set", globalIP, 0);
 #endif
         memset(cmdLine, 0, sizeof(cmdLine));
-        snprintf(cmdLine, sizeof(cmdLine), "ip -6 route add %s dev %s", pIfaceData->IP.Ipv6Data.sitePrefix, COSA_DML_DHCPV6_SERVER_IFNAME);
+        snprintf(cmdLine, sizeof(cmdLine), "ip -6 route add %s dev %s", pVirtIf->IP.Ipv6Data.sitePrefix, COSA_DML_DHCPV6_SERVER_IFNAME);
         if (WanManager_DoSystemActionWithStatus(__FUNCTION__, cmdLine) != 0)
         {
             CcspTraceError(("failed to run cmd: %s", cmdLine));
         }
 #ifdef _COSA_INTEL_XB3_ARM_
         memset(cmdLine, 0, sizeof(cmdLine));
-        snprintf(cmdLine, sizeof(cmdLine), "ip -6 route add %s dev %s table erouter", pIfaceData->IP.Ipv6Data.sitePrefix, COSA_DML_DHCPV6_SERVER_IFNAME);
+        snprintf(cmdLine, sizeof(cmdLine), "ip -6 route add %s dev %s table erouter", pVirtIf->IP.Ipv6Data.sitePrefix, COSA_DML_DHCPV6_SERVER_IFNAME);
         if (WanManager_DoSystemActionWithStatus(__FUNCTION__, cmdLine) != 0)
         {
             CcspTraceError(("failed to run cmd: %s", cmdLine));
@@ -2997,7 +2963,7 @@ int setUpLanPrefixIPv6(DML_WAN_IFACE* pIfaceData)
 
             /*This is for brlan0 interface */
             sysevent_set(sysevent_fd, sysevent_token, "lan_ipaddr_v6", globalIP, 0);
-            sscanf (pIfaceData->IP.Ipv6Data.sitePrefix,"%*[^/]/%s" ,pref_len);
+            sscanf (pVirtIf->IP.Ipv6Data.sitePrefix,"%*[^/]/%s" ,pref_len);
             sysevent_set(sysevent_fd, sysevent_token, "lan_prefix_v6", pref_len, 0);
             CcspTraceWarning(("%s: setting lan-restart\n", __FUNCTION__));
             sysevent_set(sysevent_fd, sysevent_token, "lan-restart", "1", 0);
@@ -3017,12 +2983,12 @@ int setUpLanPrefixIPv6(DML_WAN_IFACE* pIfaceData)
     }
 
     /* Sysevent set moved from wanmgr_handle_dhcpv6_event_data */
-    if(pIfaceData->IP.Ipv6Data.addrAssigned )
+    if(pVirtIf->IP.Ipv6Data.addrAssigned )
     {
-        if (pIfaceData->IP.Ipv6Data.addrCmd == IFADDRCONF_ADD)
+        if (pVirtIf->IP.Ipv6Data.addrCmd == IFADDRCONF_ADD)
         {
             CcspTraceInfo(("assigned IPv6 address \n"));
-            syscfg_set_string(SYSCFG_FIELD_IPV6_ADDRESS, pIfaceData->IP.Ipv6Data.address);
+            syscfg_set_string(SYSCFG_FIELD_IPV6_ADDRESS, pVirtIf->IP.Ipv6Data.address);
         }
         else /* IFADDRCONF_REMOVE */
         {
@@ -3030,31 +2996,31 @@ int setUpLanPrefixIPv6(DML_WAN_IFACE* pIfaceData)
             syscfg_set_string(SYSCFG_FIELD_IPV6_ADDRESS, "");
         }
     }
-    if (pIfaceData->IP.Ipv6Data.prefixAssigned && !IS_EMPTY_STRING(pIfaceData->IP.Ipv6Data.sitePrefix))
+    if (pVirtIf->IP.Ipv6Data.prefixAssigned && !IS_EMPTY_STRING(pVirtIf->IP.Ipv6Data.sitePrefix))
     {
-        if (pIfaceData->IP.Ipv6Data.prefixCmd == IFADDRCONF_ADD &&
-                pIfaceData->IP.Ipv6Data.prefixPltime != 0 && pIfaceData->IP.Ipv6Data.prefixVltime != 0)
+        if (pVirtIf->IP.Ipv6Data.prefixCmd == IFADDRCONF_ADD &&
+                pVirtIf->IP.Ipv6Data.prefixPltime != 0 && pVirtIf->IP.Ipv6Data.prefixVltime != 0)
         {
-            CcspTraceInfo(("assigned prefix=%s \n", pIfaceData->IP.Ipv6Data.sitePrefix));
-            snprintf(set_value, sizeof(set_value), "%d", pIfaceData->IP.Ipv6Data.prefixVltime);
+            CcspTraceInfo(("assigned prefix=%s \n", pVirtIf->IP.Ipv6Data.sitePrefix));
+            snprintf(set_value, sizeof(set_value), "%d", pVirtIf->IP.Ipv6Data.prefixVltime);
             sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_PREFIXVLTIME, set_value, 0);
-            snprintf(set_value, sizeof(set_value), "%d", pIfaceData->IP.Ipv6Data.prefixPltime);
+            snprintf(set_value, sizeof(set_value), "%d", pVirtIf->IP.Ipv6Data.prefixPltime);
             sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_PREFIXPLTIME, set_value, 0);
-            syscfg_set_string(SYSCFG_FIELD_PREVIOUS_IPV6_PREFIX, pIfaceData->IP.Ipv6Data.sitePrefixOld);
-            syscfg_set_string(SYSCFG_FIELD_IPV6_PREFIX, pIfaceData->IP.Ipv6Data.sitePrefix);
+            syscfg_set_string(SYSCFG_FIELD_PREVIOUS_IPV6_PREFIX, pVirtIf->IP.Ipv6Data.sitePrefixOld);
+            syscfg_set_string(SYSCFG_FIELD_IPV6_PREFIX, pVirtIf->IP.Ipv6Data.sitePrefix);
             // create global IPv6 address (<prefix>::1)
             char prefix[BUFLEN_64] = {0};
             memset(prefix, 0, sizeof(prefix));
 
-            int index = strcspn(pIfaceData->IP.Ipv6Data.sitePrefix, "/");
-            if (index < strlen(pIfaceData->IP.Ipv6Data.sitePrefix) && index < sizeof(prefix))
+            int index = strcspn(pVirtIf->IP.Ipv6Data.sitePrefix, "/");
+            if (index < strlen(pVirtIf->IP.Ipv6Data.sitePrefix) && index < sizeof(prefix))
             {
-                strncpy(prefix, pIfaceData->IP.Ipv6Data.sitePrefix, index);                                            // only copy prefix without the prefix length
+                strncpy(prefix, pVirtIf->IP.Ipv6Data.sitePrefix, index);                                            // only copy prefix without the prefix length
                 snprintf(set_value, sizeof(set_value), "%s1", prefix);                                        // concatenate "1" onto the prefix, which is in the form "xxxx:xxxx:xxxx:xxxx::"
-                snprintf(pIfaceData->IP.Ipv6Data.pdIfAddress, sizeof(pIfaceData->IP.Ipv6Data.pdIfAddress), "%s/64", set_value); // concatenate prefix address with length "/64"
-                syscfg_set_string(SYSCFG_FIELD_IPV6_PREFIX_ADDRESS, pIfaceData->IP.Ipv6Data.pdIfAddress);
+                snprintf(pVirtIf->IP.Ipv6Data.pdIfAddress, sizeof(pVirtIf->IP.Ipv6Data.pdIfAddress), "%s/64", set_value); // concatenate prefix address with length "/64"
+                syscfg_set_string(SYSCFG_FIELD_IPV6_PREFIX_ADDRESS, pVirtIf->IP.Ipv6Data.pdIfAddress);
                 sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_TR_BRLAN0_DHCPV6_SERVER_ADDRESS, set_value, 0);
-                CcspTraceInfo(("%s %d new prefix = %s\n", __FUNCTION__, __LINE__, pIfaceData->IP.Ipv6Data.sitePrefix));
+                CcspTraceInfo(("%s %d new prefix = %s\n", __FUNCTION__, __LINE__, pVirtIf->IP.Ipv6Data.sitePrefix));
                 strncat(prefix, "/64",sizeof(prefix)-1);
                 sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_PREFIX, prefix, 0);
             }
@@ -3068,11 +3034,11 @@ int setUpLanPrefixIPv6(DML_WAN_IFACE* pIfaceData)
     }
 
     /* dhcp6c receives domain name information */
-    if (pIfaceData->IP.Ipv6Data.domainNameAssigned && !IS_EMPTY_STRING(pIfaceData->IP.Ipv6Data.domainName))
+    if (pVirtIf->IP.Ipv6Data.domainNameAssigned && !IS_EMPTY_STRING(pVirtIf->IP.Ipv6Data.domainName))
     {
-        CcspTraceInfo(("assigned domain name=%s \n", pIfaceData->IP.Ipv6Data.domainName));
+        CcspTraceInfo(("assigned domain name=%s \n", pVirtIf->IP.Ipv6Data.domainName));
 
-        sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_DOMAIN, pIfaceData->IP.Ipv6Data.domainName, 0);
+        sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_DOMAIN, pVirtIf->IP.Ipv6Data.domainName, 0);
     }
     /* Sysevent set moved from wanmgr_handle_dhcpv6_event_data end */
 

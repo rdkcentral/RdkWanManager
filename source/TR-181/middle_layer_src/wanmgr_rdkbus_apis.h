@@ -35,13 +35,7 @@
 #define PPP_INTERFACE_TABLE          "Device.PPP.Interface."
 #define PPP_INTERFACE_INSTANCE       "Device.PPP.Interface.%d."
 #define PPP_INTERFACE_ENABLE         "Device.PPP.Interface.%d.Enable"
-#define PPP_INTERFACE_ALIAS          "Device.PPP.Interface.%d.Alias"
 #define PPP_INTERFACE_LOWERLAYERS    "Device.PPP.Interface.%d.LowerLayers"
-#define PPP_INTERFACE_USERNAME       "Device.PPP.Interface.%d.Username"
-#define PPP_INTERFACE_PASSWORD       "Device.PPP.Interface.%d.Password"
-#define PPP_INTERFACE_IPCP_ENABLE    "Device.PPP.Interface.%d.IPCPEnable"
-#define PPP_INTERFACE_IPV6CP_ENABLE  "Device.PPP.Interface.%d.IPv6CPEnable"
-#define PPP_INTERFACE_LINKTYPE       "Device.PPP.Interface.%d.X_RDK_LinkType"
 #define PPP_IPCP_LOCAL_IPADDRESS     "Device.PPP.Interface.%d.IPCP.LocalIPAddress"
 #define PPP_IPCP_REMOTEIPADDRESS     "Device.PPP.Interface.%d.IPCP.RemoteIPAddress"
 #define PPP_IPCP_DNS_SERVERS         "Device.PPP.Interface.%d.IPCP.DNSServers"
@@ -49,7 +43,7 @@
 
 #if defined(WAN_MANAGER_UNIFICATION_ENABLED)
 #define MARKING_TABLE             "Device.X_RDK_WanManager.Interface.%d.Marking."
-#define WANMGR_IFACE_WAN_STATUS   "Device.X_RDK_WanManager.Interface.%d.VirtualInterface.1.Status"
+#define WANMGR_IFACE_WAN_STATUS   "Device.X_RDK_WanManager.Interface.%d.VirtualInterface.%d.Status"
 #else
 #define MARKING_TABLE             "Device.X_RDK_WanManager.CPEInterface.%d.Marking."
 #define WANMGR_IFACE_WAN_STATUS   "Device.X_RDK_WanManager.CPEInterface.%d.Wan.Status"
@@ -65,17 +59,26 @@ struct IFACE_INFO
     struct IFACE_INFO *next;
 };
 
-ANSC_STATUS WanMgr_WanConfigInit(void);
 ANSC_STATUS DmlSetWanIfCfg( INT LineIndex, DML_WAN_IFACE* pstLineInfo );
 ANSC_STATUS DmlAddMarking(ANSC_HANDLE hContext,DML_MARKING* pMarking);
 ANSC_STATUS DmlDeleteMarking(ANSC_HANDLE hContext, DML_MARKING* pMarking);
 ANSC_STATUS DmlSetMarking(ANSC_HANDLE hContext, DML_MARKING*   pMarking);
-ANSC_STATUS WanMgr_WanIfaceConfInit(WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl);
 ANSC_STATUS WanMgr_WanIfaceMarkingInit ();
 
-ANSC_STATUS WanMgr_Publish_WanStatus(UINT IfaceIndex);
+ANSC_STATUS WanMgr_Publish_WanStatus(UINT IfaceIndex, UINT VirId);
 ANSC_STATUS DmlSetWanActiveLinkInPSMDB( UINT uiInterfaceIdx, bool flag );
 ANSC_STATUS WanController_ClearWanConfigurationsInPSM();
 ANSC_STATUS Update_Interface_Status();
 void WanMgr_getRemoteWanIfName(char *IfaceName,int Size);
+int get_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFACE* p_Interface);
+int write_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFACE* p_Interface);
+int get_Virtual_Interface_FromPSM(ULONG instancenum, ULONG virtInsNum ,DML_VIRTUAL_IFACE * pVirtIf);
+int write_Virtual_Interface_ToPSM(ULONG instancenum, ULONG virtInsNum ,DML_VIRTUAL_IFACE * pVirtIf);
+int write_VirtMarking_ParametersToPSM(DML_VIRTIF_MARKING* p_Marking);
+int write_VlanInterface_ParametersToPSM(DML_VLAN_IFACE_TABLE *pVlanInterface);
+ANSC_STATUS WanMgr_WanConfInit (DML_WANMGR_CONFIG* pWanConfig);
+
+ANSC_STATUS DmlGetTotalNoOfGroups(int *wan_if_count);
+ANSC_STATUS WanMgr_RdkBus_setWanPolicy(DML_WAN_POLICY wan_policy, UINT groupId);
+ANSC_STATUS WanMgr_RdkBus_getWanPolicy(DML_WAN_POLICY *wan_policy, UINT groupId);
 #endif /* _WANMGR_RDKBUS_APIS_H_ */

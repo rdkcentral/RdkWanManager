@@ -213,7 +213,7 @@
                         </parameter>
                         <parameter>
                             <name>Status</name>
-                            <type>string: Down(1),Up(2)</type>
+                            <type>string: Not Used(0),Not Used(1),Not Used(2),Standby(3),Active(4)</type>
                             <syntax>uint32/mapped</syntax>
                             <writable>false</writable>
                         </parameter>
@@ -377,7 +377,7 @@
 <?ifndef RBUS_BUILD_FLAG_ENABLE?>
                                 <parameter>
                                     <name>Status</name>
-                                    <type>string: Disabled(1),Initialising(2),Validating(3),Up(4),Invalid(5),Standby(6)</type>
+                                    <type>string: Disabled(1),Initialising(2),Validating(3),Up(4),Invalid(5),Up(6)</type>
                                     <syntax>uint32/mapped</syntax>
                                     <writable>false</writable>
                                 </parameter>
@@ -437,7 +437,7 @@
                                     <parameters>
                                         <parameter>
                                             <name>Mode</name>
-                                            <type>string: No IP(1),IPv4 Only(2),IPv6 Only(3),Dual Stack(4)</type>
+                                            <type>string:IPv4 Only(1),IPv6 Only(2),Dual Stack(3),No IP(4)</type>
                                             <syntax>uint32/mapped</syntax>
                                             <writable>true</writable>
                                         </parameter>
@@ -508,7 +508,7 @@
                                         </parameter>
                                         <parameter>
                                             <name>Status</name>
-                                            <type>string: Down(1),Up(2)</type>
+                                            <type>string: Down(1),Configuring(2),Up(3)</type>
                                             <syntax>uint32/mapped</syntax>
                                             <writable>true</writable>
                                         </parameter>

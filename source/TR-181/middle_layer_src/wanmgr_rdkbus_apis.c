@@ -56,52 +56,53 @@ extern WANMGR_DATA_ST gWanMgrDataBase;
 extern char g_Subsystem[32];
 extern ANSC_HANDLE bus_handle;
 
-static int get_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFACE* p_Interface)
+int get_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFACE* p_Interface)
 {
     int retPsmGet = CCSP_SUCCESS;
     char param_value[256];
     char param_name[512];
+    CcspTraceInfo(("%s %d Update Wan Virtual iface Conf from PSM \n", __FUNCTION__, __LINE__));
 
     p_Interface->uiInstanceNumber = instancenum;
 
     _ansc_memset(param_name, 0, sizeof(param_name));
     _ansc_memset(param_value, 0, sizeof(param_value));
-    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_ENABLE, instancenum);
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_SELECTION_ENABLE, instancenum);
     retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
     if (retPsmGet == CCSP_SUCCESS)
     {
         if(strcmp(param_value, PSM_ENABLE_STRING_TRUE) == 0)
         {
-             p_Interface->Wan.Enable = TRUE;
+             p_Interface->Selection.Enable = TRUE;
         }
         else
         {
-             p_Interface->Wan.Enable = FALSE;
+             p_Interface->Selection.Enable = FALSE;
         }
     }
     else
     {
-        p_Interface->Wan.Enable = FALSE;
+        p_Interface->Selection.Enable = FALSE;
     }
 
     _ansc_memset(param_name, 0, sizeof(param_name));
     _ansc_memset(param_value, 0, sizeof(param_value));
-    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_ACTIVELINK, instancenum);
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_SELECTION_ACTIVELINK, instancenum);
     retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
     if (retPsmGet == CCSP_SUCCESS)
     {
         if(strcmp(param_value, PSM_ENABLE_STRING_TRUE) == 0)
         {
-             p_Interface->Wan.ActiveLink = TRUE;
+             p_Interface->Selection.ActiveLink = TRUE;
         }
         else
         {
-             p_Interface->Wan.ActiveLink = FALSE;
+             p_Interface->Selection.ActiveLink = FALSE;
         }
     }
     else
     {
-        p_Interface->Wan.ActiveLink = FALSE;
+        p_Interface->Selection.ActiveLink = FALSE;
     }
 
     _ansc_memset(param_name, 0, sizeof(param_name));
@@ -111,7 +112,6 @@ static int get_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFACE*
     if (retPsmGet == CCSP_SUCCESS)
     {
         AnscCopyString(p_Interface->Name, param_value);
-        AnscCopyString(p_Interface->Wan.Name, param_value);
     }
 
     _ansc_memset(param_name, 0, sizeof(param_name));
@@ -125,7 +125,7 @@ static int get_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFACE*
 
     _ansc_memset(param_name, 0, sizeof(param_name));
     _ansc_memset(param_value, 0, sizeof(param_value));
-    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_ALIAS_NAME, instancenum);
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_ALIAS, instancenum);
     retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
     if (retPsmGet == CCSP_SUCCESS)
     {
@@ -134,233 +134,221 @@ static int get_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFACE*
 
     _ansc_memset(param_name, 0, sizeof(param_name));
     _ansc_memset(param_value, 0, sizeof(param_value));
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_BASEINTERFACE, instancenum);
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
+    if (retPsmGet == CCSP_SUCCESS)
+    {
+        AnscCopyString(p_Interface->BaseInterface, param_value);
+    }
+
+    _ansc_memset(param_name, 0, sizeof(param_name));
+    _ansc_memset(param_value, 0, sizeof(param_value));
     _ansc_sprintf(param_name, PSM_WANMANAGER_IF_TYPE, instancenum);
     retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
     if (retPsmGet == CCSP_SUCCESS)
     {
-        _ansc_sscanf(param_value, "%d", &(p_Interface->Wan.Type));
+        _ansc_sscanf(param_value, "%d", &(p_Interface->Type));
     }
 
     _ansc_memset(param_name, 0, sizeof(param_name));
     _ansc_memset(param_value, 0, sizeof(param_value));
-    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_PRIORITY, instancenum);
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_SELECTION_PRIORITY, instancenum);
     retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
     if (retPsmGet == CCSP_SUCCESS)
     {
-        _ansc_sscanf(param_value, "%d", &(p_Interface->Wan.Priority));
+        _ansc_sscanf(param_value, "%d", &(p_Interface->Selection.Priority));
     }
 
     _ansc_memset(param_name, 0, sizeof(param_name));
     _ansc_memset(param_value, 0, sizeof(param_value));
-    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_SELECTIONTIMEOUT, instancenum);
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_SELECTION_TIMEOUT, instancenum);
     retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
     if (retPsmGet == CCSP_SUCCESS)
     {
-        _ansc_sscanf(param_value, "%d", &(p_Interface->Wan.SelectionTimeout));
+        _ansc_sscanf(param_value, "%d", &(p_Interface->Selection.Timeout));
     }
-    if (p_Interface->Wan.SelectionTimeout < SELECTION_TIMEOUT_DEFAULT_MIN)
+    if (p_Interface->Selection.Timeout < SELECTION_TIMEOUT_DEFAULT_MIN)
     {
-        p_Interface->Wan.SelectionTimeout = SELECTION_TIMEOUT_DEFAULT_MIN;
+        p_Interface->Selection.Timeout = SELECTION_TIMEOUT_DEFAULT_MIN;
     }
 
     _ansc_memset(param_name, 0, sizeof(param_name));
     _ansc_memset(param_value, 0, sizeof(param_value));
-    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_GROUP, instancenum);
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_SELECTION_GROUP, instancenum);
     retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
     if (retPsmGet == CCSP_SUCCESS)
     {
-        _ansc_sscanf(param_value, "%d", &(p_Interface->Wan.Group));
+        _ansc_sscanf(param_value, "%d", &(p_Interface->Selection.Group));
     }
+
 
     _ansc_memset(param_name, 0, sizeof(param_name));
     _ansc_memset(param_value, 0, sizeof(param_value));
-#if defined(WAN_MANAGER_UNIFICATION_ENABLED)
-     //Needs to remove this hardcoded value when we adapt updated data structure
-    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_ENABLE_MAPT, instancenum, 1);
-#else
-    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_ENABLE_MAPT, instancenum);
-#endif /** WAN_MANAGER_UNIFICATION_ENABLED */
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_SELECTION_REQUIRES_REBOOT, instancenum);
     retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
     if (retPsmGet == CCSP_SUCCESS)
     {
         if(strcmp(param_value, PSM_ENABLE_STRING_TRUE) == 0)
         {
-             p_Interface->Wan.EnableMAPT = TRUE;
+             p_Interface->Selection.RequiresReboot = TRUE;
         }
         else
         {
-             p_Interface->Wan.EnableMAPT = FALSE;
+             p_Interface->Selection.RequiresReboot = FALSE;
         }
     }
     else
     {
-        p_Interface->Wan.EnableMAPT = FALSE;
-    }
-
-    // Device.X_RDK_WanManager.CPEInterface.%d.Wan.EnableDHCP
-    _ansc_memset(param_name, 0, sizeof(param_name));
-    _ansc_memset(param_value, 0, sizeof(param_value));
-    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_ENABLE_DHCP, instancenum);
-    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
-    if (retPsmGet == CCSP_SUCCESS)
-    {
-        if(strcmp(param_value, PSM_ENABLE_STRING_FALSE) == 0)
-        {
-             p_Interface->Wan.EnableDHCP = FALSE;
-        }
+        p_Interface->Selection.RequiresReboot = FALSE;
     }
 
     _ansc_memset(param_name, 0, sizeof(param_name));
     _ansc_memset(param_value, 0, sizeof(param_value));
-#if defined(WAN_MANAGER_UNIFICATION_ENABLED)
-     //Needs to remove this hardcoded value when we adapt updated data structure
-    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_ENABLE_DSLITE, instancenum, 1);
-#else
-    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_ENABLE_DSLITE, instancenum);
-#endif /** WAN_MANAGER_UNIFICATION_ENABLED */
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_COUNT, instancenum);
     retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
     if (retPsmGet == CCSP_SUCCESS)
     {
-        if(strcmp(param_value, PSM_ENABLE_STRING_TRUE) == 0)
-        {
-             p_Interface->Wan.EnableDSLite = TRUE;
-        }
-        else
-        {
-             p_Interface->Wan.EnableDSLite = FALSE;
-        }
-    }
-    else
-    {
-        p_Interface->Wan.EnableDSLite = FALSE;
-    }
-
-    _ansc_memset(param_name, 0, sizeof(param_name));
-    _ansc_memset(param_value, 0, sizeof(param_value));
-#if defined(WAN_MANAGER_UNIFICATION_ENABLED)
-     //Needs to remove this hardcoded value when we adapt updated data structure
-    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_ENABLE_IPOE, instancenum, 1);
-#else
-    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_ENABLE_IPOE, instancenum);
-#endif /** WAN_MANAGER_UNIFICATION_ENABLED */
-    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
-    if (retPsmGet == CCSP_SUCCESS)
-    {
-        if(strcmp(param_value, PSM_ENABLE_STRING_TRUE) == 0)
-        {
-             p_Interface->Wan.EnableIPoE = TRUE;
-        }
-        else
-        {
-             p_Interface->Wan.EnableIPoE = FALSE;
-        }
-    }
-    else
-    {
-        p_Interface->Wan.EnableIPoE = FALSE;
-    }
-
-    _ansc_memset(param_name, 0, sizeof(param_name));
-    _ansc_memset(param_value, 0, sizeof(param_value));
-    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_REBOOTONCONFIGURATION, instancenum);
-    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
-    if (retPsmGet == CCSP_SUCCESS)
-    {
-        if(strcmp(param_value, PSM_ENABLE_STRING_TRUE) == 0)
-        {
-             p_Interface->Wan.RebootOnConfiguration = TRUE;
-        }
-        else
-        {
-             p_Interface->Wan.RebootOnConfiguration = FALSE;
-        }
-    }
-    else
-    {
-        p_Interface->Wan.RebootOnConfiguration = FALSE;
-    }
-
-    _ansc_memset(param_name, 0, sizeof(param_name));
-    _ansc_memset(param_value, 0, sizeof(param_value));
-    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_PPP_ENABLE, instancenum);
-    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
-    if (retPsmGet == CCSP_SUCCESS)
-    {
-        if(strcmp(param_value, PSM_ENABLE_STRING_TRUE) == 0)
-        {
-             p_Interface->PPP.Enable = TRUE;
-        }
-        else
-        {
-             p_Interface->PPP.Enable = FALSE;
-        }
-    }
-    else
-    {
-        p_Interface->PPP.Enable = FALSE;
-    }
-
-    _ansc_memset(param_name, 0, sizeof(param_name));
-    _ansc_memset(param_value, 0, sizeof(param_value));
-    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_PPP_IPCP_ENABLE, instancenum);
-    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
-    if (retPsmGet == CCSP_SUCCESS)
-    {
-        if(strcmp(param_value, PSM_ENABLE_STRING_TRUE) == 0)
-        {
-             p_Interface->PPP.IPCPEnable = TRUE;
-        }
-        else
-        {
-             p_Interface->PPP.IPCPEnable = FALSE;
-        }
-    }
-    else
-    {
-        p_Interface->PPP.IPCPEnable = FALSE;
-    }
-
-    _ansc_memset(param_name, 0, sizeof(param_name));
-    _ansc_memset(param_value, 0, sizeof(param_value));
-    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_PPP_IPV6CP_ENABLE, instancenum);
-    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
-    if (retPsmGet == CCSP_SUCCESS)
-    {
-        if(strcmp(param_value, PSM_ENABLE_STRING_TRUE) == 0)
-        {
-             p_Interface->PPP.IPV6CPEnable = TRUE;
-        }
-        else
-        {
-             p_Interface->PPP.IPV6CPEnable = FALSE;
-        }
-    }
-    else
-    {
-        p_Interface->PPP.IPV6CPEnable = FALSE;
-    }
-
-    _ansc_memset(param_name, 0, sizeof(param_name));
-    _ansc_memset(param_value, 0, sizeof(param_value));
-    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_PPP_LINKTYPE, instancenum);
-    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
-    if (retPsmGet == CCSP_SUCCESS)
-    {
-        if(strcmp(param_value, PPP_LINKTYPE_PPPOA) == 0)
-        {
-             p_Interface->PPP.LinkType = WAN_IFACE_PPP_LINK_TYPE_PPPoA;
-        }
-        else if(strcmp(param_value, PPP_LINKTYPE_PPPOE) == 0)
-        {
-             p_Interface->PPP.LinkType = WAN_IFACE_PPP_LINK_TYPE_PPPoE;
-        }
-    }
-    else
-    {
-        p_Interface->PPP.LinkType = WAN_IFACE_PPP_LINK_TYPE_PPPoA;
+        _ansc_sscanf(param_value, "%d", &(p_Interface->NoOfVirtIfs));
     }
 
     return ANSC_STATUS_SUCCESS;
+}
+
+int get_Virtual_Interface_FromPSM(ULONG instancenum, ULONG virtInsNum ,DML_VIRTUAL_IFACE * pVirtIf)
+{
+    int retPsmGet = CCSP_SUCCESS;
+    char param_value[256];
+    char param_name[512];
+    CcspTraceInfo(("%s %d Update Wan Virtual iface Conf from PSM \n", __FUNCTION__, __LINE__));
+
+    pVirtIf->VirIfIdx = virtInsNum;
+
+    _ansc_memset(param_name, 0, sizeof(param_name));
+    _ansc_memset(param_value, 0, sizeof(param_value));
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_ENABLE_MAPT, instancenum, (virtInsNum + 1));
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
+
+    if(strcmp(param_value, PSM_ENABLE_STRING_TRUE) == 0)
+    {
+        pVirtIf->EnableMAPT = TRUE;
+    }
+
+    _ansc_memset(param_name, 0, sizeof(param_name));
+    _ansc_memset(param_value, 0, sizeof(param_value));
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_ENABLE_DSLITE, instancenum, (virtInsNum + 1));
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
+
+    if(strcmp(param_value, PSM_ENABLE_STRING_TRUE) == 0)
+    {
+        pVirtIf->EnableDSLite = TRUE;
+    }
+
+    _ansc_memset(param_name, 0, sizeof(param_name));
+    _ansc_memset(param_value, 0, sizeof(param_value));
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_ENABLE_IPOE, instancenum, (virtInsNum + 1));
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
+
+    if(strcmp(param_value, PSM_ENABLE_STRING_TRUE) == 0)
+    {
+        pVirtIf->EnableIPoE = TRUE;
+    }
+
+    _ansc_memset(param_name, 0, sizeof(param_name));
+    _ansc_memset(param_value, 0, sizeof(param_value));
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_ENABLE, instancenum, (virtInsNum + 1));
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
+
+    if(strcmp(param_value, PSM_ENABLE_STRING_TRUE) == 0)
+    {
+        pVirtIf->Enable = TRUE;
+    }
+
+#if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE) /* TODO: This is a workaround for the platforms using same Wan Name.*/
+    _ansc_memset(param_name, 0, sizeof(param_name));
+    _ansc_memset(param_value, 0, sizeof(param_value));
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_NAME, instancenum, (virtInsNum + 1));
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
+    AnscCopyString(pVirtIf->Name, param_value);
+#endif
+
+    _ansc_memset(param_name, 0, sizeof(param_name));
+    _ansc_memset(param_value, 0, sizeof(param_value));
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_ALIAS, instancenum, (virtInsNum + 1));
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
+    AnscCopyString(pVirtIf->Alias, param_value);
+
+    _ansc_memset(param_name, 0, sizeof(param_name));
+    _ansc_memset(param_value, 0, sizeof(param_value));
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_PPP_INTERFACE, instancenum, (virtInsNum + 1));
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
+    AnscCopyString(pVirtIf->PPP.Interface, param_value);
+    if(!strncmp(pVirtIf->PPP.Interface, PPP_INTERFACE_TABLE, strlen(PPP_INTERFACE_TABLE)))
+    {
+        CcspTraceInfo(("%s %d Valid PPP interface is configured. Use PPP\n", __FUNCTION__, __LINE__));
+        pVirtIf->PPP.Enable = TRUE;
+    }
+
+    _ansc_memset(param_name, 0, sizeof(param_name));
+    _ansc_memset(param_value, 0, sizeof(param_value));
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_VLAN_INTERFACE_COUNT, instancenum, (virtInsNum + 1));
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
+    _ansc_sscanf(param_value, "%d", &(pVirtIf->VLAN.NoOfInterfaceEntries));
+
+    _ansc_memset(param_name, 0, sizeof(param_name));
+    _ansc_memset(param_value, 0, sizeof(param_value));
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_VLAN_TIMEOUT, instancenum, (virtInsNum + 1));
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
+    _ansc_sscanf(param_value, "%d", &(pVirtIf->VLAN.Timeout));
+
+    _ansc_memset(param_name, 0, sizeof(param_name));
+    _ansc_memset(param_value, 0, sizeof(param_value));
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_VLAN_INUSE, instancenum, (virtInsNum + 1));
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
+    AnscCopyString(pVirtIf->VLAN.VLANInUse, param_value);
+    if(!strncmp(pVirtIf->VLAN.VLANInUse, VLAN_TERMINATION_TABLE, strlen(VLAN_TERMINATION_TABLE)) || pVirtIf->VLAN.NoOfInterfaceEntries > 0)
+    {
+        CcspTraceInfo(("%s %d Valid VLAN interface is configured. Use VLAN\n", __FUNCTION__, __LINE__));
+        pVirtIf->VLAN.Enable = TRUE;
+    }
+
+    _ansc_memset(param_name, 0, sizeof(param_name));
+    _ansc_memset(param_value, 0, sizeof(param_value));
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_VLAN_MARKING_COUNT, instancenum, (virtInsNum + 1));
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
+    _ansc_sscanf(param_value, "%d", &(pVirtIf->VLAN.NoOfMarkingEntries));
+
+    _ansc_memset(param_name, 0, sizeof(param_name));
+    _ansc_memset(param_value, 0, sizeof(param_value));
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_IP_INTERFACE, instancenum, (virtInsNum + 1));
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
+    AnscCopyString(pVirtIf->IP.Interface, param_value);
+
+    _ansc_memset(param_name, 0, sizeof(param_name));
+    _ansc_memset(param_value, 0, sizeof(param_value));
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_IP_MODE, instancenum, (virtInsNum + 1));
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
+    if (retPsmGet == CCSP_SUCCESS)
+    {
+        _ansc_sscanf(param_value, "%d", &(pVirtIf->IP.Mode));
+    }
+
+    _ansc_memset(param_name, 0, sizeof(param_name));
+    _ansc_memset(param_value, 0, sizeof(param_value));
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_IP_V4SOURCE, instancenum, (virtInsNum + 1));
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
+    if(retPsmGet == CCSP_SUCCESS)
+    {
+        _ansc_sscanf(param_value, "%d", &(pVirtIf->IP.IPv4Source));
+    }
+
+    _ansc_memset(param_name, 0, sizeof(param_name));
+    _ansc_memset(param_value, 0, sizeof(param_value));
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_IP_V6SOURCE, instancenum, (virtInsNum + 1));
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
+    if(retPsmGet == CCSP_SUCCESS)
+    {
+        _ansc_sscanf(param_value, "%d", &(pVirtIf->IP.IPv6Source));
+    }
 }
 
 void WanMgr_getRemoteWanIfName(char *IfaceName,int Size)
@@ -384,16 +372,17 @@ void WanMgr_getRemoteWanIfName(char *IfaceName,int Size)
     return;
 }
 
-static int write_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFACE* p_Interface)
+int write_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFACE* p_Interface)
 {
     int retPsmSet = CCSP_SUCCESS;
     char param_name[256] = {0};
     char param_value[256] = {0};
 
+    CcspTraceInfo(("%s %d Entered\n", __FUNCTION__, __LINE__));
     memset(param_value, 0, sizeof(param_value));
     memset(param_name, 0, sizeof(param_name));
 
-    if(p_Interface->Wan.Enable)
+    if(p_Interface->Selection.Enable)
     {
         _ansc_sprintf(param_value, "TRUE");
     }
@@ -401,84 +390,30 @@ static int write_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFAC
     {
         _ansc_sprintf(param_value, "FALSE");
     }
-    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_ENABLE, instancenum);
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_SELECTION_ENABLE, instancenum);
     WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
 
     memset(param_value, 0, sizeof(param_value));
     memset(param_name, 0, sizeof(param_name));
-    _ansc_sprintf(param_value, "%d", p_Interface->Wan.Type );
+    _ansc_sprintf(param_value, "%d", p_Interface->Type );
     _ansc_sprintf(param_name, PSM_WANMANAGER_IF_TYPE, instancenum);
     WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
 
     memset(param_value, 0, sizeof(param_value));
     memset(param_name, 0, sizeof(param_name));
-    _ansc_sprintf(param_value, "%d", p_Interface->Wan.SelectionTimeout );
-    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_SELECTIONTIMEOUT, instancenum);
+    _ansc_sprintf(param_value, "%d", p_Interface->Selection.Timeout );
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_SELECTION_TIMEOUT, instancenum);
     WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
 
     memset(param_value, 0, sizeof(param_value));
     memset(param_name, 0, sizeof(param_name));
-    _ansc_sprintf(param_value, "%d", p_Interface->Wan.Group );
-    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_GROUP, instancenum);
+    _ansc_sprintf(param_value, "%d", p_Interface->Selection.Group );
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_SELECTION_GROUP, instancenum);
     WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
 
     memset(param_value, 0, sizeof(param_value));
     memset(param_name, 0, sizeof(param_name));
-    if(p_Interface->Wan.EnableMAPT)
-    {
-        _ansc_sprintf(param_value, "TRUE");
-    }
-    else
-    {
-        _ansc_sprintf(param_value, "FALSE");
-    }
-#if defined(WAN_MANAGER_UNIFICATION_ENABLED)
-     //Needs to remove this hardcoded value when we adapt updated data structure
-    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_ENABLE_MAPT, instancenum, 1);
-#else
-    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_ENABLE_MAPT, instancenum);
-#endif /** WAN_MANAGER_UNIFICATION_ENABLED */
-    WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
-
-    memset(param_value, 0, sizeof(param_value));
-    memset(param_name, 0, sizeof(param_name));
-    if(p_Interface->Wan.EnableDSLite)
-    {
-        _ansc_sprintf(param_value, "TRUE");
-    }
-    else
-    {
-        _ansc_sprintf(param_value, "FALSE");
-    }
-#if defined(WAN_MANAGER_UNIFICATION_ENABLED)
-     //Needs to remove this hardcoded value when we adapt updated data structure
-    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_ENABLE_DSLITE, instancenum, 1);
-#else
-    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_ENABLE_DSLITE, instancenum);
-#endif /** WAN_MANAGER_UNIFICATION_ENABLED */
-    WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
-
-    memset(param_value, 0, sizeof(param_value));
-    memset(param_name, 0, sizeof(param_name));
-    if(p_Interface->Wan.EnableIPoE)
-    {
-        _ansc_sprintf(param_value, "TRUE");
-    }
-    else
-    {
-        _ansc_sprintf(param_value, "FALSE");
-    }
-#if defined(WAN_MANAGER_UNIFICATION_ENABLED)
-     //Needs to remove this hardcoded value when we adapt updated data structure
-    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_ENABLE_IPOE, instancenum, 1);
-#else
-    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_ENABLE_IPOE, instancenum);
-#endif /** WAN_MANAGER_UNIFICATION_ENABLED */
-    WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
-
-    memset(param_value, 0, sizeof(param_value));
-    memset(param_name, 0, sizeof(param_name));
-    if(p_Interface->Wan.RebootOnConfiguration)
+    if(p_Interface->Selection.RequiresReboot)
     {
         _ansc_sprintf(param_value, PSM_ENABLE_STRING_TRUE);
     }
@@ -486,87 +421,190 @@ static int write_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFAC
     {
         _ansc_sprintf(param_value, PSM_ENABLE_STRING_FALSE);
     }
-    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_REBOOTONCONFIGURATION, instancenum);
-    WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
-
-
-    memset(param_value, 0, sizeof(param_value));
-    memset(param_name, 0, sizeof(param_name));
-    if(p_Interface->PPP.Enable)
-    {
-        _ansc_sprintf(param_value, "TRUE");
-    }
-    else
-    {
-        _ansc_sprintf(param_value, "FALSE");
-    }
-    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_PPP_ENABLE, instancenum);
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_SELECTION_REQUIRES_REBOOT, instancenum);
     WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
 
     memset(param_value, 0, sizeof(param_value));
     memset(param_name, 0, sizeof(param_name));
-    if(p_Interface->PPP.LinkType == WAN_IFACE_PPP_LINK_TYPE_PPPoA)
-    {
-        _ansc_sprintf(param_value, "PPPoA");
-    }
-    else if(p_Interface->PPP.LinkType == WAN_IFACE_PPP_LINK_TYPE_PPPoE)
-    {
-        _ansc_sprintf(param_value, "PPPoE");
-    }
-    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_PPP_LINKTYPE, instancenum);
+    _ansc_sprintf(param_value, "%d", p_Interface->Selection.Priority );
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_SELECTION_PRIORITY, instancenum);
     WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
 
     memset(param_value, 0, sizeof(param_value));
     memset(param_name, 0, sizeof(param_name));
-    if(p_Interface->PPP.IPCPEnable)
-    {
-        _ansc_sprintf(param_value, "TRUE");
-    }
-    else
-    {
-        _ansc_sprintf(param_value, "FALSE");
-    }
-    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_PPP_IPCP_ENABLE, instancenum);
+    _ansc_sprintf(param_value, "%s", p_Interface->BaseInterface );
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_BASEINTERFACE, instancenum);
     WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
-
-    memset(param_value, 0, sizeof(param_value));
-    memset(param_name, 0, sizeof(param_name));
-    if(p_Interface->PPP.IPV6CPEnable)
-    {
-        _ansc_sprintf(param_value, "TRUE");
-    }
-    else
-    {
-        _ansc_sprintf(param_value, "FALSE");
-    }
-    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_PPP_IPV6CP_ENABLE, instancenum);
-    WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
-
-    memset(param_value, 0, sizeof(param_value));
-    memset(param_name, 0, sizeof(param_name));
-    _ansc_sprintf(param_value, "%d", p_Interface->Wan.Priority );
-    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_PRIORITY, instancenum);
-    WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
-
-    memset(param_value, 0, sizeof(param_value));
-    memset(param_name, 0, sizeof(param_name));
-    if(p_Interface->Wan.EnableDHCP)
-    {
-        _ansc_sprintf(param_value, "TRUE");
-    }
-    else
-    {
-        _ansc_sprintf(param_value, "FALSE");
-    }
-    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_WAN_ENABLE_DHCP, instancenum);
-    WanMgr_RdkBus_SetParamValuesToDB(param_name, param_value);
 
     return ANSC_STATUS_SUCCESS;
 }
 
+int write_Virtual_Interface_ToPSM(ULONG instancenum, ULONG virtInsNum ,DML_VIRTUAL_IFACE * pVirtIf)
+{
+    int retPsmSet = CCSP_SUCCESS;
+    char param_name[256] = {0};
+    char param_value[256] = {0};
+
+    CcspTraceInfo(("%s %d Entered\n", __FUNCTION__, __LINE__));
+
+    memset(param_value, 0, sizeof(param_value));
+    memset(param_name, 0, sizeof(param_name));
+    if(pVirtIf->Enable == TRUE)
+    {
+        _ansc_sprintf(param_value, "TRUE");
+    }
+    else
+    {
+        _ansc_sprintf(param_value, "FALSE");
+    }
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_ENABLE, instancenum, (virtInsNum + 1));
+    WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
+
+    memset(param_value, 0, sizeof(param_value));
+    memset(param_name, 0, sizeof(param_name));
+    if(pVirtIf->EnableIPoE == TRUE)
+    {
+        _ansc_sprintf(param_value, "TRUE");
+    }
+    else
+    {
+        _ansc_sprintf(param_value, "FALSE");
+    }
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_ENABLE_IPOE, instancenum, (virtInsNum + 1));
+    WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
+
+    memset(param_value, 0, sizeof(param_value));
+    memset(param_name, 0, sizeof(param_name));
+    if(pVirtIf->EnableDSLite == TRUE)
+    {
+        _ansc_sprintf(param_value, "TRUE");
+    }
+    else
+    {
+        _ansc_sprintf(param_value, "FALSE");
+    }
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_ENABLE_DSLITE, instancenum, (virtInsNum + 1));
+    WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
+
+    memset(param_value, 0, sizeof(param_value));
+    memset(param_name, 0, sizeof(param_name));
+    if(pVirtIf->EnableMAPT == TRUE)
+    {
+        _ansc_sprintf(param_value, "TRUE");
+    }
+    else
+    {
+        _ansc_sprintf(param_value, "FALSE");
+    }
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_ENABLE_MAPT, instancenum, (virtInsNum + 1));
+    WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
+
+#if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE) /* TODO: This is a workaround for the platforms using same Wan Name.*/
+    memset(param_value, 0, sizeof(param_value));
+    memset(param_name, 0, sizeof(param_name));
+    AnscCopyString(param_value, pVirtIf->Name);
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_NAME, instancenum, (virtInsNum + 1));
+    WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
+#endif
+
+    memset(param_value, 0, sizeof(param_value));
+    memset(param_name, 0, sizeof(param_name));
+    AnscCopyString(param_value, pVirtIf->Alias);
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_ALIAS, instancenum, (virtInsNum + 1));
+    WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
+
+    memset(param_value, 0, sizeof(param_value));
+    memset(param_name, 0, sizeof(param_name));
+    AnscCopyString(param_value, pVirtIf->PPP.Interface);
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_PPP_INTERFACE, instancenum, (virtInsNum + 1));
+    WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
+
+    memset(param_value, 0, sizeof(param_value));
+    memset(param_name, 0, sizeof(param_name));
+    AnscCopyString(param_value, pVirtIf->VLAN.VLANInUse);
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_VLAN_INUSE, instancenum, (virtInsNum + 1));
+    WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
+
+    memset(param_value, 0, sizeof(param_value));
+    memset(param_name, 0, sizeof(param_name));
+    _ansc_sprintf(param_value, "%d", pVirtIf->VLAN.Timeout );
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_VLAN_TIMEOUT, instancenum, (virtInsNum + 1));
+    WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
+
+    memset(param_value, 0, sizeof(param_value));
+    memset(param_name, 0, sizeof(param_name));
+    _ansc_sprintf(param_value, "%d", pVirtIf->VLAN.NoOfInterfaceEntries );
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_VLAN_INTERFACE_COUNT, instancenum, (virtInsNum + 1));
+    WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
+
+    memset(param_value, 0, sizeof(param_value));
+    memset(param_name, 0, sizeof(param_name));
+    _ansc_sprintf(param_value, "%d", pVirtIf->VLAN.NoOfMarkingEntries );
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_VLAN_MARKING_COUNT, instancenum, (virtInsNum + 1));
+    WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
+
+    memset(param_value, 0, sizeof(param_value));
+    memset(param_name, 0, sizeof(param_name));
+    AnscCopyString(param_value, pVirtIf->IP.Interface);
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_IP_INTERFACE, instancenum, (virtInsNum + 1));
+    WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
+
+    memset(param_value, 0, sizeof(param_value));
+    memset(param_name, 0, sizeof(param_name));
+    _ansc_sprintf(param_value, "%d", pVirtIf->IP.Mode );
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_IP_MODE, instancenum, (virtInsNum + 1));
+    WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
+
+    memset(param_value, 0, sizeof(param_value));
+    memset(param_name, 0, sizeof(param_name));
+    _ansc_sprintf(param_value, "%d", pVirtIf->IP.IPv4Source );
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_IP_V4SOURCE, instancenum, (virtInsNum + 1));
+    WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
+
+    memset(param_value, 0, sizeof(param_value));
+    memset(param_name, 0, sizeof(param_name));
+    _ansc_sprintf(param_value, "%d", pVirtIf->IP.IPv6Source );
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_IP_V6SOURCE, instancenum, (virtInsNum + 1));
+    WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
+
+    return 0;
+}
+
+int write_VirtMarking_ParametersToPSM(DML_VIRTIF_MARKING* p_Marking)
+{
+        int retPsmSet = CCSP_SUCCESS;
+    char param_name[256] = {0};
+    char param_value[256] = {0};
+
+    CcspTraceInfo(("%s %d Entered\n", __FUNCTION__, __LINE__));
 
 
+    memset(param_value, 0, sizeof(param_value));
+    memset(param_name, 0, sizeof(param_name));
+    _ansc_sprintf(param_value, "%d", p_Marking->Entry );
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_VLAN_MARKING_ENTRY, p_Marking->baseIfIdx +1,p_Marking->VirIfIdx+1,p_Marking->VirtMarkingInstanceNumber+1);
+    WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
 
+    return 0;
+}
+
+int write_VlanInterface_ParametersToPSM(DML_VLAN_IFACE_TABLE *pVlanInterface)
+{
+        int retPsmSet = CCSP_SUCCESS;
+    char param_name[256] = {0};
+    char param_value[256] = {0};
+
+    CcspTraceInfo(("%s %d Entered\n", __FUNCTION__, __LINE__));
+
+
+    memset(param_value, 0, sizeof(param_value));
+    memset(param_name, 0, sizeof(param_name));
+    _ansc_sprintf(param_value, "%s", pVlanInterface->Interface );
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_VLAN_MARKING_ENTRY, pVlanInterface->baseIfIdx +1, pVlanInterface->VirIfIdx+1, pVlanInterface->Index+1);
+    WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
+
+    return 0;
+}
 /* DmlWanGetPSMRecordValue() */
 static int
 DmlWanGetPSMRecordValue
@@ -835,7 +873,6 @@ ANSC_STATUS WanMgr_WanIfaceMarkingInit ()
                     snprintf(aTableName, sizeof(aTableName), MARKING_TABLE, ulIfInstanceNumber);
                     if (CCSP_SUCCESS == CcspBaseIf_AddTblRow(bus_handle,WAN_COMPONENT_NAME,WAN_DBUS_PATH, 0, aTableName,&ulInstanceNumber))
                     {
-
                         /* a) SKBPort is derived from InstanceNumber.
                            b) Since InstanceNumber starts with Zero, to make it non-zero (add 1)
                            c) Voice packet get EthernetPriotityMark based on SKBPort.*/
@@ -1325,6 +1362,68 @@ DmlSetMarking
 }
 #endif /* * FEATURE_802_1P_COS_MARKING */
 
+/* DmlGetTotalNoOfGroups() */
+ANSC_STATUS DmlGetTotalNoOfGroups(int *if_count)
+{
+    int ret_val = ANSC_STATUS_SUCCESS;
+    int retPsmGet = CCSP_SUCCESS;
+    char param_value[64] = {0};
+
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(PSM_WANMANAGER_GROUP_COUNT,param_value,sizeof(param_value));
+    if (retPsmGet != CCSP_SUCCESS) { \
+        AnscTraceFlow(("%s Error %d reading %s\n", __FUNCTION__, retPsmGet,  PSM_WANMANAGER_GROUP_COUNT));
+        ret_val = ANSC_STATUS_FAILURE;
+    }
+    else if(param_value[0] != '\0') {
+        _ansc_sscanf(param_value, "%d", if_count);
+    }
+
+    return ret_val;
+}
+
+ANSC_STATUS WanMgr_RdkBus_setWanPolicy(DML_WAN_POLICY wan_policy, UINT groupId)
+{
+    int result = ANSC_STATUS_SUCCESS;
+    int retPsmSet = CCSP_SUCCESS;
+    char param_name[BUFLEN_256] = {0};
+    char param_value[BUFLEN_256] = {0};
+
+    /* Update the wan policy information in PSM */
+    memset(param_value, 0, sizeof(param_value));
+    memset(param_name, 0, sizeof(param_name));
+
+    snprintf(param_value, sizeof(param_value), "%d", wan_policy);
+    _ansc_sprintf(param_name, PSM_WANMANAGER_GROUP_POLICY, (groupId +1)); 
+
+    retPsmSet = WanMgr_RdkBus_SetParamValuesToDB(param_name, param_value);
+    if (retPsmSet != CCSP_SUCCESS) {
+        AnscTraceError(("%s Error %d writing %s %s\n", __FUNCTION__, retPsmSet, param_name, param_value));
+        result = ANSC_STATUS_FAILURE;
+    }
+
+    return result;
+}
+
+ANSC_STATUS WanMgr_RdkBus_getWanPolicy(DML_WAN_POLICY *wan_policy, UINT groupId)
+{
+    int result = ANSC_STATUS_SUCCESS;
+    int retPsmGet = CCSP_SUCCESS;
+    char param_value[BUFLEN_256] = {0};
+    char param_name[BUFLEN_256]= {0};
+
+    memset(param_name, 0, sizeof(param_name));
+    _ansc_sprintf(param_name, PSM_WANMANAGER_GROUP_POLICY, (groupId + 1)); 
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name, param_value, sizeof(param_value));
+    if (retPsmGet == CCSP_SUCCESS && param_value[0] != '\0') {
+        *wan_policy = strtol(param_value, NULL, 10);
+    }
+    else {
+        result = ANSC_STATUS_FAILURE;
+    }
+
+    return result;
+}
+
 /* DmlGetTotalNoOfWanInterfaces() */
 ANSC_STATUS DmlGetTotalNoOfWanInterfaces(int *wan_if_count)
 {
@@ -1359,51 +1458,15 @@ ANSC_STATUS DmlSetWanIfCfg( INT LineIndex, DML_WAN_IFACE* pstLineInfo )
     if(ret_val != ANSC_STATUS_SUCCESS) {
         AnscTraceFlow(("%s Failed!! Error code: %d", __FUNCTION__, ret_val));
     }
-
+    for(int i=0; i< pstLineInfo->NoOfVirtIfs; i++)
+    {   
+        DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIfaceById(pstLineInfo->VirtIfList, i);
+        write_Virtual_Interface_ToPSM(LineIndex, i, p_VirtIf);
+    }
     return ret_val;
 }
 
-
-ANSC_STATUS WanMgr_WanIfaceConfInit(WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl)
-{
-    if(pWanIfaceCtrl != NULL)
-    {
-        ANSC_STATUS result;
-        UINT        uiTotalIfaces;
-        UINT        idx;
-
-        result = DmlGetTotalNoOfWanInterfaces(&uiTotalIfaces);
-        if(result == ANSC_STATUS_FAILURE) {
-            return ANSC_STATUS_FAILURE;
-        }
-
-        pWanIfaceCtrl->pIface = (WanMgr_Iface_Data_t*) AnscAllocateMemory( sizeof(WanMgr_Iface_Data_t) * MAX_WAN_INTERFACE_ENTRY);
-        if( NULL == pWanIfaceCtrl->pIface )
-        {
-            return ANSC_STATUS_FAILURE;
-        }
-
-        pWanIfaceCtrl->ulTotalNumbWanInterfaces = uiTotalIfaces;
-
-        //Memset all memory
-        memset( pWanIfaceCtrl->pIface, 0, ( sizeof(WanMgr_Iface_Data_t) * MAX_WAN_INTERFACE_ENTRY ) );
-
-        //Get static interface configuration from PSM data store
-        for( idx = 0 ; idx < uiTotalIfaces ; idx++ )
-        {
-            WanMgr_Iface_Data_t*  pIfaceData  = &(pWanIfaceCtrl->pIface[idx]);
-            WanMgr_IfaceData_Init(pIfaceData, idx);
-            get_Wan_Interface_ParametersFromPSM((idx+1), &(pIfaceData->data));
-        }
-        // initialize
-        pWanIfaceCtrl->update = 0;
-    }
-
-    return ANSC_STATUS_SUCCESS;
-}
-
-
-static ANSC_STATUS WanMgr_WanConfInit (DML_WANMGR_CONFIG* pWanConfig)
+ANSC_STATUS WanMgr_WanConfInit (DML_WANMGR_CONFIG* pWanConfig)
 {
     unsigned int wan_enable;
     unsigned int wan_policy;
@@ -1414,6 +1477,8 @@ static ANSC_STATUS WanMgr_WanConfInit (DML_WANMGR_CONFIG* pWanConfig)
     int retPsmGet = CCSP_SUCCESS;
     char param_name[256] = {0};
     char param_value[256] = {0};
+
+    CcspTraceInfo(("%s %d Initialize WanConf \n", __FUNCTION__, __LINE__));
 
     memset(param_name, 0, sizeof(param_name));
     memset(param_value, 0, sizeof(param_value));
@@ -1429,22 +1494,6 @@ static ANSC_STATUS WanMgr_WanConfInit (DML_WANMGR_CONFIG* pWanConfig)
     memset(param_name, 0, sizeof(param_name));
     memset(param_value, 0, sizeof(param_value));
 
-#if defined(WAN_MANAGER_UNIFICATION_ENABLED)
-    //Needs to remove this hardcoded value when we adapt updated data structure
-    _ansc_sprintf(param_name, PSM_WANMANAGER_GROUP_POLICY, 1); 
-#else
-    _ansc_sprintf(param_name, PSM_WANMANAGER_WANPOLICY);
-#endif /** WAN_MANAGER_UNIFICATION_ENABLED */
-    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
-    if (retPsmGet == CCSP_SUCCESS && param_value[0] != '\0')
-        wan_policy = atoi(param_value);
-    else
-        ret_val = ANSC_STATUS_FAILURE;
-
-    pWanConfig->Policy = wan_policy;
-
-    memset(param_name, 0, sizeof(param_name));
-    memset(param_value, 0, sizeof(param_value));
     _ansc_sprintf(param_name, PSM_WANMANAGER_ALLOW_REMOTE_IFACE);
     retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
     if (retPsmGet == CCSP_SUCCESS && param_value[0] != '\0')
@@ -1463,32 +1512,6 @@ static ANSC_STATUS WanMgr_WanConfInit (DML_WANMGR_CONFIG* pWanConfig)
 
     return ret_val;
 }
-
-
-ANSC_STATUS WanMgr_WanConfigInit(void)
-{
-    ANSC_STATUS retStatus = ANSC_STATUS_FAILURE;
-
-    //Wan Configuration init
-    WanMgr_Config_Data_t* pWanConfigData = WanMgr_GetConfigData_locked();
-    if(pWanConfigData != NULL)
-    {
-        retStatus = WanMgr_WanConfInit(&(pWanConfigData->data));
-
-        WanMgrDml_GetConfigData_release(pWanConfigData);
-    }
-
-    if(retStatus != ANSC_STATUS_SUCCESS)
-    {
-        return retStatus;
-    }
-
-
-    //Wan Interface Configuration init
-    retStatus = WanMgr_WanDataInit();
-    return retStatus;
-}
-
 
 ANSC_STATUS
 SListPushEntryByInsNum
@@ -1576,7 +1599,7 @@ ANSC_STATUS DmlSetWanActiveLinkInPSMDB( UINT uiInterfaceIdx , bool storeValue )
     {
         _ansc_sprintf(param_value, PSM_ENABLE_STRING_FALSE);
     }
-    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_ACTIVELINK, (uiInterfaceIdx + 1));
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_SELECTION_ACTIVELINK, (uiInterfaceIdx + 1));
     CcspTraceInfo(("%s %d: setting %s = %s\n", __FUNCTION__, __LINE__, param_name, param_value));
     if (WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value) != CCSP_SUCCESS)
     {
@@ -1606,7 +1629,7 @@ ANSC_STATUS WanController_ClearWanConfigurationsInPSM()
     for(int instancenum = 1; instancenum <=uiTotalIfaces; instancenum++)
     {
         _ansc_sprintf(param_value, PSM_ENABLE_STRING_FALSE);
-        _ansc_sprintf(param_name, PSM_WANMANAGER_IF_ACTIVELINK, (instancenum));
+        _ansc_sprintf(param_name, PSM_WANMANAGER_IF_SELECTION_ACTIVELINK, (instancenum));
         WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
     }
     return ANSC_STATUS_SUCCESS;
@@ -1669,24 +1692,28 @@ ANSC_STATUS Update_Interface_Status()
         if(pWanDmlIfaceData != NULL)
         {
             DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
-            if(pWanIfaceData->Wan.Enable == TRUE)
+            if(pWanIfaceData->Selection.Enable == TRUE)
             {
+                //TODO: NEW_DESIGN revisit this code for Name and status
+                for(int virIf_id=0; virIf_id< pWanIfaceData->NoOfVirtIfs; virIf_id++)
+                {
+                DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIfaceById(pWanIfaceData->VirtIfList, virIf_id);
                 struct IFACE_INFO *newIface = calloc(1, sizeof( struct IFACE_INFO));
                 newIface->next = NULL;
 
-                newIface->Priority = pWanIfaceData->Wan.Priority;
-                if(pWanIfaceData->Phy.Status == WAN_IFACE_PHY_STATUS_UP)
+                newIface->Priority = pWanIfaceData->Selection.Priority;
+                if(pWanIfaceData->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_UP)
                 {
                     snprintf(newIface->AvailableStatus, sizeof(newIface->AvailableStatus), "%s,1", pWanIfaceData->DisplayName);
                 }else
                     snprintf(newIface->AvailableStatus, sizeof(newIface->AvailableStatus), "%s,0", pWanIfaceData->DisplayName);
 
-                if((pWanIfaceData->SelectionStatus == WAN_IFACE_ACTIVE) &&
-                   ((pWanIfaceData->Wan.IfaceType == REMOTE_IFACE &&
-                     pWanIfaceData->Wan.Status == WAN_IFACE_STATUS_UP &&
-                     pWanIfaceData->Wan.RemoteStatus == WAN_IFACE_STATUS_UP) ||
-                    (pWanIfaceData->Wan.IfaceType == LOCAL_IFACE &&
-                     pWanIfaceData->Wan.Status == WAN_IFACE_STATUS_UP)) )
+                if((pWanIfaceData->Selection.Status == WAN_IFACE_ACTIVE) &&
+                   ((pWanIfaceData->IfaceType == REMOTE_IFACE &&
+                     p_VirtIf->Status == WAN_IFACE_STATUS_UP &&
+                     p_VirtIf->RemoteStatus == WAN_IFACE_STATUS_UP) ||
+                    (pWanIfaceData->IfaceType == LOCAL_IFACE &&
+                     p_VirtIf->Status == WAN_IFACE_STATUS_UP)) )
                 {
                     snprintf(newIface->ActiveStatus, sizeof(newIface->ActiveStatus), "%s,1", pWanIfaceData->DisplayName);
                 }else
@@ -1694,28 +1721,29 @@ ANSC_STATUS Update_Interface_Status()
 
                 if(devMode  == GATEWAY_MODE)
                 {
-                    if(pWanIfaceData->SelectionStatus == WAN_IFACE_ACTIVE)
+                    if(pWanIfaceData->Selection.Status == WAN_IFACE_ACTIVE)
                     {
-                        snprintf(newIface->CurrentActive, sizeof(newIface->CurrentActive), "%s", pWanIfaceData->Wan.Name);
+                        snprintf(newIface->CurrentActive, sizeof(newIface->CurrentActive), "%s", p_VirtIf->Name);
 #if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
                         /* Update Only for Gateway mode. Wan IP Interface entry not added in PAM for MODEM_MODE */
-                        WanMgr_RdkBus_setWanIpInterfaceData(pWanIfaceData);
+                        WanMgr_RdkBus_setWanIpInterfaceData(p_VirtIf);
 #endif
                     }
-                    else if(pWanIfaceData->SelectionStatus == WAN_IFACE_SELECTED)
+                    else if(pWanIfaceData->Selection.Status == WAN_IFACE_SELECTED)
                     {
-                        snprintf(newIface->CurrentStandby, sizeof(newIface->CurrentStandby), "%s", pWanIfaceData->Wan.Name);
+                        snprintf(newIface->CurrentStandby, sizeof(newIface->CurrentStandby), "%s", p_VirtIf->Name);
                     }
                 }
                 else // MODEM_MODE
                 {
-                    if(pWanIfaceData->SelectionStatus == WAN_IFACE_ACTIVE)
+                    if(pWanIfaceData->Selection.Status == WAN_IFACE_ACTIVE)
                     {
                         strncpy(newIface->CurrentActive, MESH_IFNAME, sizeof(MESH_IFNAME));
                     }
                 }
                 /* Sort the link list based on priority */
                 SortedInsert(&head, newIface);
+            }
             }
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
         }
@@ -1828,7 +1856,7 @@ ANSC_STATUS Update_Interface_Status()
     return ANSC_STATUS_SUCCESS;
 }
 
-ANSC_STATUS WanMgr_Publish_WanStatus(UINT IfaceIndex)
+ANSC_STATUS WanMgr_Publish_WanStatus(UINT IfaceIndex, UINT VirId)
 {
     char param_name[256] = {0};
     static UINT PrevWanStatus = 0;
@@ -1836,13 +1864,15 @@ ANSC_STATUS WanMgr_Publish_WanStatus(UINT IfaceIndex)
     if(pWanDmlIfaceData != NULL)
     {
         DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
-        if (pWanIfaceData->Wan.Status != PrevWanStatus)
+        DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIfaceById(pWanIfaceData->VirtIfList, VirId);
+
+        if (p_VirtIf->Status != PrevWanStatus)
         {
-            PrevWanStatus = pWanIfaceData->Wan.Status;
+            PrevWanStatus = p_VirtIf->Status;
             if (pWanIfaceData->Sub.WanStatusSub)
             {
                 memset(param_name, 0, sizeof(param_name));
-                _ansc_sprintf(param_name, WANMGR_IFACE_WAN_STATUS, (IfaceIndex+1));
+                _ansc_sprintf(param_name, WANMGR_IFACE_WAN_STATUS, (IfaceIndex+1), (VirId+1));
 #ifdef RBUS_BUILD_FLAG_ENABLE
                 WanMgr_Rbus_String_EventPublish(param_name, &PrevWanStatus);
 #endif
