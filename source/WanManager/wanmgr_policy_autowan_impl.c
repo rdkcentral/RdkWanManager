@@ -95,7 +95,7 @@ typedef  struct _WANMGR_AUTOWAN__SMINFO_
 #define BACKUP_WAN_DHCPC_PID_FILE         "/var/run/bkupwan_dhcpc.pid"
 #define BACKUP_WAN_DHCPC_SOURCE_FILE      "/etc/udhcpc_backupwan.script"
 #define BACKUP_WAN_DHCPC_SRC_RAMDOM_FILE  "/etc/udhcpc_backupwan_random.script"
-#define PRIMARY_WAN_DHCPC_PID_FILE        "/tmp/udhcpc.erouter0.pid"
+#define PRIMARY_WAN_DHCPC_PID_FILE        "/tmp/udhcpc_erouter0_random.pid"
 
 #define MESH_WAN_WAN_IPV6ADDR "MeshWANInterface_UlaAddr"
 
@@ -250,7 +250,7 @@ static void WanMgr_SetInterface(char *IfaceName, char *state)
     int ret = 0;
     memset(command, 0, sizeof(command));
     snprintf(command, sizeof(command), "ip -4 link set %s %s", IfaceName, state);
-    WanManager_DoSystemActionWithStatus("SetInterface:", command);
+    ret = WanManager_DoSystemActionWithStatus("SetInterface:", command);
     if(ret != RETURN_OK) {
         CcspTraceError(("%s-%d : Failure in executing command via v_secure_system. ret:[%d] \n", __FUNCTION__, __LINE__, ret));
     }
@@ -270,7 +270,7 @@ static void WanMgr_disable_ra(char *IfaceName)
     int ret = 0;
     memset(command, 0, sizeof(command));
     snprintf(command, sizeof(command), "echo 0 > /proc/sys/net/ipv6/conf/%s/accept_ra ", IfaceName);
-    WanManager_DoSystemActionWithStatus("accept_ra:", command);
+    ret = WanManager_DoSystemActionWithStatus("accept_ra:", command);
     if(ret != RETURN_OK) {
         CcspTraceWarning(("%s-%d : Failure in executing command via v_secure_system. ret:[%d] \n", __FUNCTION__, __LINE__, ret));
     }
@@ -1157,20 +1157,24 @@ static int WanMgr_Policy_CheckAndStartUDHCPClientOverWanInterface(char *IfaceNam
                   bDHCPRunningAlready = FALSE;
     char command[256] = {0},
          logPrefixString[256] = {0};
+    char cValidationOptions[] = " -q";
+    char isValidating = 0;
 
     if( (strlen(IfaceName) <= 0) || (IfaceName[0] == '\0') || ( FALSE == WanManager_IsNetworkInterfaceAvailable( IfaceName ) ) )
     {
         return -1;
     }
 
-    //Log Purpose
+    //Log Purpose and more
     if( WAN_START_FOR_VALIDATION == enCallSource )
     {
         snprintf(logPrefixString, sizeof(logPrefixString), "Validating");
+        isValidating = 1;
     }
     else
     {
         snprintf(logPrefixString, sizeof(logPrefixString), "Effecting");
+        isValidating = 0;
     }
 
     //Cleanup - Stop UDHCPC client before start another instance
@@ -1186,13 +1190,14 @@ static int WanMgr_Policy_CheckAndStartUDHCPClientOverWanInterface(char *IfaceNam
 
     WanMgr_getUdhcpcClientID(clientId, sizeof(clientId));
 
-    snprintf(command, sizeof(command), "/sbin/udhcpc -t 5 -n -O 125 -i %s -p %s -s %s -x %s", IfaceName, pidfile, script, clientId);
-    WanManager_DoSystemAction("StartingUDHCPCviaWAN:", command);
+    snprintf(command, sizeof(command), "/sbin/udhcpc -t 5 -n%s -O 125 -i %s -p %s -s %s -x %s", isValidating ? cValidationOptions : "", IfaceName, pidfile, script, clientId);
+    CcspTraceInfo(("StartingUDHCPCviaWAN -- %s \n", command));
+    int ret = system(command);
 
     CcspTraceInfo(("%s-%d : %s WAN: Cmd Str[%s]\n",__FUNCTION__, __LINE__, logPrefixString,command));
 
     /* DHCP client didn't able to get Ipv4 configurations */
-    if ( -1 == access(pidfile, F_OK) )
+    if ( ret != 0 )
     {
         CcspTraceInfo(("%s-%d : %s WAN service not able to get IPv4 configuration\n",__FUNCTION__, __LINE__, logPrefixString));
         return -1;
@@ -1200,13 +1205,6 @@ static int WanMgr_Policy_CheckAndStartUDHCPClientOverWanInterface(char *IfaceNam
     else
     {
         CcspTraceInfo(("%s-%d : %s WAN interface '%s' got leases\n", __FUNCTION__, __LINE__, logPrefixString, IfaceName));
-    }
-
-    //Stop UDHCPC process after starting WAN
-    if( WAN_START_FOR_VALIDATION == enCallSource )
-    {
-        //Cleanup - Stop UDHCPC local client after start checking
-        WanMgr_Policy_CheckAndStopUDHCPClientOverWanInterface(IfaceName, pidfile);
     }
 
     return 0;
