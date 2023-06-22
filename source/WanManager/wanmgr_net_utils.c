@@ -791,7 +791,9 @@ int WanManager_ProcessMAPTConfiguration(ipc_mapt_data_t *dhcp6cMAPTMsgBody, cons
         return ret;
     }
 #ifdef FEATURE_MAPT_DEBUG
+    MaptInfo("--- MAP-T Computed Values - START ---");
     MaptInfo("mapt: PSID Value: %d, ipv4IndexValue: %d", psidValue, ipv4IndexValue);
+    MaptInfo("mapt: PSID Length: %d", psidLen);
 #endif
 
     inet_pton(AF_INET, dhcp6cMAPTMsgBody->ruleIPv4Prefix, &(result));
@@ -822,6 +824,11 @@ int WanManager_ProcessMAPTConfiguration(ipc_mapt_data_t *dhcp6cMAPTMsgBody, cons
         CcspTraceError(("Failed to configure ipv6Tablerules"));
         return ret;
     }
+
+#ifdef FEATURE_MAPT_DEBUG
+    MaptInfo("mapt: map ipv6 address:%s", ipv6AddressString);
+    MaptInfo("--- MAP-T Computed Values - END ---");
+#endif
 
     /* RM16042: Since erouter0 is vlan interface on top of eth3 ptm, we need
        to first set the MTU size of eth3 to 1520 and then change MTU of erouter0.
@@ -1489,7 +1496,7 @@ int WanManager_ResetMAPTConfiguration(const char *baseIf, const char *vlanIf)
 void WanManager_UpdateMaptLogFile(ipc_mapt_data_t *dhcp6cMAPTMsgBody)
 {
 
-    MaptInfo("#### MAP-T Options DHCP - START ####");
+    MaptInfo("--- MAP-T Options Received from DHCPv6 - START ---");
     MaptInfo("ruleIPv6Prefix:%s", dhcp6cMAPTMsgBody->ruleIPv6Prefix);
     MaptInfo("ruleIPv4Prefix:%s", dhcp6cMAPTMsgBody->ruleIPv4Prefix);
     MaptInfo("brIPv6Prefix:%s", dhcp6cMAPTMsgBody->brIPv6Prefix);
@@ -1502,7 +1509,7 @@ void WanManager_UpdateMaptLogFile(ipc_mapt_data_t *dhcp6cMAPTMsgBody)
     MaptInfo("v4Len:%d", dhcp6cMAPTMsgBody->v4Len);
     MaptInfo("v6Len:%d", dhcp6cMAPTMsgBody->v6Len);
     MaptInfo("eaLen:%d", dhcp6cMAPTMsgBody->eaLen);
-    MaptInfo("#### MAP-T Options DHCP - END ####");
+    MaptInfo("--- MAP-T Options Received from DHCPv6 - END ---");
 
     CcspTraceInfo(("SKYWANMGR:MAP-T_OPTIONS:%s,%s,%s,%s,%d,%d,%d,%d,%d,%d,%d,%d",
                  dhcp6cMAPTMsgBody->ruleIPv6Prefix,
