@@ -768,7 +768,12 @@ ANSC_STATUS WanMgr_WanIfaceMarkingInit ()
 
             //Interface instance number
             ulIfInstanceNumber = iLoopCount + 1;
+            /* Query MarkingNumberOfEntries once to refresh dbus memory before adding tables if WanManager restarted. */
+            snprintf( acPSMQuery, sizeof( acPSMQuery ), "%s%d.MarkingNumberOfEntries",TABLE_NAME_WAN_INTERFACE,ulIfInstanceNumber);
+            WanMgr_RdkBus_GetParamValues(WAN_COMPONENT_NAME,WAN_DBUS_PATH, acPSMQuery, acPSMValue);
 
+            memset( acPSMQuery, 0, sizeof( acPSMQuery ) );
+            memset( acPSMValue, 0, sizeof( acPSMValue ) );
             //Query marking list for corresponding interface
             snprintf( acPSMQuery, sizeof( acPSMQuery ), PSM_MARKING_LIST, ulIfInstanceNumber );
             if ( ( CCSP_SUCCESS == DmlWanGetPSMRecordValue( acPSMQuery, acPSMValue ) ) && \
