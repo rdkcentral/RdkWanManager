@@ -159,6 +159,9 @@ WanMgr_Dhcpv6Initialize
         return ANSC_STATUS_FAILURE;
     }
 
+#if defined(_DT_WAN_Manager_Enable_)
+    WanMgr_DmlDhcpv6Init( NULL, NULL );
+#endif
     /* Initiation all functions */
     AnscSListInitializeHeader( &pMyObject->ClientList );
     pMyObject->maxInstanceOfClient  = 0;

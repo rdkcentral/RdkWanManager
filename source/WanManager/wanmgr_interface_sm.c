@@ -418,7 +418,6 @@ static XLAT_State_t xlat_state_get(void)
 }
 #endif
 
-#if defined(_DT_WAN_Manager_Enable_)
 /*
  * WanManager_ConfigureMarking() 
  * This function will Apply virtual Interface specific Qos Marking using Linux utils : Iproute2
@@ -454,8 +453,8 @@ static ANSC_STATUS WanManager_ConfigureMarking(WanMgr_IfaceSM_Controller_t* pWan
 
         }
     }
+    return ANSC_STATUS_SUCCESS;
 }
-#endif
 
 /*********************************************************************************/
 /**************************** ACTIONS ********************************************/
@@ -873,6 +872,64 @@ static int checkIpv6AddressAssignedToBridge()
     return ret;
 }
 
+
+static void updateInterfaceToVoiceManager(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
+{
+    ANSC_STATUS retStatus        = ANSC_STATUS_FAILURE;
+    bool isUpdate                = false;
+
+    if((NULL == pWanIfaceCtrl) || (NULL == pWanIfaceCtrl->pIfaceData))
+    {
+        CcspTraceWarning(("%s %d Invalid function parameter \n",__FUNCTION__, __LINE__));
+        return;
+    }
+
+    DML_WAN_IFACE* pWanIfaceData = pWanIfaceCtrl->pIfaceData;
+    DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIfaceById(pWanIfaceData->VirtIfList, pWanIfaceCtrl->VirIfIdx);
+
+    if (0 == strcmp("VOIP", p_VirtIf->Alias))
+    {
+        /* Update VOIP vlan name to TelcoVoiceManager */
+        isUpdate = true;
+    }
+    else if(0 == strcmp("DATA", p_VirtIf->Alias))
+    {
+        isUpdate = true;
+
+        /* If there is a VOIP interface present, then do not update DATA vlan name to TelecoVoiceManager. */
+        for(int virIf_id=0; virIf_id< pWanIfaceData->NoOfVirtIfs; virIf_id++)
+        {
+            DML_VIRTUAL_IFACE* VirtIf = WanMgr_getVirtualIfaceById(pWanIfaceData->VirtIfList, virIf_id);
+
+            if (0 == strcmp("VOIP", VirtIf->Alias))
+            {
+                isUpdate = false;
+                break;
+            }
+        }
+    }
+    else
+    {
+        isUpdate = false;
+        CcspTraceWarning(("%s %d Invalid Virtual Interface Alias[%s] \n",__FUNCTION__, __LINE__, p_VirtIf->Alias));
+    }
+
+    if (true == isUpdate)
+    {
+
+        /* Set X_RDK_BoundIfName of TelcoVoiceManager */
+        retStatus = WanMgr_RdkBus_SetParamValues(VOICE_COMPONENT_NAME, VOICE_DBUS_PATH, VOICE_BOUND_IF_NAME, p_VirtIf->Name, ccsp_string, TRUE);
+        if (ANSC_STATUS_SUCCESS == retStatus)
+        {
+            CcspTraceInfo(("%s %d - Successfully set [%s] to VoiceManager \n", __FUNCTION__, __LINE__, p_VirtIf->Name));
+        }
+        else
+        {
+            CcspTraceInfo(("%s %d - Failed setting [%s] to VoiceManager \n", __FUNCTION__, __LINE__, p_VirtIf->Name));
+        }
+    }
+}
+
 static int wan_setUpIPv4(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
 {
 
@@ -989,6 +1046,9 @@ static int wan_setUpIPv4(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
         WanManager_PrintBootEvents (WAN_INIT_COMPLETE);
     }
 
+#if defined(_DT_WAN_Manager_Enable_)
+    wanmgr_setSharedCGNAddress(p_VirtIf->IP.Ipv4Data.ip);
+#endif
     /* Firewall restart. */
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, NULL, 0);
     return ret;
@@ -1449,6 +1509,9 @@ static eWanState_t wan_transition_physical_interface_down(WanMgr_IfaceSM_Control
         return WAN_STATE_REFRESHING_WAN;
     }
 
+#if defined(_DT_WAN_Manager_Enable_)
+    Enable_CaptivePortal(TRUE);
+#endif
     CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION DECONFIGURING WAN\n", __FUNCTION__, __LINE__, pInterface->Name));
 
     return WAN_STATE_DECONFIGURING_WAN;
@@ -1517,6 +1580,10 @@ static eWanState_t wan_transition_wan_validated(WanMgr_IfaceSM_Controller_t* pWa
         WanMgr_UpdateIpFromCellularMgr(pWanIfaceCtrl);
     }
 
+#if defined(_DT_WAN_Manager_Enable_)
+    Enable_CaptivePortal(FALSE);
+#endif
+
     CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION OBTAINING IP ADDRESSES\n", __FUNCTION__, __LINE__, pInterface->Name));
     CcspTraceInfo(("%s %d - Interface '%s' - Started in %s IP Mode\n", __FUNCTION__, __LINE__, pInterface->Name, p_VirtIf->IP.Mode == DML_WAN_IP_MODE_DUAL_STACK ?"Dual Stack":
         p_VirtIf->IP.Mode == DML_WAN_IP_MODE_IPV6_ONLY?"IPv6 Only": p_VirtIf->IP.Mode == DML_WAN_IP_MODE_IPV4_ONLY?"IPv4 Only":"No IP"));
@@ -1560,7 +1627,7 @@ static eWanState_t wan_transition_wan_refreshed(WanMgr_IfaceSM_Controller_t* pWa
 
             }
             p_VirtIf->VLAN.ActiveIndex = pVlanIf->Index;
-            strncpy(p_VirtIf->VLAN.VLANInUse, pVlanIf->Interface, sizeof(p_VirtIf->VLAN.VLANInUse));
+            strncpy(p_VirtIf->VLAN.VLANInUse, pVlanIf->Interface, (sizeof(p_VirtIf->VLAN.VLANInUse) - 1));
             CcspTraceInfo(("%s %d VLAN Discovery . Trying VlanIndex: %d : %s\n", __FUNCTION__, __LINE__,p_VirtIf->VLAN.ActiveIndex, p_VirtIf->VLAN.VLANInUse));
         }
 
@@ -1590,6 +1657,19 @@ static eWanState_t wan_transition_ipv4_up(WanMgr_IfaceSM_Controller_t* pWanIface
 
     /* successfully got the v4 lease from the interface, so lets mark it validated */
     p_VirtIf->Status = WAN_IFACE_STATUS_UP;
+
+#if defined(_DT_WAN_Manager_Enable_)
+    /* Update voice interface name to TelcoVoiceManager */
+    updateInterfaceToVoiceManager(pWanIfaceCtrl);
+
+    if(strcmp(p_VirtIf->Alias, "DATA"))
+    {
+        return WAN_STATE_IPV4_LEASED;
+    }
+    v_secure_system("echo 2 > /proc/sys/net/ipv6/conf/erouter0/accept_ra");
+    v_secure_system("echo 0 > /proc/sys/net/ipv6/conf/erouter0/accept_ra_mtu");
+
+#endif
 
     if (pWanIfaceCtrl->interfaceIdx != -1)
     {
@@ -1684,6 +1764,13 @@ static eWanState_t wan_transition_ipv4_down(WanMgr_IfaceSM_Controller_t* pWanIfa
         }
     }
     WanManager_UpdateInterfaceStatus (p_VirtIf, WANMGR_IFACE_CONNECTION_DOWN);
+
+#if defined(_DT_WAN_Manager_Enable_)
+    if(strcmp(p_VirtIf->Alias, "DATA"))
+    {
+        return WAN_STATE_OBTAINING_IP_ADDRESSES;
+    }
+#endif
 
     if (wan_tearDownIPv4(pWanIfaceCtrl) != RETURN_OK)
     {
@@ -1847,6 +1934,10 @@ static eWanState_t wan_transition_ipv6_up(WanMgr_IfaceSM_Controller_t* pWanIface
     /* successfully got the v6 lease from the interface, so lets mark it validated */
     p_VirtIf->Status = WAN_IFACE_STATUS_UP;
 
+#if defined(_DT_WAN_Manager_Enable_)
+    /* Update voice interface name to TelcoVoiceManager */
+    updateInterfaceToVoiceManager(pWanIfaceCtrl);
+#endif
     if (pWanIfaceCtrl->interfaceIdx != -1)
     {
         WanMgr_Publish_WanStatus(pWanIfaceCtrl->interfaceIdx, pWanIfaceCtrl->VirIfIdx);
@@ -3574,6 +3665,11 @@ static ANSC_STATUS WanMgr_IfaceIpcMsg_handle(WanMgr_IfaceSM_Controller_t* pWanIf
         wanmgr_handle_dhcpv6_event_data(p_VirtIf);
     }
 
+#if defined(_DT_WAN_Manager_Enable_)
+       /* Get interface IPv4 data */
+       p_VirtIf->IP.Ipv4Status = getInterfaceIPv4Data(p_VirtIf->Name, &(p_VirtIf->IP.Ipv4Data));
+
+#endif
     return ANSC_STATUS_SUCCESS;
 }
 

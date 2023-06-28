@@ -28,6 +28,11 @@
 #include "wanmgr_dml.h"
 #include "wanmgr_data.h"
 
+//TelcoVoiceManager
+#define VOICE_DBUS_PATH           "/com/cisco/spvtg/ccsp/telcovoicemanager"
+#define VOICE_COMPONENT_NAME      "eRT.com.cisco.spvtg.ccsp.telcovoicemanager"
+#define VOICE_BOUND_IF_NAME       "Device.Services.VoiceService.1.X_RDK_BoundIfName"
+
 //PPP Manager
 #define PPPMGR_COMPONENT_NAME       "eRT.com.cisco.spvtg.ccsp.pppmanager"
 #define PPPMGR_DBUS_PATH            "/com/cisco/spvtg/ccsp/pppmanager"

@@ -109,7 +109,6 @@ static char v6addr_prev[IPV6_PREF_MAXLEN] = {0};
 #endif
 
 void _get_shell_output(FILE *fp, char * out, int len);
-int _get_shell_output2(char * cmd, char * dststr);
 static int _prepare_client_conf(PDML_DHCPCV6_CFG       pCfg);
 static int _dibbler_client_operation(char * arg);
 
@@ -135,31 +134,7 @@ void _get_shell_output(FILE *fp, char * out, int len)
 
 }
 
-int _get_shell_output2(char * cmd, char * dststr)
-{
-    FILE * fp;
-    char   buf[256];
-    char * p;
-    int   bFound = 0;
 
-    fp = popen(cmd, "r");
-
-    if (fp)
-    {
-        while( fgets(buf, sizeof(buf), fp) )
-        {
-            if (strstr(buf, dststr))
-            {
-                bFound = 1;;
-                break;
-            }
-        }
-
-        pclose(fp);
-    }
-
-    return bFound;
-}
 
 /*
     Description:
@@ -225,6 +200,7 @@ WanMgr_DmlDhcpv6cGetEntry
         return ANSC_STATUS_FAILURE;
 
     pEntry->Cfg.InstanceNumber = 1;
+    syscfg_init();
 
     /*Cfg members*/
     syscfg_get(NULL, SYSCFG_FORMAT_DHCP6C "_alias", pEntry->Cfg.Alias, sizeof(pEntry->Cfg.Alias));
@@ -270,7 +246,13 @@ WanMgr_DmlDhcpv6cGetEntry
 
 
     /*if we don't have alias, set a default one*/
-
+    char buf[256] = {0};
+    if (!pEntry->Cfg.Alias[0]) {
+        memset(buf, 0, sizeof(buf));
+        strncpy(buf, SYSCFG_FORMAT_DHCP6C"_alias",sizeof(buf)-1);
+        syscfg_set_string(buf, "Client1");
+        strncpy(pEntry->Cfg.Alias, "Client1",sizeof(pEntry->Cfg.Alias)-1);
+    }
 
     AnscCopyMemory(&g_dhcpv6_client, pEntry, sizeof(g_dhcpv6_client));
 
@@ -353,10 +335,15 @@ iface wan0 {
     }
 }
 */
+#if defined(_DT_WAN_Manager_Enable_)
+#define TMP_CLIENT_CONF "/etc/dibbler/.dibbler_client_conf"
+#else
 #define TMP_CLIENT_CONF "/tmp/.dibbler_client_conf"
+#endif
 #define CLIENT_CONF_LOCATION  "/etc/dibbler/client.conf"
 #define TMP_SERVER_CONF "/tmp/.dibbler_server_conf"
 #define SERVER_CONF_LOCATION  "/etc/dibbler/server.conf"
+#define CLIENT_NOTIFY "/etc/dibbler/client-notify.sh"
 
 static int _prepare_client_conf(PDML_DHCPCV6_CFG       pCfg)
 {
@@ -366,13 +353,22 @@ static int _prepare_client_conf(PDML_DHCPCV6_CFG       pCfg)
     if (fp)
     {
         /*we need this to get IANA IAPD info from dibbler*/
+#if defined(_DT_WAN_Manager_Enable_)
+        fprintf(fp, "log-level 7\n");
+        fprintf(fp, "log-mode full\n");
+        fprintf(fp, "duid-type duid-ll\n");
+        fprintf(fp, "script \"%s\" \n",CLIENT_NOTIFY);
+        fprintf(fp, "reconfigure-accept 1\n");
+#else
         fprintf(fp, "notify-scripts\n");
+#endif
 
         fprintf(fp, "iface %s {\n", pCfg->Interface);
 
         if (pCfg->RapidCommit)
             fprintf(fp, "    rapid-commit yes\n");
 
+        if ((pCfg->SuggestedT1) || (pCfg->SuggestedT2)) {
         if (pCfg->RequestAddresses)
         {
             fprintf(fp, "    ia {\n");
@@ -414,7 +410,26 @@ static int _prepare_client_conf(PDML_DHCPCV6_CFG       pCfg)
 
             fprintf(fp, "    }\n");
         }
+        }
+        else {
+            /* RFC3315 - Set T1 and T2 to 0 for IA_NA / IA_PD requests to indicate no preference for it from the gateway side instead operator network(BNG) provides T1/T2 values to gateway. */
+            if (pCfg->RequestAddresses) {
+                fprintf(fp, "    ia {\n");
+                fprintf(fp, "           t1 0\n");
+                fprintf(fp, "           t2 0\n");
+                fprintf(fp, "    }\n");
+            }
+            if (pCfg->RequestPrefixes) {
+                fprintf(fp, "    pd {\n");
+                fprintf(fp, "           t1 0\n");
+                fprintf(fp, "           t2 0\n");
+                fprintf(fp, "    }\n");
+            }
+        }
 
+        fprintf(fp, "    option dns-server\n");
+        fprintf(fp, "    option domain\n");
+ 
         fprintf(fp, "}\n");
 
         fclose(fp);
@@ -432,6 +447,8 @@ static int _dibbler_client_operation(char * arg)
     char out[256] = {0};
     FILE *fp = NULL;
     int ret =0;
+    int pidval = 0;
+    int32_t rc;
 #if defined (INTEL_PUMA7)
     int watchdog = NO_OF_RETRY;
 #endif
@@ -447,12 +464,23 @@ static int _dibbler_client_operation(char * arg)
         system("/usr/bin/service_dhcpv6_client dhcpv6_client_service_disable");
         CcspTraceInfo(("%s  Calling service_dhcpv6_client.c with dhcpv6_client_service_disable from wanmgr_dhcpv6_apis.c\n", __func__));
 #else
-        v_secure_system("/etc/utopia/service.d/service_dhcpv6_client.sh disable");
+        v_secure_system("/etc/utopia/service.d/service_dhcpv6_client.sh disable &");
 #endif
 
 #ifdef _COSA_BCM_ARM_
         if (TRUE == WanManager_IsApplicationRunning (CLIENT_BIN))
         {
+#if defined(_DT_WAN_Manager_Enable_)
+            if ((pidval = util_getPidByName(CLIENT_BIN)) >= 0)
+            {
+                if ((rc = kill(pidval, SIGTERM)) < 0)
+                {
+                    CcspTraceError(("Failed to stop dibbler-client"));
+                }
+            }
+            v_secure_system("rm -f /tmp/dibbler/client.pid /tmp/dibbler/client-AddrMgr.xml");
+
+#else //_DT_WAN_Manager_Enable_
             CcspTraceInfo(("%s-%d [%s] is already running, killing it \n", __FUNCTION__,__LINE__,CLIENT_BIN));
             v_secure_system("killall " CLIENT_BIN);
             sleep(2);
@@ -477,6 +505,7 @@ static int _dibbler_client_operation(char * arg)
             {
                 v_secure_system("killall -9 "CLIENT_BIN);
             }
+#endif //_DT_WAN_Manager_Enable_
         }
 #endif
     }
@@ -516,7 +545,7 @@ static int _dibbler_client_operation(char * arg)
             fprintf(stderr, "\n%s()%s(): TLV data has not been initialized by CcspGwProvApp.Continuing with the previous configuration\n",__FILE__, __FUNCTION__);
         }
 #endif
-#ifndef _HUB4_PRODUCT_REQ_
+#if !defined(_HUB4_PRODUCT_REQ_) && !defined(_DT_WAN_Manager_Enable_)
         /* This wait loop is not required as we are not configuring IPv6 address on erouter0 interface */
         fp = v_secure_popen("r", "syscfg get last_erouter_mode");
 	if(!fp)
@@ -569,12 +598,15 @@ static int _dibbler_client_operation(char * arg)
         system("/usr/bin/service_dhcpv6_client dhcpv6_client_service_enable");
         CcspTraceInfo(("%s  Calling service_dhcpv6_client.c with dhcpv6_client_service_enable from wanmgr_dhcpv6_apis.c\n", __func__));
 #else
-        v_secure_system("/etc/utopia/service.d/service_dhcpv6_client.sh enable");
+        v_secure_system("/etc/utopia/service.d/service_dhcpv6_client.sh enable &");
 #endif
 
 #ifdef _COSA_BCM_ARM_
         /* Dibbler-init is called to set the pre-configuration for dibbler */
         CcspTraceInfo(("%s dibbler-init.sh Called \n", __func__));
+#if defined(_DT_WAN_Manager_Enable_)
+        _prepare_client_conf(&g_dhcpv6_client.Cfg);
+#endif
         v_secure_system("/lib/rdk/dibbler-init.sh");
         /*Start Dibber client for tchxb6*/
         CcspTraceInfo(("%s Dibbler Client Started \n", __func__));
@@ -584,6 +616,7 @@ static int _dibbler_client_operation(char * arg)
     else if (!strncmp(arg, "restart", 7))
     {
         _dibbler_client_operation("stop");
+        sleep(2);
         _dibbler_client_operation("start");
     }
 
@@ -685,6 +718,7 @@ WanMgr_DmlDhcpv6cSetCfg
         out[0] = pCfg->RapidCommit ? '1':'0';
         out[1] = 0;
         syscfg_set_string(buf, out);
+        g_dhcpv6_client.Cfg.RapidCommit = pCfg->RapidCommit;
         need_to_restart_service = 1;
     }
 
@@ -692,11 +726,22 @@ WanMgr_DmlDhcpv6cSetCfg
     if (need_to_restart_service)
     {
         if ( pCfg->bEnabled != g_dhcpv6_client.Cfg.bEnabled &&  !pCfg->bEnabled )
+        {
+#if defined(_DT_WAN_Manager_Enable_)
+            g_dhcpv6_client.Cfg.bEnabled = pCfg->bEnabled;
+#endif
             _dibbler_client_operation("stop");
+        }
         else if (pCfg->bEnabled != g_dhcpv6_client.Cfg.bEnabled &&  pCfg->bEnabled )
         {
             _prepare_client_conf(pCfg);
+#if defined(_DT_WAN_Manager_Enable_)
+            _dibbler_client_operation("stop");
+            if (pCfg->RequestAddresses || pCfg->RequestPrefixes)
+                _dibbler_client_operation("start");
+#else
             _dibbler_client_operation("restart");
+#endif
         }
         else if (pCfg->bEnabled == g_dhcpv6_client.Cfg.bEnabled && !pCfg->bEnabled)
         {
@@ -705,7 +750,13 @@ WanMgr_DmlDhcpv6cSetCfg
         else if (pCfg->bEnabled == g_dhcpv6_client.Cfg.bEnabled && pCfg->bEnabled)
         {
             _prepare_client_conf(pCfg);
+#if defined(_DT_WAN_Manager_Enable_)
+            _dibbler_client_operation("stop");
+            if (pCfg->RequestAddresses || pCfg->RequestPrefixes)
+                _dibbler_client_operation("start");
+#else
             _dibbler_client_operation("restart");
+#endif
         }
     }
 
@@ -1583,938 +1634,7 @@ int dhcpv6_assign_global_ip(char * prefix, char * intfName, char * ipAddr)
     /* This IP should be unique. If not I have no idea. */
     return 0;
 }
-#else
-int dhcpv6_assign_global_ip(char * prefix, char * intfName, char * ipAddr)
-{
-    unsigned int    length           = 0;
-    char            globalIP[64]     = {0};
-    char           *pMac             = NULL;
-    unsigned int    prefixLen           = 0;
-    unsigned int    iteratorI,iteratorJ = 0;
-    char            out[256]         = {0};
-    char            tmp[8]           = {0};
-    FILE *fp = NULL;
-    int ret =0;
-
-    _ansc_strcpy( globalIP, prefix);
-
-    /* Prepare the first part. */
-
-    prefixLen = _ansc_strlen(globalIP);
-
-    while( (globalIP[prefixLen-1] != '/') && (prefixLen>0) ) prefixLen--;
-
-    if ( prefixLen == 0 ){
-        AnscTrace("error, there is not '/' in prefix:%s\n", prefix);
-        return 1;
-    }
-
-    length = atoi(&globalIP[prefixLen]);
-
-    if ( length > 64 ){
-        AnscTrace("error, length is bigger than 64. prefix:%s, length:%d\n", prefix, length);
-        return 1;
-    }
-
-    globalIP[prefixLen-1] = '\0';
-
-    prefixLen = prefixLen-1;
-
-    if ( (globalIP[prefixLen-1]!=':') && (globalIP[prefixLen-2]!=':') ){
-        AnscTrace("error, there is not '::' in prefix:%s\n", prefix);
-        return 1;
-    }
-
-    iteratorI = prefixLen-2;
-    iteratorJ = 0;
-    while( iteratorI > 0 ){
-        if ( globalIP[iteratorI-1] == ':' )
-            iteratorJ++;
-        iteratorI--;
-    }
-
-    if ( iteratorJ == 3 )
-    {
-        globalIP[prefixLen-1] = '\0';
-        prefixLen = prefixLen - 1;
-    }
-
-    AnscTrace("the first part is:%s\n", globalIP);
-
-
-    /* prepare second part */
-    fp = v_secure_popen("r", "ifconfig %s | grep HWaddr\n", intfName );
-    if(!fp)
-    {
-        CcspTraceError(("[%s-%d] failed to opening v_secure_popen pipe !! \n", __FUNCTION__, __LINE__));
-    }
-    else
-    {
-        _get_shell_output(fp, out, sizeof(out));
-        ret = v_secure_pclose(fp);
-        if(ret !=0) {
-            CcspTraceError(("[%s-%d] failed to closing  v_secure_pclose pipe ret [%d]!! \n", __FUNCTION__, __LINE__,ret));
-        }
-    }
-
-    pMac =_ansc_strstr(out, "HWaddr");
-    if ( pMac == NULL ){
-        AnscTrace("error, this interface has not a mac address .\n");
-        return 1;
-    }
-
-    pMac += _ansc_strlen("HWaddr");
-    while( pMac && (pMac[0] == ' ') )
-        pMac++;
-
-    /* switch 7bit to 1*/
-    tmp[0] = pMac[1];
-
-    iteratorJ = strtol(tmp, (char **)NULL, 16);
-
-    iteratorJ = iteratorJ ^ 0x2;
-    if ( iteratorJ < 10 )
-        iteratorJ += '0';
-    else
-        iteratorJ += 'A' - 10;
-
-    pMac[1] = iteratorJ;
-    pMac[17] = '\0';
-
-    //00:50:56: FF:FE:  92:00:22
-    _ansc_strncpy(out, pMac, 9);
-    out[9] = '\0';
-    strncat(out, "FF:FE:",sizeof(out)-1);
-    strncat(out, pMac+9,sizeof(out)-1);
-
-    for(iteratorJ=0,iteratorI=0; out[iteratorI]; iteratorI++){
-        if ( out[iteratorI] == ':' )
-            continue;
-        globalIP[prefixLen++] = out[iteratorI];
-        if ( ++iteratorJ == 4 ){
-           globalIP[prefixLen++] = ':';
-           iteratorJ = 0;
-        }
-    }
-
-    globalIP[prefixLen-1] = '\0';
-
-    AnscTrace("the full part is:%s\n", globalIP);
-
-    _ansc_strncpy(ipAddr, globalIP, sizeof(globalIP) - 1);
-
-    /* This IP should be unique. If not I have no idea. */
-    return 0;
-}
 #endif
-
-#define POS_PREFIX_DELEGATION 7
-int CalcIPv6Prefix(char *GlobalPref, char *pref,int index)
-{
-    unsigned char buf[sizeof(struct in6_addr)];
-    int domain, s;
-    char str[INET6_ADDRSTRLEN];
-   domain = AF_INET6;
-   s = inet_pton(domain, GlobalPref, buf);
-    if (s <= 0) {
-        if (s == 0)
-            fprintf(stderr, "Not in presentation format");
-        else
-            perror("inet_pton");
-           return 0;
-    }
-   buf[POS_PREFIX_DELEGATION] = buf[POS_PREFIX_DELEGATION] + index;
-   if (inet_ntop(domain, buf, str, INET6_ADDRSTRLEN) == NULL) {
-        perror("inet_ntop");
-            return 0;
-    }
-    printf("%s\n", str);
-    strncpy(pref,str,sizeof(str));
-    return 1;
-}
-
-int GenIPv6Prefix(char *ifName,char *GlobalPref, char *pref)
-{
-int len = 0;
-int index = 0;
-char cmd[100];
-char out[100];
-static int interface_num = 4; // Reserving first 4 /64s for dhcp configurations
-    if(ifName == NULL)
-    return 0;
-
-    memset(cmd,0,sizeof(cmd));
-    memset(out,0,sizeof(out));
-    _ansc_sprintf(cmd, "%s%s",ifName,"_ipv6_index");
-    sysevent_get(sysevent_fd, sysevent_token,cmd, out, sizeof(out));
-    if(strlen(out) != 0)
-    {
-        index = atoi(out);
-    }
-
-    len = strlen(GlobalPref);
-    strncpy(pref,GlobalPref, len + 1);
-    if(index == 0)
-    {
-        if(CalcIPv6Prefix(GlobalPref,pref,interface_num)== 0)
-        return 0;
-        memset(cmd,0,sizeof(cmd));
-        snprintf(cmd, sizeof(cmd)-1, "%s%s",ifName,"_ipv6_index");
-        _ansc_sprintf(out, "%d",interface_num);
-        sysevent_set(sysevent_fd, sysevent_token, cmd, out , 0);
-        interface_num++;
-    }
-    else
-    {
-        if(CalcIPv6Prefix(GlobalPref,pref,index)==0 )
-        return 0;
-    }
-    strncat(pref,"/64",sizeof("/64"));
-        CcspTraceInfo(("%s: pref %s\n", __func__, pref));
-return 1;
-
-}
-/* This thread is added to handle the LnF interface IPv6 rule, because LnF is coming up late in XB6 devices.
-This thread can be generic to handle the operations depending on the interfaces. Other interface and their events can be register here later based on requirement */
-static int sysevent_fd_1;
-static token_t sysevent_token_1;
-static pthread_t InfEvtHandle_tid;
-static void *InterfaceEventHandler_thrd(void *data)
-{
-    UNREFERENCED_PARAMETER(data);
-    async_id_t interface_asyncid;
-    async_id_t interface_XHS_asyncid;
-
-    CcspTraceWarning(("%s started\n",__FUNCTION__));
-    sysevent_fd_1 = sysevent_open("127.0.0.1", SE_SERVER_WELL_KNOWN_PORT, SE_VERSION, "Interface_evt_handler", &sysevent_token_1);
-
-    sysevent_set_options(sysevent_fd_1, sysevent_token_1, "multinet_6-status", TUPLE_FLAG_EVENT);
-    sysevent_setnotification(sysevent_fd_1, sysevent_token_1, "multinet_6-status",  &interface_asyncid);
-    sysevent_set_options(sysevent_fd_1, sysevent_token_1, "multinet_2-status", TUPLE_FLAG_EVENT);
-    sysevent_setnotification(sysevent_fd_1, sysevent_token_1, "multinet_2-status",  &interface_XHS_asyncid);
-    while(1)
-    {
-         async_id_t getnotification_asyncid;
-         int err;
-         unsigned char name[25], val[42],buf[128],cmd[128];
-         int namelen = sizeof(name);
-         int vallen  = sizeof(val);
-	 int ret = 0;
-        err = sysevent_getnotification(sysevent_fd_1, sysevent_token_1, name, &namelen,  val, &vallen, &getnotification_asyncid);
-
-            if (err)
-            {
-                   CcspTraceWarning(("sysevent_getnotification failed with error: %d %s\n", err,__FUNCTION__));
-                   CcspTraceWarning(("sysevent_getnotification failed name: %s val : %s\n", name,val));
-            if ( 0 != v_secure_system("pidof syseventd")) {
-
-                       CcspTraceWarning(("%s syseventd not running ,breaking the receive notification loop \n",__FUNCTION__));
-                break;
-            }
-            }
-            else
-            {
-
-                   CcspTraceWarning(("%s Recieved notification event  %s\n",__FUNCTION__,name));
-            if(strcmp((const char*)name,"multinet_6-status") == 0)
-            {
-                if(strcmp((const char*)val, "ready") == 0)
-                {
-                                        sysevent_get(sysevent_fd, sysevent_token,"br106_ipaddr_v6", buf, sizeof(buf));
-                    ret = v_secure_system("ip -6 route add %s dev br106",buf);
-		    if(ret != 0) {
-                       CcspTraceWarning(("%s: Failure in executing command via v_secure_system. ret:[%d] \n",__FUNCTION__,ret));
-                    }
-
-                    #ifdef _COSA_INTEL_XB3_ARM_
-                                        
-                   ret = v_secure_system("ip -6 route add %s dev br106 table erouter",buf);
-		   if(ret != 0) {
-                       CcspTraceWarning(("%s: Failure in executing command via v_secure_system. ret:[%d] \n",__FUNCTION__,ret));
-                   }
-                       
-                    #endif
-                                      
-                                        v_secure_system("ip -6 rule add iif br106 lookup erouter");
-                }
-
-            }
-            if(strcmp((const char*)name,"multinet_2-status") == 0)
-            {
-                if(strcmp((const char*)val, "ready") == 0)
-                {
-                    char *Inf_name = NULL;
-		    FILE *fp = NULL;
-                    int retPsmGet = CCSP_SUCCESS;
-                    retPsmGet = PSM_Get_Record_Value2(bus_handle,g_Subsystem, "dmsb.l2net.2.Port.1.Name", NULL, &Inf_name);
-                            if (retPsmGet == CCSP_SUCCESS)
-                    {
-                        char tbuff[100];
-                                     
-                        tbuff[0] = '\0';
-                        fp = v_secure_popen("r","sysctl net.ipv6.conf.%s.autoconf",Inf_name);
-                        if(!fp)
-                        {
-                            CcspTraceError(("[%s-%d] failed to opening v_secure_popen pipe !! \n", __FUNCTION__, __LINE__));
-                        }
-                        else
-                        {
-                            _get_shell_output(fp, tbuff, sizeof(tbuff));
-			    ret = v_secure_pclose(fp);
-                            if(ret !=0) {
-                                CcspTraceError(("[%s-%d] failed to closing  v_secure_pclose pipe ret [%d]!! \n", __FUNCTION__, __LINE__,ret));
-                            }
-                        }
-                        if(tbuff[strlen(tbuff)-1] == '0')
-                        {
-                            ret = v_secure_system("sysctl -w net.ipv6.conf.%s.autoconf=1",Inf_name);
-			    if(ret != 0) {
-                                CcspTraceWarning(("%s: Failure in executing command via v_secure_system. ret:[%d] \n",__FUNCTION__,ret));
-                            }             
-                            ret = v_secure_system("ifconfig %s down;ifconfig %s up",Inf_name,Inf_name);
-			    if(ret != 0) {
-                                CcspTraceWarning(("%s: Failure in executing command via v_secure_system. ret:[%d] \n",__FUNCTION__,ret));
-                            }       
-                        }
-
-                                        memset(cmd,0,sizeof(cmd));
-                                        snprintf(cmd,sizeof(cmd)-1, "%s_ipaddr_v6",Inf_name);
-                                        sysevent_get(sysevent_fd, sysevent_token,cmd, buf, sizeof(buf));
-                        ret = v_secure_system("ip -6 route add %s dev %s",buf,Inf_name);
-			if(ret != 0) {
-                                CcspTraceWarning(("%s: Failure in executing command via v_secure_system. ret:[%d] \n",__FUNCTION__,ret));
-                        }
-
-                        #ifdef _COSA_INTEL_XB3_ARM_
-                  
-                        ret = v_secure_system("ip -6 route add %s dev %s table erouter",buf,Inf_name);
-			if(ret != 0) {
-                                CcspTraceWarning(("%s: Failure in executing command via v_secure_system. ret:[%d] \n", __FUNCTION__,ret));
-                        }
-
-                        #endif
-                                        ret = v_secure_system("ip -6 rule add iif %s lookup erouter",Inf_name);
-					if(ret != 0) {
-                                            CcspTraceWarning(("%s: Failure in executing command via v_secure_system. ret:[%d] \n",__FUNCTION__, ret));
-                                        }
-                 
-                        ((CCSP_MESSAGE_BUS_INFO *)bus_handle)->freefunc(Inf_name);
-                    }
-                    else
-                    {
-                        CcspTraceWarning(("%s PSM get failed for interface name\n", __FUNCTION__));
-                    }
-                }
-
-            }
-
-        }
-    }
-
-}
-static int sysevent_fd_global = 0;
-static token_t sysevent_token_global;
-
-static void *
-dhcpv6c_dbg_thrd(void * in)
-{
-    UNREFERENCED_PARAMETER(in);
-    int fd=0 , fd1=0;
-    char msg[1024] = {0};
-    int i;
-    char * p = NULL;
-    char globalIP2[128] = {0};
-    char out[128] = {0};
-    //When PaM restart, this is to get previous addr.
-    sysevent_get(sysevent_fd, sysevent_token,"lan_ipaddr_v6", globalIP2, sizeof(globalIP2));
-    if ( globalIP2[0] )
-        CcspTraceWarning(("%s  It seems there is old value(%s)\n", __FUNCTION__, globalIP2));
-
-    sysevent_fd_global = sysevent_open("127.0.0.1", SE_SERVER_WELL_KNOWN_PORT, SE_VERSION, "Multinet Status", &sysevent_token_global);
-
-    CcspTraceWarning(("%s sysevent_fd_global is %d\n", __FUNCTION__, sysevent_fd_global));
-
-    unsigned char lan_multinet_state[16] ;
-
-    int return_val=0;
-
-    fd_set rfds;
-    struct timeval tm;
-
-    fd= open(CCSP_COMMON_FIFO, O_RDWR);
-
-    if (fd< 0)
-    {
-        fprintf(stderr,"open common fifo!!!!!!!!!!!!\n");
-        goto EXIT;
-    }
-
-    while (1)
-    {
-    int retCode = 0;
-        tm.tv_sec  = 60;
-        tm.tv_usec = 0;
-
-        FD_ZERO(&rfds);
-        FD_SET(fd, &rfds);
-        retCode = select( (fd+1), &rfds, NULL, NULL, &tm);
-        /* When return -1, it's error.
-           When return 0, it's timeout
-           When return >0, it's the number of valid fds */
-        if (retCode < 0) {
-        fprintf(stderr, "dbg_thrd : select returns error \n" );
-
-            if (errno == EINTR)
-                continue;
-
-            CcspTraceWarning(("%s -- select(): %s", __FUNCTION__, strerror(errno)));
-            goto EXIT;
-        }
-    else if(retCode == 0 )
-        continue;
-        if ( FD_ISSET(fd, &rfds) )
-        {
-         memset(msg, 0, sizeof(msg));
-             read(fd, msg, sizeof(msg));
-
-        }
-    else
-        continue;
-
-        if (msg[0] != 0)
-        {
-            CcspTraceInfo(("%s: get message %s\n", __func__, msg));
-        } else {
-        //Message is empty. Wait 5 sec before trying the select again.
-            sleep(5);
-            continue;
-        }
-
-        if (!strncmp(msg, "dibbler-client", strlen("dibbler-client")))
-        {
-            char v6addr[64] = {0};
-            char v6pref[128] = {0};
-            char v6pref_addr[128] = {0};
-            char v6Tpref[128] = {0};
-            int pref_len = 0;
-
-            char iana_t1[32]    = {0};
-            char iana_t2[32]    = {0};
-            char iana_iaid[32]  = {0};
-            char iana_pretm[32] = {0};
-            char iana_vldtm[32] = {0};
-
-            char iapd_t1[32]    = {0};
-            char iapd_t2[32]    = {0};
-            char iapd_iaid[32]  = {0};
-            char iapd_pretm[32] = {0};
-            char iapd_vldtm[32] = {0};
-
-            int t1 = 0;
-            int idx = 0;
-            char action[64] = {0};
-            char objName[128] = {0};
-            char globalIP[128] = {0};
-            BOOL bRestartLan = FALSE;
-            int  ret = 0;
-#ifdef _HUB4_PRODUCT_REQ_
-            char ula_address[64] = {0};
-#endif
-            /*the format is :
-             add 2000::ba7a:1ed4:99ea:cd9f :: 0 t1
-             action, address, prefix, pref_len 3600
-            now action only supports "add", "del"*/
-
-            p = msg+strlen("dibbler-client");
-            while(isblank(*p)) p++;
-
-            fprintf(stderr, "%s -- %d !!! get event from v6 client: %s \n", __FUNCTION__, __LINE__,p);
-
-            if (sscanf(p, "%63s %63s %31s %31s %31s %31s %31s %63s %d %31s %31s %31s %31s %31s",
-                       action, v6addr,    iana_iaid, iana_t1, iana_t2, iana_pretm, iana_vldtm,
-                       v6pref, &pref_len, iapd_iaid, iapd_t1, iapd_t2, iapd_pretm, iapd_vldtm ) == 14)
-            {
-                if (!strncmp(action, "add", 3))
-                {
-                    CcspTraceInfo(("%s: add\n", __func__));
-
-// Waiting until private lan interface is ready , so that we can assign global ipv6 address and also start dhcp server.
-            while (1)
-            {
-
-                    memset(lan_multinet_state,0,sizeof(lan_multinet_state));
-                            return_val=sysevent_get(sysevent_fd_global, sysevent_token_global, "multinet_1-status", lan_multinet_state, sizeof(lan_multinet_state));
-
-                            CcspTraceWarning(("%s multinet_1-status is %s, ret val is %d\n",__FUNCTION__,lan_multinet_state,return_val));
-
-                if(strcmp((const char*)lan_multinet_state, "ready") == 0)
-                {
-                    break;
-                }
-
-                sleep(5);
-              }
-
-                    /*for now we only support one address, one prefix notify, if need multiple addr/prefix, must modify dibbler-client code*/
-                    if (strncmp(v6addr, "::", 2) != 0)
-                    {
-                        if (strncmp(v6addr, "''", 2) == 0)
-                        {
-                            sysevent_set(sysevent_fd, sysevent_token, COSA_DML_DHCPV6C_ADDR_SYSEVENT_NAME, "" , 0);
-                        }
-                        else
-                        {
-                            sysevent_set(sysevent_fd, sysevent_token, COSA_DML_DHCPV6C_ADDR_SYSEVENT_NAME, v6addr , 0);
-                        }
-                        sysevent_set(sysevent_fd, sysevent_token, COSA_DML_DHCPV6C_ADDR_IAID_SYSEVENT_NAME,  iana_iaid , 0);
-                        sysevent_set(sysevent_fd, sysevent_token, COSA_DML_DHCPV6C_ADDR_T1_SYSEVENT_NAME,    iana_t1 , 0);
-                        sysevent_set(sysevent_fd, sysevent_token, COSA_DML_DHCPV6C_ADDR_T2_SYSEVENT_NAME,    iana_t2 , 0);
-                        sysevent_set(sysevent_fd, sysevent_token, COSA_DML_DHCPV6C_ADDR_PRETM_SYSEVENT_NAME, iana_pretm , 0);
-                        sysevent_set(sysevent_fd, sysevent_token, COSA_DML_DHCPV6C_ADDR_VLDTM_SYSEVENT_NAME, iana_vldtm , 0);
-                    }
-
-                    if (strncmp(v6pref, "::", 2) != 0)
-                    {
-            memset(v6Tpref,0,sizeof(v6Tpref));
-            strncpy(v6Tpref,v6pref,sizeof(v6Tpref));
-                        /*We just delegate longer and equal 64bits. Use zero to fill in the slot naturally. */
-#if defined (MULTILAN_FEATURE)
-                        sprintf(v6pref+strlen(v6pref), "/%d", pref_len);
-#else
-            if ( pref_len >= 64 )
-                            sprintf(v6pref+strlen(v6pref), "/%d", pref_len);
-                        else
-                        {
-#if defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION)
-                            sprintf(v6pref+strlen(v6pref), "/%d", pref_len);
-#else
-                            sprintf(v6pref+strlen(v6pref), "/%d", 64);
-#endif
-                        }
-#endif
-    char cmd[100];
-#if defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) && defined(_CBR_PRODUCT_REQ_)
-#else
-            char out1[100];
-            char *token = NULL;char *pt;
-            char s[2] = ",";
-	    FILE *fp = NULL;
-            if(pref_len < 64)
-            {
-                memset(out,0,sizeof(out));
-                memset(out1,0,sizeof(out1));
-                fp = v_secure_popen("r", "syscfg get IPv6subPrefix");
-		if(!fp)
-                {
-                     CcspTraceError(("[%s-%d] failed to opening v_secure_popen pipe !! \n", __FUNCTION__, __LINE__));
-                }
-                else
-                {
-                    _get_shell_output(fp, out, sizeof(out));
-                    ret = v_secure_pclose(fp);
-                    if(ret !=0) {
-                        CcspTraceError(("[%s-%d] failed to closing  v_secure_pclose pipe ret [%d]!! \n", __FUNCTION__, __LINE__,ret));
-                    }
-                }
-
-                if(!strcmp(out,"true"))
-                {
-                                static int first = 0;
-
-                memset(out,0,sizeof(out));
-                fp = v_secure_popen("r", "syscfg get IPv6_Interface");
-		if(!fp)
-                {
-                     CcspTraceError(("[%s-%d] failed to opening v_secure_popen pipe !! \n", __FUNCTION__, __LINE__));
-                }
-                else
-                {
-                    _get_shell_output(fp, out, sizeof(out));
-		    ret = v_secure_pclose(fp);
-                    if(ret !=0) {
-                        CcspTraceError(("[%s-%d] failed to closing  v_secure_pclose pipe ret [%d]!! \n", __FUNCTION__, __LINE__,ret));
-                    }
-                }
-
-                pt = out;
-                while((token = strtok_r(pt, ",", &pt)))
-                 {
-
-                    if(GenIPv6Prefix(token,v6Tpref,out1))
-                    {
-                        char tbuff[100];
-                        memset(cmd,0,sizeof(cmd));
-                        _ansc_sprintf(cmd, "%s%s",token,"_ipaddr_v6");
-                        sysevent_set(sysevent_fd, sysevent_token, cmd, out1 , 0);
-                        memset(tbuff,0,sizeof(tbuff));
-                        fp = v_secure_popen("r","sysctl net.ipv6.conf.%s.autoconf",token);
- 			 if(!fp)
-                         {
-                             CcspTraceError(("[%s-%d] failed to opening v_secure_popen pipe !! \n", __FUNCTION__, __LINE__));
-                         }
-                         else
-                         {
-                             _get_shell_output(fp, tbuff, sizeof(tbuff));
-			     ret = v_secure_pclose(fp);
-                             if(ret !=0) {
-                                 CcspTraceError(("[%s-%d] failed to closing  v_secure_pclose pipe ret [%d]!! \n", __FUNCTION__, __LINE__,ret));
-                             }
-                         }
-
-                        if(tbuff[strlen(tbuff)-1] == '0')
-                        {
-                            ret = v_secure_system("sysctl -w net.ipv6.conf.%s.autoconf=1",token);
-			    if(ret != 0) {
-                            CcspTraceWarning(("%s: Failure in executing command via v_secure_system. ret:[%d] \n", __FUNCTION__,ret));
-                            }
-                            ret = v_secure_system("ifconfig %s down;ifconfig %s up",token,token);
-			    if(ret != 0) {
-                                CcspTraceWarning(("%s: Failure in executing command via v_secure_system. ret:[%d] \n",__FUNCTION__, ret));
-                            }
-
-                        }
-                  
-                                    ret = v_secure_system("ip -6 route add %s dev %s", out1, token);
-				    if(ret != 0) {
-                                        CcspTraceWarning(("%s: Failure in executing command via v_secure_system. ret:[%d] \n", __FUNCTION__,ret));
-                                     }
-
-                        #ifdef _COSA_INTEL_XB3_ARM_
-                       
-                                    ret = v_secure_system("ip -6 route add %s dev %s table erouter", out1, token);
-				    if(ret != 0) {
-                                        CcspTraceWarning(("%s: Failure in executing command via v_secure_system. ret:[%d] \n",__FUNCTION__, ret));
-                                    }
-
-                        #endif
-                 
-                        ret = v_secure_system("ip -6 rule add iif %s lookup erouter",token);
-			if(ret != 0) {
-                            CcspTraceWarning(("%s:Failure in executing command via v_secure_system. ret:[%d] \n",__FUNCTION__, ret));
-                        }
-                        memset(out1,0,sizeof(out1));
-                    }
-                }
-                                        memset(out,0,sizeof(out));
-                                        if(first == 0)
-                                        {       first = 1;
-                                                pthread_create(&InfEvtHandle_tid, NULL, InterfaceEventHandler_thrd, NULL);
-                                        }
-                }
-            }
-#endif
-
-            sysevent_set(sysevent_fd, sysevent_token,COSA_DML_DHCPV6C_PREF_SYSEVENT_NAME, v6pref , 0);
-            sysevent_set(sysevent_fd, sysevent_token,COSA_DML_DHCPV6C_PREF_IAID_SYSEVENT_NAME,  iapd_iaid , 0);
-            sysevent_set(sysevent_fd, sysevent_token,COSA_DML_DHCPV6C_PREF_IAID_SYSEVENT_NAME,  iapd_iaid , 0);
-            sysevent_set(sysevent_fd, sysevent_token,COSA_DML_DHCPV6C_PREF_T1_SYSEVENT_NAME,    iapd_t1 , 0);
-            sysevent_set(sysevent_fd, sysevent_token,COSA_DML_DHCPV6C_PREF_T2_SYSEVENT_NAME,    iapd_t2 , 0);
-            sysevent_set(sysevent_fd, sysevent_token,COSA_DML_DHCPV6C_PREF_PRETM_SYSEVENT_NAME, iapd_pretm , 0);
-            sysevent_set(sysevent_fd, sysevent_token,COSA_DML_DHCPV6C_PREF_VLDTM_SYSEVENT_NAME, iapd_vldtm , 0);
-
-
-#if defined (MULTILAN_FEATURE)
-                        if ((v6addr_prev[0] == '\0') || ( _ansc_strcmp(v6addr_prev, v6pref ) !=0))
-                        {
-                            _ansc_strncpy( v6addr_prev, v6pref, sizeof(v6pref));
-                            sysevent_set(sysevent_fd, sysevent_token,"ipv6-restart", "1", 0);
-                        }
-                        else
-                        {
-                            sysevent_set(sysevent_fd, sysevent_token,"ipv6_addr-set", "", 0);
-                        }
-#endif
-
-#ifdef MULTILAN_FEATURE
-/* Service IPv6 will assign IP address and prefix allocation,
-   for all lan interfaces.
-*/
-#if !defined(INTEL_PUMA7) && !defined(_COSA_INTEL_XB3_ARM_)
-                        // not the best place to add route, just to make it work
-                        // delegated prefix need to route to LAN interface
-            
-                        ret = v_secure_system("ip -6 route add %s dev "COSA_DML_DHCPV6_SERVER_IFNAME,v6pref);
-                        if(ret != 0) {
-                            CcspTraceWarning(("%s: Failure in executing command via v_secure_system. ret:[%d] \n",__FUNCTION__, ret));
-                        }
-
-            #ifdef _COSA_INTEL_XB3_ARM_
-                        ret = v_secure_system("ip -6 route add %s dev " COSA_DML_DHCPV6_SERVER_IFNAME " table erouter",v6pref);
-			if(ret != 0) {
-                             CcspTraceWarning(("%s: Failure in executing command via v_secure_system. ret:[%d] \n",__FUNCTION__, ret));
-                        }
-
-            #endif
-            
-                        /* we need save this for zebra to send RA
-                           ipv6_prefix           // xx:xx::/yy
-                         */
-                        
-                        ret = v_secure_system("sysevent set ipv6_prefix %s \n",v6pref);
-			if(ret != 0) {
-                            CcspTraceWarning(("%s: Failure in executing command via v_secure_system. ret:[%d] \n",__FUNCTION__, ret));
-                        }
-
-                        CcspTraceWarning(("!run cmd1:sysevent set ipv6_prefix %s \n",v6pref));
-
-                        DHCPv6sDmlTriggerRestart(FALSE);
-#if defined(_COSA_BCM_ARM_) || defined(INTEL_PUMA7)
-                        CcspTraceWarning((" %s dhcpv6_assign_global_ip to brlan0 \n", __FUNCTION__));
-                        ret = dhcpv6_assign_global_ip(v6pref, "brlan0", globalIP);
-#elif defined _COSA_BCM_MIPS_
-                        ret = dhcpv6_assign_global_ip(v6pref, COSA_DML_DHCPV6_SERVER_IFNAME, globalIP);
-#else
-                        /*We need get a global ip addres */
-                        ret = dhcpv6_assign_global_ip(v6pref, "l2sd0", globalIP);
-#endif
-                        CcspTraceWarning(("%s: globalIP %s globalIP2 %s\n", __func__,
-                            globalIP, globalIP2));
-                        if ( _ansc_strcmp(globalIP, globalIP2 ) ){
-                            bRestartLan = TRUE;
-
-                            //PaM may restart. When this happen, we should not overwrite previous ipv6
-                            if ( globalIP2[0] )
-                               sysevent_set(sysevent_fd, sysevent_token,"lan_ipaddr_v6_prev", globalIP2, 0);
-
-                            _ansc_strcpy(globalIP2, globalIP);
-                        }else{
-                                char lanrestart[8] = {0};
-                                sysevent_get(sysevent_fd, sysevent_token,"lan_restarted",lanrestart, sizeof(lanrestart));
-                                fprintf(stderr,"lan restart staus is %s \n",lanrestart);
-                                      if (strcmp("true",lanrestart) == 0)
-                                    bRestartLan = TRUE;
-                                else
-                                    bRestartLan = FALSE;
-                        }
-                        CcspTraceWarning(("%s: bRestartLan %d\n", __func__, bRestartLan));
-
-                        fprintf(stderr, "%s -- %d !!! ret:%d bRestartLan:%d %s %s \n", __FUNCTION__, __LINE__,ret,  bRestartLan,  globalIP, globalIP2);
-
-                        if ( ret != 0 )
-                        {
-                            AnscTrace("error, assign global ip error.\n");
-                        }else if ( bRestartLan == FALSE ){
-                            AnscTrace("Same global IP, Need not restart.\n");
-                        }else{
-                            /* This is for IP.Interface.1. use */
-                            sysevent_set(sysevent_fd, sysevent_token,COSA_DML_DHCPV6S_ADDR_SYSEVENT_NAME, globalIP, 0);
-
-                            /*This is for brlan0 interface */
-                            sysevent_set(sysevent_fd, sysevent_token,"lan_ipaddr_v6", globalIP, 0);
-                            _ansc_sprintf(cmd, "%d", pref_len);
-                            sysevent_set(sysevent_fd, sysevent_token,"lan_prefix_v6", cmd, 0);
-
-                            sysevent_set(sysevent_fd, sysevent_token,"lan-restart", "1", 0);
-                        }
-#endif
-#else
-#ifdef _HUB4_PRODUCT_REQ_
-                        if ((iapd_vldtm[0]=='\0') || (iapd_pretm[0]=='\0')){
-                            strncpy(iapd_pretm, "forever", sizeof(iapd_pretm));
-                            strncpy(iapd_vldtm, "forever", sizeof(iapd_vldtm));
-                        }
-                        sysevent_get(sysevent_fd, sysevent_token,SYSEVENT_FIELD_IPV6_ULA_ADDRESS, ula_address, sizeof(ula_address));
-                        if(ula_address[0] != '\0') {
-                            ret = v_secure_system("ip -6 addr add %s/64 dev "COSA_DML_DHCPV6_SERVER_IFNAME,ula_address);
-			    if(ret != 0) {
-                                CcspTraceWarning(("%s: Failure in executing command via v_secure_system. ret:[%d] \n",__FUNCTION__,ret));
-                            }
-                        }
-                        ret = dhcpv6_assign_global_ip(v6pref, COSA_DML_DHCPV6_SERVER_IFNAME, globalIP);
-                        if(ret != 0) {
-                            CcspTraceInfo(("Assign global ip error \n"));
-                        }
-                        else {
-                            sysevent_set(sysevent_fd, sysevent_token,"lan_ipaddr_v6", globalIP, 0);
-                            CcspTraceInfo(("Going to execute: ip -6 addr add %s/64 dev %s valid_lft %s preferred_lft %s",
-                                globalIP, COSA_DML_DHCPV6_SERVER_IFNAME, iapd_vldtm, iapd_pretm));
-                            ret = v_secure_system("ip -6 addr add %s/64 dev " COSA_DML_DHCPV6_SERVER_IFNAME " valid_lft %s preferred_lft %s",globalIP,iapd_vldtm, iapd_pretm);
-			    if(ret != 0) {
-                                CcspTraceWarning(("%s: Failure in executing command via v_secure_system. ret:[%d] \n",__FUNCTION__,ret));
-                            }
-                        }
-                        if(strlen(v6pref) > 0) {
-                            strncpy(v6pref_addr, v6pref, (strlen(v6pref)-5));
-                            CcspTraceInfo(("Going to set ::1 address on brlan0 interface \n"));
-                            CcspTraceInfo(("Going to execute: ip -6 addr add %s::1/64 dev %s valid_lft %s preferred_lft %s",
-                                v6pref_addr, COSA_DML_DHCPV6_SERVER_IFNAME, iapd_vldtm, iapd_pretm));
-                            ret = v_secure_system("ip -6 addr add %s::1/64 dev " COSA_DML_DHCPV6_SERVER_IFNAME " valid_lft %s preferred_lft %s",v6pref_addr,iapd_vldtm, iapd_pretm);
-			    if(ret != 0) {
-                                CcspTraceWarning(("%s: Failure in executing command via v_secure_system. ret:[%d] \n",__FUNCTION__,ret));
-                            }   
-                        }
-                        // send an event to Sky-pro app manager that Global-prefix is set
-                        sysevent_set(sysevent_fd, sysevent_token,"lan_prefix_set", globalIP, 0);
-                        /**
-                        * Send data to wanmanager.
-                        */
-                        int ipv6_wan_status = 0;
-                        char dns_server[256] = {'\0'};
-                        unsigned int prefix_pref_time = 0;
-                        unsigned int prefix_valid_time = 0;
-                        char c;
-                        DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_GetVirtualIfaceByName_locked(PHY_WAN_IF_NAME);
-                        if(p_VirtIf != NULL)
-                        {
-                            if(p_VirtIf->IP.pIpcIpv6Data == NULL)
-                            {
-                                p_VirtIf->IP.pIpcIpv6Data = (ipc_dhcpv6_data_t*) malloc(sizeof(ipc_dhcpv6_data_t));
-                                if(p_VirtIf->IP.pIpcIpv6Data != NULL)
-                                {
-                                    strncpy(p_VirtIf->IP.pIpcIpv6Data->ifname, p_VirtIf->Name, sizeof(p_VirtIf->IP.pIpcIpv6Data->ifname));
-                                    if(strlen(v6pref) == 0)
-                                    {
-                                        p_VirtIf->IP.pIpcIpv6Data->isExpired = TRUE;
-                                    }
-                                    else
-                                    {
-                                        p_VirtIf->IP.pIpcIpv6Data->isExpired = FALSE;
-                                        p_VirtIf->IP.pIpcIpv6Data->prefixAssigned = TRUE;
-                                        strncpy(p_VirtIf->IP.pIpcIpv6Data->sitePrefix, v6pref, sizeof(p_VirtIf->IP.pIpcIpv6Data->sitePrefix));
-                                        strncpy(p_VirtIf->IP.pIpcIpv6Data->pdIfAddress, "", sizeof(p_VirtIf->IP.pIpcIpv6Data->pdIfAddress));
-                                        /** DNS servers. **/
-                                        sysevent_get(sysevent_fd, sysevent_token,SYSEVENT_FIELD_IPV6_DNS_SERVER, dns_server, sizeof(dns_server));
-                                        if (strlen(dns_server) != 0)
-                                        {
-                                            p_VirtIf->IP.pIpcIpv6Data->dnsAssigned = TRUE;
-                                            sscanf (dns_server, "%s %s", p_VirtIf->IP.pIpcIpv6Data->nameserver,
-                                                                         p_VirtIf->IP.pIpcIpv6Data->nameserver1);
-                                        }
-                                        sscanf(iapd_pretm, "%c%u%c", &c, &prefix_pref_time, &c);
-                                        sscanf(iapd_vldtm, "%c%u%c", &c, &prefix_valid_time, &c);
-                                        p_VirtIf->IP.pIpcIpv6Data->prefixPltime = prefix_pref_time;
-                                        p_VirtIf->IP.pIpcIpv6Data->prefixVltime = prefix_valid_time;
-                                        p_VirtIf->IP.pIpcIpv6Data->maptAssigned = FALSE;
-                                        p_VirtIf->IP.pIpcIpv6Data->mapeAssigned = FALSE;
-                                        p_VirtIf->IP.pIpcIpv6Data->prefixCmd = 0;
-                                    }
-                                    if (wanmgr_handle_dhcpv6_event_data(p_VirtIf) != ANSC_STATUS_SUCCESS)
-                                    {
-                                        CcspTraceError(("[%s-%d] Failed to send dhcpv6 data to wanmanager!!! \n", __FUNCTION__, __LINE__));
-                                    }
-                                }
-                            }
-                            WanMgr_VirtualIfaceData_release(p_VirtIf);
-                        }
-#endif
-                        // not the best place to add route, just to make it work
-                        // delegated prefix need to route to LAN interface
-                      
-                        ret = v_secure_system("ip -6 route add %s dev " COSA_DML_DHCPV6_SERVER_IFNAME,v6pref);
-			if(ret != 0) {
-                            CcspTraceWarning(("%s: Failure in executing command via v_secure_system. ret:[%d] \n",__FUNCTION__,ret));
-                        }     
-            #ifdef _COSA_INTEL_XB3_ARM_
-            
-                        ret = v_secure_system("ip -6 route add %s dev "COSA_DML_DHCPV6_SERVER_IFNAME " table erouter");
-			if(ret != 0) {
-                           CcspTraceWarning(("%s: Failure in executing command via v_secure_system. ret:[%d] \n",__FUNCTION__,ret));
-                        }   
-            #endif
-                        /* we need save this for zebra to send RA
-                           ipv6_prefix           // xx:xx::/yy
-                         */
-#ifndef _HUB4_PRODUCT_REQ_
-                      
-                        ret = v_secure_system("sysevent set ipv6_prefix %s \n",v6pref);
-			if(ret != 0) {
-                            CcspTraceWarning(("%s: Failure in executing command via v_secure_system. ret:[%d] \n",__FUNCTION__,ret));
-                        }
-#else
-                       
-                        v_secure_system("sysevent set zebra-restart \n");
-#endif
-                        //CcspTraceWarning(("!run cmd1:%s", cmd));
-
-                        DHCPv6sDmlTriggerRestart(FALSE);
-
-                        /*We need get a global ip addres */
-#if defined(_COSA_BCM_ARM_) || defined(INTEL_PUMA7)
-                        /*this is for tchxb6*/
-                        CcspTraceWarning((" %s dhcpv6_assign_global_ip to brlan0 \n", __FUNCTION__));
-                        ret = dhcpv6_assign_global_ip(v6pref, "brlan0", globalIP);
-#elif defined _COSA_BCM_MIPS_
-                        ret = dhcpv6_assign_global_ip(v6pref, COSA_DML_DHCPV6_SERVER_IFNAME, globalIP);
-#else
-                        ret = dhcpv6_assign_global_ip(v6pref, "l2sd0", globalIP);
-#endif
-                        CcspTraceWarning(("%s: globalIP %s globalIP2 %s\n", __func__,
-                            globalIP, globalIP2));
-                        if ( _ansc_strcmp(globalIP, globalIP2 ) ){
-                            bRestartLan = TRUE;
-
-                            //PaM may restart. When this happen, we should not overwrite previous ipv6
-                            if ( globalIP2[0] )
-                               sysevent_set(sysevent_fd, sysevent_token,"lan_ipaddr_v6_prev", globalIP2, 0);
-
-                            _ansc_strcpy(globalIP2, globalIP);
-                        }else{
-                char lanrestart[8] = {0};
-                    sysevent_get(sysevent_fd, sysevent_token,"lan_restarted",lanrestart, sizeof(lanrestart));
-                fprintf(stderr,"lan restart staus is %s \n",lanrestart);
-                   if (strcmp("true",lanrestart) == 0)
-                    bRestartLan = TRUE;
-                    else
-                                bRestartLan = FALSE;
-            }
-                        CcspTraceWarning(("%s: bRestartLan %d\n", __func__, bRestartLan));
-
-                        fprintf(stderr, "%s -- %d !!! ret:%d bRestartLan:%d %s %s \n", __FUNCTION__, __LINE__,ret,  bRestartLan,  globalIP, globalIP2);
-
-                        if ( ret != 0 )
-                        {
-                            AnscTrace("error, assign global ip error.\n");
-                        }else if ( bRestartLan == FALSE ){
-                            AnscTrace("Same global IP, Need not restart.\n");
-                        }else{
-                            /* This is for IP.Interface.1. use */
-                            sysevent_set(sysevent_fd, sysevent_token,COSA_DML_DHCPV6S_ADDR_SYSEVENT_NAME, globalIP, 0);
-
-                            /*This is for brlan0 interface */
-                            sysevent_set(sysevent_fd, sysevent_token,"lan_ipaddr_v6", globalIP, 0);
-                            _ansc_sprintf(cmd, "%d", pref_len);
-                            sysevent_set(sysevent_fd, sysevent_token,"lan_prefix_v6", cmd, 0);
-
-                            sysevent_set(sysevent_fd, sysevent_token,"lan-restart", "1", 0);
-                        }
-#endif
-                    }
-                }
-                else if (!strncmp(action, "del", 3))
-                {
-                    /*todo*/
-                }
-#if defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) && (defined(_CBR_PRODUCT_REQ_) || defined(_BCI_FEATURE_REQ))
-
-#else
-        v_secure_system("sysevent set zebra-restart");
-#endif
-            }
-
-        }
-#ifdef _DEBUG
-        else if (!strncmp(msg, "mem", 3))
-        {
-            /*add the test funcs in the run time.*/
-
-            AnscTraceMemoryTable();
-        }
-#endif
-    }
-
-EXIT:
-    if(fd>=0) {
-        close(fd);
-    }
-
-    if(fd1>=0) {
-        close(fd1);
-    }
-
-    return NULL;
-}
-
-
 
 static ANSC_STATUS wanmgr_dchpv6_get_ipc_msg_info(WANMGR_IPV6_DATA* pDhcpv6Data, ipc_dhcpv6_data_t* pIpcIpv6Data)
 {

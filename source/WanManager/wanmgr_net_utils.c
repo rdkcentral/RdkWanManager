@@ -580,6 +580,7 @@ ANSC_STATUS WanManager_StopDhcpv6Client(char * iface_name)
     return ret;
 }
 
+
 uint32_t WanManager_StartDhcpv4Client(DML_VIRTUAL_IFACE* pVirtIf, char* baseInterface, IFACE_TYPE IfaceType)
 {
     if (pVirtIf == NULL)
@@ -588,6 +589,10 @@ uint32_t WanManager_StartDhcpv4Client(DML_VIRTUAL_IFACE* pVirtIf, char* baseInte
         return 0;
     }
 
+#if defined(_DT_WAN_Manager_Enable_)
+    WanManager_CreateDHCPService(pVirtIf);
+    return 0;//TODO:Read and return PID
+#endif
     dhcp_params params;
     uint32_t pid = 0;
 
@@ -611,6 +616,10 @@ ANSC_STATUS WanManager_StopDhcpv4Client(char * iface_name, unsigned char IsRelea
     }
 
     CcspTraceInfo (("%s %d: Stopping dhcpv4 client for %s\n", __FUNCTION__, __LINE__, iface_name));
+#if defined(_DT_WAN_Manager_Enable_)
+    WanManager_StopUdhcpcService(iface_name);
+    return ANSC_STATUS_SUCCESS;
+#endif
 
     dhcp_params params;
     ANSC_STATUS ret;

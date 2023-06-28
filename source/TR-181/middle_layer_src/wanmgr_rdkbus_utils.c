@@ -846,7 +846,7 @@ ANSC_STATUS  WanMgr_RdkBus_ConfigureVlan(DML_VIRTUAL_IFACE* pVirtIf, BOOL VlanEn
     if(VlanEnable && pVirtIf->VLAN.NoOfInterfaceEntries > 1)
     {
         //Start VLAN discovery Timer
-        CcspTraceInfo(("%s %d %s Starting VlanTimer\n", __FUNCTION__,__LINE__));
+        CcspTraceInfo(("%s %d  Starting VlanTimer\n", __FUNCTION__,__LINE__));
         memset(&(pVirtIf->VLAN.TimerStart), 0, sizeof(struct timespec));
         clock_gettime(CLOCK_MONOTONIC_RAW, &(pVirtIf->VLAN.TimerStart));
     }

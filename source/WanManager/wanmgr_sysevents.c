@@ -68,6 +68,9 @@ int mapt_feature_enable_changed = FALSE;
 lanState_t lanState = LAN_STATE_RESET;
 #endif
 
+#if defined(_DT_WAN_Manager_Enable_)
+bool needDibblerRestart = TRUE;
+#endif
 static ANSC_STATUS WanMgr_SyseventInit()
 {
     ANSC_STATUS ret = ANSC_STATUS_SUCCESS;
@@ -521,6 +524,12 @@ static void *WanManagerSyseventHandler(void *args)
     sysevent_set_options(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_WAN_STATUS, TUPLE_FLAG_EVENT);
     sysevent_setnotification(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_WAN_STATUS,  &wan_status_asyncid);
 
+#if defined(_DT_WAN_Manager_Enable_)
+    async_id_t dibbler_restart_asyncid;
+    sysevent_set_options(sysevent_msg_fd, sysevent_msg_token, "dibbler-restart", TUPLE_FLAG_EVENT);
+    sysevent_setnotification(sysevent_msg_fd, sysevent_msg_token, "dibbler-restart",  &dibbler_restart_asyncid);
+#endif
+
     sysevent_set_options(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_RADVD_RESTART, TUPLE_FLAG_EVENT);
     sysevent_setnotification(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_RADVD_RESTART, &radvd_restart_asyncid);
 
@@ -653,6 +662,20 @@ static void *WanManagerSyseventHandler(void *args)
                     check_lan_wan_ready();
                 }
                 creat("/tmp/phylink_wan_state_up",S_IRUSR| S_IWUSR| S_IRGRP| S_IROTH);
+#if defined(_DT_WAN_Manager_Enable_)
+                                sysevent_set(sysevent_fd, sysevent_token, "sendImmediateRA", "true", 0);
+            }
+            else if ((strcmp(name, "dibbler-restart") == 0) && (strcmp(val, "true") == 0))
+            {
+                needDibblerRestart = TRUE;
+                system("sysevent set dibbler-restart false");
+
+            }
+            else if ((strcmp(name, SYSEVENT_WAN_STATUS) == 0) && (strcmp(val, SYSEVENT_VALUE_STOPPED) == 0))
+            {
+                needDibblerRestart = TRUE;
+	        sysevent_set(sysevent_fd, sysevent_token, "sendImmediateRA", "true", 0);
+#endif
             }
 #if defined (RDKB_EXTENDER_ENABLED)
             else if ((strcmp(name, SYSEVENT_MESH_WAN_LINK_STATUS) == 0))
