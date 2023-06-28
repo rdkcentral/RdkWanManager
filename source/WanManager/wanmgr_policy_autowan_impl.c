@@ -145,6 +145,9 @@ static SwitchOver_t TelemetryBackUpStatus = STATUS_SWITCHOVER_UNKNOWN;
 
 #endif /* WAN_FAILOVER_SUPPORTED */
 
+extern char g_Subsystem[32];
+extern ANSC_HANDLE bus_handle;
+
 /* ---- Global Variables -------------------------- */
 int g_CurrentWanMode        = 0;
 int g_LastKnowWanMode       = 0;
@@ -1832,9 +1835,93 @@ static int GetCurrentWanMode(void)
     return g_CurrentWanMode;
 }
 
+#define DMSB_TR181_PSM_EthLink_Root             "dmsb.EthLink."
+#define DMSB_TR181_PSM_EthLink_i                "%d."
+#define DMSB_TR181_PSM_EthLink_Name             "Name"
+#define DMSB_TR181_PSM_EthLink_LowerLayerType   "LowerLayerType"
+#define DMSB_TR181_PSM_l3net_EthLink            "dmsb.l3net.1.EthLink"
+
+static int GetEthLink(const char *name, int mode, unsigned int *eth_link_inst)
+{
+    char pParamPath[64];
+    char *pValue;
+    int linkIsFound = 0;
+    int nameIsFound;
+    int ret;
+    unsigned int i;
+    unsigned int ulNumInstance;
+    unsigned int *pInstanceArray = NULL;
+    unsigned int ulRecordType;
+
+    ret = PsmGetNextLevelInstances(bus_handle, g_Subsystem, DMSB_TR181_PSM_EthLink_Root, &ulNumInstance, &pInstanceArray);
+    if (ret != CCSP_SUCCESS)
+    {
+        AnscTraceWarning(("%s -- PsmGetNextLevelInstances failed, error code = %d!\n", __FUNCTION__, ret));
+        return 0;
+    }
+
+    for (i = 0; i < ulNumInstance; ++i)
+    {
+        nameIsFound = 0;
+
+        /* Name */
+        snprintf(pParamPath, sizeof(pParamPath), DMSB_TR181_PSM_EthLink_Root DMSB_TR181_PSM_EthLink_i DMSB_TR181_PSM_EthLink_Name, pInstanceArray[i]);
+        ret = PSM_Get_Record_Value2(bus_handle, g_Subsystem, pParamPath, &ulRecordType, &pValue);
+        if (ret == CCSP_SUCCESS)
+        {
+            if (ulRecordType == ccsp_string)
+            {
+                if (strcmp(pValue, name) == 0)
+                {
+                    nameIsFound = 1;
+                }
+            }
+            ((CCSP_MESSAGE_BUS_INFO*)bus_handle)->freefunc(pValue);
+        }
+        if (!nameIsFound)
+        {
+            continue;
+        }
+
+        /* LowerLayerType */
+        snprintf(pParamPath, sizeof(pParamPath), DMSB_TR181_PSM_EthLink_Root DMSB_TR181_PSM_EthLink_i DMSB_TR181_PSM_EthLink_LowerLayerType, pInstanceArray[i]);
+        ret = PSM_Get_Record_Value2(bus_handle, g_Subsystem, pParamPath, &ulRecordType, &pValue);
+        if (ret == CCSP_SUCCESS)
+        {
+            if (ulRecordType == ccsp_string)
+            {
+                if ((mode == WAN_MODE_PRIMARY) && (strcmp(pValue, "DOCSIS") == 0))
+                {
+                    linkIsFound = 1;
+                    *eth_link_inst = pInstanceArray[i];
+                }
+                else if ((mode == WAN_MODE_SECONDARY) && (strcmp(pValue, "Ethernet") == 0))
+                {
+                    linkIsFound = 1;
+                    *eth_link_inst = pInstanceArray[i];
+                }
+            }
+            ((CCSP_MESSAGE_BUS_INFO*)bus_handle)->freefunc(pValue);
+        }
+        if (linkIsFound)
+        {
+            break;
+        }
+    }
+
+    AnscFreeMemory(pInstanceArray);
+
+    return linkIsFound;
+}
+
 static void SetCurrentWanMode(int mode)
 {
     char buf[8];
+    char acTmpQueryParam[256] = {0};
+    char acTmpQueryValue[256] = {0};
+    int ret;
+    unsigned int ethLinkInst;
+
     memset(buf, 0, sizeof(buf));
     g_CurrentWanMode = mode;
     CcspTraceInfo(("%s Set Current WanMode = %s\n",__FUNCTION__, WanModeStr(g_CurrentWanMode)));
@@ -1845,6 +1932,28 @@ static void SetCurrentWanMode(int mode)
     }
     else{
         sysevent_set(sysevent_fd, sysevent_token, "current_wan_mode_update", buf, 0);
+    }
+
+    if ((mode == WAN_MODE_PRIMARY) || (mode == WAN_MODE_SECONDARY))
+    {
+        if (GetEthLink("erouter0", mode, &ethLinkInst))
+        {
+            snprintf(acTmpQueryValue, sizeof(acTmpQueryValue), "Device.Ethernet.Link.%u", ethLinkInst);
+
+            WanMgr_RdkBus_SetParamValues(PAM_COMPONENT_NAME, PAM_DBUS_PATH, "Device.IP.Interface.1.LowerLayers", acTmpQueryValue, ccsp_string, TRUE);
+
+            /* Save to PSM */
+            snprintf(acTmpQueryValue, sizeof(acTmpQueryValue), "%u", ethLinkInst);
+            ret = PSM_Set_Record_Value2(bus_handle, g_Subsystem, DMSB_TR181_PSM_l3net_EthLink, ccsp_string, acTmpQueryValue);
+            if (ret != CCSP_SUCCESS)
+            {
+                CcspTraceError(("%s - Failed to update %s to %u\n", __FUNCTION__, DMSB_TR181_PSM_l3net_EthLink, ethLinkInst));
+            }
+        }
+        else
+        {
+            CcspTraceInfo(("Failed to dynamically get Ethernet.Link interface. Using fallback option instead\n"));
+        }
     }
 }
 
