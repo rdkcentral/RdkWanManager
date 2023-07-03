@@ -1851,6 +1851,7 @@ static eWanState_t wan_transition_ipv6_down(WanMgr_IfaceSM_Controller_t* pWanIfa
         pInterface->Selection.Status == WAN_IFACE_NOT_SELECTED ||
         pInterface->BaseInterfaceStatus !=  WAN_IFACE_PHY_STATUS_UP ||
         p_VirtIf->VLAN.Status ==  WAN_IFACE_LINKSTATUS_DOWN ||
+        p_VirtIf->PPP.LinkStatus != WAN_IFACE_PPP_LINK_STATUS_UP ||
         (p_VirtIf->IP.RefreshDHCP == TRUE && (p_VirtIf->IP.IPv6Source != DML_WAN_IP_SOURCE_DHCP ||
         (p_VirtIf->IP.Mode != DML_WAN_IP_MODE_IPV6_ONLY && p_VirtIf->IP.Mode != DML_WAN_IP_MODE_DUAL_STACK))))
     {
@@ -2535,6 +2536,7 @@ static eWanState_t wan_state_standby(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
         return wan_transition_physical_interface_down(pWanIfaceCtrl);
     }
     else if ((p_VirtIf->VLAN.Enable == TRUE &&  p_VirtIf->VLAN.Status ==  WAN_IFACE_LINKSTATUS_DOWN) ||
+             (p_VirtIf->PPP.Enable == TRUE && p_VirtIf->PPP.LinkStatus != WAN_IFACE_PPP_LINK_STATUS_UP)|| // PPP is Enabled but DOWN
              (p_VirtIf->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_DOWN &&
              p_VirtIf->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_DOWN) ||
              p_VirtIf->IP.RefreshDHCP == TRUE)
@@ -2657,6 +2659,7 @@ static eWanState_t wan_state_ipv4_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
     }
     else if (p_VirtIf->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_DOWN ||
             (p_VirtIf->VLAN.Enable == TRUE && p_VirtIf->VLAN.Status ==  WAN_IFACE_LINKSTATUS_DOWN )||
+            (p_VirtIf->PPP.Enable == TRUE && p_VirtIf->PPP.LinkStatus != WAN_IFACE_PPP_LINK_STATUS_UP) || // PPP is Enabled but DOWN
             (p_VirtIf->IP.RefreshDHCP == TRUE && (p_VirtIf->IP.IPv4Source != DML_WAN_IP_SOURCE_DHCP ||    // IPv4Source not dhcp
             (p_VirtIf->IP.Mode != DML_WAN_IP_MODE_IPV4_ONLY && p_VirtIf->IP.Mode != DML_WAN_IP_MODE_DUAL_STACK))))
     {
@@ -2810,6 +2813,7 @@ static eWanState_t wan_state_ipv6_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
     }
     else if (p_VirtIf->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_DOWN ||
              (p_VirtIf->VLAN.Enable == TRUE && p_VirtIf->VLAN.Status ==  WAN_IFACE_LINKSTATUS_DOWN )||
+             (p_VirtIf->PPP.Enable == TRUE && p_VirtIf->PPP.LinkStatus != WAN_IFACE_PPP_LINK_STATUS_UP)|| // PPP is Enabled but DOWN
             (p_VirtIf->IP.RefreshDHCP == TRUE && (p_VirtIf->IP.IPv6Source != DML_WAN_IP_SOURCE_DHCP ||    // Ipv6source is not dhcp
             (p_VirtIf->IP.Mode != DML_WAN_IP_MODE_IPV6_ONLY && p_VirtIf->IP.Mode != DML_WAN_IP_MODE_DUAL_STACK))))
     {
@@ -2971,7 +2975,8 @@ static eWanState_t wan_state_dual_stack_active(WanMgr_IfaceSM_Controller_t* pWan
     {
         return wan_transition_physical_interface_down(pWanIfaceCtrl);
     }
-    else if (p_VirtIf->VLAN.Enable == TRUE &&  p_VirtIf->VLAN.Status ==  WAN_IFACE_LINKSTATUS_DOWN )
+    else if ((p_VirtIf->VLAN.Enable == TRUE &&  p_VirtIf->VLAN.Status ==  WAN_IFACE_LINKSTATUS_DOWN)   // VLAN is Enabled but Down
+            || (p_VirtIf->PPP.Enable == TRUE && p_VirtIf->PPP.LinkStatus != WAN_IFACE_PPP_LINK_STATUS_UP)) // PPP is Enabled but DOWN
     {
         return wan_transition_dual_stack_down(pWanIfaceCtrl);
     }
