@@ -327,54 +327,5 @@ BOOL WanIfVlanMarking_Validate(ANSC_HANDLE hInsContext, char* ParamName, BOOL bV
 ULONG WanIfVlanMarking_Commit(ANSC_HANDLE hInsContext);
 ULONG WanIfVlanMarking_Rollback(ANSC_HANDLE hInsContext);
 
-#if defined(FEATURE_SUPPORT_VLAN_DISCOVERY)
-/***********************************************************************
-
- APIs for Object:
-
-    X_RDK_WanManager.Interface.{i}.VirtualInterface.{i}.VLANDiscovery.
-
-    *  WanIfVlanDiscoveryCfg_GetParamUlongValue
-    *  WanIfVlanDiscoveryCfg_SetParamUlongValue
-    *  WanIfVlanDiscoveryCfg_GetParamBoolValue
-    *  WanIfVlanDiscoveryCfg_SetParamBoolValue
-    *  WanIfVlanDiscoveryCfg_Validate
-    *  WanIfVlanDiscoveryCfg_Commit
-    *  WanIfVlanDiscoveryCfg_Rollback
-
-***********************************************************************/
-
-BOOL WanIfVlanDiscoveryCfg_GetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG* puLong);
-BOOL WanIfVlanDiscoveryCfg_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG uValue);
-ULONG WanIfVlanDiscoveryCfg_GetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL* pBool);
-BOOL WanIfVlanDiscoveryCfg_SetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL bValue);
-BOOL WanIfVlanDiscoveryCfg_Validate(ANSC_HANDLE hInsContext, char* ParamName, BOOL bValue);
-ULONG WanIfVlanDiscoveryCfg_Commit(ANSC_HANDLE hInsContext);
-ULONG WanIfVlanDiscoveryCfg_Rollback(ANSC_HANDLE hInsContext);
-
-/***********************************************************************
-
- APIs for Object:
-
-    X_RDK_WanManager.Interface.{i}.VirtualInterface.{i}.VLANDiscovery.Tag.{i}.
-
-    *  WanIfVlanDiscoveryTagCfg_GetEntryCount
-    *  WanIfVlanDiscoveryTagCfg_GetEntry
-    *  WanIfVlanDiscoveryTagCfg_GetParamUlongValue
-    *  WanIfVlanDiscoveryTagCfg_SetParamUlongValue
-    *  WanIfVlanDiscoveryTagCfg_Validate
-    *  WanIfVlanDiscoveryTagCfg_Commit
-    *  WanIfVlanDiscoveryTagCfg_Rollback
-
-***********************************************************************/
-
-ULONG WanIfVlanDiscoveryTagCfg_GetEntryCount(ANSC_HANDLE hInsContext);
-ANSC_HANDLE WanIfVlanDiscoveryTagCfg_GetEntry(ANSC_HANDLE hInsContext, ULONG nIndex, ULONG* pInsNumber);
-BOOL WanIfVlanDiscoveryTagCfg_GetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG* puLong);
-BOOL WanIfVlanDiscoveryTagCfg_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG uValue);
-BOOL WanIfVlanDiscoveryTagCfg_Validate(ANSC_HANDLE hInsContext, char* ParamName, BOOL bValue);
-ULONG WanIfVlanDiscoveryTagCfg_Commit(ANSC_HANDLE hInsContext);
-ULONG WanIfVlanDiscoveryTagCfg_Rollback(ANSC_HANDLE hInsContext);
-#endif /* FEATURE_SUPPORT_VLAN_DISCOVERY */
 #endif /* _WANMGR_DML_IFACE_V2_APIS_H_ */
 #endif /* WAN_MANAGER_UNIFICATION_ENABLED */

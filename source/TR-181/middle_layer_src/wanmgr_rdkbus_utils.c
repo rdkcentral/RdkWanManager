@@ -832,7 +832,7 @@ ANSC_STATUS WanMgr_RdkBus_setWanIpInterfaceData(DML_VIRTUAL_IFACE*  pVirtIf)
 }
 #endif
 
-ANSC_STATUS  WanMgr_RdkBus_ConfigureVlan(DML_VIRTUAL_IFACE* pVirtIf, BOOL Enable)
+ANSC_STATUS  WanMgr_RdkBus_ConfigureVlan(DML_VIRTUAL_IFACE* pVirtIf, BOOL VlanEnable)
 {
     if(pVirtIf ==NULL)
     {
@@ -843,10 +843,16 @@ ANSC_STATUS  WanMgr_RdkBus_ConfigureVlan(DML_VIRTUAL_IFACE* pVirtIf, BOOL Enable
     char acSetParamName[BUFLEN_256] ={0};
     char acSetParamValue[256] = {0};
     ANSC_STATUS ret = ANSC_STATUS_FAILURE;
-
-    CcspTraceInfo(("%s %d %s VLAN %s\n", __FUNCTION__,__LINE__, Enable? "Enabling":"Disabling",pVirtIf->VLAN.VLANInUse));
+    if(VlanEnable && pVirtIf->VLAN.NoOfInterfaceEntries > 1)
+    {
+        //Start VLAN discovery Timer
+        CcspTraceInfo(("%s %d %s Starting VlanTimer\n", __FUNCTION__,__LINE__));
+        memset(&(pVirtIf->VLAN.TimerStart), 0, sizeof(struct timespec));
+        clock_gettime(CLOCK_MONOTONIC_RAW, &(pVirtIf->VLAN.TimerStart));
+    }
+    CcspTraceInfo(("%s %d %s VLAN %s\n", __FUNCTION__,__LINE__, VlanEnable? "Enabling":"Disabling",pVirtIf->VLAN.VLANInUse));
     snprintf( acSetParamName, sizeof(acSetParamName), "%s.Enable", pVirtIf->VLAN.VLANInUse);
-    snprintf( acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", Enable? "true":"false" );
+    snprintf( acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", VlanEnable? "true":"false" );
 
     ret = WanMgr_RdkBus_SetParamValues( VLAN_COMPONENT_NAME, VLAN_DBUS_PATH, acSetParamName, acSetParamValue, ccsp_boolean, TRUE );
     if(ret != ANSC_STATUS_SUCCESS)
@@ -859,7 +865,7 @@ ANSC_STATUS  WanMgr_RdkBus_ConfigureVlan(DML_VIRTUAL_IFACE* pVirtIf, BOOL Enable
     return ANSC_STATUS_SUCCESS;
 }
 
-ANSC_STATUS WanManager_ConfigurePPPSession(DML_VIRTUAL_IFACE* pVirtIf, BOOL Enable)
+ANSC_STATUS WanManager_ConfigurePPPSession(DML_VIRTUAL_IFACE* pVirtIf, BOOL PPPEnable)
 {
 
     char acSetParamName[256] = {0};
@@ -869,9 +875,9 @@ ANSC_STATUS WanManager_ConfigurePPPSession(DML_VIRTUAL_IFACE* pVirtIf, BOOL Enab
     syscfg_set_commit(NULL, SYSCFG_WAN_INTERFACE_NAME, pVirtIf->Name);
 
     //Set PPP Enable
-    CcspTraceInfo(("%s %d %s PPP %s\n", __FUNCTION__,__LINE__, Enable? "Enabling":"Disabling",pVirtIf->PPP.Interface));
+    CcspTraceInfo(("%s %d %s PPP %s\n", __FUNCTION__,__LINE__, PPPEnable? "Enabling":"Disabling",pVirtIf->PPP.Interface));
     snprintf( acSetParamName, DATAMODEL_PARAM_LENGTH, "%s.Enable", pVirtIf->PPP.Interface );
-    snprintf( acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", Enable? "true":"false" );
+    snprintf( acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", PPPEnable? "true":"false" );
     ret = WanMgr_RdkBus_SetParamValues( PPPMGR_COMPONENT_NAME, PPPMGR_DBUS_PATH, acSetParamName, acSetParamValue, ccsp_boolean, TRUE );
 
     if(ret != ANSC_STATUS_SUCCESS)

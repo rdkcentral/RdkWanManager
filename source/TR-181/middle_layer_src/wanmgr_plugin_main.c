@@ -503,23 +503,6 @@ int ANSC_EXPORT_API WanManagerDmlInit(ULONG uMaxVersionSupported, void* hCosaPlu
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "WanIfVlanMarking_Commit", WanIfVlanMarking_Commit);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "WanIfVlanMarking_Rollback", WanIfVlanMarking_Rollback);
 
-#if defined(FEATURE_SUPPORT_VLAN_DISCOVERY)
-    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "WanIfVlanDiscoveryCfg_GetParamUlongValue", WanIfVlanDiscoveryCfg_GetParamUlongValue);
-    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "WanIfVlanDiscoveryCfg_SetParamUlongValue", WanIfVlanDiscoveryCfg_SetParamUlongValue);
-    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "WanIfVlanDiscoveryCfg_GetParamBoolValue", WanIfVlanDiscoveryCfg_GetParamBoolValue);
-    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "WanIfVlanDiscoveryCfg_SetParamBoolValue", WanIfVlanDiscoveryCfg_SetParamBoolValue);
-    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "WanIfVlanDiscoveryCfg_Validate", WanIfVlanDiscoveryCfg_Validate);
-    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "WanIfVlanDiscoveryCfg_Commit", WanIfVlanDiscoveryCfg_Commit);
-    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "WanIfVlanDiscoveryCfg_Rollback", WanIfVlanDiscoveryCfg_Rollback);
-
-    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "WanIfVlanDiscoveryTagCfg_GetEntryCount", WanIfVlanDiscoveryTagCfg_GetEntryCount);
-    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "WanIfVlanDiscoveryTagCfg_GetEntry", WanIfVlanDiscoveryTagCfg_GetEntry);
-    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "WanIfVlanDiscoveryTagCfg_GetParamUlongValue", WanIfVlanDiscoveryTagCfg_GetParamUlongValue);
-    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "WanIfVlanDiscoveryTagCfg_SetParamUlongValue", WanIfVlanDiscoveryTagCfg_SetParamUlongValue);
-    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "WanIfVlanDiscoveryTagCfg_Validate", WanIfVlanDiscoveryTagCfg_Validate);
-    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "WanIfVlanDiscoveryTagCfg_Commit", WanIfVlanDiscoveryTagCfg_Commit);
-    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "WanIfVlanDiscoveryTagCfg_Rollback", WanIfVlanDiscoveryTagCfg_Rollback);
-#endif /** FEATURE_SUPPORT_VLAN_DISCOVERY */
 #endif /* WAN_MANAGER_UNIFICATION_ENABLED */
 
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "DHCPv6_GetParamBoolValue", DHCPv6_GetParamBoolValue);

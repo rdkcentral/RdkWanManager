@@ -431,6 +431,9 @@ typedef struct _DML_VIRTUALIF_VLAN
     UINT                        NoOfMarkingEntries;
     DML_VIRTIF_MARKING*         VirtMarking;
     DML_WAN_IFACE_LINKSTATUS    Status;
+    BOOL                        Expired;
+    BOOL                        Reset;
+    struct timespec             TimerStart;
 } DML_VIRTUALIF_VLAN;
 
 typedef struct _DML_VIRTUAL_IFACE

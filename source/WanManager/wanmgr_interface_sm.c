@@ -418,6 +418,45 @@ static XLAT_State_t xlat_state_get(void)
 }
 #endif
 
+#if defined(_DT_WAN_Manager_Enable_)
+/*
+ * WanManager_ConfigureMarking() 
+ * This function will Apply virtual Interface specific Qos Marking using Linux utils : Iproute2
+ * QoS egress map setting is moved from VlanManager to here. This is because of the
+ * difficulty in creating VlanManager's marking table dynamically from WanManager. 
+ */
+static ANSC_STATUS WanManager_ConfigureMarking(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
+{
+    CcspTraceInfo(("%s %d \n", __FUNCTION__, __LINE__));
+    if((pWanIfaceCtrl == NULL) || (pWanIfaceCtrl->pIfaceData == NULL))
+    {
+        return ANSC_STATUS_FAILURE;
+    }
+
+    char command[256] = {0};
+    DML_WAN_IFACE* pInterface = pWanIfaceCtrl->pIfaceData;
+    DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIfaceById(pInterface->VirtIfList, pWanIfaceCtrl->VirIfIdx);
+
+    /* QoS egress map setting is moved from VlanManager to here. This is because of the */
+    /* difficulty in creating VlanManager's marking table dynamically from WanManager.  */
+    for(int Markingid=0; Markingid < p_VirtIf->VLAN.NoOfMarkingEntries; Markingid++)
+    {
+        DML_VIRTIF_MARKING* p_virtMarking = WanMgr_getVirtMakingById(p_VirtIf->VLAN.VirtMarking, Markingid);
+        CcspTraceInfo(("%s %d Applying Interface Marking Entry %d\n", __FUNCTION__, __LINE__,p_virtMarking->Entry));
+        /* Get Interface Marking Entry */
+        PSINGLE_LINK_ENTRY  pSListEntry = AnscSListGetEntryByIndex(&(pInterface->Marking.MarkingList), p_virtMarking->Entry);
+        if ( pSListEntry )
+        {
+            DML_MARKING* p_WanIfMarking = (ACCESS_CONTEXT_MARKING_LINK_OBJECT(pSListEntry))->hContext;
+            memset(command, 0, sizeof(command));
+            snprintf(command, sizeof(command), "ip link set %s type vlan egress-qos-map %d:%d", p_VirtIf->Name, p_WanIfMarking->SKBMark, p_WanIfMarking->EthernetPriorityMark);
+            WanManager_DoSystemAction("Apply QOS marking:", command);
+
+        }
+    }
+}
+#endif
+
 /*********************************************************************************/
 /**************************** ACTIONS ********************************************/
 /*********************************************************************************/
@@ -1401,7 +1440,9 @@ static eWanState_t wan_transition_physical_interface_down(WanMgr_IfaceSM_Control
         }
     }
 
-    if(p_VirtIf->Reset == TRUE)
+    Update_Interface_Status();
+
+    if(p_VirtIf->Reset == TRUE || p_VirtIf->VLAN.Reset == TRUE || p_VirtIf->VLAN.Expired == TRUE)
     {
         p_VirtIf->Reset = FALSE;
         CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION REFRESHING WAN\n", __FUNCTION__, __LINE__, pInterface->Name));
@@ -1497,10 +1538,38 @@ static eWanState_t wan_transition_wan_refreshed(WanMgr_IfaceSM_Controller_t* pWa
 
     if(  p_VirtIf->VLAN.Enable == TRUE && p_VirtIf->VLAN.Status == WAN_IFACE_LINKSTATUS_DOWN && pInterface->IfaceType != REMOTE_IFACE)
     {
+        if(p_VirtIf->VLAN.Expired == TRUE || p_VirtIf->VLAN.Reset == TRUE)
+        {
+            DML_VLAN_IFACE_TABLE* pVlanIf = NULL;
+            if (p_VirtIf->VLAN.Reset == TRUE || p_VirtIf->VLAN.ActiveIndex == -1)
+            {
+                /* Reset to first Vlan Interface*/
+                pVlanIf = p_VirtIf->VLAN.InterfaceList;
+            }else
+            {
+                pVlanIf = WanMgr_getVirtVlanIfById(p_VirtIf->VLAN.InterfaceList, p_VirtIf->VLAN.ActiveIndex);
+                if(pVlanIf == NULL || pVlanIf->next == NULL)
+                {
+                    /* Next Vlan Interface not available reset to Head*/
+                    pVlanIf = p_VirtIf->VLAN.InterfaceList;
+                }else
+                {
+                    /* Try next Vlan Interface*/
+                    pVlanIf = pVlanIf->next;
+                }
+
+            }
+            p_VirtIf->VLAN.ActiveIndex = pVlanIf->Index;
+            strncpy(p_VirtIf->VLAN.VLANInUse, pVlanIf->Interface, sizeof(p_VirtIf->VLAN.VLANInUse));
+            CcspTraceInfo(("%s %d VLAN Discovery . Trying VlanIndex: %d : %s\n", __FUNCTION__, __LINE__,p_VirtIf->VLAN.ActiveIndex, p_VirtIf->VLAN.VLANInUse));
+        }
+
         p_VirtIf->VLAN.Status = WAN_IFACE_LINKSTATUS_CONFIGURING;
         //TODO: NEW_DESIGN check for VLAN table
         WanMgr_RdkBus_ConfigureVlan(p_VirtIf, TRUE);
     }
+    p_VirtIf->VLAN.Reset = FALSE;
+    p_VirtIf->VLAN.Expired = FALSE;
 
     return WAN_STATE_VLAN_CONFIGURING;
 }
@@ -1567,6 +1636,7 @@ static eWanState_t wan_transition_ipv4_up(WanMgr_IfaceSM_Controller_t* pWanIface
         return WAN_STATE_DUAL_STACK_ACTIVE;
     }
 
+    DmlSetVLANInUseToPSMDB(p_VirtIf);
     CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION IPV4 LEASED\n", __FUNCTION__, __LINE__, pInterface->Name));
 
     return WAN_STATE_IPV4_LEASED;
@@ -1831,6 +1901,7 @@ static eWanState_t wan_transition_ipv6_up(WanMgr_IfaceSM_Controller_t* pWanIface
         return WAN_STATE_DUAL_STACK_ACTIVE;
     }
 
+    DmlSetVLANInUseToPSMDB(p_VirtIf);
     CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION IPV6 LEASED\n", __FUNCTION__, __LINE__, pInterface->Name));
     return WAN_STATE_IPV6_LEASED;
 }
@@ -2211,6 +2282,7 @@ static eWanState_t wan_transition_standby(WanMgr_IfaceSM_Controller_t* pWanIface
     }
 
     Update_Interface_Status();
+    DmlSetVLANInUseToPSMDB(p_VirtIf);
     CcspTraceInfo(("%s %d - TRANSITION WAN_STATE_STANDBY\n", __FUNCTION__, __LINE__));
     return WAN_STATE_STANDBY;
 }
@@ -2291,12 +2363,33 @@ static eWanState_t wan_state_vlan_configuring(WanMgr_IfaceSM_Controller_t* pWanI
         return wan_transition_physical_interface_down(pWanIfaceCtrl);
     }
 
+    if(p_VirtIf->VLAN.NoOfInterfaceEntries > 1 )
+    {
+        struct timespec CurrentTime;
+        /* get the current time */
+        memset(&(CurrentTime), 0, sizeof(struct timespec));
+        clock_gettime(CLOCK_MONOTONIC_RAW, &(CurrentTime));
+
+        if(p_VirtIf->VLAN.Reset == TRUE || difftime(CurrentTime.tv_sec, p_VirtIf->VLAN.TimerStart.tv_sec) > p_VirtIf->VLAN.Timeout)
+        {
+            CcspTraceInfo(("%s %d VlanDiscovery timer expired.\n", __FUNCTION__, __LINE__));
+            p_VirtIf->VLAN.Expired = TRUE;
+            return wan_transition_physical_interface_down(pWanIfaceCtrl);
+        }
+    }
+
     if(p_VirtIf->VLAN.Enable == TRUE)
     {
         if(p_VirtIf->VLAN.Status !=  WAN_IFACE_LINKSTATUS_UP)
         {
             return WAN_STATE_VLAN_CONFIGURING;
         }
+
+#if defined(_DT_WAN_Manager_Enable_)
+        /* VLAN status is successful. Add QOS markings*/
+        //TODO: This is not a sky use case currently. For Sky markings are applied from VLAN Manager.
+        WanManager_ConfigureMarking(pWanIfaceCtrl);
+#endif
     }
     else
     {
@@ -2323,6 +2416,21 @@ static eWanState_t wan_state_ppp_configuring(WanMgr_IfaceSM_Controller_t* pWanIf
             pInterface->BaseInterfaceStatus !=  WAN_IFACE_PHY_STATUS_UP)
     {
         return wan_transition_physical_interface_down(pWanIfaceCtrl);
+    }
+
+    if(p_VirtIf->VLAN.NoOfInterfaceEntries > 1 )
+    {
+        struct timespec CurrentTime;
+        /* get the current time */
+        memset(&(CurrentTime), 0, sizeof(struct timespec));
+        clock_gettime(CLOCK_MONOTONIC_RAW, &(CurrentTime));
+
+        if(p_VirtIf->VLAN.Reset == TRUE || difftime(CurrentTime.tv_sec, p_VirtIf->VLAN.TimerStart.tv_sec) > p_VirtIf->VLAN.Timeout)
+        {
+            CcspTraceInfo(("%s %d VlanDiscovery timer expired.\n", __FUNCTION__, __LINE__));
+            p_VirtIf->VLAN.Expired = TRUE;
+            return wan_transition_physical_interface_down(pWanIfaceCtrl);
+        }
     }
 
     if(p_VirtIf->PPP.Enable == TRUE)
@@ -2362,6 +2470,21 @@ static eWanState_t wan_state_validating_wan(WanMgr_IfaceSM_Controller_t* pWanIfa
         return wan_transition_physical_interface_down(pWanIfaceCtrl);
     }
 
+    if(p_VirtIf->VLAN.NoOfInterfaceEntries > 1 )
+    {
+        struct timespec CurrentTime;
+        /* get the current time */
+        memset(&(CurrentTime), 0, sizeof(struct timespec));
+        clock_gettime(CLOCK_MONOTONIC_RAW, &(CurrentTime));
+
+        if(p_VirtIf->VLAN.Reset == TRUE || difftime(CurrentTime.tv_sec, p_VirtIf->VLAN.TimerStart.tv_sec) > p_VirtIf->VLAN.Timeout)
+        {
+            CcspTraceInfo(("%s %d VlanDiscovery timer expired.\n", __FUNCTION__, __LINE__));
+            p_VirtIf->VLAN.Expired = TRUE;
+            return wan_transition_physical_interface_down(pWanIfaceCtrl);
+        }
+    }
+
     if(strstr(pInterface->BaseInterface, "Cellular") != NULL)
     {
         if(p_VirtIf->VLAN.Status !=  WAN_IFACE_LINKSTATUS_UP)
@@ -2396,28 +2519,22 @@ static eWanState_t wan_state_obtaining_ip_addresses(WanMgr_IfaceSM_Controller_t*
         return wan_transition_physical_interface_down(pWanIfaceCtrl);
     }
 
-    if (p_VirtIf->VLAN.Enable == TRUE && p_VirtIf->VLAN.Status ==  WAN_IFACE_LINKSTATUS_DOWN )
-    {
-        if (pInterface->IfaceType != REMOTE_IFACE)
-            p_VirtIf->VLAN.Status =  WAN_IFACE_LINKSTATUS_CONFIGURING;
+    struct timespec CurrentTime;
+    /* get the current time */
+    memset(&(CurrentTime), 0, sizeof(struct timespec));
+    clock_gettime(CLOCK_MONOTONIC_RAW, &(CurrentTime));
 
-        Update_Interface_Status();
-        //Call VLAN reconfigure transition
-        return WAN_STATE_VLAN_CONFIGURING;
+    if((p_VirtIf->VLAN.NoOfInterfaceEntries > 1 &&
+       (p_VirtIf->VLAN.Reset == TRUE || difftime(CurrentTime.tv_sec, p_VirtIf->VLAN.TimerStart.tv_sec) > p_VirtIf->VLAN.Timeout))||
+       (p_VirtIf->VLAN.Enable == TRUE && p_VirtIf->VLAN.Status ==  WAN_IFACE_LINKSTATUS_DOWN ) ||
+       (p_VirtIf->PPP.Enable == TRUE && p_VirtIf->PPP.LinkStatus ==  WAN_IFACE_PPP_LINK_STATUS_DOWN))
+    {
+        CcspTraceInfo(("%s %d VlanDiscovery timer expired Or VLAN/PPP status DOWN \n", __FUNCTION__, __LINE__));
+        p_VirtIf->VLAN.Expired = TRUE;
+        return wan_transition_physical_interface_down(pWanIfaceCtrl);
     }
 
-    if(p_VirtIf->PPP.Enable == TRUE)
-    {
-        if(p_VirtIf->PPP.LinkStatus ==  WAN_IFACE_PPP_LINK_STATUS_DOWN)
-        {
-            p_VirtIf->PPP.LinkStatus =  WAN_IFACE_PPP_LINK_STATUS_CONFIGURING;
-            Update_Interface_Status();
-        //Call VLAN reconfigure transition
-            return WAN_STATE_VLAN_CONFIGURING;
-        }
-    }
-
-    // Ip source chnaged changed to TRUE
+    // Ip source changed changed to TRUE
     if (p_VirtIf->IP.RefreshDHCP == TRUE)
     {
         if(p_VirtIf->IP.IPv4Source == DML_WAN_IP_SOURCE_DHCP &&
@@ -2659,6 +2776,7 @@ static eWanState_t wan_state_ipv4_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
         pInterface->Selection.Enable == FALSE ||
         p_VirtIf->Enable == FALSE ||
         p_VirtIf->Reset == TRUE ||
+        p_VirtIf->VLAN.Reset == TRUE ||
         pInterface->BaseInterfaceStatus !=  WAN_IFACE_PHY_STATUS_UP)
     {
         return wan_transition_physical_interface_down(pWanIfaceCtrl);
@@ -2813,6 +2931,7 @@ static eWanState_t wan_state_ipv6_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
         pInterface->Selection.Enable == FALSE ||
         p_VirtIf->Enable == FALSE ||
         p_VirtIf->Reset == TRUE ||
+        p_VirtIf->VLAN.Reset == TRUE ||
         pInterface->BaseInterfaceStatus !=  WAN_IFACE_PHY_STATUS_UP)
     {
         return wan_transition_physical_interface_down(pWanIfaceCtrl);
@@ -2977,6 +3096,7 @@ static eWanState_t wan_state_dual_stack_active(WanMgr_IfaceSM_Controller_t* pWan
         pInterface->Selection.Enable == FALSE ||
         p_VirtIf->Enable == FALSE ||
         p_VirtIf->Reset == TRUE ||
+        p_VirtIf->VLAN.Reset == TRUE ||
         pInterface->BaseInterfaceStatus !=  WAN_IFACE_PHY_STATUS_UP)
     {
         return wan_transition_physical_interface_down(pWanIfaceCtrl);
@@ -3182,6 +3302,7 @@ static eWanState_t wan_state_mapt_active(WanMgr_IfaceSM_Controller_t* pWanIfaceC
         pInterface->Selection.Enable == FALSE ||
         p_VirtIf->Enable == FALSE ||
         p_VirtIf->Reset == TRUE ||
+        p_VirtIf->VLAN.Reset == TRUE ||
         pInterface->BaseInterfaceStatus !=  WAN_IFACE_PHY_STATUS_UP)
     {
         return wan_transition_physical_interface_down(pWanIfaceCtrl);
@@ -3332,6 +3453,7 @@ static eWanState_t wan_state_refreshing_wan(WanMgr_IfaceSM_Controller_t* pWanIfa
         pInterface->Selection.Status == WAN_IFACE_NOT_SELECTED ||
         pInterface->BaseInterfaceStatus !=  WAN_IFACE_PHY_STATUS_UP)
     {
+         p_VirtIf->VLAN.Expired = FALSE; //Reset VLAN.Expired
         return wan_transition_physical_interface_down(pWanIfaceCtrl);
     }
     

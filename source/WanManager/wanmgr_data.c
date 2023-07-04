@@ -382,7 +382,7 @@ DML_VIRTIF_MARKING* WanMgr_getVirtualMarking_locked(UINT baseIfidx, UINT virtIfI
             if(pWanIfaceCtrl->pIface != NULL)
             {
                 WanMgr_Iface_Data_t* pWanIfaceData = &(pWanIfaceCtrl->pIface[baseIfidx]);
-                return WanMgr_getVirtVlanIfById((WanMgr_getVirtualIfaceById(pWanIfaceData->data.VirtIfList, virtIfIdx))->VLAN.VirtMarking, Markingid);
+                return WanMgr_getVirtMakingById((WanMgr_getVirtualIfaceById(pWanIfaceData->data.VirtIfList, virtIfIdx))->VLAN.VirtMarking, Markingid);
             }
         }
         WanMgrDml_GetIfaceData_release(NULL);

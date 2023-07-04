@@ -521,12 +521,6 @@ int write_Virtual_Interface_ToPSM(ULONG instancenum, ULONG virtInsNum ,DML_VIRTU
 
     memset(param_value, 0, sizeof(param_value));
     memset(param_name, 0, sizeof(param_name));
-    AnscCopyString(param_value, pVirtIf->VLAN.VLANInUse);
-    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_VLAN_INUSE, instancenum, (virtInsNum + 1));
-    WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
-
-    memset(param_value, 0, sizeof(param_value));
-    memset(param_name, 0, sizeof(param_name));
     _ansc_sprintf(param_value, "%d", pVirtIf->VLAN.Timeout );
     _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_VLAN_TIMEOUT, instancenum, (virtInsNum + 1));
     WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
@@ -1585,6 +1579,20 @@ PCONTEXT_LINK_OBJECT SListGetEntryByInsNum( PSLIST_HEADER pListHead, ULONG Insta
     }
 
     return NULL;
+}
+
+ANSC_STATUS DmlSetVLANInUseToPSMDB(DML_VIRTUAL_IFACE * pVirtIf)
+{
+    char param_value[256] = {0};
+    char param_name[512] = {0};
+
+
+    AnscCopyString(param_value, pVirtIf->VLAN.VLANInUse);
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_VLAN_INUSE, (pVirtIf->baseIfIdx +1), (pVirtIf->VirIfIdx + 1));
+    CcspTraceInfo(("%s %d Update VLANInUse to PSM %s => %s\n", __FUNCTION__, __LINE__,param_name,param_value));
+    WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
+    
+     return ANSC_STATUS_SUCCESS;
 }
 
 ANSC_STATUS DmlSetWanActiveLinkInPSMDB( UINT uiInterfaceIdx , bool storeValue )

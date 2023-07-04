@@ -410,7 +410,7 @@
 <?endif?>
                                 <parameter>
                                     <name>Timeout</name>
-                                    <type>unsignedInt[20:65535]</type>
+                                    <type>unsignedInt[0:65535]</type>
                                     <syntax>uint32</syntax>
                                     <writable>true</writable>
                                 </parameter>
@@ -615,77 +615,6 @@
                                         </parameter>
                                     </parameters>
                                 </object>
-<?ifdef FEATURE_SUPPORT_VLAN_DISCOVERY?>
-                                <object>
-                                    <name>VLANDiscovery</name>
-                                    <objectType>object</objectType>
-                                    <functions>
-                                        <func_GetParamUlongValue>WanIfVlanDiscoveryCfg_GetParamUlongValue</func_GetParamUlongValue>
-                                        <func_SetParamUlongValue>WanIfVlanDiscoveryCfg_SetParamUlongValue</func_SetParamUlongValue>
-                                        <func_GetParamBoolValue>WanIfVlanDiscoveryCfg_GetParamBoolValue</func_GetParamBoolValue>
-                                        <func_SetParamBoolValue>WanIfVlanDiscoveryCfg_SetParamBoolValue</func_SetParamBoolValue>
-                                        <func_Validate>WanIfVlanDiscoveryCfg_Validate</func_Validate>
-                                        <func_Commit>WanIfVlanDiscoveryCfg_Commit</func_Commit>
-                                        <func_Rollback>WanIfVlanDiscoveryCfg_Rollback</func_Rollback>
-                                    </functions>
-                                    <parameters>
-                                        <parameter>
-                                            <name>Enable</name>
-                                            <type>boolean</type>
-                                            <syntax>bool</syntax>
-                                            <writable>true</writable>
-                                        </parameter>
-                                        <parameter>
-                                            <name>Status</name>
-                                            <type>string: Discovering(1),Discovered(2)</type>
-                                            <syntax>uint32/mapped</syntax>
-                                            <writable>false</writable>
-                                        </parameter>
-                                        <parameter>
-                                            <name>Timeout</name>
-                                            <type>unsignedInt[20:65535]</type>
-                                            <syntax>uint32</syntax>
-                                            <writable>true</writable>
-                                        </parameter>
-                                        <parameter>
-                                            <name>Reset</name>
-                                            <type>boolean</type>
-                                            <syntax>bool</syntax>
-                                            <writable>true</writable>
-                                        </parameter>
-                                    </parameters>
-                                    <objects>
-                                      <object>
-                                        <name>Tag</name>
-                                        <objectType>staticTable</objectType>
-                                        <maxInstance>128</maxInstance>
-                                        <functions>
-                                            <func_GetEntryCount>WanIfVlanDiscoveryTagCfg_GetEntryCount</func_GetEntryCount>
-                                            <func_GetEntry>WanIfVlanDiscoveryTagCfg_GetEntry</func_GetEntry>
-                                            <func_GetParamUlongValue>WanIfVlanDiscoveryTagCfg_GetParamUlongValue</func_GetParamUlongValue>
-                                            <func_SetParamUlongValue>WanIfVlanDiscoveryTagCfg_SetParamUlongValue</func_SetParamUlongValue>
-                                            <func_Validate>WanIfVlanDiscoveryTagCfg_Validate</func_Validate>
-                                            <func_Commit>WanIfVlanDiscoveryTagCfg_Commit</func_Commit>
-                                            <func_Rollback>WanIfVlanDiscoveryTagCfg_Rollback</func_Rollback>
-                                        </functions>
-                                        <parameters>
-                                            <parameter>
-                                                <name>VLANID</name>
-                                                <type>unsignedInt</type>
-                                                <syntax>uint32</syntax>
-                                                <writable>true</writable>
-                                            </parameter>
-                                            <parameter>
-                                              <name>Status</name>
-                                              <type>string: Not Tried(1),Trying(2),Success(3),Fail(4)</type>
-                                              <syntax>uint32/mapped</syntax>
-                                              <writable>false</writable>
-                                            </parameter>
-                                        </parameters>
-                                      </object>
-                                    </objects>
-                                </object>
-<?endif?>
                               </objects>
                            </object>
                     </objects>
