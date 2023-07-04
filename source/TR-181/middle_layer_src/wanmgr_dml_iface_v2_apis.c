@@ -649,6 +649,13 @@ BOOL WanIf_GetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG* p
                 *puLong = pWanDmlIface->Selection.Status;
                 ret = TRUE;
             }
+#ifndef RBUS_BUILD_FLAG_ENABLE
+            if (strcmp(ParamName, "BaseInterfaceStatus") == 0)
+            {
+                *puLong = pWanDmlIface->BaseInterfaceStatus;
+                ret = TRUE;
+            }
+#endif /** RBUS_BUILD_FLAG_ENABLE */
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
         }
     }
@@ -698,6 +705,13 @@ BOOL WanIf_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG uV
                 pWanDmlIface->VirtIfList->OperationalStatus = uValue;
                 ret = TRUE;
             }
+#ifndef RBUS_BUILD_FLAG_ENABLE
+            if (strcmp(ParamName, "BaseInterfaceStatus") == 0)
+            {
+                pWanDmlIface->BaseInterfaceStatus = uValue;
+                ret = TRUE;
+            }
+#endif /** RBUS_BUILD_FLAG_ENABLE */
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
         }
     }
