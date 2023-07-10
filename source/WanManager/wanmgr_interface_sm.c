@@ -1851,7 +1851,7 @@ static eWanState_t wan_transition_ipv6_down(WanMgr_IfaceSM_Controller_t* pWanIfa
         pInterface->Selection.Status == WAN_IFACE_NOT_SELECTED ||
         pInterface->BaseInterfaceStatus !=  WAN_IFACE_PHY_STATUS_UP ||
         p_VirtIf->VLAN.Status ==  WAN_IFACE_LINKSTATUS_DOWN ||
-        p_VirtIf->PPP.LinkStatus != WAN_IFACE_PPP_LINK_STATUS_UP ||
+        (p_VirtIf->PPP.Enable == TRUE && p_VirtIf->PPP.LinkStatus != WAN_IFACE_PPP_LINK_STATUS_UP) ||
         (p_VirtIf->IP.RefreshDHCP == TRUE && (p_VirtIf->IP.IPv6Source != DML_WAN_IP_SOURCE_DHCP ||
         (p_VirtIf->IP.Mode != DML_WAN_IP_MODE_IPV6_ONLY && p_VirtIf->IP.Mode != DML_WAN_IP_MODE_DUAL_STACK))))
     {
