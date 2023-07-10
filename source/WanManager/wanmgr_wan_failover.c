@@ -268,7 +268,7 @@ ANSC_STATUS UpdateLedStatus (WanMgr_FailOver_Controller_t* pFailOverController)
                     if(pWanIfaceData->VirtIfList->eCurrentState != WAN_STATE_EXIT && pWanIfaceData->VirtIfList->eCurrentState != pFailOverController->ActiveIfaceState)
                     {
                         /* Update Only when state changed */
-                        CcspTraceInfo(("%s %d Updating LED status of Selected Interface (%s)\n", __FUNCTION__, __LINE__,pWanIfaceData->DisplayName));
+                        CcspTraceInfo(("%s %d Updating LED status of Selected Interface (%s) BaseInterface (%s) \n", __FUNCTION__, __LINE__,pWanIfaceData->DisplayName, pWanIfaceData->BaseInterface));
                         switch(pWanIfaceData->VirtIfList->eCurrentState)
                         {
                             case WAN_STATE_DUAL_STACK_ACTIVE:
@@ -310,13 +310,13 @@ ANSC_STATUS UpdateLedStatus (WanMgr_FailOver_Controller_t* pFailOverController)
                     /* Active Interface State Machine is not running, Update the PHY connection status of the interface to LED */
                     else if(pWanIfaceData->VirtIfList->eCurrentState == WAN_STATE_EXIT && pWanIfaceData->BaseInterfaceStatus != pFailOverController->PhyState)
                     {
-                        CcspTraceInfo(("%s %d Updating LED status of Selected Interface (%s)\n", __FUNCTION__, __LINE__,pWanIfaceData->DisplayName));
+                        CcspTraceInfo(("%s %d Updating LED status of Selected Interface (%s) BaseInterface (%s)\n", __FUNCTION__, __LINE__,pWanIfaceData->DisplayName, pWanIfaceData->BaseInterface));
 
                         if(pWanIfaceData->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_UP)
                         {
                             wanmgr_sysevents_setWanState(WAN_LINK_UP_STATE);
                         }else if(pWanIfaceData->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_INITIALIZING && 
-                                (strstr(pWanIfaceData->BaseInterface,"DSL") != NULL))
+                                ((strstr(pWanIfaceData->BaseInterface,"PTM")) || (strstr(pWanIfaceData->BaseInterface,"ATM"))) != NULL)
                         {
                             /* Update DSL_Training only for DSL connection */
                             wanmgr_sysevents_setWanState(DSL_TRAINING);
@@ -356,7 +356,7 @@ ANSC_STATUS UpdateLedStatus (WanMgr_FailOver_Controller_t* pFailOverController)
                     if(pWanIfaceData->BaseInterfaceStatus > BaseInterfaceStatus && pWanIfaceData->BaseInterfaceStatus != WAN_IFACE_PHY_STATUS_UNKNOWN)
                     {
                         if(pWanIfaceData->BaseInterfaceStatus != WAN_IFACE_PHY_STATUS_INITIALIZING || 
-                          (pWanIfaceData->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_INITIALIZING && strstr(pWanIfaceData->BaseInterface,"DSL") != NULL))
+                          (pWanIfaceData->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_INITIALIZING && (strstr(pWanIfaceData->BaseInterface,"PTM") || strstr(pWanIfaceData->BaseInterface,"ATM")) != NULL))
                         {
                             /* Update DSL_Training (PHY_STATUS_INITIALIZING) only for DSL connection */
                             BaseInterfaceStatus = pWanIfaceData->BaseInterfaceStatus;
