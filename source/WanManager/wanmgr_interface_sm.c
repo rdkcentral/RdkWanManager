@@ -947,8 +947,7 @@ static int wan_setUpIPv4(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
         WanManager_GetDateAndUptime( buffer, &uptime );
         LOG_CONSOLE("%s [tid=%ld] v4: Wan_init_complete for interface index %d at %d\n", buffer, syscall(SYS_gettid), pWanIfaceCtrl->interfaceIdx, uptime);
 
-        system("print_uptime \"Waninit_complete\"");
-        system("print_uptime \"boot_to_wan_uptime\"");
+        WanManager_PrintBootEvents (WAN_INIT_COMPLETE);
     }
 
     /* Firewall restart. */
@@ -1075,8 +1074,7 @@ static int wan_setUpIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
         WanManager_GetDateAndUptime( buffer, &uptime );
         LOG_CONSOLE("%s [tid=%ld] v6: Wan_init_complete for interface index %d at %d\n", buffer, syscall(SYS_gettid), pWanIfaceCtrl->interfaceIdx, uptime);
 
-        system("print_uptime \"Waninit_complete\"");
-        system("print_uptime \"boot_to_wan_uptime\"");
+        WanManager_PrintBootEvents (WAN_INIT_COMPLETE);
 
         /* Set the current WAN Interface name */
         sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_CURRENT_WAN_IFNAME, p_VirtIf->IP.Ipv6Data.ifname, 0);
@@ -1294,7 +1292,7 @@ static eWanState_t wan_transition_start(WanMgr_IfaceSM_Controller_t* pWanIfaceCt
     WanManager_GetDateAndUptime( buffer, &uptime );
     LOG_CONSOLE("%s [tid=%ld] Wan_init_start:%d\n", buffer, syscall(SYS_gettid), uptime);
 
-    system("print_uptime \"Waninit_start\"");
+    WanManager_PrintBootEvents (WAN_INIT_START);
 
     return WAN_STATE_VLAN_CONFIGURING;
 }

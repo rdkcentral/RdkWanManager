@@ -60,6 +60,7 @@ void WanMgr_SetConfigData_Default(DML_WANMGR_CONFIG* pWanDmlConfig)
         CcspTraceInfo(("%s %d: Setting GATEWAY Mode\n", __FUNCTION__, __LINE__));
         pWanDmlConfig->DeviceNwMode = GATEWAY_MODE;
         pWanDmlConfig->DeviceNwModeChanged = FALSE;
+        pWanDmlConfig->BootToWanUp = FALSE;
     }
 }
 
@@ -877,6 +878,27 @@ ANSC_STATUS WanMgr_UpdatePrevData ()
         return ANSC_STATUS_FAILURE;
     }
 #endif
+
+    // update Wan Manager config data
+    // update BootToWanUp flag
+    char buff[64] = {0};
+    sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_NTP_TIME_SYNC, buff, sizeof(buff));
+    WanMgr_Config_Data_t*   pWanConfigData = WanMgr_GetConfigData_locked();
+    if(pWanConfigData != NULL)
+    {
+        if (strncmp(buff, NTP_TIME_SYNCD, strlen(NTP_TIME_SYNCD)) == 0)
+        {
+            CcspTraceInfo(("%s %d: already ntp has been synced, so Wan was UP before\n", __FUNCTION__, __LINE__));
+            pWanConfigData->data.BootToWanUp = TRUE;
+        }
+        else
+        {
+            CcspTraceInfo(("%s %d: No ntp sync in device, so setting Boot to Wan up to false\n", __FUNCTION__, __LINE__))
+            pWanConfigData->data.BootToWanUp = FALSE;
+        }
+        WanMgrDml_GetConfigData_release(pWanConfigData);
+    }
+
     UINT uiLoopCount;
     int uiInterfaceIdx = -1;
 

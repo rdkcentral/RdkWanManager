@@ -73,6 +73,11 @@ typedef enum
     SET_LFT = 1
 } Ipv6OperType;
 
+typedef enum
+{
+    WAN_INIT_START = 0,
+    WAN_INIT_COMPLETE = 1
+}WanBootEventState;
 
 /* ---- Global Variables -------------------------- */
 
@@ -218,4 +223,5 @@ ANSC_STATUS WanManager_CheckGivenPriorityExists(INT IfIndex, UINT uiTotalIfaces,
 INT WanMgr_StartIpMonitor(UINT iface_index);
 bool WanManager_IsNetworkInterfaceAvailable( char *IfaceName );
 int WanMgr_RdkBus_AddIntfToLanBridge (char * PhyPath, BOOL AddToBridge);
+void WanManager_PrintBootEvents (WanBootEventState state);
 #endif // _WANMGR_NET_UTILS_H_

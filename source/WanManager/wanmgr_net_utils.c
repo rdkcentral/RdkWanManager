@@ -633,6 +633,45 @@ ANSC_STATUS WanManager_StopDhcpv4Client(char * iface_name, unsigned char IsRelea
     return ret;
 }
 
+void WanManager_PrintBootEvents (WanBootEventState state)
+{
+
+    BOOLEAN BootToWanUp = FALSE;
+    WanMgr_Config_Data_t*   pWanConfigData = WanMgr_GetConfigData_locked();
+    if(pWanConfigData != NULL)
+    {
+        BootToWanUp = pWanConfigData->data.BootToWanUp;
+
+        if (BootToWanUp == TRUE)
+        {
+            WanMgrDml_GetConfigData_release(pWanConfigData);
+            CcspTraceInfo(("%s %d: Wan was already up so no need to print Boot logs\n", __FUNCTION__, __LINE__));
+            return;
+        }
+
+        if (state == WAN_INIT_COMPLETE)
+        {
+            CcspTraceInfo(("%s %d: Setting BootToWanUp to TRUE\n", __FUNCTION__, __LINE__));
+            pWanConfigData->data.BootToWanUp = TRUE;
+        }
+        WanMgrDml_GetConfigData_release(pWanConfigData);
+    }
+
+
+    if (state == WAN_INIT_START )
+    {
+        CcspTraceInfo(("%s %d:Logging Waninit_start\n", __FUNCTION__, __LINE__));
+        system("print_uptime \"Waninit_start\"");
+    }
+    else if (state == WAN_INIT_COMPLETE)
+    {
+        CcspTraceInfo(("%s %d:Logging Waninit_complete\n", __FUNCTION__, __LINE__));
+        system("print_uptime \"Waninit_complete\"");
+        system("print_uptime \"boot_to_wan_uptime\"");
+    }
+
+}
+
 
 #ifdef FEATURE_MAPT
 const char *nat44PostRoutingTable = "OUTBOUND_POSTROUTING";

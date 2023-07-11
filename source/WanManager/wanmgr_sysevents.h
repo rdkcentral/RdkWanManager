@@ -101,6 +101,7 @@
 #define SYSEVENT_SYNC_NTP_STATUS                    "sync_ntp_status"
 #define SYSEVENT_FACTORY_RESET_STATUS               "factory_reset-status"
 #define SYSEVENT_NTP_TIME_SYNC                      "ntp_time_sync"
+#define NTP_TIME_SYNCD                              "1"
 
 #define SYSEVENT_FIELD_TR_BRLAN0_DHCPV6_SERVER_ADDRESS        "tr_brlan0_dhcpv6_server_v6addr"
 #define SYSEVENT_FIELD_TR_EROUTER_DHCPV6_CLIENT_PREFIX        "tr_erouter0_dhcpv6_client_v6pref"
