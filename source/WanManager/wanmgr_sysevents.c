@@ -202,6 +202,7 @@ ANSC_STATUS wanmgr_set_Ipv4Sysevent(const WANMGR_IPV4_DATA* dhcp4Info, DEVICE_NE
     char name[BUFLEN_64] = {0};
     char value[BUFLEN_64] = {0};
     char ipv6_status[BUFLEN_16] = {0};
+    char ifaceMacAddress[BUFLEN_128] = {0};
 
     sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_CURRENT_WAN_IFNAME, name, sizeof(name));
     if (DeviceNwMode == GATEWAY_MODE)
@@ -221,6 +222,13 @@ ANSC_STATUS wanmgr_set_Ipv4Sysevent(const WANMGR_IPV4_DATA* dhcp4Info, DEVICE_NE
         snprintf(name, sizeof(name), SYSEVENT_IPV4_IP_ADDRESS, MESH_IFNAME);
     }
     sysevent_set(sysevent_fd, sysevent_token,name, dhcp4Info->ip, 0);
+
+    // set wan mac because parodus depends on it to start.
+    if(ANSC_STATUS_SUCCESS == WanManager_get_interface_mac(dhcp4Info->ifname, ifaceMacAddress, sizeof(ifaceMacAddress)))
+    {
+        CcspTraceInfo(("%s %d - setting sysevent eth_wan_mac = [%s]  \n", __FUNCTION__, __LINE__, ifaceMacAddress));
+        sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_ETH_WAN_MAC, ifaceMacAddress, 0);
+    }
 
     //same as SYSEVENT_IPV4_IP_ADDRESS. But this is required in other components
     sysevent_set(sysevent_fd, sysevent_token,SYSEVENT_IPV4_WAN_ADDRESS, dhcp4Info->ip, 0);

@@ -2572,3 +2572,45 @@ int WanMgr_RdkBus_AddIntfToLanBridge (char * PhyPath, BOOL AddToBridge)
     return ANSC_STATUS_FAILURE;
 
 }
+
+ANSC_STATUS WanManager_get_interface_mac(char *interfaceName, char* macAddress, int macAddressSize)
+{
+   FILE *fp = NULL;
+   char *ptr = NULL;
+   char cmd[BUFLEN_128] = {0};
+   ANSC_STATUS  returnStatus = ANSC_STATUS_FAILURE;
+   char fOutput[BUFLEN_128] = {0};
+
+   CcspTraceInfo(("%s %d: interfaceName = [%s]\n", __FUNCTION__, __LINE__, interfaceName));
+   if(interfaceName == NULL || interfaceName[0] == '\0')
+   {
+       return returnStatus;
+   }
+
+   snprintf(cmd, sizeof(cmd), "/sys/class/net/%s/address" ,interfaceName);
+
+   fp = fopen(cmd, "r");
+   if(NULL != fp)
+   {
+      fgets(fOutput, sizeof(fOutput), fp);
+      fclose(fp);
+
+      if((fOutput[0] != '0') && (strlen(fOutput) != 0))
+      {
+          /* Remove \n char from the buffer */
+          if ((ptr = strchr(fOutput, '\n')))
+          {
+              *ptr = 0;
+          }
+
+          if((fOutput[0] != '0') && (strlen(fOutput) != 0))
+          {
+              snprintf(macAddress, macAddressSize, "%s", fOutput);
+              CcspTraceInfo(("%s %d: [%s] Interface MAC Address = [%s]\n", __FUNCTION__, __LINE__, interfaceName, macAddress));
+              returnStatus = ANSC_STATUS_SUCCESS;
+          }
+      }
+   }
+
+   return returnStatus;
+}

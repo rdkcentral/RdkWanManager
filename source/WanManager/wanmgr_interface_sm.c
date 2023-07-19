@@ -1069,6 +1069,7 @@ static int wan_setUpIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
 
         int  uptime = 0;
         char buffer[64] = {0};
+        char ifaceMacAddress[BUFLEN_128] = {0};
 
         //Get WAN uptime
         WanManager_GetDateAndUptime( buffer, &uptime );
@@ -1083,6 +1084,13 @@ static int wan_setUpIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
             syscfg_set_string(SYSCFG_WAN_INTERFACE_NAME, p_VirtIf->IP.Ipv6Data.ifname);
         }
         wanmgr_services_restart();
+
+        // set wan mac because parodus depends on it to start.
+        if(ANSC_STATUS_SUCCESS == WanManager_get_interface_mac(p_VirtIf->IP.Ipv6Data.ifname, ifaceMacAddress, sizeof(ifaceMacAddress)))
+        {
+            CcspTraceInfo(("%s %d - setting sysevent eth_wan_mac = [%s]  \n", __FUNCTION__, __LINE__, ifaceMacAddress));
+            sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_ETH_WAN_MAC, ifaceMacAddress, 0);
+        }
     }
 
     return ret;

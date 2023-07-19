@@ -212,6 +212,15 @@ int WanManager_GetBCastFromIpSubnetMask(const char *inIpStr, const char *inSubne
  ****************************************************************************/
 int WanManager_AddGatewayRoute(const WANMGR_IPV4_DATA* ipv4Info);
 
+/***************************************************************************
+ * @brief API used to get interface mac
+ * @param interfaceName name of the interface
+ * @param macAddress buffer to store mac address
+ * @param macAddress buffer size to store mac address
+ * @return ANSC_STATUS_SUCCESS upon success else returned error code.
+ ***************************************************************************/
+ANSC_STATUS WanManager_get_interface_mac(char *interfaceName, char* macAddress, int macAddressLen);
+
 ANSC_STATUS WanManager_getGloballyUniqueIfAddr6(const char *ifname, char *ipAddr, uint32_t *prefixLen);
 bool IsDefaultRoutePresent(char *IfaceName, bool IsV4);
 
