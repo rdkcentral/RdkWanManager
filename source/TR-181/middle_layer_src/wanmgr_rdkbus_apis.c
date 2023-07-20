@@ -1793,18 +1793,18 @@ ANSC_STATUS Update_Interface_Status()
         DML_WANMGR_CONFIG* pWanDmlData = &(pWanConfigData->data);
         if(strcmp(pWanDmlData->InterfaceAvailableStatus,InterfaceAvailableStatus) != 0)
         {
-            strcpy(prevInterfaceAvailableStatus,pWanDmlData->InterfaceAvailableStatus);
+            strncpy(prevInterfaceAvailableStatus,pWanDmlData->InterfaceAvailableStatus, sizeof(prevInterfaceAvailableStatus)-1);
             memset(pWanDmlData->InterfaceAvailableStatus,0, sizeof(pWanDmlData->InterfaceAvailableStatus));
-            strcpy(pWanDmlData->InterfaceAvailableStatus,InterfaceAvailableStatus);
+            strncpy(pWanDmlData->InterfaceAvailableStatus,InterfaceAvailableStatus, sizeof(pWanDmlData->InterfaceAvailableStatus) - 1);
 #ifdef RBUS_BUILD_FLAG_ENABLE
             publishAvailableStatus = TRUE;
 #endif
         }
         if(strcmp(pWanDmlData->InterfaceActiveStatus,InterfaceActiveStatus) != 0)
         {
-            strcpy(prevInterfaceActiveStatus,pWanDmlData->InterfaceActiveStatus);
+            strncpy(prevInterfaceActiveStatus,pWanDmlData->InterfaceActiveStatus, sizeof(prevInterfaceActiveStatus)-1);
             memset(pWanDmlData->InterfaceActiveStatus,0, sizeof(pWanDmlData->InterfaceActiveStatus));
-            strcpy(pWanDmlData->InterfaceActiveStatus,InterfaceActiveStatus);
+            strncpy(pWanDmlData->InterfaceActiveStatus,InterfaceActiveStatus, sizeof(pWanDmlData->InterfaceActiveStatus)-1);
 #ifdef RBUS_BUILD_FLAG_ENABLE
             publishActiveStatus = TRUE;
 #endif
@@ -1815,8 +1815,9 @@ ANSC_STATUS Update_Interface_Status()
         {
             if(strcmp(pWanDmlData->CurrentActiveInterface,CurrentActiveInterface) != 0 )
             {
-                strcpy(prevCurrentActiveInterface,pWanDmlData->CurrentActiveInterface);
-                strcpy(pWanDmlData->CurrentActiveInterface,CurrentActiveInterface);
+                strncpy(prevCurrentActiveInterface,pWanDmlData->CurrentActiveInterface, sizeof(prevCurrentActiveInterface) - 1);
+                memset(pWanDmlData->CurrentActiveInterface, 0, sizeof(pWanDmlData->CurrentActiveInterface));
+                strncpy(pWanDmlData->CurrentActiveInterface,CurrentActiveInterface, sizeof(pWanDmlData->CurrentActiveInterface) - 1);
 #ifdef RBUS_BUILD_FLAG_ENABLE
                 publishCurrentActiveInf = TRUE;
 #endif //RBUS_BUILD_FLAG_ENABLE
@@ -1830,8 +1831,9 @@ ANSC_STATUS Update_Interface_Status()
         CcspTraceInfo(("%s %d -CurrentStandbyInterface- [%s] [%s]\n",__FUNCTION__,__LINE__,pWanDmlData->CurrentStandbyInterface,CurrentStandbyInterface));
         if(strcmp(pWanDmlData->CurrentStandbyInterface,CurrentStandbyInterface) != 0)
         {
-            strcpy(prevCurrentStandbyInterface, pWanDmlData->CurrentStandbyInterface);
-            strcpy(pWanDmlData->CurrentStandbyInterface, CurrentStandbyInterface);
+            strncpy(prevCurrentStandbyInterface, pWanDmlData->CurrentStandbyInterface, sizeof(prevCurrentStandbyInterface) - 1);
+            memset(pWanDmlData->CurrentStandbyInterface, 0, sizeof(pWanDmlData->CurrentStandbyInterface));
+            strncpy(pWanDmlData->CurrentStandbyInterface, CurrentStandbyInterface, sizeof(pWanDmlData->CurrentStandbyInterface) - 1);
 #ifdef RBUS_BUILD_FLAG_ENABLE
             publishCurrentStandbyInf = TRUE;
 #endif //RBUS_BUILD_FLAG_ENABLE
