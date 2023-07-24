@@ -593,18 +593,9 @@ uint32_t WanManager_StartDhcpv4Client(DML_VIRTUAL_IFACE* pVirtIf, char* baseInte
 
     memset (&params, 0, sizeof(dhcp_params));
     params.ifname = pVirtIf->Name;
+    params.baseIface = baseInterface;
     params.ifType = IfaceType;
 
-#if defined(_HUB4_PRODUCT_REQ_)
-        /*TODO:
-	 * This is a SKY specific change. This should be moved to hal 
-	 *after enabling CONFIGURABLE_WAN_INTERFACE in all SKy devices.
-	*/
-	if (strncmp(pVirtIf->Name, "eth", 3) == 0)
-	{
-            params.opt |= DHCPV4_OPT_43;
-	}
-#endif
     CcspTraceInfo(("Starting DHCPv4 Client for iface: %s \n", params.ifname));
     pid = start_dhcpv4_client(&params);
 
