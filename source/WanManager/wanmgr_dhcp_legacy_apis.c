@@ -36,6 +36,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include "secure_wrapper.h"
+
 int _get_shell_output2(char * cmd, char * dststr)
 {
     FILE * fp;
@@ -952,7 +954,7 @@ dhcpv6c_dbg_thrd(void * in)
                         sysevent_get(sysevent_fd, sysevent_token,SYSEVENT_FIELD_IPV6_ULA_ADDRESS, ula_address, sizeof(ula_address));
                         if(ula_address[0] != '\0') {
                             ret = v_secure_system("ip -6 addr add %s/64 dev "COSA_DML_DHCPV6_SERVER_IFNAME,ula_address);
-			    if(ret != 0) {
+                            if(ret != 0) {
                                 CcspTraceWarning(("%s: Failure in executing command via v_secure_system. ret:[%d] \n",__FUNCTION__,ret));
                             }
                         }
@@ -1166,8 +1168,8 @@ dhcpv6c_dbg_thrd(void * in)
                     char previous_v6pref[128] = {0};
                     char current_pref[128] = {0};
                     char buf[128] = {0};
-                    char command[100] = {0};
                     char guest_globalIP[128] = {0};
+		    int ret = 0;
                     strcpy(buf, v6pref);
                     if ( pref_len >= 64 )
                         sprintf(v6pref+strlen(v6pref), "/%d", pref_len);
@@ -1182,9 +1184,12 @@ dhcpv6c_dbg_thrd(void * in)
                         sysevent_set(sysevent_fd, sysevent_token, "previous_ipv6_prefix", "", 0);
                         sysevent_set(sysevent_fd, sysevent_token, "previous_ipv6_prefix_vldtime", "0", 0);
                         bRestartFirewall = TRUE;
-                        snprintf(command, sizeof(command)-1, "ip -6 addr del %s1/%d dev brlan0", buf, pref_len);
-                        CcspTraceInfo(("%s : Command \"%s\" executed\n", __FUNCTION__, command));
-                        system(command);
+                        CcspTraceInfo(("%s : Command ip -6 addr del %s1/%d dev brlan0 executed\n", __FUNCTION__,buf, pref_len));
+                        ret = v_secure_system("ip -6 addr del %s1/%d dev brlan0", buf, pref_len);
+			if(ret !=0)
+			{
+				CcspTraceWarning("Failed in executing the command via v_secure_system ret val %d \n",ret);
+			}
                         memset(buf,0,sizeof(buf));
                         sysevent_get(sysevent_fd, sysevent_token,"brlan1_previous_ipaddr_v6", buf, sizeof(buf));
                         v_secure_system("ip -6 addr del %s dev brlan1 valid_lft forever preferred_lft forever", buf);
@@ -1385,7 +1390,6 @@ static int WanManager_CreateDHCPService(DML_VIRTUAL_IFACE* p_VirtIf)
     int  pid                     = -1;
     char partnerID[BUFLEN_32]    = {0};
     char model[BUFLEN_32]        = {0};
-    char cmd[BUFLEN_256]         = {0};
 
     if(NULL == p_VirtIf)
     {
@@ -1409,8 +1413,7 @@ static int WanManager_CreateDHCPService(DML_VIRTUAL_IFACE* p_VirtIf)
         syscfg_get(NULL, "PartnerID", partnerID, sizeof(partnerID));
         if (strcmp("IPTV", p_VirtIf->Alias) == 0) { // Fix suggested by Broadcom in CSP CS00012239021 for RDKSI-7103
             v_secure_system("echo 0 > /proc/sys/net/ipv4/conf/all/rp_filter");
-            snprintf(cmd, sizeof(cmd), "echo 0 > /proc/sys/net/ipv4/conf/%s/rp_filter", p_VirtIf->Name);
-            system(cmd);
+            v_secure_system("echo 0 > /proc/sys/net/ipv4/conf/'%s'/rp_filter", p_VirtIf->Name);
         }
 
         if((strcmp("telekom-hr", partnerID) == 0 || strcmp("telekom-dev-hr", partnerID) == 0 ||

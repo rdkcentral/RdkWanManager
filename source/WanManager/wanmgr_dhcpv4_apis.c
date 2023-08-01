@@ -39,6 +39,7 @@
 #include <sys/file.h>
 #include <fcntl.h>
 #include <cjson/cJSON.h>
+#include "secure_wrapper.h"
 
 #include "ccsp_psm_helper.h"
 #include "sysevent/sysevent.h"
@@ -916,7 +917,7 @@ WanMgr_DmlDhcpcRenew
     if(ulInstanceNumber != 1)
         return(ANSC_STATUS_FAILURE);
 #ifndef _HUB4_PRODUCT_REQ_
-    system("sysevent set dhcp_client-renew");
+    v_secure_system("sysevent set dhcp_client-renew");
 #endif
     return(ANSC_STATUS_SUCCESS);
 }

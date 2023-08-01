@@ -563,6 +563,7 @@ static void *WanManagerSyseventHandler(void *args)
         char cmd_str[BUF_SIZE] = {0};
         int namelen = sizeof(name);
         int vallen  = sizeof(val);
+	int fd = 0;
         async_id_t getnotification_asyncid;
         int err = 0;
         ANSC_STATUS result = 0;
@@ -628,8 +629,8 @@ static void *WanManagerSyseventHandler(void *args)
             {
                 /* NTP Status sync will be missed in case of quick sync failure and following time sync success from NTPD daemon..,So handling that scenario here */
                 /* SKYH4-6572 setting NTP STATUS to 3 (which means *synchronized*)  upon receiving SYSEVENT_SYNC_NTP_STATUS event from NTPD daemon on time sync */
-                system("syscfg set ntp_status 3");
-                system("sysevent set ntp_time_sync 1");
+                v_secure_system("syscfg set ntp_status 3");
+                v_secure_system("sysevent set ntp_time_sync 1");
             }
             else if (strcmp(name,SYSEVENT_NTP_TIME_SYNC) == 0)
             {
@@ -661,14 +662,18 @@ static void *WanManagerSyseventHandler(void *args)
                 {
                     check_lan_wan_ready();
                 }
-                creat("/tmp/phylink_wan_state_up",S_IRUSR| S_IWUSR| S_IRGRP| S_IROTH);
+                fd = creat("/tmp/phylink_wan_state_up",S_IRUSR| S_IWUSR| S_IRGRP| S_IROTH);
+		if(fd != -1)
+		{
+		    close(fd);
+		}
 #if defined(_DT_WAN_Manager_Enable_)
                                 sysevent_set(sysevent_fd, sysevent_token, "sendImmediateRA", "true", 0);
             }
             else if ((strcmp(name, "dibbler-restart") == 0) && (strcmp(val, "true") == 0))
             {
                 needDibblerRestart = TRUE;
-                system("sysevent set dibbler-restart false");
+                v_secure_system("sysevent set dibbler-restart false");
 
             }
             else if ((strcmp(name, SYSEVENT_WAN_STATUS) == 0) && (strcmp(val, SYSEVENT_VALUE_STOPPED) == 0))
@@ -753,15 +758,23 @@ static void *WanManagerSyseventHandler(void *args)
                     if (!strcmp(maptStatus, SYSEVENT_VALUE_FALSE) && (strlen(ifName) > 0))
                     {
 #ifdef FEATURE_IPOE_HEALTH_CHECK
-                        char output[16] = {0},
-                             cmd[64] = {0};
-                        snprintf(cmd, sizeof(cmd), "pidof %s",IHC_CLIENT_NAME);
-                        WanManager_Util_GetShell_output(cmd, output, sizeof(output));
+                        char output[16] = {0};
+                        FILE *fp = NULL;   
+                        fp = v_secure_popen("r","pidof "IHC_CLIENT_NAME);
+                        if(fp)
+			{
+			    WanManager_Util_GetShell_output(fp, output, sizeof(output));
+			    v_secure_pclose(fp);
+			}
                         CcspTraceInfo(("%s %d - Stopping IPoE App(PID:%d) for WAN IfName:%s\n", __FUNCTION__, __LINE__, atoi(output), ifName));
                         WanManager_StopIpoeHealthCheckService(atoi(output));
 #endif /* FEATURE_IPOE_HEALTH_CHECK */
                         CcspTraceInfo(("%s %d - Stopping DHCPv6 client for WAN IfName:%s\n", __FUNCTION__, __LINE__, ifName ));
-                        system("touch /tmp/dhcpv6_release");
+                        fd = creat("/tmp/dhcpv6_release",S_IRUSR | S_IWUSR | S_IRGRP);
+			if(fd != -1)
+			{
+			    close(fd);
+			}
                         WanManager_StopDhcpv6Client(ifName);
                     }
                 }

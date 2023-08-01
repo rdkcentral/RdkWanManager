@@ -374,9 +374,12 @@ int main(int argc, char* argv[])
 
     /* Inform Webconfig framework if component is coming after crash */
     check_component_crash("/tmp/wanmanager_initialized");
-
-    system("touch /tmp/wanmanager_initialized");
-
+    int fd_ret = 0;
+    fd_ret = creat("/tmp/wanmanager_initialized",S_IRUSR | S_IWUSR | S_IRGRP);
+    if(fd_ret != -1)
+    {
+       close(fd_ret);
+    }
 
     //CORE INT
     WanMgr_Core_Init();

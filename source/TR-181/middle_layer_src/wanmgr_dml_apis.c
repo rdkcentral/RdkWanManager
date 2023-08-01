@@ -39,6 +39,7 @@
 #include "wanmgr_data.h"
 #include "wanmgr_controller.h"
 #include "wanmgr_rdkbus_utils.h"
+#include "secure_wrapper.h"
 
 
 BOOL
@@ -302,8 +303,8 @@ BOOL WanManager_SetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL
         {
             if(bValue == TRUE)
             {
-                system("rm -f /nvram/.wanmanager_upgrade");
-                system("sed -i '/dmsb.wanmanager./d' /nvram/bbhm_bak_cfg.xml");
+                unlink("/nvram/.wanmanager_upgrade");
+                v_secure_system("sed -i '/dmsb.wanmanager./d' /nvram/bbhm_bak_cfg.xml");
             }
 
             ret = TRUE;

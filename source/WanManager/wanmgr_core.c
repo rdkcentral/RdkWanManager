@@ -24,6 +24,7 @@
 #include "wanmgr_rdkbus_apis.h"
 #include "wanmgr_ipc.h"
 #include "wanmgr_controller.h"
+#include "secure_wrapper.h"
 #ifdef RBUS_BUILD_FLAG_ENABLE
 #include "wanmgr_rbus_handler_apis.h"
 #endif //RBUS_BUILD_FLAG_ENABLE
@@ -45,7 +46,7 @@ ANSC_STATUS WanMgr_Core_Init(void)
     {
         CcspTraceInfo(("%s %d - IPC Thread failed to start!\n", __FUNCTION__, __LINE__ ));
     }
-    system("netmonitor &");
+    v_secure_system("netmonitor &");
 
     return retStatus;
 }

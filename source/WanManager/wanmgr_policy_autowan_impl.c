@@ -1087,14 +1087,17 @@ static int WanMgr_Policy_CheckAndStopUDHCPClientOverWanInterface(char *ifname, c
         CcspTraceWarning(("%s-%d : Interface Name is Null\n", __FUNCTION__, __LINE__));
     }
 
-    if (access(pidfile, F_OK) == 0)
-    {
-        char cmd[128] = {0},
-             output[16] = {0};
+    
+        char output[16] = {0};
         int iPIDofBackupWAN = -1;
+	FILE *fp =NULL;
 
-        snprintf(cmd, sizeof(cmd), "cat %s", pidfile);
-        WanManager_Util_GetShell_output(cmd, output, sizeof(output));
+        fp = fopen(pidfile,"r");
+	if(fp)
+	{
+            WanManager_Util_GetShell_output(fp, output, sizeof(output));
+	    fclose(fp);
+	}
 
         if( '\0' != output[0] )
         {
@@ -1109,7 +1112,6 @@ static int WanMgr_Policy_CheckAndStopUDHCPClientOverWanInterface(char *ifname, c
         }
 
         unlink(pidfile);
-    }
 }
 
 static ANSC_STATUS WanMgr_getUdhcpcClientID (char * buff, int len)
@@ -1155,9 +1157,8 @@ static int WanMgr_Policy_CheckAndStartUDHCPClientOverWanInterface(char *IfaceNam
     int iPIDofBackupWAN = -1;
     unsigned char bPIDFileAvailable   = FALSE,
                   bDHCPRunningAlready = FALSE;
-    char command[256] = {0},
-         logPrefixString[256] = {0};
-    char cValidationOptions[] = " -q";
+    char logPrefixString[256] = {0};
+    char cValidationOptions[] = "-q";
     char isValidating = 0;
 
     if( (strlen(IfaceName) <= 0) || (IfaceName[0] == '\0') || ( FALSE == WanManager_IsNetworkInterfaceAvailable( IfaceName ) ) )
@@ -1183,28 +1184,24 @@ static int WanMgr_Policy_CheckAndStartUDHCPClientOverWanInterface(char *IfaceNam
     CcspTraceInfo(("%s-%d : %s : Starting udhcpc client locally for '%s' interface\n",__FUNCTION__, __LINE__, logPrefixString, IfaceName));
 
     /* To start local udhcpc server over interface to check whether it is getting leases or not */
-    memset(command, 0, sizeof(command));
 
     // Add Client Identifier 
     char clientId[32] = {0};
 
     WanMgr_getUdhcpcClientID(clientId, sizeof(clientId));
 
-    snprintf(command, sizeof(command), "/sbin/udhcpc -t 5 -n%s -O 125 -i %s -p %s -s %s -x %s", isValidating ? cValidationOptions : "", IfaceName, pidfile, script, clientId);
-    CcspTraceInfo(("StartingUDHCPCviaWAN -- %s \n", command));
-    int ret = system(command);
+    int ret = v_secure_system("/sbin/udhcpc -t 5 -n %s -O 125 -i %s -p %s -s %s -x %s", isValidating ? cValidationOptions : "", IfaceName, pidfile, script, clientId);
 
-    CcspTraceInfo(("%s-%d : %s WAN: Cmd Str[%s]\n",__FUNCTION__, __LINE__, logPrefixString,command));
-
+    CcspTraceInfo(("%s-%d : %s WAN: Cmd Str[/sbin/udhcpc -t 5 -n %s -O 125 -i %s -p %s -s %s -x %s]\n",__FUNCTION__, __LINE__, logPrefixString,isValidating ? cValidationOptions : "", IfaceName, pidfile, script, clientId));
     /* DHCP client didn't able to get Ipv4 configurations */
     if ( ret != 0 )
     {
-        CcspTraceInfo(("%s-%d : %s WAN service not able to get IPv4 configuration\n",__FUNCTION__, __LINE__, logPrefixString));
+        CcspTraceInfo(("%s-%d : %s WAN service not able to get IPv4 configuration ret val %d \n",__FUNCTION__, __LINE__, logPrefixString,ret));
         return -1;
     }
     else
     {
-        CcspTraceInfo(("%s-%d : %s WAN interface '%s' got leases\n", __FUNCTION__, __LINE__, logPrefixString, IfaceName));
+        CcspTraceInfo(("%s-%d : %s WAN interface '%s' got leases ret val %d \n", __FUNCTION__, __LINE__, logPrefixString, IfaceName,ret));
     }
 
     return 0;

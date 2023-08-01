@@ -33,7 +33,7 @@
 #include "wanmgr_net_utils.h"
 #include "wanmgr_dhcpv4_apis.h"
 #include "wanmgr_dhcpv6_apis.h"
-
+#include "secure_wrapper.h"
 
 #define LOOP_TIMEOUT 50000 // timeout in milliseconds. This is the state machine loop interval
 #define RESOLV_CONF_FILE "/etc/resolv.conf"
@@ -1872,23 +1872,17 @@ static eWanState_t wan_transition_ipv4_down(WanMgr_IfaceSM_Controller_t* pWanIfa
 }
 
 #if defined(FEATURE_464XLAT)
-int sc_myPipe(char *command, char **output)
+int sc_myPipe(FILE *fp, char **output)
 {
-    FILE *fp;
     char buf[1024];
 	char *pt = NULL;
     int len=0;
     *output=malloc(3);
     strcpy(*output, "");
-    if((fp=popen(command, "r"))==NULL)
-	{
-        return(-2);
-	}
     while((fgets(buf, sizeof(buf), fp)) != NULL){
         len=strlen(*output)+strlen(buf);
         if((*output=realloc(*output, (sizeof(char) * (len+1))))==NULL)
         {
-            pclose(fp);
             return(-1);
         }
         strcat(*output, buf);
@@ -1898,72 +1892,68 @@ int sc_myPipe(char *command, char **output)
 		*pt = '\0';
 	}
 
-    pclose(fp);
     return len;
 }
 
 void xlat_process_start(char *interface)
 {
-	char cmd[512] = {0};
 	char xlatcfg_output[256] = {0};
 	char *kernel_path = NULL;
 	int ret = 0;
-	
-	sc_myPipe("uname -r",&kernel_path);
-	snprintf(cmd,sizeof(cmd),"insmod /lib/modules/%s/extra/nat46.ko",kernel_path);
+	FILE *fp = NULL;
+	fp = v_secure_popen("r","uname -r");
+	if(fp)
+	{
+	    sc_myPipe(fp,&kernel_path);
+	    v_secure_pclose(fp);
+	}
+	v_secure_system("insmod /lib/modules/'%s'/extra/nat46.ko",kernel_path);
 	free(kernel_path);
-	system(cmd);
 	ret = xlat_configure(interface, xlatcfg_output);
 	if(ret == 0 || strlen(xlatcfg_output) > 3)
 	{
-		system("ifconfig xlat up");
+		v_secure_system("ifconfig xlat up");
 		sleep(1);
-		system("ip ro del default");
-		system("ip route add default dev xlat");
-		system("echo 200 464xlat >> /etc/iproute2/rt_tables");
-		system("ip -6 rule del from all lookup local");
-		system("ip -6 rule add from all lookup local pref 1");
-		snprintf(cmd,sizeof(cmd),"ip -6 rule add to %s lookup 464xlat pref 0",xlatcfg_output);
-		system(cmd);
-		snprintf(cmd,sizeof(cmd),"ip -6 route add %s dev xlat proto static metric 1024 pref medium table 464xlat",xlatcfg_output);
-		system(cmd);
+		v_secure_system("ip ro del default");
+		v_secure_system("ip route add default dev xlat");
+		v_secure_system("echo 200 464xlat >> /etc/iproute2/rt_tables");
+		v_secure_system("ip -6 rule del from all lookup local");
+		v_secure_system("ip -6 rule add from all lookup local pref 1");
+		v_secure_system("ip -6 rule add to %s lookup 464xlat pref 0",xlatcfg_output);
+		v_secure_system("ip -6 route add %s dev xlat proto static metric 1024 pref medium table 464xlat",xlatcfg_output);
 		syscfg_set(NULL, "xlat_status", "up");
         syscfg_set(NULL, "xlat_addrdss", xlatcfg_output);
-		system("sync;sync");
+		v_secure_system("sync;sync");
 		syscfg_commit();
-		snprintf(cmd,sizeof(cmd),"sysevent set firewall-restart 0");
-		system(cmd);
+		v_secure_system("sysevent set firewall-restart 0");
 	}else
 	{
-		system("rmmod nat46");
+		v_secure_system("rmmod nat46");
 	}
 }
 
 void xlat_process_stop(char *interface)
 {
-	char cmd[256] = {0};
 	char xlat_addr[128] = {0};
 	
-	system("ip route del default dev xlat");
-	snprintf(cmd,sizeof(cmd),"ip ro add default dev %s scope link",interface);
-	system(cmd);
-	system("iptables -t nat -D POSTROUTING  -o xlat -j SNAT --to-source  192.0.0.1");
-	system("ifconfig xlat down");
+	v_secure_system("ip route del default dev xlat");
+	v_secure_system("ip ro add default dev %s scope link",interface);
+	v_secure_system("iptables -t nat -D POSTROUTING  -o xlat -j SNAT --to-source  192.0.0.1");
+	v_secure_system("ifconfig xlat down");
 	xlat_reconfigure();
-	system("rmmod nat46");
+	v_secure_system("rmmod nat46");
 	if (syscfg_get(NULL, "xlat_addrdss", xlat_addr, sizeof(xlat_addr))!=0)
 	{
 		if(strlen(xlat_addr) > 3)
 		{
-			snprintf(cmd,sizeof(cmd),"ip -6 rule del to %s lookup 464xlat",xlat_addr);
-			system(cmd);
+			v_secure_system("ip -6 rule del to %s lookup 464xlat",xlat_addr);
 		}
 	}
-	system("ip -6 rule del from all lookup local");
-	system("ip -6 rule add from all lookup local pref 0");
-	system("syscfg unset xlat_status");
-	system("syscfg unset xlat_addrdss");
-	system("syscfg commit");
+	v_secure_system("ip -6 rule del from all lookup local");
+	v_secure_system("ip -6 rule add from all lookup local pref 0");
+	v_secure_system("syscfg unset xlat_status");
+	v_secure_system("syscfg unset xlat_addrdss");
+	v_secure_system("syscfg commit");
 }
 #endif
 

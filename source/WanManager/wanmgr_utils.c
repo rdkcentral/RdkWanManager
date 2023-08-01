@@ -931,21 +931,16 @@ uint32_t WanManager_getUpTime()
 }
 
 
-void WanManager_Util_GetShell_output(char *cmd, char *out, int len)
+void WanManager_Util_GetShell_output(FILE *fp, char *out, int len)
 {
-    FILE *fp;
-    char   buf[512] = {0};
     char *p;
 
-    memset(buf, 0 , sizeof(buf));
-    fp = popen(cmd, "r");
     if (fp)
     {
-        fgets(buf, sizeof(buf), fp);
+        fgets(out, len, fp);
         /*we need to remove the \n char in buf*/
-        if ((p = strchr(buf, '\n'))) *p = 0;
-        strncpy(out, buf, len-1);
-        pclose(fp);
+        if ((p = strchr(out, '\n'))) 
+            *p = 0;
     }
 }
 

@@ -461,7 +461,7 @@ static int _dibbler_client_operation(char * arg)
 #if defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) && ! defined(DHCPV6_PREFIX_FIX)
         sysevent_set(sysevent_fd, sysevent_token, "dhcpv6_client-stop", "", 0);
 #elif defined(CORE_NET_LIB)
-        system("/usr/bin/service_dhcpv6_client dhcpv6_client_service_disable");
+        v_secure_system("/usr/bin/service_dhcpv6_client dhcpv6_client_service_disable");
         CcspTraceInfo(("%s  Calling service_dhcpv6_client.c with dhcpv6_client_service_disable from wanmgr_dhcpv6_apis.c\n", __func__));
 #else
         v_secure_system("/etc/utopia/service.d/service_dhcpv6_client.sh disable &");
@@ -595,7 +595,7 @@ static int _dibbler_client_operation(char * arg)
 #if defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) && ! defined(DHCPV6_PREFIX_FIX)
         sysevent_set(sysevent_fd, sysevent_token, "dhcpv6_client-start", "", 0);
 #elif defined(CORE_NET_LIB)
-        system("/usr/bin/service_dhcpv6_client dhcpv6_client_service_enable");
+        v_secure_system("/usr/bin/service_dhcpv6_client dhcpv6_client_service_enable");
         CcspTraceInfo(("%s  Calling service_dhcpv6_client.c with dhcpv6_client_service_enable from wanmgr_dhcpv6_apis.c\n", __func__));
 #else
         v_secure_system("/etc/utopia/service.d/service_dhcpv6_client.sh enable &");

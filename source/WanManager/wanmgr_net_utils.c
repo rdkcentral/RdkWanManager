@@ -661,13 +661,13 @@ void WanManager_PrintBootEvents (WanBootEventState state)
     if (state == WAN_INIT_START )
     {
         CcspTraceInfo(("%s %d:Logging Waninit_start\n", __FUNCTION__, __LINE__));
-        system("print_uptime \"Waninit_start\"");
+        v_secure_system("print_uptime \"Waninit_start\"");
     }
     else if (state == WAN_INIT_COMPLETE)
     {
         CcspTraceInfo(("%s %d:Logging Waninit_complete\n", __FUNCTION__, __LINE__));
-        system("print_uptime \"Waninit_complete\"");
-        system("print_uptime \"boot_to_wan_uptime\"");
+        v_secure_system("print_uptime \"Waninit_complete\"");
+        v_secure_system("print_uptime \"boot_to_wan_uptime\"");
     }
 
 }
