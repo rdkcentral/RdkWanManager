@@ -171,4 +171,5 @@ ANSC_STATUS WanMgr_WanRemoteIfaceConfigure(WanMgr_DeviceChangeEvent * pDeviceCha
 #if defined (_HUB4_PRODUCT_REQ_) || defined(_PLATFORM_RASPPBERRYPI_)
 BOOL WanMgr_Rbus_discover_components(char const *ModuleList);
 #endif //_HUB4_PRODUCT_REQ_
+void WanMgr_Rbus_SubscribeWanReady();
 #endif

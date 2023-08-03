@@ -917,9 +917,7 @@ ANSC_STATUS WanMgr_UpdatePrevData ()
             WanMgr_RestartUpdateCfg (WAN_CUSTOM_CONFIG_PATH_PARAM_NAME, uiLoopCount, pWanIfaceData->CustomConfigPath, sizeof(pWanIfaceData->CustomConfigPath));
             WanMgr_RestartUpdateCfg (WAN_NAME_PARAM_NAME, uiLoopCount, pWanIfaceData->VirtIfList->Name, sizeof(pWanIfaceData->VirtIfList->Name));
 #endif            
-            #if !defined(AUTOWAN_ENABLE)
-            WanMgr_RestartGetBaseInterfaceStatus(pWanIfaceData);
-            #endif
+            WanMgr_GetBaseInterfaceStatus(pWanIfaceData);
             
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
         }

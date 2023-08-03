@@ -132,11 +132,13 @@ extern token_t sysevent_token;
 
 #define ETH_PHY_PATH_DM             "Device.Ethernet.X_RDK_Interface.%d"
 #define ETH_HW_CONFIG_PHY_PATH      "Device.Ethernet.Interface.%d"
+#define ETHWAN_PHY_STATUS_DM_SUFFIX "LinkStatus"
 
 //CM Agent
 #define CMAGENT_COMPONENT_NAME "eRT.com.cisco.spvtg.ccsp.cm"
 #define CMAGENT_COMP_NAME_WITHOUTSUBSYSTEM "com.cisco.spvtg.ccsp.cm"
 #define CMAGENT_COMPONENT_PATH "/com/cisco/spvtg/ccsp/cm"
+#define CMAGENT_PHY_STATUS_DM_SUFFIX             "CMStatus"
 
 //Cellular Manager
 #define CELLULAR_COMPONENT_NAME "eRT.com.cisco.spvtg.ccsp.cellularmanager"
@@ -167,7 +169,14 @@ ANSC_STATUS DmlGetInstanceByKeywordFromPandM(char *ifname, int *piInstanceNumber
 ANSC_STATUS WanMgr_RdkBus_SetRequestIfComponent(char *pPhyPath, char *pInputparamName, char *pInputParamValue, enum dataType_e type);
 ANSC_STATUS WaitForInterfaceComponentReady(char *pPhyPath);
 
-ANSC_STATUS WanMgr_RestartGetBaseInterfaceStatus (DML_WAN_IFACE *pWanIfaceData);
+/* WanMgr_GetBaseInterfaceStatus()
+ * Updates current BaseInterfaceStatus of WanInterfaces using a DM get of BaseInterface Dml.
+ * This function will update BaseInterfaceStatus if WanManager restarted or BaseInterfaceStatus is already set by other components before WanManager rbus is ready.
+ * Args: DML_WAN_IFACE struct
+ * Returns: ANSC_STATUS_SUCCESS on successful get, else ANSC_STATUS_FAILURE.
+ */
+ANSC_STATUS WanMgr_GetBaseInterfaceStatus (DML_WAN_IFACE *pWanIfaceData);
+
 ANSC_STATUS WanMgr_RdkBus_setDhcpv6DnsServerInfo(void);
 
 #ifdef FEATURE_RDKB_AUTO_PORT_SWITCH

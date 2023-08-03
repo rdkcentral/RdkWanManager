@@ -84,65 +84,31 @@ cap_user appcaps;
 
 extern char*                                pComponentName;
 char                                        g_Subsystem[32]         = {0};
-
-#if defined (FEATURE_RDKB_WAN_MANAGER)
-#if !defined(AUTOWAN_ENABLE) && !defined(INTEL_PUMA7)// This is not needed when auto wan is enabled for TCXBX platforms
-extern ANSC_HANDLE bus_handle;
-
-#if defined(_HUB4_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_)
-#define  ARRAY_SZ(x) (sizeof(x) / sizeof((x)[0]))
-
-typedef struct
-{
-    char binaryLocation[64];  // binary path.
-    char rbusName[64];        // their rbus name.
-}Rbus_Module;
+extern BOOL wan_ready_to_go;
 
 static void waitUntilSystemReady()
 {
     int wait_time = 0;
-    char pModule[1024] = {0};
-    /* list of dependency modules should get registered before wanmgr start */
-    Rbus_Module pModuleNames[] = {{"/usr/bin/PsmSsp",    "rbusPsmSsp"},
-#if !defined(_PLATFORM_RASPBERRYPI_)
-                               {"/usr/bin/VlanManager", "eRT.com.cisco.spvtg.ccsp.vlanmanager"},
-                               {"/usr/bin/xdslmanager",   "eRT.com.cisco.spvtg.ccsp.xdslmanager"},
-                               {"/usr/bin/pppmanager",    "eRT.com.cisco.spvtg.ccsp.pppmanager"},
-                               {"/usr/bin/CcspCMAgentSsp","eRT.com.cisco.spvtg.ccsp.cm"},
-                               {"/usr/bin/rdkledmanager", "eRT.com.cisco.spvtg.ccsp.ledmanager"},
-#endif
-                               {"/usr/bin/CcspEthAgent",  "RbusEthAgent"},
-                               {"/usr/bin/CcspPandMSsp",  "CcspPandMSsp"}};
 
-    int elementCnt = ARRAY_SZ(pModuleNames);
+    CcspTraceInfo(("%s %d Entered \n", __FUNCTION__, __LINE__));
+#ifdef RBUS_BUILD_FLAG_ENABLE
+    WanMgr_Rbus_SubscribeWanReady();
 
-    /* prepare dependency module name list, if binary exists     */
-    /* Example: pModule = "rbusPsmSsp RbusEthAgent CcspPandMSsp" */
-    for(int i=0; i<elementCnt;i++)
+    while(wait_time <= 180)
     {
-        if (util_isFilePresent(pModuleNames[i].binaryLocation))
-        {
-            strcat(pModule,pModuleNames[i].rbusName);
-            strcat(pModule," ");
-            CcspTraceInfo((" discover_components rbusModuleList[%s]\n", pModuleNames[i].rbusName));
-        }
-    }
-
-    /* Check System (CR / Rbus) is ready.*/
-    while(wait_time <= 90)
-    {
-        /* check  dependency modules get registered */
-        if(WanMgr_Rbus_discover_components(pModule)){
-            /* all dependency modules registered - exit loop */
+        if(wan_ready_to_go){
             break;
         }
         wait_time++;
-        sleep(2);
+        sleep(1);
     }
-}
-#endif //_HUB4_PRODUCT_REQ_ || _PLATFORM_RASPBERRYPI_
+
+    CcspTraceInfo(("%s %d wan_ready_to_go event recerived. \n", __FUNCTION__, __LINE__));
+#else
+    CcspTraceInfo(("%s %d rbus not enabled. Continuing. \n", __FUNCTION__, __LINE__));
 #endif
-#endif //#if defined (FEATURE_RDKB_WAN_MANAGER)
+    return;
+}
 
 int  cmd_dispatch(int  command)
 {
@@ -415,13 +381,7 @@ int main(int argc, char* argv[])
     //CORE INT
     WanMgr_Core_Init();
 
-#if defined (FEATURE_RDKB_WAN_MANAGER)
-#if !defined(AUTOWAN_ENABLE) && !defined(INTEL_PUMA7)// This is not needed when auto wan is enabled for TCXBX platforms
-#if defined (_HUB4_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_)
     waitUntilSystemReady();
-#endif //_HUB4_PRODUCT_REQ_ || _PLATFORM_RASPBERRYPI_
-#endif
-#endif //#if defined (FEATURE_RDKB_WAN_MANAGER)
 
     WanMgrDmlWanWebConfigInit();
 #ifdef ENABLE_FEATURE_TELEMETRY2_0

@@ -34,6 +34,7 @@ static rbusHandle_t rbusHandle;
 
 char componentName[32] = "WANMANAGER";
 
+BOOL wan_ready_to_go = false;
 unsigned int gSubscribersCount = 0;
 UINT  uiTotalIfaces = 0;
 
@@ -774,10 +775,32 @@ static void WanMgr_Rbus_EventReceiveHandler(rbusHandle_t handle, rbusEvent_t con
             CcspTraceError(("%s %d - Remote Interface Not found \n", __FUNCTION__, __LINE__));
         }
     }
+    else  if (strcmp(eventName, "wan_ready_to_go") == 0)
+    {
+        rbusValue_t valBuff = rbusObject_GetValue(event->data, NULL );
+        CcspTraceInfo(("%s %d: change in %s\n", __FUNCTION__, __LINE__, eventName));
+        wan_ready_to_go = rbusValue_GetBoolean(valBuff);
+
+        CcspTraceInfo(("%s:%d Received [%s:%d]\n",__FUNCTION__, __LINE__,eventName, wan_ready_to_go));
+    }
+
     else
     {
         CcspTraceError(("%s:%d Unexpected Event Received [%s]\n",__FUNCTION__, __LINE__,eventName));
     }
+}
+
+void WanMgr_Rbus_SubscribeWanReady()
+{
+    rbusError_t ret = RBUS_ERROR_SUCCESS;
+    /* Adding 120 seconds as the duration of the subscription since this event is needed only at the bootup. This event will be unsubscribed after 120 seconds */
+    rbusEventSubscription_t subscription = {"wan_ready_to_go", NULL, 0, 120, WanMgr_Rbus_EventReceiveHandler, NULL,NULL, NULL, true};
+    ret = rbusEvent_SubscribeEx(rbusHandle, &subscription, 1, 60);
+    if(ret != RBUS_ERROR_SUCCESS)
+    {
+        CcspTraceError(("%s %d - Failed to Subscribe %s, Error=%s \n", __FUNCTION__, __LINE__, rbusError_ToString(ret), "wan_ready_to_go"));
+    }
+    CcspTraceInfo(("%s:%d wan_ready_to_go subscribed\n",__FUNCTION__, __LINE__));
 }
 
 void WanMgr_Rbus_UpdateLocalWanDb(void)
@@ -841,6 +864,7 @@ void WanMgr_Rbus_SubscribeDML(void)
         } 
     }
 #endif
+
 #ifdef FEATURE_RDKB_INTER_DEVICE_MANAGER
     ret = rbusEvent_Subscribe(rbusHandle, X_RDK_REMOTE_DEVICECHANGE, WanMgr_Rbus_EventReceiveHandler, NULL, 60);
     if(ret != RBUS_ERROR_SUCCESS)

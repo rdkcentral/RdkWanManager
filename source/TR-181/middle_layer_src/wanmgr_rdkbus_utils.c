@@ -740,7 +740,14 @@ int WanMgr_RdkBus_SetParamValuesToDB( char *pParamName, char *pParamVal )
     return retPsmSet;
 }
 
-ANSC_STATUS WanMgr_RestartGetBaseInterfaceStatus (DML_WAN_IFACE *pWanIfaceData)
+/* WanMgr_GetBaseInterfaceStatus()
+ * Updates current BaseInterfaceStatus of WanInterfaces using a DM get of BaseInterface Dml.
+ * This function will update BaseInterfaceStatus if WanManager restarted or BaseInterfaceStatus is already set by other components before WanManager rbus is ready.
+ * Args: DML_WAN_IFACE struct
+ * Returns: ANSC_STATUS_SUCCESS on successful get, else ANSC_STATUS_FAILURE.
+ */
+
+ANSC_STATUS WanMgr_GetBaseInterfaceStatus (DML_WAN_IFACE *pWanIfaceData)
 {
     //get PHY status
     char dmQuery[BUFLEN_256] = {0};
@@ -762,6 +769,36 @@ ANSC_STATUS WanMgr_RestartGetBaseInterfaceStatus (DML_WAN_IFACE *pWanIfaceData)
         }
 
         if(strcmp(dmValue,"true") == 0)
+        {
+            pWanIfaceData->BaseInterfaceStatus = WAN_IFACE_PHY_STATUS_UP;
+        }
+
+    }
+    else if(strstr(pWanIfaceData->BaseInterface, "EthernetWAN") != NULL)
+    {
+        snprintf(dmQuery, sizeof(dmQuery)-1, "%s%s", pWanIfaceData->BaseInterface, ETHWAN_PHY_STATUS_DM_SUFFIX);
+        if ( ANSC_STATUS_FAILURE == WanMgr_RdkBus_GetParamValueFromAnyComp (dmQuery, dmValue))
+        {
+            CcspTraceError(("%s-%d: %s, Failed to get param value\n", __FUNCTION__, __LINE__, dmQuery));
+            return ANSC_STATUS_FAILURE;
+        }
+
+        if(strcmp(dmValue,"true") == 0)
+        {
+            pWanIfaceData->BaseInterfaceStatus = WAN_IFACE_PHY_STATUS_UP;
+        }
+
+    }
+    else if(strstr(pWanIfaceData->BaseInterface, "CableModem") != NULL)
+    {
+        snprintf(dmQuery, sizeof(dmQuery)-1, "%s%s", pWanIfaceData->BaseInterface, CMAGENT_PHY_STATUS_DM_SUFFIX);
+        if ( ANSC_STATUS_FAILURE == WanMgr_RdkBus_GetParamValueFromAnyComp (dmQuery, dmValue))
+        {
+            CcspTraceError(("%s-%d: %s, Failed to get param value\n", __FUNCTION__, __LINE__, dmQuery));
+            return ANSC_STATUS_FAILURE;
+        }
+
+        if(strcmp(dmValue,"OPERATIONAL") == 0)
         {
             pWanIfaceData->BaseInterfaceStatus = WAN_IFACE_PHY_STATUS_UP;
         }

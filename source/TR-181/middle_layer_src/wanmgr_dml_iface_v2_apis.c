@@ -1556,7 +1556,7 @@ BOOL WanVirtualIf_SetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BO
         if (strcmp(ParamName, "Enable") == 0)
         {
             p_VirtIf->Enable = bValue;
-            ret = FALSE;
+            ret = TRUE;
         }
         if (strcmp(ParamName, "EnableDSLite") == 0)
         {
