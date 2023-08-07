@@ -3436,6 +3436,7 @@ static WcBWanPolicyState_t Transition_BackupWanInterfaceDown(WanMgr_Policy_Contr
             }
         }
     }
+    WanMgr_Policy_CheckAndStopUDHCPClientOverWanInterface(pFixedInterface->VirtIfList->Name, BACKUP_WAN_DHCPC_PID_FILE);
 
     CcspTraceInfo(("%s %d - State changed to STATE_BACKUP_WAN_INTERFACE_DOWN \n", __FUNCTION__, __LINE__));
     return STATE_BACKUP_WAN_INTERFACE_DOWN;
