@@ -177,8 +177,16 @@ rbusError_t wanMgrDmlPublishEventHandler(rbusHandle_t handle, rbusEventSubAction
         return RBUS_ERROR_BUS_ERROR;
     }
 
-
-    sscanf(name, WANMGR_INFACE_TABLE".%d.", &index);
+#if defined(WAN_MANAGER_UNIFICATION_ENABLED)
+    if(strstr(name, WANMGR_V1_INFACE_TABLE))
+    {
+        sscanf(name, WANMGR_V1_INFACE_TABLE".%d.", &index);
+    }
+    else
+#endif /** WAN_MANAGER_UNIFICATION_ENABLED */
+    {
+        sscanf(name, WANMGR_INFACE_TABLE".%d.", &index);
+    }
 
     if(index  == 0)
     {
@@ -426,6 +434,12 @@ rbusError_t WanMgr_Interface_SetHandler(rbusHandle_t handle, rbusProperty_t prop
                 {
                     CcspTraceInfo(("%s-%d : BaseInterfaceStatus Publish Event, SubCount(%d)\n", __FUNCTION__, __LINE__, pWanDmlIface->Sub.BaseInterfaceStatusSub));
                     WanMgr_Rbus_EventPublishHandler(name, &String, type);
+#if defined(WAN_MANAGER_UNIFICATION_ENABLED)
+                    char DmlNameV1[128] = {0};
+                    snprintf(DmlNameV1, sizeof(DmlNameV1), WANMGR_V1_INFACE_TABLE".%d"WANMGR_V1_INFACE_PHY_STATUS_SUFFIX,index);
+                    CcspTraceInfo(("%s-%d : V1 DML Publish Event %s\n", __FUNCTION__, __LINE__,DmlNameV1 ));
+                    WanMgr_Rbus_EventPublishHandler(DmlNameV1, &String, type);
+#endif /** WAN_MANAGER_UNIFICATION_ENABLED */
                 }
             }
             else
@@ -444,6 +458,12 @@ rbusError_t WanMgr_Interface_SetHandler(rbusHandle_t handle, rbusProperty_t prop
                 {
                     CcspTraceInfo(("%s-%d : VLAN Status Publish Event, SubCount(%d)\n", __FUNCTION__, __LINE__, pWanDmlIface->Sub.WanLinkStatusSub));
                     WanMgr_Rbus_EventPublishHandler(name, &String, type);
+#if defined(WAN_MANAGER_UNIFICATION_ENABLED)
+                    char DmlNameV1[128] = {0};
+                    snprintf(DmlNameV1, sizeof(DmlNameV1), WANMGR_V1_INFACE_TABLE".%d"WANMGR_V1_INFACE_WAN_LINKSTATUS_SUFFIX,index);
+                    CcspTraceInfo(("%s-%d : V1 DML Publish Event %s\n", __FUNCTION__, __LINE__,DmlNameV1 ));
+                    WanMgr_Rbus_EventPublishHandler(DmlNameV1, &String, type);
+#endif /** WAN_MANAGER_UNIFICATION_ENABLED */
                 }
             }
             else
@@ -462,6 +482,12 @@ rbusError_t WanMgr_Interface_SetHandler(rbusHandle_t handle, rbusProperty_t prop
                 {
                     CcspTraceInfo(("%s-%d : Virtual interface Status Publish Event, SubCount(%d)\n", __FUNCTION__, __LINE__, pWanDmlIface->Sub.WanStatusSub));
                     WanMgr_Rbus_EventPublishHandler(name, &String, type);
+#if defined(WAN_MANAGER_UNIFICATION_ENABLED)
+                    char DmlNameV1[128] = {0};
+                    snprintf(DmlNameV1, sizeof(DmlNameV1), WANMGR_V1_INFACE_TABLE".%d"WANMGR_V1_INFACE_WAN_STATUS_SUFFIX,index);
+                    CcspTraceInfo(("%s-%d : V1 DML Publish Event %s\n", __FUNCTION__, __LINE__,DmlNameV1 ));
+                    WanMgr_Rbus_EventPublishHandler(DmlNameV1, &String, type);
+#endif /** WAN_MANAGER_UNIFICATION_ENABLED */
                 }
             }
             else
@@ -1270,7 +1296,8 @@ ANSC_STATUS WanMgr_Rbus_String_EventPublish_OnValueChange(char *dm_event, void *
  ********************************************************************************/
 ANSC_STATUS WanMgr_Rbus_String_EventPublish(char *dm_event, void *dm_value)
 {
-    if (strstr(dm_event, WANMGR_INFACE_WAN_STATUS_SUFFIX))
+    char *name = dm_event;
+    if (WANMGR_WAN_STATUS_CHECK)
     {
        char String[20] = {0};
        WanMgr_EnumToString((*(UINT *)dm_value), ENUM_WAN_STATUS, String);

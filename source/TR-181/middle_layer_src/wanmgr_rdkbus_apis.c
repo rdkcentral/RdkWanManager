@@ -1890,6 +1890,12 @@ ANSC_STATUS WanMgr_Publish_WanStatus(UINT IfaceIndex, UINT VirId)
                 _ansc_sprintf(param_name, WANMGR_IFACE_WAN_STATUS, (IfaceIndex+1), (VirId+1));
 #ifdef RBUS_BUILD_FLAG_ENABLE
                 WanMgr_Rbus_String_EventPublish(param_name, &PrevWanStatus);
+#if defined(WAN_MANAGER_UNIFICATION_ENABLED)
+                char DmlNameV1[128] = {0};
+                snprintf(DmlNameV1, sizeof(DmlNameV1), WANMGR_V1_INFACE_TABLE".%d"WANMGR_V1_INFACE_WAN_STATUS_SUFFIX,(IfaceIndex+1));
+                CcspTraceInfo(("%s-%d : V1 DML Publish Event %s\n", __FUNCTION__, __LINE__,DmlNameV1 ));
+                WanMgr_Rbus_String_EventPublish(DmlNameV1, &PrevWanStatus);
+#endif /** WAN_MANAGER_UNIFICATION_ENABLED */
 #endif
             }
         }
