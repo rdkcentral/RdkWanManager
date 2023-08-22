@@ -370,6 +370,8 @@ ANSC_STATUS WanMgr_SendMsgToIHC (ipoe_msg_type_t msgType, char *ifName)
     ipc_ihc_data_t msgBody;
     memset (&msgBody, 0, sizeof(ipc_ihc_data_t));
     msgBody.msgType = msgType;
+    char domainName[128] = {0};
+
     if (msgType == IPOE_MSG_WAN_CONNECTION_IPV6_UP)
     {
         // V6 UP Message needs Wan V6 IP
@@ -386,12 +388,22 @@ ANSC_STATUS WanMgr_SendMsgToIHC (ipoe_msg_type_t msgType, char *ifName)
         pattern = strstr(ipv6_prefix, "/");
         if (pattern == NULL)
         {
-            CcspTraceError(("[%s-%d] Invalid ipv6_prefix :%s\n", ipv6_prefix));
+            CcspTraceError(("[%s-%d] Invalid ipv6_prefix :%s\n", __FUNCTION__, __LINE__, ipv6_prefix));
             return ANSC_STATUS_FAILURE;
         }
         sprintf(pattern, "%c%c", '1', '\0'); //Form the global address with ::1
         strncpy(msgBody.ipv6Address, ipv6_prefix, sizeof(ipv6_prefix));
-        CcspTraceInfo(("[%s-%d] Sending IPOE_MSG_WAN_CONNECTION_IPV6_UP msg with addr :%s\n", __FUNCTION__, __LINE__, msgBody.ipv6Address));
+
+        if( 0 == syscfg_get( NULL, "ntp_server1", domainName, sizeof(domainName)) )
+        {
+            snprintf(msgBody.domainName, sizeof(msgBody.domainName), "%s", domainName);
+        }
+        else
+        {
+            CcspTraceError(("[%s-%d] syscfg_get ntp_server1 failed\n", __FUNCTION__, __LINE__));
+        }
+
+        CcspTraceInfo(("[%s-%d] Sending IPOE_MSG_WAN_CONNECTION_IPV6_UP msg with addr :%s and domainName: [%s] \n", __FUNCTION__, __LINE__, msgBody.ipv6Address, msgBody.domainName));
     }
     else if (msgType == IPOE_MSG_WAN_CONNECTION_UP)
     {
@@ -405,7 +417,17 @@ ANSC_STATUS WanMgr_SendMsgToIHC (ipoe_msg_type_t msgType, char *ifName)
             return ANSC_STATUS_FAILURE;
         }
         strncpy(msgBody.ipv4Address, ipv4_wan_address, sizeof(ipv4_wan_address));
-        CcspTraceInfo(("[%s-%d] Sending IPOE_MSG_WAN_CONNECTION_UP msg with addr :%s\n", __FUNCTION__, __LINE__, msgBody.ipv4Address));
+
+        if( 0 == syscfg_get( NULL, "ntp_server1", domainName, sizeof(domainName)) )
+        {
+            snprintf(msgBody.domainName, sizeof(msgBody.domainName), "%s", domainName);
+        }
+        else
+        {
+            CcspTraceError(("[%s-%d] syscfg_get ntp_server1 failed\n", __FUNCTION__, __LINE__));
+        }
+
+        CcspTraceInfo(("[%s-%d] Sending IPOE_MSG_WAN_CONNECTION_UP msg with addr :%s and domainName: [%s] \n", __FUNCTION__, __LINE__, msgBody.ipv4Address, msgBody.domainName));
     }
     strncpy(msgBody.ifName, ifName, IFNAME_LENGTH-1);
 
