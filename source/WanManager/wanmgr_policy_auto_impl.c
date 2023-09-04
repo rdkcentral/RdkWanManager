@@ -859,6 +859,7 @@ static WcAwPolicyState_t Transition_ResetSelectedInterface (WanMgr_Policy_Contro
     }
 
     DML_WAN_IFACE* pWanIfaceData = &(pWanController->pWanActiveIfaceData->data);
+
     pWanIfaceData->Selection.Status = WAN_IFACE_NOT_SELECTED;
     CcspTraceInfo(("%s %d: Selection.Status set to NOT_SELECTED. moving to State_WaitingForIfaceTearDown()\n", __FUNCTION__, __LINE__));
 

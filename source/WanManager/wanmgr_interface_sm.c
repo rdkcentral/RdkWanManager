@@ -1442,14 +1442,14 @@ static eWanState_t wan_transition_physical_interface_down(WanMgr_IfaceSM_Control
     }
 #endif
 
-    if(p_VirtIf->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_UP)
-    {
-        wan_transition_ipv6_down(pWanIfaceCtrl);
-    }
-
     if(p_VirtIf->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_UP)
     {
         wan_transition_ipv4_down(pWanIfaceCtrl);
+    }
+
+    if(p_VirtIf->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_UP)
+    {
+        wan_transition_ipv6_down(pWanIfaceCtrl);
     }
 
     /* Stops DHCPv4 client */
@@ -1738,6 +1738,8 @@ static eWanState_t wan_transition_ipv4_down(WanMgr_IfaceSM_Controller_t* pWanIfa
     if (pWanIfaceCtrl->WanEnable == FALSE ||
         pInterface->Selection.Enable == FALSE ||
         p_VirtIf->Enable == FALSE ||
+        p_VirtIf->Reset == TRUE ||
+        p_VirtIf->VLAN.Reset == TRUE ||
         pInterface->Selection.Status == WAN_IFACE_NOT_SELECTED ||
         pInterface->BaseInterfaceStatus !=  WAN_IFACE_PHY_STATUS_UP ||
         p_VirtIf->VLAN.Status ==  WAN_IFACE_LINKSTATUS_DOWN ||
@@ -2016,6 +2018,8 @@ static eWanState_t wan_transition_ipv6_down(WanMgr_IfaceSM_Controller_t* pWanIfa
     if (pWanIfaceCtrl->WanEnable == FALSE ||
         pInterface->Selection.Enable == FALSE ||
         p_VirtIf->Enable == FALSE ||
+        p_VirtIf->Reset == TRUE ||
+        p_VirtIf->VLAN.Reset == TRUE ||
         pInterface->Selection.Status == WAN_IFACE_NOT_SELECTED ||
         pInterface->BaseInterfaceStatus !=  WAN_IFACE_PHY_STATUS_UP ||
         p_VirtIf->VLAN.Status ==  WAN_IFACE_LINKSTATUS_DOWN ||
@@ -2023,7 +2027,6 @@ static eWanState_t wan_transition_ipv6_down(WanMgr_IfaceSM_Controller_t* pWanIfa
         (p_VirtIf->IP.RefreshDHCP == TRUE && (p_VirtIf->IP.IPv6Source != DML_WAN_IP_SOURCE_DHCP ||
         (p_VirtIf->IP.Mode != DML_WAN_IP_MODE_IPV6_ONLY && p_VirtIf->IP.Mode != DML_WAN_IP_MODE_DUAL_STACK))))
     {
-        // Stopping DHCPv6 client, so we can send a unicast DHCP Release packet
         CcspTraceInfo(("%s %d: Stopping DHCP v6\n", __FUNCTION__, __LINE__));
         WanManager_StopDhcpv6Client(p_VirtIf->Name);
         p_VirtIf->IP.Dhcp6cPid = 0;
@@ -2154,8 +2157,7 @@ static eWanState_t wan_transition_mapt_feature_refresh(WanMgr_IfaceSM_Controller
        (p_VirtIf->IP.Mode == DML_WAN_IP_MODE_DUAL_STACK || p_VirtIf->IP.Mode == DML_WAN_IP_MODE_IPV6_ONLY))
     {
         int i = 0;
-        /* Release and Stops DHCPv6 client */
-        system("touch /tmp/dhcpv6_release");
+
         WanManager_StopDhcpv6Client(p_VirtIf->Name);
         p_VirtIf->IP.Dhcp6cPid = 0;
 
@@ -2404,6 +2406,7 @@ static eWanState_t wan_transition_standby_deconfig_ips(WanMgr_IfaceSM_Controller
         }
     }
 #endif
+
     if (p_VirtIf->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_UP)
     {
         CcspTraceInfo(("%s %d - Deconfiguring Ipv4 for %s \n", __FUNCTION__, __LINE__, p_VirtIf->Name));
@@ -2502,8 +2505,8 @@ static eWanState_t wan_state_ppp_configuring(WanMgr_IfaceSM_Controller_t* pWanIf
 
     if (pWanIfaceCtrl->WanEnable == FALSE ||
             pInterface->Selection.Enable == FALSE ||
-            p_VirtIf->Enable == FALSE ||
             pInterface->Selection.Status == WAN_IFACE_NOT_SELECTED ||
+            p_VirtIf->Enable == FALSE ||
             pInterface->BaseInterfaceStatus !=  WAN_IFACE_PHY_STATUS_UP)
     {
         return wan_transition_physical_interface_down(pWanIfaceCtrl);
@@ -2554,8 +2557,8 @@ static eWanState_t wan_state_validating_wan(WanMgr_IfaceSM_Controller_t* pWanIfa
 
     if (pWanIfaceCtrl->WanEnable == FALSE ||
             pInterface->Selection.Enable == FALSE ||
-            p_VirtIf->Enable == FALSE ||
             pInterface->Selection.Status == WAN_IFACE_NOT_SELECTED ||
+            p_VirtIf->Enable == FALSE ||
             pInterface->BaseInterfaceStatus !=  WAN_IFACE_PHY_STATUS_UP)
     {
         return wan_transition_physical_interface_down(pWanIfaceCtrl);
@@ -2600,8 +2603,8 @@ static eWanState_t wan_state_obtaining_ip_addresses(WanMgr_IfaceSM_Controller_t*
 
     if (pWanIfaceCtrl->WanEnable == FALSE ||
         pInterface->Selection.Enable == FALSE ||
-        p_VirtIf->Enable == FALSE ||
         pInterface->Selection.Status == WAN_IFACE_NOT_SELECTED ||
+        p_VirtIf->Enable == FALSE ||
         pInterface->BaseInterfaceStatus !=  WAN_IFACE_PHY_STATUS_UP ||
         p_VirtIf->VLAN.Status ==  WAN_IFACE_LINKSTATUS_CONFIGURING ||
         p_VirtIf->PPP.LinkStatus ==  WAN_IFACE_PPP_LINK_STATUS_CONFIGURING ||
@@ -2865,6 +2868,7 @@ static eWanState_t wan_state_ipv4_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
 
     if (pWanIfaceCtrl->WanEnable == FALSE ||
         pInterface->Selection.Enable == FALSE ||
+        pInterface->Selection.Status == WAN_IFACE_NOT_SELECTED ||
         p_VirtIf->Enable == FALSE ||
         p_VirtIf->Reset == TRUE ||
         p_VirtIf->VLAN.Reset == TRUE ||
@@ -3020,6 +3024,7 @@ static eWanState_t wan_state_ipv6_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
 
     if (pWanIfaceCtrl->WanEnable == FALSE ||
         pInterface->Selection.Enable == FALSE ||
+        pInterface->Selection.Status == WAN_IFACE_NOT_SELECTED ||
         p_VirtIf->Enable == FALSE ||
         p_VirtIf->Reset == TRUE ||
         p_VirtIf->VLAN.Reset == TRUE ||
@@ -3185,6 +3190,7 @@ static eWanState_t wan_state_dual_stack_active(WanMgr_IfaceSM_Controller_t* pWan
 
     if (pWanIfaceCtrl->WanEnable == FALSE ||
         pInterface->Selection.Enable == FALSE ||
+        pInterface->Selection.Status == WAN_IFACE_NOT_SELECTED ||
         p_VirtIf->Enable == FALSE ||
         p_VirtIf->Reset == TRUE ||
         p_VirtIf->VLAN.Reset == TRUE ||
@@ -3391,6 +3397,7 @@ static eWanState_t wan_state_mapt_active(WanMgr_IfaceSM_Controller_t* pWanIfaceC
 
     if (pWanIfaceCtrl->WanEnable == FALSE ||
         pInterface->Selection.Enable == FALSE ||
+        pInterface->Selection.Status == WAN_IFACE_NOT_SELECTED ||
         p_VirtIf->Enable == FALSE ||
         p_VirtIf->Reset == TRUE ||
         p_VirtIf->VLAN.Reset == TRUE ||
@@ -3539,9 +3546,9 @@ static eWanState_t wan_state_refreshing_wan(WanMgr_IfaceSM_Controller_t* pWanIfa
 
     if (pWanIfaceCtrl->WanEnable == FALSE ||
         pInterface->Selection.Enable == FALSE ||
+        pInterface->Selection.Status == WAN_IFACE_NOT_SELECTED ||
         p_VirtIf->Enable == FALSE ||
         p_VirtIf->Reset == TRUE ||
-        pInterface->Selection.Status == WAN_IFACE_NOT_SELECTED ||
         pInterface->BaseInterfaceStatus !=  WAN_IFACE_PHY_STATUS_UP)
     {
          p_VirtIf->VLAN.Expired = FALSE; //Reset VLAN.Expired

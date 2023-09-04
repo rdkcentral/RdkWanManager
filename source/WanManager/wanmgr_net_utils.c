@@ -569,6 +569,14 @@ ANSC_STATUS WanManager_StopDhcpv6Client(char * iface_name)
 
     CcspTraceInfo (("%s %d: Stopping dhcpv6 client for %s\n", __FUNCTION__, __LINE__, iface_name));
 
+    // send unicast DHCPv6 RELEASE
+    int fd = 0;
+    fd = creat("/tmp/dhcpv6_release",S_IRUSR | S_IWUSR | S_IRGRP);
+    if(fd != -1)
+    {
+        close(fd);
+    }
+
     int ret;
     dhcp_params params;
 
