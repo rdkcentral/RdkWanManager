@@ -613,7 +613,7 @@ static WcFmobPolicyState_t Transition_FixedWanInterfaceUp(WanMgr_Policy_Controll
     Update_Interface_Status();
 #endif
      // start wan
-     wanmgr_setwanstart();
+     wanmgr_setwanrestart();
      wanmgr_sshd_restart();
 
     CcspTraceInfo(("%s %d - State changed to STATE_WAN_INTERFACE_UP \n", __FUNCTION__, __LINE__));
