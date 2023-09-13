@@ -391,6 +391,49 @@ static BOOL WanMgr_RestartFindExistingLink (WanMgr_IfaceSM_Controller_t* pWanIfa
     return ret;
 }
 
+static void WanMgr_MonitorDhcpApps (WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
+{
+    if (pWanIfaceCtrl == NULL || pWanIfaceCtrl->WanEnable == FALSE)
+    {
+        CcspTraceError(("%s %d: invalid args..\n", __FUNCTION__, __LINE__));
+        return;
+    }
+
+    DML_WAN_IFACE* pInterface = pWanIfaceCtrl->pIfaceData;
+    if (pInterface->Selection.Status == WAN_IFACE_NOT_SELECTED || 
+        pInterface->Selection.Enable == FALSE )
+    {
+        CcspTraceError(("%s %d: monitoring dhcp apps not needed for this interface\n", __FUNCTION__, __LINE__));
+        return;
+    }
+
+    DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIfaceById(pInterface->VirtIfList, pWanIfaceCtrl->VirIfIdx);
+    if (p_VirtIf->IP.RefreshDHCP == TRUE)
+    {
+        // let the caller state handle RefreshDHCP=TRUE scenario
+        CcspTraceError(("%s %d: IP Mode change detected, handle RefreshDHCP & later monitor DHCP apps\n", __FUNCTION__, __LINE__));
+        return;
+    }
+
+    //Check if IPv4 dhcp client is still running - handling runtime crash of dhcp scenario
+    if ((p_VirtIf->IP.Mode == DML_WAN_IP_MODE_IPV4_ONLY || p_VirtIf->IP.Mode == DML_WAN_IP_MODE_DUAL_STACK) &&  // IP.Mode supports V4
+        p_VirtIf->IP.IPv4Source == DML_WAN_IP_SOURCE_DHCP && (p_VirtIf->PPP.Enable == FALSE) &&                 // uses DHCP client
+        p_VirtIf->MAP.MaptStatus == WAN_IFACE_MAPT_STATE_DOWN &&                                                // MAPT status is DOWN
+        (WanManager_IsApplicationRunning(DHCPV4_CLIENT_NAME, p_VirtIf->Name) != TRUE))                          // but DHCP client not running
+    {
+        p_VirtIf->IP.Dhcp4cPid = WanManager_StartDhcpv4Client(p_VirtIf, pInterface->Name, pInterface->IfaceType);
+        CcspTraceInfo(("%s %d - SELFHEAL - Started dhcpc on interface %s, dhcpv4_pid %d \n", __FUNCTION__, __LINE__, p_VirtIf->Name, p_VirtIf->IP.Dhcp4cPid));
+    }
+
+    //Check if IPv6 dhcp client is still running - handling runtime crash of dhcp client
+    if ((p_VirtIf->IP.Mode == DML_WAN_IP_MODE_IPV6_ONLY || p_VirtIf->IP.Mode == DML_WAN_IP_MODE_DUAL_STACK) &&  // IP.Mode supports V6
+        p_VirtIf->IP.IPv6Source == DML_WAN_IP_SOURCE_DHCP &&                                                    // uses DHCP client
+        (WanManager_IsApplicationRunning(DHCPV6_CLIENT_NAME, p_VirtIf->Name) != TRUE))                          // but DHCP client not running
+    {
+        p_VirtIf->IP.Dhcp6cPid = WanManager_StartDhcpv6Client(p_VirtIf, pInterface->IfaceType);
+        CcspTraceInfo(("%s %d - SELFHEAL - Started dhcp6c on interface %s, dhcpv6_pid %d \n", __FUNCTION__, __LINE__, p_VirtIf->Name, p_VirtIf->IP.Dhcp6cPid));
+    }
+}
 
 #if defined(FEATURE_464XLAT)
 static XLAT_State_t xlat_state_get(void)
@@ -1753,11 +1796,8 @@ static eWanState_t wan_transition_ipv4_down(WanMgr_IfaceSM_Controller_t* pWanIfa
     }
     else
     {
-        /* Collect if any zombie process. */
-        WanManager_DoCollectApp(DHCPV4_CLIENT_NAME);
-
         // start DHCPv4 client if it is not running, MAP-T not configured and PPP Disable scenario.
-        if ((WanManager_IsApplicationRunning(DHCPV4_CLIENT_NAME) != TRUE) && (p_VirtIf->PPP.Enable == FALSE) &&
+        if ((WanManager_IsApplicationRunning(DHCPV4_CLIENT_NAME, p_VirtIf->Name) != TRUE) && (p_VirtIf->PPP.Enable == FALSE) &&
             (!(p_VirtIf->EnableMAPT == TRUE && (pInterface->Selection.Status == WAN_IFACE_ACTIVE) && 
             (p_VirtIf->MAP.MaptStatus == WAN_IFACE_MAPT_STATE_UP))))
         {
@@ -2033,10 +2073,8 @@ static eWanState_t wan_transition_ipv6_down(WanMgr_IfaceSM_Controller_t* pWanIfa
     }
     else
     {
-        /* Collect if any zombie process. */
-        WanManager_DoCollectApp(DHCPV6_CLIENT_NAME);
 
-        if (WanManager_IsApplicationRunning(DHCPV6_CLIENT_NAME) != TRUE)
+        if (WanManager_IsApplicationRunning(DHCPV6_CLIENT_NAME, p_VirtIf->Name) != TRUE)
         {
             /* Start DHCPv6 Client */
             CcspTraceInfo(("%s %d - Starting dibbler-client on interface %s \n", __FUNCTION__, __LINE__, p_VirtIf->Name));
@@ -2163,7 +2201,7 @@ static eWanState_t wan_transition_mapt_feature_refresh(WanMgr_IfaceSM_Controller
 
         for(i= 0; i < 10; i++)
         {
-            if (WanManager_IsApplicationRunning(DHCPV6_CLIENT_NAME) == TRUE)
+            if (WanManager_IsApplicationRunning(DHCPV6_CLIENT_NAME, p_VirtIf->Name) == TRUE)
             {
                 // Before starting a V6 client, it may take some time to get the REPLAY for RELEASE from Previous V6 client.
                 // So wait for 1 to 10 secs for the process of Release & Kill the existing client
@@ -2675,6 +2713,9 @@ static eWanState_t wan_state_obtaining_ip_addresses(WanMgr_IfaceSM_Controller_t*
         return WAN_STATE_OBTAINING_IP_ADDRESSES;
     }
 
+    // Start DHCP apps if not started
+    WanMgr_MonitorDhcpApps(pWanIfaceCtrl);
+
     if (p_VirtIf->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_UP)
     {
         if (pInterface->Selection.Status == WAN_IFACE_ACTIVE)
@@ -2752,7 +2793,11 @@ static eWanState_t wan_state_standby(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
     {
         return wan_transition_physical_interface_down(pWanIfaceCtrl);
     }
-    else if ((p_VirtIf->VLAN.Enable == TRUE &&  p_VirtIf->VLAN.Status ==  WAN_IFACE_LINKSTATUS_DOWN) ||
+
+    // Start DHCP apps if not started
+    WanMgr_MonitorDhcpApps(pWanIfaceCtrl);
+
+    if ((p_VirtIf->VLAN.Enable == TRUE &&  p_VirtIf->VLAN.Status ==  WAN_IFACE_LINKSTATUS_DOWN) ||
              (p_VirtIf->PPP.Enable == TRUE && p_VirtIf->PPP.LinkStatus != WAN_IFACE_PPP_LINK_STATUS_UP)|| // PPP is Enabled but DOWN
              (p_VirtIf->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_DOWN &&
              p_VirtIf->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_DOWN) ||
@@ -2858,13 +2903,16 @@ static eWanState_t wan_state_ipv4_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
     if(p_VirtIf->IP.RefreshDHCP == TRUE &&
       p_VirtIf->IP.IPv6Source == DML_WAN_IP_SOURCE_DHCP &&
       p_VirtIf->IP.Mode == DML_WAN_IP_MODE_DUAL_STACK &&
-      p_VirtIf->IP.Dhcp6cPid <= 0)
+      WanManager_IsApplicationRunning(DHCPV6_CLIENT_NAME, p_VirtIf->Name) != TRUE)
     {
         /* Start DHCPv6 Client */
         p_VirtIf->IP.Dhcp6cPid = WanManager_StartDhcpv6Client(p_VirtIf, pInterface->IfaceType);
         CcspTraceInfo(("%s %d - Started dhcpv6 client on interface %s, dhcpv6_pid %d \n", __FUNCTION__, __LINE__, p_VirtIf->Name, p_VirtIf->IP.Dhcp6cPid));
         CcspTraceInfo(("%s %d - Interface '%s' - Running in Dual Stack IP Mode\n", __FUNCTION__, __LINE__, pInterface->Name));
     }
+
+    // Start DHCP apps if not started
+    WanMgr_MonitorDhcpApps(pWanIfaceCtrl);
 
     if (pWanIfaceCtrl->WanEnable == FALSE ||
         pInterface->Selection.Enable == FALSE ||
@@ -3021,6 +3069,9 @@ static eWanState_t wan_state_ipv6_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
         CcspTraceInfo(("%s %d - Started dhcpc on interface %s, dhcpv4_pid %d \n", __FUNCTION__, __LINE__, p_VirtIf->Name, p_VirtIf->IP.Dhcp4cPid));
         CcspTraceInfo(("%s %d - Interface '%s' - Running in Dual Stack IP Mode\n", __FUNCTION__, __LINE__, pInterface->Name));
     }
+
+    // Start DHCP apps if not started
+    WanMgr_MonitorDhcpApps(pWanIfaceCtrl); 
 
     if (pWanIfaceCtrl->WanEnable == FALSE ||
         pInterface->Selection.Enable == FALSE ||
@@ -3331,6 +3382,10 @@ static eWanState_t wan_state_dual_stack_active(WanMgr_IfaceSM_Controller_t* pWan
         p_VirtIf->IP.Ipv6Renewed = FALSE;
     }
 #endif
+
+    // Start DHCP apps if not started
+    WanMgr_MonitorDhcpApps(pWanIfaceCtrl);
+
     wanmgr_Ipv6Toggle();
 #if defined(FEATURE_IPOE_HEALTH_CHECK) && defined(IPOE_HEALTH_CHECK_LAN_SYNC_SUPPORT)
     if((p_VirtIf->PPP.Enable == FALSE) && (p_VirtIf->EnableIPoE == TRUE) && (pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV6Status == IHC_STARTED))
@@ -3514,6 +3569,10 @@ static eWanState_t wan_state_mapt_active(WanMgr_IfaceSM_Controller_t* pWanIfaceC
         p_VirtIf->IP.Ipv6Renewed = FALSE;
     }
 #endif
+
+    // Start DHCP apps if not started
+    WanMgr_MonitorDhcpApps(pWanIfaceCtrl);
+
     wanmgr_Ipv6Toggle();
 #if defined(FEATURE_IPOE_HEALTH_CHECK) && defined(IPOE_HEALTH_CHECK_LAN_SYNC_SUPPORT)
     if((p_VirtIf->PPP.Enable == FALSE) && (p_VirtIf->EnableIPoE == TRUE) && (pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV6Status == IHC_STARTED))

@@ -468,10 +468,10 @@ static int _dibbler_client_operation(char * arg)
 #endif
 
 #ifdef _COSA_BCM_ARM_
-        if (TRUE == WanManager_IsApplicationRunning (CLIENT_BIN))
+        if (TRUE == WanManager_IsApplicationRunning (CLIENT_BIN, NULL))
         {
 #if defined(_DT_WAN_Manager_Enable_)
-            if ((pidval = util_getPidByName(CLIENT_BIN)) >= 0)
+            if ((pidval = util_getPidByName(CLIENT_BIN, NULL)) >= 0)
             {
                 if ((rc = kill(pidval, SIGTERM)) < 0)
                 {

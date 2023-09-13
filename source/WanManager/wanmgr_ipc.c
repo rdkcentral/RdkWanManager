@@ -251,9 +251,9 @@ static ANSC_STATUS Wan_ForceRenewDhcpIPv4(char *ifName)
 {
 
     /*send triggered renew request to DHCPC*/
-    if (WanManager_IsApplicationRunning(DHCPV4_CLIENT_NAME) == TRUE)
+    int pid = util_getPidByName(DHCPV4_CLIENT_NAME, ifName);
+    if (pid > 0)
     {
-        int pid = util_getPidByName(DHCPV4_CLIENT_NAME);
         CcspTraceInfo(("sending SIGUSR1 to %s[pid=%d], this will let the %s to send renew packet out \n", DHCPV4_CLIENT_NAME, pid, DHCPV4_CLIENT_NAME));
         util_signalProcess(pid, SIGUSR1);
     }
@@ -277,9 +277,9 @@ ANSC_STATUS Wan_ForceRenewDhcpIPv6(char *ifName)
 {
 
     /*send triggered renew request to DHCPv6C*/
-    if (WanManager_IsApplicationRunning(DHCPV6_CLIENT_NAME) == TRUE)
+    int pid = util_getPidByName(DHCPV6_CLIENT_NAME, ifName);
+    if (pid > 0 )
     {
-        int pid = util_getPidByName(DHCPV6_CLIENT_NAME);
         CcspTraceInfo(("sending SIGUSR2 to dhcp6c, this will let the dhcp6c to send renew packet out \n"));
         util_signalProcess(pid, SIGUSR2);
     }

@@ -128,9 +128,10 @@ uint32_t WanManager_RestartDhcp6c(const char *ifName_info, BOOL dynamicIpEnabled
 /***************************************************************************
  * @brief Utility function used to check Application is running.
  * @param appName string indicates application name
+ * @param args string indicates parameter
  * @return status of system() call.
  ***************************************************************************/
-BOOL WanManager_IsApplicationRunning(const char* appName);
+BOOL WanManager_IsApplicationRunning(const char *appName, const char * args);
 
 /***************************************************************************
  * @brief Utility function used to perform operation on IPV6 addresses

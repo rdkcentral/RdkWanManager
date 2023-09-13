@@ -149,7 +149,7 @@ uint32_t WanManager_getUpTime();
 int util_spawnProcess(const char *execName, const char *processInfo, int * processId);
 int util_terminateProcessForcefully(int32_t pid);
 int util_signalProcess(int32_t pid, int32_t sig);
-int util_getPidByName(const char *name);
+int util_getPidByName(const char *name, const char * args);
 int util_getNameByPid(int pid, char *nameBuf, int nameBufLen);
 int util_collectProcess(int pid, int timeout);
 int util_runCommandInShellBlocking(char *command);

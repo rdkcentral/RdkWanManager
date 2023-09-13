@@ -322,37 +322,92 @@ int util_getNameByPid(int pid, char *nameBuf, int nameBufLen)
    return rval;
 }
 
-int util_getPidByName(const char *name)
+/*
+ * find_strstr ()
+ * @description: /proc/pid/cmdline contains command line args in format "args1\0args2".
+                 This function will find substring even if there is a end of string character
+ * @params     : basestr - base string eg: "hello\0world"
+                 basestr_len - length of basestr eg: 11 for "hello\0world"
+                 substr - sub string eg: "world"
+                 substr_len - length of substr eg: 5 for "world"
+ * @return     : SUCCESS if matches, else returns failure
+ *
+ */
+static int find_strstr (char * basestr, int basestr_len, char * substr, int substr_len)
 {
+    if ((basestr == NULL) || (substr == NULL))
+    {
+        return ANSC_STATUS_FAILURE;
+    }
+
+    if (basestr_len <= substr_len)
+    {
+        return ANSC_STATUS_FAILURE;
+    }
+
+    int i = 0, j = 0;
+
+    for (i = 0; i < basestr_len; i++)
+    {
+        if (basestr[i] == substr[j])
+        {
+            for (; ((j < substr_len) && (i < basestr_len)); j ++, i++)
+            {
+                if (basestr[i] != substr[j])
+                {
+                    j=0;
+                    break;
+                }
+
+                if (j == substr_len - 1)
+                    return ANSC_STATUS_SUCCESS;
+            }
+        }
+    }
+    return ANSC_STATUS_FAILURE;
+}
+
+
+int util_getPidByName(const char *name, const char * args)
+{
+    if (name == NULL)
+    {
+        CcspTraceError(("%s %d: Invalid args\n", __FUNCTION__, __LINE__));
+        return 0;
+    }
+
    DIR *dir;
    FILE *fp;
    struct dirent *dent;
-   BOOL found=FALSE;
-   int pid, rc, p, i;
+    bool found=false;
+    int rc, p, i;
+    /* CID :192528 Out-of-bounds read (OVERRUN) */
+    int64_t pid;
    int rval = 0;
    char processName[BUFLEN_256];
+    char cmdline[512] = {0};
    char filename[BUFLEN_256];
+    char status = 0;
 
    if (NULL == (dir = opendir("/proc")))
    {
-      CcspTraceError(("could not open /proc"));
-      return rval;
+        CcspTraceError(("%s %d:could not open /proc\n", __FUNCTION__, __LINE__));
+        return 0;
    }
 
    while (!found && (dent = readdir(dir)) != NULL)
    {
       if ((dent->d_type == DT_DIR) &&
-          (RETURN_OK == strtol64(dent->d_name, NULL, 10, (int64_t*)&pid)))
+                (RETURN_OK == strtol64(dent->d_name, NULL, 10, &pid)))
       {
-         snprintf(filename, sizeof(filename), "/proc/%d/stat", pid);
-         if ((fp = fopen(filename, "r")) == NULL)
+            snprintf(filename, sizeof(filename), "/proc/%lld/stat", (long long int) pid);
+            fp = fopen(filename, "r");
+            if (fp == NULL)
          {
-            CcspTraceError(("could not open %s", filename));
+                continue;
          }
-         else
-         {
             memset(processName, 0, sizeof(processName));
-            rc = fscanf(fp, "%d (%255s", &p, processName);
+            rc = fscanf(fp, "%d (%255s %c ", &p, processName, &status);
             fclose(fp);
 
             if (rc >= 2)
@@ -367,8 +422,47 @@ int util_getPidByName(const char *name)
 
             if (!strcmp(processName, name))
             {
+                if ((status == 'R') || (status == 'S') || (status == 'D'))
+                {
+                    if (args != NULL)
+                    {
+                        // argument to be verified before returning pid
+                        //CcspTraceInfo(("%s %d: %s running in pid %lld.. checking for cmdline param %s\n", __FUNCTION__, __LINE__, name, (long long int) pid, args));
+                        snprintf(filename, sizeof(filename), "/proc/%lld/cmdline", (long long int) pid);
+                        fp = fopen(filename, "r");
+                        if (fp == NULL)
+                        {
+                            CcspTraceInfo(("%s %d: could not open %s\n", __FUNCTION__, __LINE__, filename));
+                            continue;
+                        }
+                        //CcspTraceInfo(("%s %d: opening file %s\n", __FUNCTION__, __LINE__, filename));
+
+                        memset (cmdline, 0, sizeof(cmdline));
+                        /* CID :258113 String not null terminated (STRING_NULL)*/
+                        int num_read ;
+                        if ((num_read = fread(cmdline, 1, sizeof(cmdline)-1 , fp)) > 0)
+                        {
+                            cmdline[num_read] = '\0';
+                            //CcspTraceInfo(("%s %d: comparing cmdline from proc:%s with %s\n", __FUNCTION__, __LINE__, cmdline, args));
+                            if (find_strstr(cmdline, sizeof(cmdline), args, strlen(args)) == ANSC_STATUS_SUCCESS)
+                            {
                rval = pid;
-               found = TRUE;
+                                found = true;
+                            }
+                        }
+
+                        fclose(fp);
+                    }
+                    else
+                    {
+                        // no argument passed, so return pid of running process
+                        rval = pid;
+                        found = true;
+                    }
+                }
+                else
+                {
+                    CcspTraceInfo(("%s %d: %s running, but is in %c mode\n", __FUNCTION__, __LINE__, filename, status));
             }
          }
       }
@@ -377,7 +471,10 @@ int util_getPidByName(const char *name)
    closedir(dir);
 
    return rval;
+
 }
+
+
 
 int util_collectProcess(int pid, int timeout)
 {
@@ -600,11 +697,11 @@ void WanManager_DoSystemAction(const char *from, char *cmd)
 }
 
 
-BOOL WanManager_IsApplicationRunning(const char *appName)
+BOOL WanManager_IsApplicationRunning(const char *appName, const char * args)
 {
     BOOL isAppRuning = TRUE;
 
-    if (util_getPidByName(appName) <= 0)
+    if (util_getPidByName(appName, args) <= 0)
         isAppRuning = FALSE;
 
     return isAppRuning;
@@ -695,7 +792,7 @@ void WanManager_DoStopApp(const char *appName)
 {
     int pid;
 
-    pid = util_getPidByName(appName);
+    pid = util_getPidByName(appName, NULL);
     if (pid > 0)
     {
         CcspTraceInfo(("Stopping  %s \n", appName));
@@ -715,26 +812,13 @@ int WanManager_DoRestartApp(const char *appName, const char *cmdLineArgs)
     CcspTraceInfo(("Restarting %s - with parameters %s \n", appName, cmdLineArgs));
 
     /* Stop App if it is running. */
-    if (WanManager_IsApplicationRunning(appName) == TRUE)
+    if (WanManager_IsApplicationRunning(appName, NULL) == TRUE)
     {
         WanManager_DoStopApp(appName);
         CcspTraceInfo(("App %s stopped \n", appName));
     }
     /* Restart Application. */
     return WanManager_DoStartApp(appName, cmdLineArgs);
-}
-
-
-void WanManager_DoCollectApp(const char *appName)
-{
-    int pid = 0;
-
-    pid = util_getZombiePidByName(appName);
-    if (pid > 0)
-    {
-        CcspTraceInfo(("%s [%d]: Stopping %s zombie pid:%d\n", __FUNCTION__, __LINE__, appName, pid));
-        CollectApp(pid);
-    }
 }
 
 
@@ -846,81 +930,6 @@ uint32_t WanManager_getUpTime()
     return( info.uptime );
 }
 
-/*
- * util_getZombiePidByName  ()
- * @description: check the contents of /proc directory to match the process name
- * @params     : name - process name
- * @return     : returns the Zombie pid if proc entry exists
- */
-int util_getZombiePidByName (char * name)
-{
-    if (name == NULL)
-    {
-        CcspTraceError(("%s %d: Invalid args\n", __FUNCTION__, __LINE__));
-        return 0;
-    }
-
-    DIR *dir;
-    FILE *fp;
-    struct dirent *dent;
-    bool found=false;
-    int pid, rc, p, i;
-    int rval = 0;
-    char processName[BUFLEN_256];
-    char filename[BUFLEN_256];
-    char status = 0;
-
-    if (NULL == (dir = opendir("/proc")))
-    {
-        CcspTraceError(("%s %d:could not open /proc\n", __FUNCTION__, __LINE__));
-        return 0;
-    }
-
-    while (!found && (dent = readdir(dir)) != NULL)
-    {
-        if ((dent->d_type == DT_DIR) &&
-                (RETURN_OK == strtol64(dent->d_name, NULL, 10, (int64_t*)&pid)))
-        {
-            snprintf(filename, sizeof(filename), "/proc/%d/stat", pid);
-            if ((fp = fopen(filename, "r")) == NULL)
-            {
-                CcspTraceError(("%s %d:could not open %s\n", __FUNCTION__, __LINE__, filename));
-            }
-            else
-            {
-                memset(processName, 0, sizeof(processName));
-                status = 0;
-                rc = fscanf(fp, "%d (%255s %c ", &p, processName, &status);
-                fclose(fp);
-
-                if (rc >= 2)
-                {
-                    i = strlen(processName);
-                    if (i > 0)
-                    {
-                        if (processName[i-1] == ')')
-                            processName[i-1] = 0;
-                    }
-                }
-
-                if (!strcmp(processName, name))
-                {
-	            if (status == 'Z')
-                    {
-                        rval = pid;
-                        found = true;
-                        CcspTraceInfo(("%s %d: processName=[%s], %s running in %c mode\n", __FUNCTION__, __LINE__, processName, filename, status));
-                    }
-                }
-            }
-        }
-    }
-
-    closedir(dir);
-
-    return rval;
-
-}
 
 void WanManager_Util_GetShell_output(char *cmd, char *out, int len)
 {
