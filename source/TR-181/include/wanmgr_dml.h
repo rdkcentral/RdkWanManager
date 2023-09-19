@@ -301,6 +301,7 @@ typedef struct _DML_WANIFACE_IP
     DML_WAN_IP_SOURCE           IPv4Source;
     DML_WAN_IP_SOURCE           IPv6Source;
     BOOL                        RefreshDHCP;
+    BOOL                        RestartV6Client; //This is a workaround to restart dhcpv6 client for the platform where PAM configures IPv6. !FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE
     DML_WAN_IP_MODE             Mode;
     BOOL                        Ipv4Changed;
     BOOL                        Ipv6Changed;
@@ -389,6 +390,7 @@ typedef struct _WANMGR_IFACE_GROUP_DATA_
     UINT               InterfaceAvailable;
     UINT               SelectedInterface;
     UINT               SelectionTimeOut;
+    BOOLEAN            PersistSelectedIface;
     DML_WAN_POLICY     Policy;
     BOOLEAN            ConfigChanged;
     BOOLEAN            ResetSelectedInterface;

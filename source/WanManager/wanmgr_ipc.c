@@ -71,6 +71,8 @@ static ANSC_STATUS WanMgr_IpcNewIpv4Msg(ipc_dhcpv4_data_t* pNewIpv4Msg)
     ANSC_STATUS retStatus = ANSC_STATUS_FAILURE;
     INT try = 0;
 
+    CcspTraceInfo(("%s %d - Received Ipc Ipv4Msg for %s\n", __FUNCTION__, __LINE__,pNewIpv4Msg->dhcpcInterface));
+
     while((retStatus != ANSC_STATUS_SUCCESS) && (try < WANMGR_MAX_IPC_PROCCESS_TRY))
     {
         //get iface data
@@ -110,6 +112,8 @@ static ANSC_STATUS WanMgr_IpcNewIpv6Msg(ipc_dhcpv6_data_t* pNewIpv6Msg)
     ANSC_STATUS retStatus = ANSC_STATUS_FAILURE;
     INT try = 0;
 
+    CcspTraceInfo(("%s %d - Received Ipc Ipv6Msg for %s\n", __FUNCTION__, __LINE__, pNewIpv6Msg->ifname));
+
     while((retStatus != ANSC_STATUS_SUCCESS) && (try < WANMGR_MAX_IPC_PROCCESS_TRY))
     {
         //get iface data
@@ -138,6 +142,34 @@ static ANSC_STATUS WanMgr_IpcNewIpv6Msg(ipc_dhcpv6_data_t* pNewIpv6Msg)
             try++;
             usleep(WANMGR_IPC_PROCCESS_TRY_WAIT_TIME);
         }
+    }
+
+    return retStatus;
+}
+
+/*TODO:
+ *the below code should be removed once Unified MAPT Implemented.
+ */
+static ANSC_STATUS WanMgr_MaptStatusChanged(ipc_dhcpv6_data_t* pNewMaptMsg)
+{
+    ANSC_STATUS retStatus = ANSC_STATUS_FAILURE;
+
+    CcspTraceInfo(("%s %d - Received Ipc MAMPT-Msg for %s\n", __FUNCTION__, __LINE__, pNewMaptMsg->ifname));
+
+    DML_VIRTUAL_IFACE* pVirtIf = WanMgr_GetVirtualIfaceByName_locked(pNewMaptMsg->ifname);
+    if(pVirtIf != NULL)
+    {
+        if (pNewMaptMsg->maptAssigned == TRUE)
+        {
+            WanManager_UpdateInterfaceStatus(pVirtIf, WANMGR_IFACE_MAPT_START);
+            retStatus = ANSC_STATUS_SUCCESS;
+        }
+        else if (pNewMaptMsg->maptAssigned == FALSE)
+        {
+            WanManager_UpdateInterfaceStatus(pVirtIf, WANMGR_IFACE_MAPT_STOP);
+            retStatus = ANSC_STATUS_SUCCESS;
+        }
+        WanMgr_VirtualIfaceData_release(pVirtIf);
     }
 
     return retStatus;
@@ -328,6 +360,16 @@ static void* IpcServerThread( void *arg )
                     }
                     break;
 #endif
+                /*TODO:
+                 *The below code should be removed once Unified MAPT Implemented.
+                 */
+                case MAPT_STATE_CHANGED:
+                    if (WanMgr_MaptStatusChanged(&(ipc_msg.data.dhcpv6)) != ANSC_STATUS_SUCCESS)
+                    {
+                        CcspTraceError(("[%s-%d] Failed to proccess MAPT state change message for %s \n", __FUNCTION__, __LINE__,ipc_msg.data.dhcpv6.ifname));
+                    }
+                    break;
+
                 default:
                         CcspTraceError(("[%s-%d] Invalid  Message sent to Wan Manager\n", __FUNCTION__, __LINE__));
             }

@@ -134,6 +134,11 @@ extern token_t sysevent_token;
 #define ETH_HW_CONFIG_PHY_PATH      "Device.Ethernet.Interface.%d"
 #define ETHWAN_PHY_STATUS_DM_SUFFIX "LinkStatus"
 
+//Dm for HW configuration in XB devices
+#if (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_))
+#define XBx_SELECTED_MODE           "Device.X_RDKCENTRAL-COM_EthernetWAN.SelectedOperationalMode"
+#endif /*(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_)) */
+
 //CM Agent
 #define CMAGENT_COMPONENT_NAME "eRT.com.cisco.spvtg.ccsp.cm"
 #define CMAGENT_COMP_NAME_WITHOUTSUBSYSTEM "com.cisco.spvtg.ccsp.cm"
@@ -188,5 +193,9 @@ ANSC_STATUS WanMgr_RdkBus_setWanIpInterfaceData(DML_VIRTUAL_IFACE*  pVirtIf);
 #endif
 
 ANSC_STATUS WanMgr_RdkBusDeleteVlanLink(DML_WAN_IFACE* pInterface );
+
+#if defined(FEATURE_SUPPORT_MAPT_NAT46)
+int WanMgr_SetMAPTEnableToPSM(DML_VIRTUAL_IFACE* pVirtIf, BOOL Enable);
+#endif
 
 #endif /* _WANMGR_RDKBUS_UTILS_H_ */

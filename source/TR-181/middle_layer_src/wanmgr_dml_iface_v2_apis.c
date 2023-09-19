@@ -423,8 +423,14 @@ BOOL WanIf_SetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, char* p
             /* check the parameter name and set the corresponding value */
             if (strcmp(ParamName, "BaseInterface") == 0)
             {
-                AnscCopyString(pWanDmlIface->BaseInterface, pString);
-                ret = TRUE;
+                if(pString != NULL && strlen(pString) > 0 )
+                {
+                    AnscCopyString(pWanDmlIface->BaseInterface, pString);
+                    ret = TRUE;
+                }else
+                {
+                    CcspTraceError(("%s %d BaseInterface is empty. Set Failed  \n", __FUNCTION__, __LINE__));
+                }
             }
 
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
@@ -2341,7 +2347,7 @@ BOOL WanIfMapt_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULON
         /* check the parameter name and set the corresponding value */
         if (strcmp(ParamName, "MAPTStatus") == 0)
         {
-#ifdef FEATURE_MAPT
+#if defined(FEATURE_MAPT) || defined(FEATURE_SUPPORT_MAPT_NAT46)
             p_VirtIf->MAP.MaptStatus = uValue;
             ret = TRUE;
 #endif /* * FEATURE_MAPT */

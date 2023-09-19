@@ -458,12 +458,29 @@ int WanManager_Ipv6AddrUtil(char *ifname, Ipv6OperType opr, int preflft, int val
     char cmdLine[128] = {0};
     char prefix[BUFLEN_48] = {0};
     char prefixAddr[BUFLEN_48] = {0};
+    char Output[BUFLEN_16] = {0};
+    char IfaceName[BUFLEN_16] = {0};
+    int BridgeMode = 0;
 
     memset(prefix, 0, sizeof(prefix));
     sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_PREFIX, prefix, sizeof(prefix));
 
     memset(prefixAddr, 0, sizeof(prefixAddr));
     sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_GLOBAL_IPV6_PREFIX_SET, prefixAddr, sizeof(prefixAddr));
+
+    /*TODO:
+     *Below Code should be removed once V6 Prefix/IP is assigned on erouter0 Instead of brlan0 for sky Devices. 
+     */
+    strcpy(IfaceName, LAN_BRIDGE_NAME);
+    sysevent_get(sysevent_fd, sysevent_token, "bridge_mode", Output, sizeof(Output));
+    BridgeMode = atoi(Output);
+    if (BridgeMode != 0)
+    {
+        memset(IfaceName, 0, sizeof(IfaceName));
+        strncpy(IfaceName, ifname, strlen(ifname));
+    }
+
+    CcspTraceInfo(("%s-%d: IfaceName=%s, BridgeMode=%d \n", __FUNCTION__, __LINE__, IfaceName, BridgeMode));
 
     switch (opr)
     {
@@ -472,7 +489,7 @@ int WanManager_Ipv6AddrUtil(char *ifname, Ipv6OperType opr, int preflft, int val
             if (strlen(prefix) > 0)
             {
                 memset(cmdLine, 0, sizeof(cmdLine));
-                snprintf(cmdLine, sizeof(cmdLine), "ip -6 addr del %s/64 dev %s", prefixAddr, ifname);
+                snprintf(cmdLine, sizeof(cmdLine), "ip -6 addr del %s/64 dev %s", prefixAddr, IfaceName);
                 if (WanManager_DoSystemActionWithStatus("ip -6 addr del ADDR dev xxxx", cmdLine) != 0)
                     CcspTraceError(("failed to run cmd: %s", cmdLine));
 
@@ -486,7 +503,7 @@ int WanManager_Ipv6AddrUtil(char *ifname, Ipv6OperType opr, int preflft, int val
                     CcspTraceError(("failed to run cmd: %s", cmdLine));
 
                 CcspTraceInfo(("%s-%d: Successfully del addr and route from Interface %s, prefix=%s, prefixAddr=%s \n",
-       	                               __FUNCTION__, __LINE__, ifname, prefix, prefixAddr));
+       	                               __FUNCTION__, __LINE__, IfaceName, prefix, prefixAddr));
 
                 memset(cmdLine, 0, sizeof(cmdLine));
                 snprintf(cmdLine, sizeof(cmdLine), "ip -6 route delete default");
@@ -497,7 +514,7 @@ int WanManager_Ipv6AddrUtil(char *ifname, Ipv6OperType opr, int preflft, int val
             else
             {
                 CcspTraceError(("%s-%d: Failed to delete addr and route from Interface %s, prefix=%s, prefixAddr=%s \n",
-       	                                __FUNCTION__, __LINE__, ifname, prefix, prefixAddr));
+       	                                __FUNCTION__, __LINE__, IfaceName, prefix, prefixAddr));
             }
             break;
         }
@@ -506,17 +523,17 @@ int WanManager_Ipv6AddrUtil(char *ifname, Ipv6OperType opr, int preflft, int val
             if (strlen(prefixAddr) > 0)
             {
                 memset(cmdLine, 0, sizeof(cmdLine));
-                snprintf(cmdLine, sizeof(cmdLine), "ip -6 addr change %s dev brlan0 valid_lft %d preferred_lft %d ", prefixAddr, vallft, preflft);
+                snprintf(cmdLine, sizeof(cmdLine), "ip -6 addr change %s dev %s valid_lft %d preferred_lft %d ", prefixAddr, IfaceName, vallft, preflft);
                 if (WanManager_DoSystemActionWithStatus("processDhcp6cStateChanged: ip -6 addr change L3IfName", (cmdLine)) != 0)
                     CcspTraceError(("failed to run cmd: %s", cmdLine));
 
                 CcspTraceInfo(("%s-%d: Successfully updated addr from Interface %s, prefixAddr=%s, vallft=%d, preflft=%d \n",
-                                       __FUNCTION__, __LINE__, ifname, prefixAddr, vallft, preflft));
+                                       __FUNCTION__, __LINE__, IfaceName, prefixAddr, vallft, preflft));
             }
 	    else
             {
                 CcspTraceError(("%s-%d: Failed to update addr from Interface %s, prefixAddr=%s, vallft=%d, preflft=%d \n",
-                                        __FUNCTION__, __LINE__, ifname, prefixAddr, vallft, preflft));
+                                        __FUNCTION__, __LINE__, IfaceName, prefixAddr, vallft, preflft));
             }
             break;
         }
@@ -540,6 +557,13 @@ uint32_t WanManager_StartDhcpv6Client(DML_VIRTUAL_IFACE* pVirtIf, IFACE_TYPE Ifa
     params.ifType = IfaceType;
 
     CcspTraceInfo(("Enter WanManager_StartDhcpv6Client for  %s \n", pVirtIf->Name));
+
+#if (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_)) //TODO: ipv6 handled in PAM
+    //Enable accept_ra while starting dhcpv6 for comcast devices.
+    WanMgr_Configure_accept_ra(pVirtIf, TRUE);
+    Force_IPv6_toggle(pVirtIf->Name); //Toggle before starting dibbler to send RS
+    usleep(500000); //sleep for 500 milli seconds
+#endif
     pid = start_dhcpv6_client(&params);
     pVirtIf->IP.Dhcp6cPid = pid;
 

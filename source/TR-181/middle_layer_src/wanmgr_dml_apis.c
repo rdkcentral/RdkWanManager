@@ -394,7 +394,14 @@ BOOL WanManagerGroup_SetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName,
     {
         if (strcmp(ParamName, "ResetSelectedInterface") == 0)
         {
-            pWanIfaceGroup->ResetSelectedInterface = bValue;
+            CcspTraceInfo(("%s %d group (%d), ResetSelectedInterface set to %s \n", __FUNCTION__, __LINE__,pWanIfaceGroup->groupIdx, bValue?"TRUE":"FALSE"));
+            if(bValue == TRUE && pWanIfaceGroup->SelectedInterface == 0)
+            {
+                CcspTraceInfo(("%s %d  Group (%d) Interface is not selected yet. ResetSelectedInterface is not required \n", __FUNCTION__, __LINE__,pWanIfaceGroup->groupIdx));
+            }else
+            {
+                pWanIfaceGroup->ResetSelectedInterface = bValue;
+            }
             ret = TRUE;
         }
         WanMgrDml_GetIfaceGroup_release();

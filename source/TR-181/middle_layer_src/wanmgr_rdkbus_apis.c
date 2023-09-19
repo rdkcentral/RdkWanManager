@@ -430,11 +430,13 @@ int write_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFACE* p_In
     _ansc_sprintf(param_name, PSM_WANMANAGER_IF_SELECTION_PRIORITY, instancenum);
     WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
 
+#if defined(WAN_MANAGER_UNIFICATION_ENABLED)
     memset(param_value, 0, sizeof(param_value));
     memset(param_name, 0, sizeof(param_name));
     _ansc_sprintf(param_value, "%s", p_Interface->BaseInterface );
     _ansc_sprintf(param_name, PSM_WANMANAGER_IF_BASEINTERFACE, instancenum);
     WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
+#endif
 
     return ANSC_STATUS_SUCCESS;
 }
@@ -446,19 +448,6 @@ int write_Virtual_Interface_ToPSM(ULONG instancenum, ULONG virtInsNum ,DML_VIRTU
     char param_value[256] = {0};
 
     CcspTraceInfo(("%s %d Entered\n", __FUNCTION__, __LINE__));
-
-    memset(param_value, 0, sizeof(param_value));
-    memset(param_name, 0, sizeof(param_name));
-    if(pVirtIf->Enable == TRUE)
-    {
-        _ansc_sprintf(param_value, "TRUE");
-    }
-    else
-    {
-        _ansc_sprintf(param_value, "FALSE");
-    }
-    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_ENABLE, instancenum, (virtInsNum + 1));
-    WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
 
     memset(param_value, 0, sizeof(param_value));
     memset(param_name, 0, sizeof(param_name));
@@ -497,6 +486,20 @@ int write_Virtual_Interface_ToPSM(ULONG instancenum, ULONG virtInsNum ,DML_VIRTU
         _ansc_sprintf(param_value, "FALSE");
     }
     _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_ENABLE_MAPT, instancenum, (virtInsNum + 1));
+    WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
+
+#if defined(WAN_MANAGER_UNIFICATION_ENABLED)
+    memset(param_value, 0, sizeof(param_value));
+    memset(param_name, 0, sizeof(param_name));
+    if(pVirtIf->Enable == TRUE)
+    {
+        _ansc_sprintf(param_value, "TRUE");
+    }
+    else
+    {
+        _ansc_sprintf(param_value, "FALSE");
+    }
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_ENABLE, instancenum, (virtInsNum + 1));
     WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
 
 #if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE) /* TODO: This is a workaround for the platforms using same Wan Name.*/
@@ -561,6 +564,7 @@ int write_Virtual_Interface_ToPSM(ULONG instancenum, ULONG virtInsNum ,DML_VIRTU
     _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_IP_V6SOURCE, instancenum, (virtInsNum + 1));
     WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
 
+#endif
     return 0;
 }
 
@@ -1403,21 +1407,26 @@ ANSC_STATUS WanMgr_RdkBus_setWanPolicy(DML_WAN_POLICY wan_policy, UINT groupId)
     return result;
 }
 
-ANSC_STATUS WanMgr_RdkBus_getWanPolicy(DML_WAN_POLICY *wan_policy, UINT groupId)
+ANSC_STATUS WanMgr_Read_GroupConf_FromPSM(WANMGR_IFACE_GROUP *pGroup, UINT groupId)
 {
     int result = ANSC_STATUS_SUCCESS;
     int retPsmGet = CCSP_SUCCESS;
     char param_value[BUFLEN_256] = {0};
     char param_name[BUFLEN_256]= {0};
 
-    memset(param_name, 0, sizeof(param_name));
     _ansc_sprintf(param_name, PSM_WANMANAGER_GROUP_POLICY, (groupId + 1)); 
     retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name, param_value, sizeof(param_value));
     if (retPsmGet == CCSP_SUCCESS && param_value[0] != '\0') {
-        *wan_policy = strtol(param_value, NULL, 10);
+        pGroup->Policy = strtol(param_value, NULL, 10);
     }
-    else {
-        result = ANSC_STATUS_FAILURE;
+
+    _ansc_memset(param_name, 0, sizeof(param_name));
+    _ansc_memset(param_value, 0, sizeof(param_value));
+    _ansc_sprintf(param_name, PSM_WANMANAGER_GROUP_PERSIST_SELECTED_IFACE, (groupId + 1));
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
+    if (retPsmGet == CCSP_SUCCESS && strcmp(param_value, PSM_ENABLE_STRING_TRUE) == 0)
+    {
+             pGroup->PersistSelectedIface = TRUE;
     }
 
     return result;

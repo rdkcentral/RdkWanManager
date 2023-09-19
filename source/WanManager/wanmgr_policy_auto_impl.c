@@ -97,11 +97,10 @@ static int WanMgr_RdkBus_AddAllIntfsToLanBridge (WanMgr_Policy_Controller_t * pW
         {
             if(pWanController->GroupInst != pWanIfaceData->Selection.Group)
             {
-               WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
-               continue;
+                WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+                continue;
             }
-
-	    strncpy (PhyPath, pWanIfaceData->BaseInterface, sizeof(PhyPath)-1);
+            strncpy (PhyPath, pWanIfaceData->BaseInterface, sizeof(PhyPath)-1);
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
 
             if (strlen(PhyPath) > 0)
@@ -119,7 +118,35 @@ static int WanMgr_RdkBus_AddAllIntfsToLanBridge (WanMgr_Policy_Controller_t * pW
     return ANSC_STATUS_SUCCESS;
 
 }
+#if (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_))
+//TODO: this is a workaround to support upgarde from Comcast autowan policy to Unification build
+#define MAX_WanModeToIfaceMap 2
+static const int lastWanModeToIface_map[MAX_WanModeToIfaceMap] = {2, 1}; 
 
+bool isLastActiveLinkFromSysCfg(DML_WAN_IFACE* pWanIfaceData)
+{
+    char buf[10] ={0};
+    if (syscfg_get(NULL, "last_wan_mode", buf, sizeof(buf)) == 0)
+    {
+        int mode = atoi(buf);
+        if(pWanIfaceData->uiIfaceIdx < MAX_WanModeToIfaceMap && mode == lastWanModeToIface_map[pWanIfaceData->uiIfaceIdx])
+        {
+            CcspTraceInfo(("%s %d: Iface Id %d is the last_wan_mode and will be scanned first\n", __FUNCTION__, __LINE__, pWanIfaceData->uiIfaceIdx));
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
+
+void setActiveLinkToSysCfg(UINT IfaceIndex)
+{
+    char buf[10] ={0};
+    CcspTraceInfo(("%s %d:  last_wan_mode, curr_wan_mode set to %d\n", __FUNCTION__, __LINE__, lastWanModeToIface_map[IfaceIndex]));
+    snprintf(buf, sizeof(buf), "%d", lastWanModeToIface_map[IfaceIndex]);
+    syscfg_set_commit(NULL, "last_wan_mode", buf); 
+    syscfg_set_commit(NULL, "curr_wan_mode", buf);
+}
+#endif
 /*
  * WanMgr_SetActiveLink()
 * - sets the ActiveLink locallt and saves it to PSM
@@ -138,7 +165,6 @@ static int WanMgr_SetActiveLink (WanMgr_Policy_Controller_t * pWanController, bo
     if(pIfaceData->Selection.ActiveLink != storeValue)
     {
         pIfaceData->Selection.ActiveLink = storeValue;
-
         // save ActiveLink value in PSM
         if (DmlSetWanActiveLinkInPSMDB(pWanController->activeInterfaceIdx, storeValue) != ANSC_STATUS_SUCCESS)
         {
@@ -148,6 +174,7 @@ static int WanMgr_SetActiveLink (WanMgr_Policy_Controller_t * pWanController, bo
     }
     return ANSC_STATUS_SUCCESS;
 }
+
 
 /*
  * WanMgr_GetPrevSelectedInterface()
@@ -203,6 +230,7 @@ static int WanMgr_GetPrevSelectedInterface (WanMgr_Policy_Controller_t* pWanCont
     return uiInterfaceIdx;
 }
 
+
 /*
  * WanMgr_Policy_Auto_GetHighPriorityIface()
  * - returns highest priority interface that is Selection.Enable == TRUE && VirtIfList->Status == WAN_IFACE_STATUS_DISABLED
@@ -239,7 +267,12 @@ static void WanMgr_Policy_Auto_GetHighPriorityIface(WanMgr_Policy_Controller_t *
                         continue;
                     }
                     // pWanIfaceData - is Wan-Enabled & has valid Priority
-                    if(pWanIfaceData->Selection.Priority < iSelPriority)
+                    if(pWanIfaceData->Selection.Priority < iSelPriority
+#if (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_))
+                        //TODO: this is a workaround to support upgarde from Comcast autowan policy to Unification build
+                        || isLastActiveLinkFromSysCfg(pWanIfaceData)
+#endif    
+                      )
                     {
                         // update Primary iface with high priority iface
                         iSelInterface = uiLoopCount;
@@ -290,6 +323,7 @@ static void WanMgr_UpdateControllerData (WanMgr_Policy_Controller_t* pWanControl
     if (pWanIfaceGroup != NULL)
     {
         pWanController->GroupCfgChanged = pWanIfaceGroup->ConfigChanged;
+        pWanController->GroupPersistSelectedIface = pWanIfaceGroup->PersistSelectedIface;
         pWanController->ResetSelectedInterface = pWanIfaceGroup->ResetSelectedInterface;
         WanMgrDml_GetIfaceGroup_release();
     }
@@ -385,6 +419,7 @@ static void WanMgr_ResetIfaceTable (WanMgr_Policy_Controller_t* pWanController)
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
         }
     }
+
 }
 
 /*
@@ -399,6 +434,15 @@ static bool WanMgr_CheckIfSelectedIfaceOnlyPossibleWanLink (WanMgr_Policy_Contro
     {
         CcspTraceError(("%s %d: Invalid args \n", __FUNCTION__, __LINE__));
         return FALSE;
+    }
+
+    /* If GroupPersistSelectedIface is TRUE and we have a last selected interface, 
+     * don't start ISM for other interfaces. Last ActiveLink will be the only possible link.
+     */
+    DML_WAN_IFACE * pActiveInterface = &(pWanController->pWanActiveIfaceData->data);
+    if(pWanController->GroupPersistSelectedIface == TRUE && pActiveInterface->Selection.ActiveLink == TRUE)
+    {
+        return TRUE;
     }
 
     UINT uiLoopCount;
@@ -494,6 +538,10 @@ static WcAwPolicyState_t Transition_Start (WanMgr_Policy_Controller_t* pWanContr
             DML_WAN_IFACE * pActiveInterface = &(pWanDmlIfaceData->data);
             if (pActiveInterface != NULL)
             {
+                if(pWanController->GroupPersistSelectedIface == TRUE)
+                {
+                    CcspTraceInfo(("%s %d GroupPersistSelectedIface is enabled and only last ActiveLink %s ISM will be started\n", __FUNCTION__, __LINE__, pActiveInterface->DisplayName));
+                }
                 strncpy (phyPath, pActiveInterface->BaseInterface, sizeof(phyPath)-1);
                 WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
                 if (strstr(phyPath, "Ethernet") != NULL)
@@ -549,6 +597,31 @@ static WcAwPolicyState_t Transition_InterfaceSelected (WanMgr_Policy_Controller_
     memset(&(pWanController->SelectionTimeOutStart), 0, sizeof(struct timespec));
     clock_gettime(CLOCK_MONOTONIC_RAW, &(pWanController->SelectionTimeOutStart));
     pWanController->SelectionTimeOutStart.tv_sec += pWanController->InterfaceSelectionTimeOut;
+
+#if (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_))
+    /* TODO: For Xb devices DOCSIS and Ethrenet hal are controlled by a single DM. 
+     * Setting XBx_SELECTED_MODE DM to a mode will disable other stack. 
+     * We have to set this DM to start Wan operation on a specific interface. 
+     */
+    if (strstr(pActiveInterface->BaseInterface, "CableModem") || (strstr(pActiveInterface->BaseInterface, "Ethernet")))
+    {    
+        setActiveLinkToSysCfg(pWanController->activeInterfaceIdx);
+#if defined(AUTOWAN_ENABLE)
+        char operationalMode[64] ={0};
+        strncpy(operationalMode, strstr(pActiveInterface->BaseInterface, "CableModem")?"DOCSIS":"Ethernet", sizeof(operationalMode));
+
+        if (WanMgr_RdkBus_SetParamValues(ETH_COMPONENT_NAME, ETH_COMPONENT_PATH, XBx_SELECTED_MODE, operationalMode, ccsp_string, TRUE) != ANSC_STATUS_SUCCESS)
+        {
+            CcspTraceError(("%s %d: unable to change %s = %s. Retry...\n", __FUNCTION__, __LINE__, XBx_SELECTED_MODE, operationalMode));
+            return STATE_AUTO_WAN_INTERFACE_SELECTING;
+        }
+        else
+        {
+            CcspTraceInfo(("%s %d: succesfully changed %s to %s\n",__FUNCTION__, __LINE__,XBx_SELECTED_MODE, operationalMode));
+        }
+#endif /* AUTOWAN_ENABLE */
+    }
+#endif
 
     CcspTraceInfo(("%s %d: State changed to STATE_AUTO_WAN_INTERFACE_WAITING \n", __FUNCTION__, __LINE__));
 
@@ -623,6 +696,15 @@ static WcAwPolicyState_t Transition_TryingNextInterface (WanMgr_Policy_Controlle
         }
 
         WanMgr_ResetIfaceTable(pWanController);
+#if (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_))
+        if(pWanController->GroupInst == 1) //Reset only for primary group
+        {
+            //Reset last_wan_mode, curr_wan_mode to AUTO
+            CcspTraceInfo(("%s %d: resetting last_wan_mode and curr_wan_mode to Auto\n", __FUNCTION__, __LINE__));
+            syscfg_set_commit(NULL, "last_wan_mode", "0");
+            syscfg_set_commit(NULL, "curr_wan_mode", "0");
+        }
+#endif
     }
 
     return STATE_AUTO_WAN_INTERFACE_SELECTING;
@@ -771,6 +853,15 @@ static WcAwPolicyState_t Transition_RestartSelectionInterface (WanMgr_Policy_Con
     // reset all interfaces for selection
     CcspTraceInfo(("%s %d: So resetting interface table\n", __FUNCTION__, __LINE__));
     WanMgr_ResetIfaceTable(pWanController);
+#if (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_))
+    if(pWanController->GroupInst == 1) //Reset only for primary group
+    {
+        //Reset last_wan_mode, curr_wan_mode to AUTO
+        CcspTraceInfo(("%s %d: resetting last_wan_mode and curr_wan_mode to Auto\n", __FUNCTION__, __LINE__));
+        syscfg_set_commit(NULL, "last_wan_mode", "0");
+        syscfg_set_commit(NULL, "curr_wan_mode", "0");
+    }
+#endif
 
     // remove all interface from LAN bridge
     WanMgr_RdkBus_AddAllIntfsToLanBridge(pWanController, FALSE);
@@ -1136,6 +1227,12 @@ static WcAwPolicyState_t State_InterfaceReconfiguration (WanMgr_Policy_Controlle
         return STATE_AUTO_WAN_ERROR;
     }
 
+#if (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_))
+    // HW configuration already done using SelectedOperationalMode for XB platforms. Skipping this state.
+    CcspTraceInfo(("%s %d: HW configuration already done using SelectedOperationalMode.\n", __FUNCTION__, __LINE__));
+    return Transition_ActivatingInterface (pWanController);
+#endif
+
     // add interface that is not selected in LAN bridge
     UINT uiLoopCount;
     int ret = 0;
@@ -1173,7 +1270,6 @@ static WcAwPolicyState_t State_InterfaceReconfiguration (WanMgr_Policy_Controlle
             }
         }
     }
-
     // check if Hardware Configuration is required
     bool ConfigChanged = FALSE;
     bool CurrIntfHwRebootConfig = FALSE;

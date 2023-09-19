@@ -21,6 +21,9 @@
 /* ---- Include Files ---------------------------------------- */
 
 #include "wanmgr_wan_failover.h"
+#ifdef ENABLE_FEATURE_TELEMETRY2_0
+#include <telemetry_busmessage_sender.h>
+#endif
 
 #define FAILOVER_SM_LOOP_TIMEOUT 300000 // timeout 
 
@@ -44,6 +47,30 @@ static WcFailOverState_t Transition_ResetScan (WanMgr_FailOver_Controller_t * pF
 
 ANSC_STATUS MarkHighPriorityGroup (WanMgr_FailOver_Controller_t* pFailOverController, bool WaitForHigherGroup);
 
+static const char * const TelemetryEventStr[] =
+{
+[WAN_FAILOVER_SUCCESS] = "WAN_FAILOVER_SUCCESS_COUNT",
+[WAN_FAILOVER_FAIL] = "WAN_FAILOVER_FAIL_COUNT",
+[WAN_RESTORE_SUCCESS] = "WAN_RESTORE_SUCCESS_COUNT",
+[WAN_RESTORE_FAIL] = "WAN_RESTORE_FAIL_COUNT",
+};
+
+/*
+ * Trigger Telemetry Events for FailOver Between Groups.
+ */
+static void WanMgr_TelemetryEventTrigger(TelemetryEvent_t TelemetryEvent)
+{
+    static TelemetryEvent_t lastEvent = 0; 
+    if (lastEvent != TelemetryEvent)
+    {
+                lastEvent = TelemetryEvent;
+                CcspTraceInfo(("%s-%d : Telemetry Event Trigger : %s \n", __FUNCTION__, __LINE__, TelemetryEventStr[TelemetryEvent]));
+#ifdef ENABLE_FEATURE_TELEMETRY2_0
+                t2_event_d(TelemetryEventStr[TelemetryEvent], 1);
+#endif
+    }
+}
+
 /*
  * WanMgr_FailOverCtrlInit()
  * Init FailoverDeatails
@@ -60,6 +87,8 @@ ANSC_STATUS WanMgr_FailOverCtrlInit(WanMgr_FailOver_Controller_t* pFailOverContr
     pFailOverController->CurrentActiveGroup = 0;
     pFailOverController->HighestValidGroup = 0;
     pFailOverController->RestorationDelay = 0;
+    pFailOverController->TelemetryEvent = 0;
+    pFailOverController->AllowRemoteInterfaces = FALSE;
     pFailOverController->ActiveIfaceState = -1;
     pFailOverController->PhyState = WAN_IFACE_PHY_STATUS_UNKNOWN;
     /* Update group Interface */
@@ -102,6 +131,7 @@ static void WanMgr_UpdateFOControllerData (WanMgr_FailOver_Controller_t* pFailOv
         pFailOverController->WanEnable = pWanConfigData->data.Enable;
         pFailOverController->RestorationDelay = pWanConfigData->data.RestorationDelay;
         pFailOverController->ResetScan = pWanConfigData->data.ResetFailOverScan;
+        pFailOverController->AllowRemoteInterfaces = pWanConfigData->data.AllowRemoteInterfaces;
         pWanConfigData->data.ResetFailOverScan = false; //Reset Global data
 
         WanMgrDml_GetConfigData_release(pWanConfigData);
@@ -182,6 +212,38 @@ static ANSC_STATUS WanMgr_ActivateGroup(UINT groupId)
     return ANSC_STATUS_SUCCESS;
 }
 
+#if !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
+/* WanMgr_SetRestartV6Client()
+ * Trigger the selected interface to restart IPv6 client
+ */
+//TODO: This is a workaround for the platforms using PAM for configuring Ipv6
+static ANSC_STATUS WanMgr_SetRestartV6Client(UINT groupId)
+{
+
+    WANMGR_IFACE_GROUP* pWanIfaceGroup = WanMgr_GetIfaceGroup_locked((groupId - 1));
+    if (pWanIfaceGroup != NULL)
+    {
+        if (pWanIfaceGroup->SelectedInterface)
+        {
+            WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked((pWanIfaceGroup->SelectedInterface - 1));
+            if (pWanDmlIfaceData != NULL)
+            {
+                DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
+                if(pWanIfaceData->VirtIfList->IP.IPv6Source == DML_WAN_IP_SOURCE_DHCP)
+                {
+                    CcspTraceInfo(("%s %d Triggering RestartV6Client for %s \n", __FUNCTION__, __LINE__, pWanIfaceData->VirtIfList->Name));
+                    pWanIfaceData->VirtIfList->IP.RestartV6Client =TRUE;
+                }
+                WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+            }
+        }
+        WanMgrDml_GetIfaceGroup_release();
+    }
+
+    return ANSC_STATUS_SUCCESS;
+}
+#endif
+
 static void WanMgr_FO_IfaceGroupMonitor()
 {
     for(int i = 0; i < WanMgr_GetTotalNoOfGroups(); i++)
@@ -246,6 +308,7 @@ static void WanMgr_FO_IfaceGroupMonitor()
     }
 }
 
+#if defined(FEATURE_RDKB_LED_MANAGER)
 ANSC_STATUS UpdateLedStatus (WanMgr_FailOver_Controller_t* pFailOverController)
 {
     if(pFailOverController == NULL)
@@ -390,7 +453,7 @@ ANSC_STATUS UpdateLedStatus (WanMgr_FailOver_Controller_t* pFailOverController)
         pFailOverController->PhyState = BaseInterfaceStatus;
     }
 }
-
+#endif
 /*********************************************************************************/
 /************************** TRANSITIONS ******************************************/
 /*********************************************************************************/
@@ -496,10 +559,24 @@ static WcFailOverState_t Transition_ActivateGroup (WanMgr_FailOver_Controller_t 
 
     if(pFailOverController->HighestValidGroup)
     {
+
+        //Update Telemetry
+        if(pFailOverController->CurrentActiveGroup)
+        {
+#if !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
+            WanMgr_SetRestartV6Client(pFailOverController->CurrentActiveGroup); 
+#endif
+            if(pFailOverController->CurrentActiveGroup < pFailOverController->HighestValidGroup)
+                pFailOverController->TelemetryEvent = WAN_FAILOVER_SUCCESS;
+            else if(pFailOverController->CurrentActiveGroup > pFailOverController->HighestValidGroup)
+                pFailOverController->TelemetryEvent = WAN_RESTORE_SUCCESS;
+        }
+
         if(WanMgr_ActivateGroup(pFailOverController->HighestValidGroup) != ANSC_STATUS_SUCCESS)
         {
             return STATE_FAILOVER_SCANNING_GROUP;
         }
+
         pFailOverController->CurrentActiveGroup = pFailOverController->HighestValidGroup;
     }else //We should never reach this case.
     {
@@ -530,7 +607,7 @@ static WcFailOverState_t Transition_DeactivateGroup (WanMgr_FailOver_Controller_
 
 static WcFailOverState_t Transition_Restoration (WanMgr_FailOver_Controller_t * pFailOverController)
 {
-    CcspTraceInfo(("%s %d  \n", __FUNCTION__, __LINE__));
+    CcspTraceInfo(("%s %d  RestorationDelay %d\n", __FUNCTION__, __LINE__, pFailOverController->RestorationDelay));
     if(pFailOverController == NULL)
     {
         CcspTraceError(("%s %d pFWController object is NULL \n", __FUNCTION__, __LINE__));
@@ -553,6 +630,7 @@ static WcFailOverState_t Transition_RestorationFail (WanMgr_FailOver_Controller_
         return STATE_FAILOVER_ERROR;
     }
 
+    pFailOverController->TelemetryEvent = WAN_RESTORE_FAIL;
     /* Do nothing */
     return STATE_FAILOVER_GROUP_ACTIVE;
 }
@@ -633,37 +711,37 @@ static WcFailOverState_t State_GroupActive (WanMgr_FailOver_Controller_t * pFail
 
     MarkHighPriorityGroup(pFailOverController, false);
 
+    bool CurrentActiveGroup_down = false;
+    if(pFailOverController->CurrentActiveGroup)
+    {
+        WANMGR_IFACE_GROUP* pWanIfaceGroup = WanMgr_GetIfaceGroup_locked((pFailOverController->CurrentActiveGroup -1));
+        if (pWanIfaceGroup != NULL)
+        {
+            if(pWanIfaceGroup->SelectedInterface)
+            {
+                WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked((pWanIfaceGroup->SelectedInterface - 1));
+                if (pWanDmlIfaceData != NULL)
+                {
+                    DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
+                    if(pWanIfaceData->VirtIfList->Status != WAN_IFACE_STATUS_UP)
+                    {
+                        CurrentActiveGroup_down = true;
+                    }
+                    WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+                }
+            }else
+            {
+                CurrentActiveGroup_down = true;
+            }
+            WanMgrDml_GetIfaceGroup_release();
+        }
+    }else
+    {
+        CurrentActiveGroup_down = true;
+    }
+
     if(pFailOverController->HighestValidGroup)
     {
-        bool CurrentActiveGroup_down = false;
-        if(pFailOverController->CurrentActiveGroup)
-        {
-            WANMGR_IFACE_GROUP* pWanIfaceGroup = WanMgr_GetIfaceGroup_locked((pFailOverController->CurrentActiveGroup -1));
-            if (pWanIfaceGroup != NULL)
-            {
-                if(pWanIfaceGroup->SelectedInterface)
-                {
-                    WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked((pWanIfaceGroup->SelectedInterface - 1));
-                    if (pWanDmlIfaceData != NULL)
-                    {
-                        DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
-                        if(pWanIfaceData->VirtIfList->Status != WAN_IFACE_STATUS_UP)
-                        {
-                            CurrentActiveGroup_down = true;
-                        }
-                        WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
-                    }
-                }else
-                {
-                            CurrentActiveGroup_down = true;
-                }
-                WanMgrDml_GetIfaceGroup_release();
-            }
-        }else
-        {
-            CurrentActiveGroup_down = true;
-        }
-
         if(CurrentActiveGroup_down && (pFailOverController->CurrentActiveGroup < pFailOverController->HighestValidGroup))
         {
             CcspTraceInfo(("%s %d : CurrentActiveGroup(%d) Down. Activating Next Highest available group (%d) \n", __FUNCTION__, __LINE__,
@@ -675,6 +753,11 @@ static WcFailOverState_t State_GroupActive (WanMgr_FailOver_Controller_t * pFail
             CcspTraceInfo(("%s %d :  Found Highest available group (%d). Starting Restoration Timer \n", __FUNCTION__, __LINE__,pFailOverController->HighestValidGroup));
             return Transition_Restoration (pFailOverController);
         }
+    } 
+    else if(CurrentActiveGroup_down && pFailOverController->CurrentActiveGroup == 1 && pFailOverController->AllowRemoteInterfaces)
+    {
+        //If Allow RemoteInterface is true and we don't have a group to failover when current Group is down Update telemetry.
+        pFailOverController->TelemetryEvent = WAN_FAILOVER_FAIL;
     }
 
     return STATE_FAILOVER_GROUP_ACTIVE;
@@ -758,14 +841,12 @@ static WcFailOverState_t State_DeactivateGroup (WanMgr_FailOver_Controller_t * p
                     if((pWanIfaceData->VirtIfList->Status != WAN_IFACE_STATUS_UP))
                     {
                         CurrentActiveGroup_Deactivated = true;
-                        pFailOverController->CurrentActiveGroup = 0; //Reset the CurrentActiveGroup.
                     }
                     WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
                 }
             }else
             {
                 CurrentActiveGroup_Deactivated = true;
-                pFailOverController->CurrentActiveGroup = 0; //Reset the CurrentActiveGroup.
             }
             WanMgrDml_GetIfaceGroup_release();
         }
@@ -827,7 +908,10 @@ ANSC_STATUS WanMgr_FailOverThread (void)
 
         WanMgr_UpdateFOControllerData(&FWController);
         WanMgr_FO_IfaceGroupMonitor();
+#if defined(FEATURE_RDKB_LED_MANAGER)
         UpdateLedStatus(&FWController);
+#endif
+        WanMgr_TelemetryEventTrigger(FWController.TelemetryEvent);
         // process states
         switch (fo_sm_state)
         {

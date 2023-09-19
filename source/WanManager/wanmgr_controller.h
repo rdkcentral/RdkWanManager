@@ -36,6 +36,7 @@ typedef  struct _WANMGR_POLICY_CONTROLLER_
     UINT                    TotalIfaces;
     INT                     WanOperationalMode;
     BOOL                    GroupCfgChanged;
+    BOOL                    GroupPersistSelectedIface;
     BOOL                    ResetSelectedInterface;
     BOOL                    AllowRemoteInterfaces;
     UINT                    GroupIfaceList;

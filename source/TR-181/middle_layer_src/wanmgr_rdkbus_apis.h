@@ -85,6 +85,6 @@ ANSC_STATUS WanMgr_WanConfInit (DML_WANMGR_CONFIG* pWanConfig);
 
 ANSC_STATUS DmlGetTotalNoOfGroups(int *wan_if_count);
 ANSC_STATUS WanMgr_RdkBus_setWanPolicy(DML_WAN_POLICY wan_policy, UINT groupId);
-ANSC_STATUS WanMgr_RdkBus_getWanPolicy(DML_WAN_POLICY *wan_policy, UINT groupId);
+ANSC_STATUS WanMgr_Read_GroupConf_FromPSM(WANMGR_IFACE_GROUP *pGroup, UINT groupId);
 ANSC_STATUS DmlSetVLANInUseToPSMDB(DML_VIRTUAL_IFACE * pVirtIf);
 #endif /* _WANMGR_RDKBUS_APIS_H_ */

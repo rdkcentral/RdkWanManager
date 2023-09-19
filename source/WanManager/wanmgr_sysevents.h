@@ -156,6 +156,11 @@
 #define UNSET "unset"
 #define RESET "reset"
 
+#if defined(FEATURE_MAPT) || defined(FEATURE_SUPPORT_MAPT_NAT46)
+#define SYSCFG_MAPT_FEATURE_ENABLE   "MAPT_Enable"
+#define SYSEVENT_MAPT_FEATURE_ENABLE   "MAPT_Enable"
+#endif
+
 #ifdef FEATURE_MAPT
 /* MAPT specific field names. */
 #define SYSEVENT_BASE_INTERFACE_NAME "base_interface_name"
@@ -173,9 +178,6 @@
 #define SYSEVENT_MAP_TRANSPORT_MODE "map_transport_mode"
 #define SYSEVENT_MAP_IS_FMR "map_is_fmr"
 #define SYSEVENT_MAPT_V4LENGTH "map_v4len"
-#define SYSCFG_MAPT_FEATURE_ENABLE   "MAPT_Enable"
-#define SYSEVENT_MAPT_FEATURE_ENABLE   "MAPT_Enable"
-
 /* Lan specific syscfg field names. */
 #define SYSCFG_LAN_IP_ADDRESS "lan_ipaddr"
 #define SYSCFG_LAN_NET_MASK "lan_netmask"
@@ -197,6 +199,20 @@ typedef enum{
     LAN_STATE_STOPPED,
     LAN_STATE_STARTED,
 }lanState_t;
+#endif
+
+//Bridge Mode
+#if defined(WAN_MANAGER_UNIFICATION_ENABLED)
+#define SYSEVENT_BRIDGE_MODE           "bridge_mode"
+#define SYSEVENT_BRIDGE_STATUS         "bridge-status"
+#define SYSEVENT_MULTINET1_STATUS         "multinet_1-status"
+
+typedef enum{
+BRIDGE_MODE_STATUS_UNKNOWN = 0,
+BRIDGE_MODE_STATUS_STARTED,
+BRIDGE_MODE_STATUS_STOPPED,
+}BridgeModeStatus_t;
+
 #endif
 
 /**********************************************************************
@@ -248,7 +264,7 @@ void wanmgr_sysevents_setWanState(const char * LedState);
 */
 void wanmgr_sysevent_hw_reconfig_reboot(void);
 
-#ifdef FEATURE_MAPT
+#if defined(FEATURE_MAPT) || defined(FEATURE_SUPPORT_MAPT_NAT46)
 /*
  * @brief Utility function used to check mapt_feature enable status.
  * @return Returns TRUE if Enabled, FALSE if Disabled.
@@ -287,6 +303,13 @@ void wanmgr_Ipv6Toggle();
  * @return Returns NONE.
 */
 int Force_IPv6_toggle (char* wanInterface);
+
+/*
+ * @brief Utility function used to Configure accept_ra from ISM.
+ * @param : Virtual Interface and Enable.
+ * @return Returns NONE.
+ */
+void WanMgr_Configure_accept_ra(DML_VIRTUAL_IFACE * pVirtIf, BOOL EnableRa);
 
 #ifdef FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE
 /*

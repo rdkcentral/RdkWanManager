@@ -23,7 +23,6 @@
   * Currently this APIs are used only by DT. This file also has DT specific APIs
   *************************************************************************/
 
-#if defined(_DT_WAN_Manager_Enable_)
 #include "wanmgr_data.h"
 #include "wanmgr_dhcpv6_apis.h"
 #include "wanmgr_interface_sm.h"
@@ -38,6 +37,7 @@
 #include <unistd.h>
 #include "secure_wrapper.h"
 
+#if defined(_DT_WAN_Manager_Enable_)
 int _get_shell_output2(char * cmd, char * dststr)
 {
     FILE * fp;
@@ -1553,3 +1553,87 @@ void wanmgr_setSharedCGNAddress(char *IpAddress)
     }
 }
 #endif//_DT_WAN_Manager_Enable_
+
+#if defined(WAN_MANAGER_UNIFICATION_ENABLED) && (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_))
+#define DEFAULT_PSM_FILE          "/usr/ccsp/config/bbhm_def_cfg.xml"
+/* TODO : This is a function to recover v2 PSM entries if it is written with wrong values in older builds. 
+ * This should be removed after successful migration to unification builds 
+ */
+ANSC_STATUS WanMgr_CheckAndResetV2PSMEntries(UINT IfaceCount)
+{ 
+    int retPsmGet = CCSP_SUCCESS;
+    char param_value[256];
+    char param_name[512];
+    FILE * fp = NULL;
+    size_t len = 0;
+    char *line = NULL;
+    BOOL psmDefaultSetRequired = FALSE;
+
+    CcspTraceInfo(("%s %d Enter \n", __FUNCTION__, __LINE__));
+
+    /* For Unification enabled builds, BASEINTERFACE entry should always have a valid string. 
+     * If BASEINTERFACE is empty PSm could be corrupted. Reset V2 PSM entries to default
+     */
+
+    for(int i = 1; i <= IfaceCount; i++)
+    {
+        snprintf(param_name, sizeof(param_name) ,PSM_WANMANAGER_IF_BASEINTERFACE, i);
+        retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
+        if (retPsmGet == CCSP_SUCCESS && strlen(param_value) <= 0)
+        {
+            CcspTraceError(("%s %d %s is empty  \n", __FUNCTION__, __LINE__,param_name));
+            psmDefaultSetRequired = TRUE;
+            break;
+        }
+
+        /* If selection enable is TRUE and virtual interface are set to false. PSM could be corrupted. Reset V2 PSM entries to default*/
+        memset(param_name, 0, sizeof(param_name));
+        memset(param_value, 0, sizeof(param_value));
+        snprintf(param_name,sizeof(param_name), PSM_WANMANAGER_IF_SELECTION_ENABLE, i);
+        retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
+        if(!strcmp(param_value, "TRUE"))
+        {
+            memset(param_name, 0, sizeof(param_name));
+            memset(param_value, 0, sizeof(param_value));
+            snprintf(param_name,sizeof(param_name), PSM_WANMANAGER_IF_VIRIF_ENABLE, i , 1);
+            retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
+
+            psmDefaultSetRequired = strcmp(param_value, "TRUE");
+        }
+    }
+
+    if(!psmDefaultSetRequired)
+    {
+        return ANSC_STATUS_SUCCESS;
+    }
+
+    CcspTraceError(("%s %d %s Resetting V2 dml PSM entries to default psm value.  \n", __FUNCTION__, __LINE__,param_name));
+    fp = fopen(DEFAULT_PSM_FILE, "r");
+    if (fp == NULL)
+    {
+        CcspTraceError(("%s %d: unable to open file %s", __FUNCTION__, __LINE__, strerror(errno)));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    while (getline(&line, &len, fp) != -1)
+    {
+        if(strstr(line, "dmsb.wanmanager.if.") != NULL && (strstr(line, ".BaseInterface") != NULL || strstr(line, ".VirtualInterface")!= NULL ))
+        {
+            memset(param_value, 0, sizeof(param_value));
+            memset(param_name, 0, sizeof(param_name));
+            sscanf (line,"%*[^<]<Record name=\"%[^\"]%*[^>]>%[^<]%*[^\n]", param_name, param_value);
+            CcspTraceWarning(("%s default value: %s  \n",param_name, param_value));
+            WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);    
+        }
+    }
+
+    if (line)
+    {
+        free(line);
+    }
+    fclose (fp);
+
+    return ANSC_STATUS_SUCCESS;
+
+}
+#endif

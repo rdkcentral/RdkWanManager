@@ -28,6 +28,14 @@
 #include "wanmgr_data.h"
 #include "wanmgr_rdkbus_utils.h"
 
+typedef enum TelemetryEvents
+{
+    WAN_FAILOVER_SUCCESS = 1,
+    WAN_FAILOVER_FAIL,
+    WAN_RESTORE_SUCCESS,
+    WAN_RESTORE_FAIL,
+}TelemetryEvent_t;
+
 typedef  struct _WANMGR_FAILOVER_CONTROLLER_
 {
     BOOL                    WanEnable;
@@ -38,6 +46,8 @@ typedef  struct _WANMGR_FAILOVER_CONTROLLER_
     BOOL                    ResetScan;
     DML_WAN_IFACE_PHY_STATUS PhyState;
     eWanState_t             ActiveIfaceState;
+    TelemetryEvent_t        TelemetryEvent; 
+    BOOL                    AllowRemoteInterfaces;
 } WanMgr_FailOver_Controller_t;
 
 

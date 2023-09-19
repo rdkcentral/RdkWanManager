@@ -60,7 +60,7 @@ static int CheckV6DefaultRule();
 static int do_toggle_v6_status (void);
 static int getVendorClassInfo(char *buffer, int length);
 static int set_default_conf_entry();
-#ifdef FEATURE_MAPT
+#if defined(FEATURE_MAPT) || defined(FEATURE_SUPPORT_MAPT_NAT46)
 int mapt_feature_enable_changed = FALSE;
 #endif
 
@@ -71,6 +71,12 @@ lanState_t lanState = LAN_STATE_RESET;
 #if defined(_DT_WAN_Manager_Enable_)
 bool needDibblerRestart = TRUE;
 #endif
+
+#if defined(WAN_MANAGER_UNIFICATION_ENABLED)
+static int BridgeModePrev = 0;
+static BridgeModeStatus_t BridgeModeStatus = BRIDGE_MODE_STATUS_UNKNOWN;
+#endif
+
 static ANSC_STATUS WanMgr_SyseventInit()
 {
     ANSC_STATUS ret = ANSC_STATUS_SUCCESS;
@@ -345,7 +351,35 @@ void wanmgr_sysevents_setWanState(const char * LedState)
 }
 
 
-#ifdef FEATURE_MAPT
+#if defined(FEATURE_SUPPORT_MAPT_NAT46)
+/*TODO:
+ *Should be Removed once MAPT Unified.
+ */
+static void  WanMgr_MAPTEnable(BOOL Enable)
+{
+    int uiLoopCount;
+
+    int TotalIfaces = WanMgr_IfaceData_GetTotalWanIface();
+    for (uiLoopCount = 0; uiLoopCount < TotalIfaces; uiLoopCount++)
+    {
+        WanMgr_Iface_Data_t*   pWanDmlIfaceData = WanMgr_GetIfaceData_locked(uiLoopCount);
+        if(pWanDmlIfaceData != NULL)
+        {
+            DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
+            for(int virIf_id=0; virIf_id< pWanIfaceData->NoOfVirtIfs; virIf_id++)
+            {
+                DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIfaceById(pWanIfaceData->VirtIfList, virIf_id);
+                p_VirtIf->EnableMAPT = Enable;
+                CcspTraceInfo(("%s-%d: MAPTEnable Changed to %d", __FUNCTION__, __LINE__, Enable));
+                WanMgr_SetMAPTEnableToPSM(p_VirtIf, Enable);
+            }
+            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+        }
+    }
+}
+#endif
+
+#if defined(FEATURE_MAPT) || defined(FEATURE_SUPPORT_MAPT_NAT46)
 int wanmanager_mapt_feature()
 {
     int ret = FALSE;
@@ -365,7 +399,9 @@ int wanmanager_mapt_feature()
 
     return ret;
 }
+#endif
 
+#if defined(FEATURE_MAPT)
 ANSC_STATUS maptInfo_set(const MaptData_t *maptInfo)
 {
     if (NULL == maptInfo)
@@ -508,6 +544,42 @@ static int set_default_conf_entry()
     return 0;
 }
 
+#if defined(WAN_MANAGER_UNIFICATION_ENABLED)
+static void  WanMgr_BridgeModeChanged(int BridgeMode)
+{
+    int uiLoopCount;
+    bool ret = false;
+
+    int TotalIfaces = WanMgr_IfaceData_GetTotalWanIface();
+    for (uiLoopCount = 0; uiLoopCount < TotalIfaces; uiLoopCount++)
+    {
+        WanMgr_Iface_Data_t*   pWanDmlIfaceData = WanMgr_GetIfaceData_locked(uiLoopCount);
+        if(pWanDmlIfaceData != NULL)
+        {
+            DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
+            if(pWanIfaceData->Selection.Enable == TRUE)
+            {
+                for(int virIf_id=0; virIf_id< pWanIfaceData->NoOfVirtIfs; virIf_id++)
+                {
+                    DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIfaceById(pWanIfaceData->VirtIfList, virIf_id);
+                    if (p_VirtIf->Status == WAN_IFACE_STATUS_UP)
+                    {
+                        CcspTraceInfo(("%s-%d: BridgeMode(%d) Changed, Active Virtual Interface Reset", __FUNCTION__, __LINE__, BridgeMode));
+                        p_VirtIf->Reset = TRUE;
+                        ret = true;
+                    }
+                }
+            }
+            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+        }
+    }
+    if (!ret)
+    {
+        CcspTraceInfo(("%s-%d: BridgeMode(%d) Changed, But No Active Virtual Interface Found", __FUNCTION__, __LINE__, BridgeMode));
+    }
+}
+#endif //WAN_MANAGER_UNIFICATION_ENABLED
+
 static void *WanManagerSyseventHandler(void *args)
 {
     CcspTraceInfo(("%s %d \n", __FUNCTION__, __LINE__));
@@ -530,9 +602,14 @@ static void *WanManagerSyseventHandler(void *args)
     async_id_t mesh_wan_link_status_asyncid;
 #endif /* RDKB_EXTENDER_ENABLED */
 
-#if defined (FEATURE_MAPT) 
+#if defined (FEATURE_MAPT) || defined(FEATURE_SUPPORT_MAPT_NAT46)
     async_id_t factory_reset_status_asyncid;
 #endif /* FEATURE_MAPT */
+
+#if defined (WAN_MANAGER_UNIFICATION_ENABLED)
+    async_id_t bridge_status_asyncid;
+    async_id_t multinet1_status_asyncid;
+#endif //WAN_MANAGER_UNIFICATION_ENABLED
 
 #if defined (_HUB4_PRODUCT_REQ_)
     sysevent_set_options(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_ULA_ADDRESS, TUPLE_FLAG_EVENT);
@@ -567,7 +644,7 @@ static void *WanManagerSyseventHandler(void *args)
     sysevent_set_options(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_SYNC_NTP_STATUS, TUPLE_FLAG_EVENT);
     sysevent_setnotification(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_SYNC_NTP_STATUS, &sync_ntp_statusid);
 #endif
-#ifdef FEATURE_MAPT
+#if defined(FEATURE_MAPT) || defined(FEATURE_SUPPORT_MAPT_NAT46)
     sysevent_set_options(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_MAPT_FEATURE_ENABLE, TUPLE_FLAG_EVENT);
     sysevent_setnotification(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_MAPT_FEATURE_ENABLE, &ipv6_down_asyncid);
     sysevent_set_options(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_FACTORY_RESET_STATUS, TUPLE_FLAG_EVENT);
@@ -579,6 +656,14 @@ static void *WanManagerSyseventHandler(void *args)
     sysevent_setnotification(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_MESH_WAN_LINK_STATUS, &mesh_wan_link_status_asyncid);
 #endif /* RDKB_EXTENDER_ENABLED */
 
+#if defined (WAN_MANAGER_UNIFICATION_ENABLED)
+    sysevent_set_options(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_BRIDGE_STATUS, TUPLE_FLAG_EVENT);
+    sysevent_setnotification(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_BRIDGE_STATUS, &bridge_status_asyncid);
+
+    sysevent_set_options(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_MULTINET1_STATUS, TUPLE_FLAG_EVENT);
+    sysevent_setnotification(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_MULTINET1_STATUS, &multinet1_status_asyncid);
+    
+#endif /* WAN_MANAGER_UNIFICATION_ENABLED */
 
     for(;;)
     {
@@ -759,9 +844,19 @@ static void *WanManagerSyseventHandler(void *args)
                 }
                 sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, NULL, 0);
             }
-#ifdef FEATURE_MAPT
+#if defined(FEATURE_MAPT) || defined(FEATURE_SUPPORT_MAPT_NAT46)
             else if (strcmp(name, SYSEVENT_MAPT_FEATURE_ENABLE) == 0)
             {
+#if defined(FEATURE_SUPPORT_MAPT_NAT46)
+                if (!strcmp(val, SYSEVENT_VALUE_TRUE))
+                {
+                    WanMgr_MAPTEnable(TRUE);
+                }
+                else if (!strcmp(val, SYSEVENT_VALUE_FALSE))
+                {
+                    WanMgr_MAPTEnable(FALSE);
+                }
+#endif
                 if (!strcmp(val, SYSEVENT_VALUE_TRUE) || !strcmp(val, SYSEVENT_VALUE_FALSE))
                 {
                     mapt_feature_enable_changed = TRUE;
@@ -800,6 +895,51 @@ static void *WanManagerSyseventHandler(void *args)
 			    close(fd);
 			}
                         WanManager_StopDhcpv6Client(ifName);
+                    }
+                }
+            }
+#endif
+#if defined(WAN_MANAGER_UNIFICATION_ENABLED)
+            /*TODO:
+             *The Below code is workaround and should be removed after Bridge Mode Unification.
+             */
+            else if (strcmp(name, SYSEVENT_BRIDGE_STATUS) == 0)
+            {
+                char output[4] = {0};
+                int BridgeMode = 0;
+
+                sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_BRIDGE_MODE, output, sizeof(output));
+                CcspTraceInfo(("%s-%d: Bridge Mode Changed to %s, %s=%s, Previous BridgeMode=%d\n",
+                                        __FUNCTION__, __LINE__, output, SYSEVENT_BRIDGE_STATUS, val, BridgeModePrev));
+
+                BridgeMode = atoi(output);
+                if ((BridgeMode == 2) && (strcmp(val, SYSEVENT_VALUE_STARTED) == 0))
+                {
+                    BridgeModeStatus = BRIDGE_MODE_STATUS_STARTED;
+                }
+                else if ((BridgeMode == 0) && (strcmp(val, SYSEVENT_VALUE_STOPPED) == 0))
+                {
+                    BridgeModeStatus = BRIDGE_MODE_STATUS_STOPPED;
+                }
+            }
+            else if (strcmp(name, SYSEVENT_MULTINET1_STATUS) == 0)
+            {
+                char output[4] = {0};
+                int BridgeMode = 0;
+
+                sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_BRIDGE_MODE, output, sizeof(output));
+                if (((BridgeModeStatus == BRIDGE_MODE_STATUS_STARTED) || 
+                     (BridgeModeStatus == BRIDGE_MODE_STATUS_STOPPED)) && 
+                     (strcmp(val, "ready") == 0))
+                {
+                    CcspTraceInfo(("%s-%d: Bridge Mode Changed to %s, BridgeModeStatus=%d, %s=%s, Previous BridgeMode=%d\n", 
+                                    __FUNCTION__, __LINE__, output, BridgeModeStatus, SYSEVENT_MULTINET1_STATUS, val, BridgeModePrev));
+                    BridgeModeStatus = BRIDGE_MODE_STATUS_UNKNOWN;
+                    BridgeMode = atoi(output);
+                    if (BridgeMode != BridgeModePrev)
+                    {
+                        BridgeModePrev = BridgeMode;
+                        WanMgr_BridgeModeChanged(BridgeMode);
                     }
                 }
             }
@@ -910,7 +1050,7 @@ static int do_toggle_v6_status (void)
  * This function will not check existing default route.
  * @param : Interface name.
  * @return Returns NONE.
-*/
+ */
 int Force_IPv6_toggle (char* wanInterface)
 {
     int ret = 0;
@@ -930,6 +1070,10 @@ int Force_IPv6_toggle (char* wanInterface)
 void wanmgr_Ipv6Toggle()
 {
     char v6Toggle[BUFLEN_128] = {0};
+#if (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_)) &&  !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)//TODO: V6 handled in PAM
+    /*Ipv6 handled in PAM.  No Toggle Needed. */
+    return RETURN_OK;
+#endif
 
     sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_IPV6_TOGGLE, v6Toggle, sizeof(v6Toggle));
 
@@ -941,6 +1085,43 @@ void wanmgr_Ipv6Toggle()
         {
             sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV6_TOGGLE, "FALSE", 0);
         }
+    }
+}
+
+/*
+ * @brief Utility function used to Configure accept_ra from ISM.
+ * @param : Virtual Interface and Enable.
+ * @return Returns NONE.
+ */
+void WanMgr_Configure_accept_ra(DML_VIRTUAL_IFACE * pVirtIf, BOOL EnableRa)
+{
+    /* TODO: PPP connection default route is added by IPv6CP session. 
+     * Use Device.PPP.Interface.1.IPv6CP.RemoteInterfaceIdentifier get default ipv6 route .
+     */
+
+    if( pVirtIf->PPP.Enable == TRUE)
+    {
+        CcspTraceWarning(("%s-%d : %s is a PPP interface. Not changing accept_ra \n", __FUNCTION__, __LINE__,pVirtIf->Name));
+        return;
+    }
+
+    CcspTraceInfo(("%s %d %s accept_ra for interface %s\n", __FUNCTION__, __LINE__,EnableRa?"Enabling":"Disabling", pVirtIf->Name));
+   
+    int ret = 0;
+    ret = v_secure_system("sysctl -w net.ipv6.conf.%s.accept_ra=%d",pVirtIf->Name, (EnableRa?2:0));
+    if(ret != 0) {
+        CcspTraceWarning(("%s : Failure in executing command via v_secure_system. ret:[%d] \n",__FUNCTION__, ret));
+    }
+
+    if(EnableRa)
+    {
+        CcspTraceInfo(("%s %d Enabling forwarding for interface %s\n", __FUNCTION__, __LINE__,pVirtIf->Name));
+        v_secure_system("sysctl -w net.ipv6.conf.%s.forwarding=1",pVirtIf->Name);
+        v_secure_system("sysctl -w net.ipv6.conf.%s.accept_ra_pinfo=0",pVirtIf->Name);
+        v_secure_system("sysctl -w net.ipv6.conf.%s.accept_ra_defrtr=1",pVirtIf->Name);
+        v_secure_system("sysctl -w net.ipv6.conf.all.forwarding=1");
+        CcspTraceInfo(("%s %d Reset the ipv6 toggle after ra accept \n", __FUNCTION__, __LINE__));
+        sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV6_TOGGLE, "TRUE", 0);
     }
 }
 
@@ -1132,6 +1313,17 @@ ANSC_STATUS WanMgr_SysEvents_Init(void)
     }
 #if defined(_HUB4_PRODUCT_REQ_) || defined(_WNXL11BWL_PRODUCT_REQ_)
     set_default_conf_entry();
+#endif
+
+    /*TODO:
+     *it should be removed with BridgeMode Proper Design Implementation.
+     */
+#if defined(WAN_MANAGER_UNIFICATION_ENABLED)
+    char output[4] = {0};
+    if (syscfg_get(NULL, SYSEVENT_BRIDGE_MODE, output, sizeof(output)) == ANSC_STATUS_SUCCESS)
+    {
+       BridgeModePrev = atoi(output);
+    }
 #endif
     //Init msg status handler
     if(pthread_create(&sysevent_tid, NULL, WanManagerSyseventHandler, NULL) == 0) {

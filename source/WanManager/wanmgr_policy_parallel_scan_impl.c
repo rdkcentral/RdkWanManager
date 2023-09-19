@@ -103,6 +103,7 @@ static void WanMgr_UpdateControllerData (WanMgr_Policy_Controller_t* pWanControl
     if (pWanIfaceGroup != NULL)
     {
         pWanController->GroupCfgChanged = pWanIfaceGroup->ConfigChanged;
+        pWanController->GroupPersistSelectedIface = pWanIfaceGroup->PersistSelectedIface;
         pWanController->ResetSelectedInterface = pWanIfaceGroup->ResetSelectedInterface;
         WanMgrDml_GetIfaceGroup_release();
     }
@@ -266,6 +267,10 @@ static WcPsPolicyState_t Transition_Start (WanMgr_Policy_Controller_t* pWanContr
             {
                 if(pWanIfaceData->Selection.Enable == TRUE)
                 {
+                    if(pWanController->GroupPersistSelectedIface == TRUE && pWanIfaceData->Selection.ActiveLink == TRUE)
+                    {
+                        CcspTraceInfo(("%s %d GroupPersistSelectedIface is enabled and only last ActiveLink %s ISM will be started\n", __FUNCTION__, __LINE__, pWanIfaceData->DisplayName));
+                    }
                     /* Find the maximum timeout Value */
                     if(pWanIfaceData->Selection.Timeout > pWanController->InterfaceSelectionTimeOut)
                     {
@@ -732,6 +737,7 @@ static WcPsPolicyState_t State_ScanningInterface (WanMgr_Policy_Controller_t * p
     UINT highPriorityActiveValue = MAX_PRIORITY_VALUE;
     struct timespec CurrentTime;
     UINT uiLoopCount;
+    BOOL lastSelectedIfaceFound = FALSE;
 
     if(pWanController == NULL)
     {
@@ -757,6 +763,7 @@ static WcPsPolicyState_t State_ScanningInterface (WanMgr_Policy_Controller_t * p
             {
                 if(pWanIfaceData->Selection.ActiveLink == TRUE)
                 {
+                    lastSelectedIfaceFound = TRUE;
                     highPriorityValidIface = uiLoopCount;
                     highPriorityValue = -1; //set negative value to give highest priority for last active link interface
 
@@ -822,7 +829,9 @@ static WcPsPolicyState_t State_ScanningInterface (WanMgr_Policy_Controller_t * p
             if(pWanController->GroupInst == pWanIfaceData->Selection.Group && 
                     pWanIfaceData->Selection.Enable == TRUE &&
                     pWanIfaceData->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_UP &&
-                    pWanIfaceData->VirtIfList->Status == WAN_IFACE_STATUS_DISABLED )
+                    pWanIfaceData->VirtIfList->Status == WAN_IFACE_STATUS_DISABLED &&
+                    /* If GroupPersistSelectedIface is TRUE and we have a last selected interface, don't start VISM for other interfaces */
+                    (!(pWanController->GroupPersistSelectedIface == TRUE && lastSelectedIfaceFound == TRUE && pWanIfaceData->Selection.ActiveLink == FALSE)))
             {
                 WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
                 CcspTraceInfo(("%s %d  Found New interface %s id(%d). Starting Interface State Machine\n", __FUNCTION__, __LINE__, pWanIfaceData->DisplayName, uiLoopCount));

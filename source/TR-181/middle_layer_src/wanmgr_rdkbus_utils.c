@@ -66,6 +66,33 @@
 extern char g_Subsystem[32];
 extern ANSC_HANDLE bus_handle;
 
+/*TODO:
+ *Should be Reviewed while Implementing MAPT Unification.
+ */
+#if defined(FEATURE_SUPPORT_MAPT_NAT46)
+int WanMgr_SetMAPTEnableToPSM(DML_VIRTUAL_IFACE* pVirtIf, BOOL Enable)
+{
+    int retPsmSet = CCSP_SUCCESS;
+    char param_name[256] = {0};
+    char param_value[256] = {0};
+
+    memset(param_value, 0, sizeof(param_value));
+    memset(param_name, 0, sizeof(param_name));
+    if(Enable == TRUE)
+    {
+        _ansc_sprintf(param_value, "TRUE");
+    }
+    else
+    {
+        _ansc_sprintf(param_value, "FALSE");
+    }
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_ENABLE_MAPT, pVirtIf->baseIfIdx +1, pVirtIf->VirIfIdx+1);
+    WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
+    CcspTraceInfo(("%s-%d: MAPTEnable(%s) set to (%s)\n", __FUNCTION__, __LINE__, param_name, param_value));
+    return 0;
+}
+#endif
+
 ANSC_STATUS WanMgr_RdkBus_setRestorationDelay(UINT delay)
 {
     int result = ANSC_STATUS_SUCCESS;

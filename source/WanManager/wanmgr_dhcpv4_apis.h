@@ -33,7 +33,11 @@
 #include "ansc_platform.h"
 #include "ipc_msg.h"
 
+#ifdef DHCPV4_CLIENT_TI_UDHCPC 
+#define DHCPV4_CLIENT_NAME "ti_udhcpc"
+#else
 #define DHCPV4_CLIENT_NAME "udhcpc"
+#endif
 #define DHCPV4_ACTION_HANDLER "service_udhcpc"
 #define  DML_ALIAS_NAME_LENGTH                 64
 

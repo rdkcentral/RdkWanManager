@@ -20,6 +20,9 @@
 
 #include "wanmgr_data.h"
 
+#if defined(WAN_MANAGER_UNIFICATION_ENABLED) && (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_))
+extern ANSC_STATUS WanMgr_CheckAndResetV2PSMEntries(UINT IfaceCount);
+#endif
 
 /******** WAN MGR DATABASE ********/
 WANMGR_DATA_ST gWanMgrDataBase;
@@ -128,10 +131,11 @@ ANSC_STATUS WanMgr_Group_Configure()
                 pWanIfacegroup->Group[i].SelectedInterface = 0;
                 pWanIfacegroup->Group[i].SelectionTimeOut = 0;
                 pWanIfacegroup->Group[i].ConfigChanged = FALSE;
+                pWanIfacegroup->Group[i].PersistSelectedIface = FALSE;
                 pWanIfacegroup->Group[i].ResetSelectedInterface = FALSE;
                 pWanIfacegroup->Group[i].InitialScanComplete = FALSE;
                 pWanIfacegroup->Group[i].Policy = AUTOWAN_MODE;
-                WanMgr_RdkBus_getWanPolicy(&(pWanIfacegroup->Group[i].Policy), i);
+                WanMgr_Read_GroupConf_FromPSM(&(pWanIfacegroup->Group[i]), i);
                 CcspTraceInfo(("%s %d Group[%d] Policy : %d \n", __FUNCTION__, __LINE__, i, pWanIfacegroup->Group[i].Policy));
             }
         }
@@ -139,6 +143,8 @@ ANSC_STATUS WanMgr_Group_Configure()
     }
     return ANSC_STATUS_SUCCESS;
 }
+
+
 /******** WANMGR IFACE FUNCTIONS ********/
 ANSC_STATUS WanMgr_VirtIfConfVLAN(DML_VIRTUAL_IFACE *p_VirtIf, UINT Ifid)
 {
@@ -220,6 +226,9 @@ ANSC_STATUS WanMgr_WanIfaceConfInit(WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl)
         }
 
         pWanIfaceCtrl->ulTotalNumbWanInterfaces = uiTotalIfaces;
+#if defined(WAN_MANAGER_UNIFICATION_ENABLED) && (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_))
+        WanMgr_CheckAndResetV2PSMEntries(uiTotalIfaces);
+#endif
 
         //Memset all memory
         memset( pWanIfaceCtrl->pIface, 0, ( sizeof(WanMgr_Iface_Data_t) * MAX_WAN_INTERFACE_ENTRY ) );
@@ -427,7 +436,11 @@ WanMgr_Iface_Data_t* WanMgr_GetIfaceDataByName_locked(char* iface_name)
 
 DML_VIRTUAL_IFACE* WanMgr_GetVirtualIfaceByName_locked(char* iface_name)
 {
-   UINT idx;
+    UINT idx;
+    if(iface_name == NULL || strlen(iface_name) <=0)
+    {
+        return NULL;
+    }
 
     if(pthread_mutex_lock(&gWanMgrDataBase.gDataMutex) == 0)
     {
@@ -727,6 +740,7 @@ void WanMgr_VirtIface_Init(DML_VIRTUAL_IFACE * pVirtIf, UINT iface_index)
     pVirtIf->EnableDSLite = FALSE;
     pVirtIf->EnableIPoE = FALSE;
     pVirtIf->IP.RefreshDHCP = FALSE;        // RefreshDHCP is set when there is a change in IP source
+    pVirtIf->IP.RestartV6Client = FALSE;
     pVirtIf->Status = WAN_IFACE_STATUS_DISABLED;
     pVirtIf->RemoteStatus = WAN_IFACE_STATUS_DISABLED;
     pVirtIf->VLAN.Status = WAN_IFACE_LINKSTATUS_DOWN;
@@ -777,6 +791,7 @@ void WanMgr_Remote_IfaceData_Update(WanMgr_Iface_Data_t* pIfaceData, UINT iface_
     {
         DML_WAN_IFACE* pWanDmlIface = &(pIfaceData->data);
         strcpy(pWanDmlIface->Name, REMOTE_INTERFACE_NAME); // Remote name by default
+        strcpy(pWanDmlIface->DisplayName, "REMOTE"); // Remote name by default
         pWanDmlIface->Selection.Enable = TRUE; // Remote wan Enable by default
         pWanDmlIface->Selection.Priority = remotePriority;
         pWanDmlIface->IfaceType = REMOTE_IFACE;    // InterfaceType is Remote by default
@@ -852,13 +867,18 @@ ANSC_STATUS WanMgr_Remote_IfaceData_configure(char *remoteCPEMac, int  *iface_in
                     return;
                 }
                 WanMgr_VirtIface_Init(p_VirtIf, i);
+                *iface_index = pWanIfaceCtrl->ulTotalNumbWanInterfaces;
+                p_VirtIf->baseIfIdx = *iface_index; //Add base interface index 
+                p_VirtIf->Enable = TRUE;
+                p_VirtIf->IP.IPv6Source = DML_WAN_IP_SOURCE_STATIC;
+                strncpy(p_VirtIf->Name, REMOTE_INTERFACE_NAME, sizeof(p_VirtIf->Name));
+                CcspTraceInfo(("%s %d - Adding Remote Interface Index = [%d]\n", __FUNCTION__, __LINE__,p_VirtIf->baseIfIdx));
                 WanMgr_AddVirtualToList(&(pIfaceData->data.VirtIfList), p_VirtIf);
             }
             WanMgr_Remote_IfaceData_Update(pIfaceData, pWanIfaceCtrl->ulTotalNumbWanInterfaces);
 
             DML_WAN_IFACE* pWanDmlIface = &(pIfaceData->data);
             strcpy(pWanDmlIface->RemoteCPEMac, remoteCPEMac);
-            *iface_index = pWanIfaceCtrl->ulTotalNumbWanInterfaces;
             pWanIfaceCtrl->ulTotalNumbWanInterfaces = pWanIfaceCtrl->ulTotalNumbWanInterfaces + 1;
             gWanMgrDataBase.IfaceCtrl.update = 0;
             WanMgrDml_GetIfaceData_release(NULL);
@@ -866,7 +886,7 @@ ANSC_STATUS WanMgr_Remote_IfaceData_configure(char *remoteCPEMac, int  *iface_in
         }
         else
         {
-            CcspTraceInfo(("%s %d - Wan Interface Entries has reached its limit = [%d]\n", __FUNCTION__, __LINE__, MAX_WAN_INTERFACE_ENTRY));
+            CcspTraceError(("%s %d - Wan Interface Entries has reached its limit = [%d]\n", __FUNCTION__, __LINE__, MAX_WAN_INTERFACE_ENTRY));
         }
     }
     return ret;

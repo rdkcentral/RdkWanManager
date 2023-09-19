@@ -1673,7 +1673,7 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
         {
             CcspTraceInfo(("assigned IPv6 address \n"));
             connected = TRUE;
-#if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
+#if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE) || (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_)) //TODO: V6 handled in PAM
         }
 #else
             if (strcmp(pDhcp6cInfoCur->address, pNewIpcMsg->address))
@@ -1699,7 +1699,7 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
             connected = TRUE;
 
             /* Update the WAN prefix validity time in the persistent storage */
-#if !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
+#if !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE) && !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_))  //TODO: V6 handled in PAM
             if (pDhcp6cInfoCur->prefixVltime != pNewIpcMsg->prefixVltime)
             {
                 snprintf(set_value, sizeof(set_value), "%d", pNewIpcMsg->prefixVltime);
@@ -1754,7 +1754,7 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
             if (strcmp(pDhcp6cInfoCur->sitePrefix, pNewIpcMsg->sitePrefix) == 0)
             {
                 CcspTraceInfo(("remove prefix \n"));
-#if !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
+#if !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE) && !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_))  //TODO: V6 handled in PAM
                 syscfg_set_string(SYSCFG_FIELD_IPV6_PREFIX, "");
                 syscfg_set_string(SYSCFG_FIELD_PREVIOUS_IPV6_PREFIX, "");
                 syscfg_set_string(SYSCFG_FIELD_IPV6_PREFIX_ADDRESS, "");
@@ -1764,7 +1764,7 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
         }
     }
 
-#if !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
+#if !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)&& !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_))  //TODO: V6 handled in PAM
     /* dhcp6c receives domain name information */
     if (pNewIpcMsg->domainNameAssigned && !IS_EMPTY_STRING(pNewIpcMsg->domainName))
     {
@@ -1797,7 +1797,7 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
 
             if (strcmp(pDhcp6cInfoCur->address, guAddrPrefix))
             {
-#if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
+#if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE) || (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_))  //TODO: V6 handled in PAM
                 strncpy(pVirtIf->IP.Ipv6Data.address,guAddrPrefix, sizeof(pVirtIf->IP.Ipv6Data.address));
                 pNewIpcMsg->addrAssigned = true;
 #else
@@ -1822,15 +1822,17 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
         wanmgr_dchpv6_get_ipc_msg_info(&(Ipv6DataTemp), pNewIpcMsg);
 
         if (strcmp(Ipv6DataTemp.address, pDhcp6cInfoCur->address) ||
-#if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)//Do not compare if Ipv6DataTemp.pdIfAddress is empty. pdIfAddress Will be calculated while configuring LAN prefix.
+#if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE) || (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_))//Do not compare if pdIfAddress and sitePrefix is empty. pdIfAddress Will be calculated while configuring LAN prefix.  //TODO: V6 handled in PAM
             ((Ipv6DataTemp.pdIfAddress) && (strlen(Ipv6DataTemp.pdIfAddress) > 0)&&
             (strcmp(Ipv6DataTemp.pdIfAddress, pDhcp6cInfoCur->pdIfAddress))) ||
+            ((Ipv6DataTemp.sitePrefix) && (strlen(Ipv6DataTemp.sitePrefix) > 0)&&
+            (strcmp(Ipv6DataTemp.sitePrefix, pDhcp6cInfoCur->sitePrefix)))||
 #else
                 strcmp(Ipv6DataTemp.pdIfAddress, pDhcp6cInfoCur->pdIfAddress) ||
+                strcmp(Ipv6DataTemp.sitePrefix, pDhcp6cInfoCur->sitePrefix) ||
 #endif
                 strcmp(Ipv6DataTemp.nameserver, pDhcp6cInfoCur->nameserver) ||
-                strcmp(Ipv6DataTemp.nameserver1, pDhcp6cInfoCur->nameserver1) ||
-                strcmp(Ipv6DataTemp.sitePrefix, pDhcp6cInfoCur->sitePrefix))
+                strcmp(Ipv6DataTemp.nameserver1, pDhcp6cInfoCur->nameserver1))
         {
             CcspTraceInfo(("IPv6 configuration has been changed \n"));
             pVirtIf->IP.Ipv6Changed = TRUE;
@@ -1840,11 +1842,13 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
             /*TODO: Revisit this*/
             //call function for changing the prlft and vallft
             // FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE : Handle Ip renew in handler thread. 
-            if ((WanManager_Ipv6AddrUtil(LAN_BRIDGE_NAME, SET_LFT, pNewIpcMsg->prefixPltime, pNewIpcMsg->prefixVltime) < 0))
+#if !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_))  //TODO: V6 handled in PAM
+            if ((WanManager_Ipv6AddrUtil(pVirtIf->Name, SET_LFT, pNewIpcMsg->prefixPltime, pNewIpcMsg->prefixVltime) < 0))
             {
                 CcspTraceError(("Life Time Setting Failed"));
             }
             sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_RADVD_RESTART, NULL, 0);
+#endif
 #ifdef FEATURE_IPOE_HEALTH_CHECK
             pVirtIf->IP.Ipv6Renewed = TRUE;
 #endif
@@ -1913,6 +1917,10 @@ int setUpLanPrefixIPv6(DML_VIRTUAL_IFACE* pVirtIf)
     CcspTraceInfo(("%s %d Updating SYSEVENT_CURRENT_WAN_IFNAME %s\n", __FUNCTION__, __LINE__,pVirtIf->IP.Ipv6Data.ifname));
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_CURRENT_WAN_IFNAME, pVirtIf->IP.Ipv6Data.ifname, 0);
 
+    /* Enable accept ra */
+    WanMgr_Configure_accept_ra(pVirtIf, TRUE);
+
+#if !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_))  //TODO: V6 handled in PAM
     int index = strcspn(pVirtIf->IP.Ipv6Data.sitePrefix, "/");
     if (index < strlen(pVirtIf->IP.Ipv6Data.sitePrefix))
     {
@@ -1943,6 +1951,7 @@ int setUpLanPrefixIPv6(DML_VIRTUAL_IFACE* pVirtIf)
             sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_TR_EROUTER_DHCPV6_CLIENT_PREFIX, pVirtIf->IP.Ipv6Data.sitePrefix, 0);
         }
     }
+#endif
 #if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
     /* moved from PAM */
     int ret = RETURN_OK;
