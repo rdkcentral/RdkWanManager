@@ -610,8 +610,8 @@ Client3_GetParamBoolValue
     if (strcmp(ParamName, "Enable") == 0)
     {
         /* collect value */
-        /**pBool   = pDhcpc->Cfg.bEnabled;*/
-        *pBool   =WanMgr_DmlDhcpv6cGetEnabled(NULL);
+        *pBool   = pDhcpc->Cfg.bEnabled;
+        //*pBool   =WanMgr_DmlDhcpv6cGetEnabled(NULL);
 
         return TRUE;
     }
