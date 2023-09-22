@@ -1110,15 +1110,20 @@ static int wan_tearDownIPv4(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
         CcspTraceInfo(("%s %d -  IPv4 DNS servers unconfig successfully \n", __FUNCTION__, __LINE__));
     }
 
-    /* Need to remove the network from the routing table by
-    * doing "ifconfig L3IfName 0.0.0.0"
-    * wanData->ipv4Data.ifname is Empty.
-    */
-    snprintf(cmdStr, sizeof(cmdStr), "ifconfig %s 0.0.0.0", p_VirtIf->Name);
-    if (WanManager_DoSystemActionWithStatus("wan_tearDownIPv4: ifconfig L3IfName 0.0.0.0", (cmdStr)) != 0)
+#ifdef LTE_USB_FEATURE_ENABLED
+    if( 0 != strcmp(p_VirtIf->Name, "usb0" ) )
+#endif /** LTE_USB_FEATURE_ENABLED */
     {
-        CcspTraceError(("%s %d - failed to run cmd: %s", __FUNCTION__, __LINE__, cmdStr));
-        ret = RETURN_ERR;
+        /* Need to remove the network from the routing table by
+        * doing "ifconfig L3IfName 0.0.0.0"
+        * wanData->ipv4Data.ifname is Empty.
+        */
+        snprintf(cmdStr, sizeof(cmdStr), "ifconfig %s 0.0.0.0", p_VirtIf->Name);
+        if (WanManager_DoSystemActionWithStatus("wan_tearDownIPv4: ifconfig L3IfName 0.0.0.0", (cmdStr)) != 0)
+        {
+            CcspTraceError(("%s %d - failed to run cmd: %s", __FUNCTION__, __LINE__, cmdStr));
+            ret = RETURN_ERR;
+        }
     }
 
     if (WanManager_DelDefaultGatewayRoute(DeviceNwMode, pWanIfaceCtrl->DeviceNwModeChanged, &p_VirtIf->IP.Ipv4Data) != RETURN_OK)
@@ -1799,9 +1804,12 @@ static eWanState_t wan_transition_ipv4_down(WanMgr_IfaceSM_Controller_t* pWanIfa
         (p_VirtIf->IP.Mode != DML_WAN_IP_MODE_IPV4_ONLY && p_VirtIf->IP.Mode != DML_WAN_IP_MODE_DUAL_STACK))))
     {
         // Stopping DHCPv4 client, so we can send a unicast DHCP Release packet
-        CcspTraceInfo(("%s %d: Stopping DHCP v4\n", __FUNCTION__, __LINE__));
-        WanManager_StopDhcpv4Client(p_VirtIf->Name, TRUE);
-        p_VirtIf->IP.Dhcp4cPid = 0;
+        if(p_VirtIf->IP.Dhcp4cPid > 0)
+        {
+            CcspTraceInfo(("%s %d: Stopping DHCP v4\n", __FUNCTION__, __LINE__));
+            WanManager_StopDhcpv4Client(p_VirtIf->Name, TRUE);
+            p_VirtIf->IP.Dhcp4cPid = 0;
+        }
     }
     else
     {

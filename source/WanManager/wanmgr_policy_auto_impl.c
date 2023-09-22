@@ -95,7 +95,13 @@ static int WanMgr_RdkBus_AddAllIntfsToLanBridge (WanMgr_Policy_Controller_t * pW
         DML_WAN_IFACE * pWanIfaceData = &(pWanDmlIfaceData->data);
         if(pWanDmlIfaceData != NULL)
         {
-            strncpy (PhyPath, pWanIfaceData->BaseInterface, sizeof(PhyPath)-1);
+            if(pWanController->GroupInst != pWanIfaceData->Selection.Group)
+            {
+               WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+               continue;
+            }
+
+	    strncpy (PhyPath, pWanIfaceData->BaseInterface, sizeof(PhyPath)-1);
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
 
             if (strlen(PhyPath) > 0)
@@ -1124,6 +1130,13 @@ static WcAwPolicyState_t State_InterfaceReconfiguration (WanMgr_Policy_Controlle
         if(pWanDmlIfaceData != NULL)
         {
             DML_WAN_IFACE * pWanIfaceData = &(pWanDmlIfaceData->data);
+
+             if(pWanController->GroupInst != pWanIfaceData->Selection.Group)
+             {
+                 WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+                 continue;
+             }
+
             strncpy (PhyPath, pWanIfaceData->BaseInterface, sizeof(PhyPath)-1);
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
 
@@ -1156,7 +1169,7 @@ static WcAwPolicyState_t State_InterfaceReconfiguration (WanMgr_Policy_Controlle
         if(pWanDmlIfaceData != NULL)
         {
             DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
-            if (strstr(pWanIfaceData->BaseInterface, "Ethernet") == NULL)
+            if ((strstr(pWanIfaceData->BaseInterface, "Ethernet") == NULL) || pWanController->GroupInst != pWanIfaceData->Selection.Group)
             {
                 // no hardware configuration needed for this interface
                 WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
