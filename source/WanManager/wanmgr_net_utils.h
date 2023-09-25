@@ -234,4 +234,13 @@ INT WanMgr_StartIpMonitor(UINT iface_index);
 bool WanManager_IsNetworkInterfaceAvailable( char *IfaceName );
 int WanMgr_RdkBus_AddIntfToLanBridge (char * PhyPath, BOOL AddToBridge);
 void WanManager_PrintBootEvents (WanBootEventState state);
+/***************************************************************************
+ * @brief API used to check the incoming ipv address is a valid.
+ * @param af indicates address family
+ * @param address string contains ip address
+ * @return TRUE if its a valid IP address else returned false.
+ ****************************************************************************/
+BOOL IsValidIpAddress(int32_t af, const char *address);
+
+
 #endif // _WANMGR_NET_UTILS_H_

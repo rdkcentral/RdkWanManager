@@ -340,7 +340,6 @@ static BOOL WanMgr_RestartFindExistingLink (WanMgr_IfaceSM_Controller_t* pWanIfa
     if(p_VirtIf->PPP.Enable == TRUE && (strlen(p_VirtIf->PPP.Interface) > 0))
     {
         char ppp_Status[BUFLEN_256]             = {0};
-        char ppp_ConnectionStatus[BUFLEN_256]   = {0};
         snprintf(dmQuery, sizeof(dmQuery)-1, "%s.Status", p_VirtIf->PPP.Interface);
         if ( ANSC_STATUS_FAILURE == WanMgr_RdkBus_GetParamValueFromAnyComp (dmQuery, ppp_Status))
         {
@@ -348,23 +347,12 @@ static BOOL WanMgr_RestartFindExistingLink (WanMgr_IfaceSM_Controller_t* pWanIfa
             ret = FALSE;
         }
 
-        snprintf(dmQuery, sizeof(dmQuery)-1, "%s.ConnectionStatus", p_VirtIf->PPP.Interface);
-        if ( ANSC_STATUS_FAILURE == WanMgr_RdkBus_GetParamValueFromAnyComp (dmQuery, ppp_ConnectionStatus))
-        {
-            CcspTraceError(("%s-%d: %s, Failed to get param value\n", __FUNCTION__, __LINE__, dmQuery));
-            ret = FALSE;
-        }
+        CcspTraceInfo(("%s %d PPP entry Status: %s\n",__FUNCTION__, __LINE__, ppp_Status));
 
-        CcspTraceInfo(("%s %d PPP entry Status: %s, ConnectionStatus: %s\n",__FUNCTION__, __LINE__, ppp_Status, ppp_ConnectionStatus));
-
-        if(!strcmp(ppp_Status, "Up") && !strcmp(ppp_ConnectionStatus, "Connected"))
+        if(!strcmp(ppp_Status, "Up"))
         {
             p_VirtIf->PPP.LinkStatus = WAN_IFACE_PPP_LINK_STATUS_UP;
-            p_VirtIf->PPP.IPCPStatus = WAN_IFACE_IPCP_STATUS_UP;
-            p_VirtIf->PPP.IPV6CPStatus = WAN_IFACE_IPV6CP_STATUS_UP;
-            p_VirtIf->PPP.IPCPStatusChanged = TRUE;
-            p_VirtIf->PPP.IPV6CPStatusChanged = TRUE;
-
+            p_VirtIf->PPP.IPV6CPStatus = WAN_IFACE_IPV6CP_STATUS_UP;    // setting IPv6CP UP to validate the link
             ret = TRUE;
         }
     }
@@ -1630,6 +1618,30 @@ static eWanState_t wan_transition_wan_validated(WanMgr_IfaceSM_Controller_t* pWa
     CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION OBTAINING IP ADDRESSES\n", __FUNCTION__, __LINE__, pInterface->Name));
     CcspTraceInfo(("%s %d - Interface '%s' - Started in %s IP Mode\n", __FUNCTION__, __LINE__, pInterface->Name, p_VirtIf->IP.Mode == DML_WAN_IP_MODE_DUAL_STACK ?"Dual Stack":
         p_VirtIf->IP.Mode == DML_WAN_IP_MODE_IPV6_ONLY?"IPv6 Only": p_VirtIf->IP.Mode == DML_WAN_IP_MODE_IPV4_ONLY?"IPv4 Only":"No IP"));
+
+    // wan interface is now validated, lets fetch lease information for this interface if available
+    if(p_VirtIf->PPP.Enable == TRUE && (strlen(p_VirtIf->PPP.Interface) > 0))
+    {
+        char dmQuery[BUFLEN_256] = {0};
+        char ppp_ConnectionStatus[BUFLEN_256]   = {0};
+        snprintf(dmQuery, sizeof(dmQuery)-1, "%s.ConnectionStatus", p_VirtIf->PPP.Interface);
+        if ( ANSC_STATUS_FAILURE == WanMgr_RdkBus_GetParamValueFromAnyComp (dmQuery, ppp_ConnectionStatus))
+        {
+            CcspTraceError(("%s-%d: %s, Failed to get param value\n", __FUNCTION__, __LINE__, dmQuery));
+            return WAN_STATE_OBTAINING_IP_ADDRESSES;
+        }
+
+        if(!strcmp(ppp_ConnectionStatus, "Connected"))
+        {
+            p_VirtIf->PPP.IPCPStatusChanged = TRUE;
+            p_VirtIf->PPP.IPV6CPStatusChanged = TRUE;
+        }
+        else
+        {
+            p_VirtIf->PPP.IPCPStatus = WAN_IFACE_IPCP_STATUS_DOWN;
+            p_VirtIf->PPP.IPV6CPStatus = WAN_IFACE_IPV6CP_STATUS_DOWN;
+        }
+    }
 
     return WAN_STATE_OBTAINING_IP_ADDRESSES;
 }

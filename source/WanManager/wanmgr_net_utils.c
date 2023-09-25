@@ -130,14 +130,6 @@ static BOOL IsValidIpv4Address(const char *input);
 static BOOL IsZeroIpvxAddress(uint32_t ipvx, const char *addr);
 
 /***************************************************************************
- * @brief API used to check the incoming ipv address is a valid.
- * @param af indicates address family
- * @param address string contains ip address
- * @return TRUE if its a valid IP address else returned false.
- ****************************************************************************/
-static BOOL IsValidIpAddress(int32_t af, const char *address);
-
-/***************************************************************************
  * @brief API used to parse ipv6 prefix address
  * @param prefixAddr ipv6 prefix address
  * @param address string contains ip address
@@ -1701,48 +1693,21 @@ int WanManager_AddDefaultGatewayRoute(DEVICE_NETWORKING_MODE DeviceNwMode, const
     return ret;
 }
 
-static BOOL IsValidIpv4Address(const char* input)
+static BOOL IsValidIpv4Address(const char* ipAddress)
 {
-   BOOL ret = TRUE;
-   char *pToken = NULL;
-   char *pLast = NULL;
-   char buf[BUFLEN_32];
-   uint32_t i, num;
-
-   if (input == NULL || strlen(input) < 7 || strlen(input) > 15)
+    struct sockaddr_in sa;
+    if (inet_pton(AF_INET, ipAddress, &(sa.sin_addr)) != 1)
    {
       return FALSE;
    }
-
-   /* need to copy since strtok_r updates string */
-   memset(buf, '\0', BUFLEN_32);
-   strncpy(buf, input, sizeof(buf)-1);
-
-   /* IP address has the following format
-      xxx.xxx.xxx.xxx where x is decimal number */
-   pToken = strtok_r(buf, ".", &pLast);
-   num = strtoul(pToken, NULL, 10);
-   if (num > 255)
+    if (strcmp(ipAddress, "0.0.0.0") == 0)
    {
-      ret = FALSE;
+        return FALSE;
    }
-   else
-   {
-      for ( i = 0; i < 3; i++ )
-      {
-         pToken = strtok_r(NULL, ".", &pLast);
+    return TRUE;
 
-         num = strtoul(pToken, NULL, 10);
-         if (num > 255)
-         {
-            ret = FALSE;
-            break;
-         }
-      }
-   }
-
-   return ret;
 }
+
 
 static BOOL IsZeroIpvxAddress(uint32_t ipvx, const char *addr)
 {
@@ -1768,7 +1733,7 @@ static BOOL IsZeroIpvxAddress(uint32_t ipvx, const char *addr)
    return FALSE;
 }
 
-static BOOL IsValidIpAddress(int32_t af, const char* address)
+BOOL IsValidIpAddress(int32_t af, const char* address)
 {
    if ( IS_EMPTY_STRING(address) ) return FALSE;
    if (af == AF_INET6)
