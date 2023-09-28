@@ -954,3 +954,26 @@ ANSC_STATUS WanManager_ConfigurePPPSession(DML_VIRTUAL_IFACE* pVirtIf, BOOL PPPE
     return ANSC_STATUS_SUCCESS;
 }
 
+ANSC_STATUS WanMgr_GetSelectedIPMode(DML_VIRTUAL_IFACE * pVirtIf)
+{
+    char param_value[256] = {0};
+
+    if(pVirtIf->IP.ModeForceEnable == FALSE)
+    {
+        if(CCSP_SUCCESS == WanMgr_RdkBus_GetParamValuesFromDB("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.IPModeEnable",param_value,sizeof(param_value)))
+        {
+            if(strcmp(param_value, "1") == 0)
+            {
+                pVirtIf->IP.SelectedMode = pVirtIf->IP.PreferredMode;
+                CcspTraceInfo(("%s %d - Prefrred Mode set to Selected Mode \n", __FUNCTION__, __LINE__));
+            }
+        }
+        else
+        {
+            CcspTraceInfo(("%s %d - Failed to get IPModeEnable param from psm \n", __FUNCTION__, __LINE__));
+            return ANSC_STATUS_FAILURE;
+        }
+    }
+    CcspTraceInfo(("%s %d - IP SelectedMode=[%d] IP ModeForceEnable=[%d]\n", __FUNCTION__, __LINE__, pVirtIf->IP.SelectedMode, pVirtIf->IP.ModeForceEnable));
+    return ANSC_STATUS_SUCCESS;
+}

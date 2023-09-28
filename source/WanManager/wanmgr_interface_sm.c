@@ -49,6 +49,7 @@
 #endif
 
 #define POSTD_START_FILE "/tmp/.postd_started"
+#define SELECTED_MODE_TIMEOUT_SECONDS 10
 
 #if defined(FEATURE_IPOE_HEALTH_CHECK) && defined(IPOE_HEALTH_CHECK_LAN_SYNC_SUPPORT)
 extern lanState_t lanState;
@@ -407,6 +408,7 @@ static void WanMgr_MonitorDhcpApps (WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
     if ((p_VirtIf->IP.Mode == DML_WAN_IP_MODE_IPV4_ONLY || p_VirtIf->IP.Mode == DML_WAN_IP_MODE_DUAL_STACK) &&  // IP.Mode supports V4
         p_VirtIf->IP.IPv4Source == DML_WAN_IP_SOURCE_DHCP && (p_VirtIf->PPP.Enable == FALSE) &&                 // uses DHCP client
         p_VirtIf->MAP.MaptStatus == WAN_IFACE_MAPT_STATE_DOWN &&                                                // MAPT status is DOWN
+        p_VirtIf->IP.SelectedModeTimerStatus != RUNNING  &&
         p_VirtIf->IP.Dhcp4cPid > 0 &&                                                                           // dhcp started by ISM
         (WanMgr_IsPIDRunning(p_VirtIf->IP.Dhcp4cPid) != TRUE))                                                  // but DHCP client not running
     {
@@ -1503,6 +1505,8 @@ static eWanState_t wan_transition_start(WanMgr_IfaceSM_Controller_t* pWanIfaceCt
     WanManager_GetDateAndUptime( buffer, &uptime );
     LOG_CONSOLE("%s [tid=%ld] Wan_init_start:%d\n", buffer, syscall(SYS_gettid), uptime);
 
+    WanMgr_GetSelectedIPMode(p_VirtIf); //Get SelectedIPMode
+
     WanManager_PrintBootEvents (WAN_INIT_START);
 
     return WAN_STATE_VLAN_CONFIGURING;
@@ -1655,34 +1659,51 @@ static eWanState_t wan_transition_wan_validated(WanMgr_IfaceSM_Controller_t* pWa
     DML_WAN_IFACE* pInterface = pWanIfaceCtrl->pIfaceData;
     DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIfaceById(pInterface->VirtIfList, pWanIfaceCtrl->VirIfIdx);
 
-    if(p_VirtIf->IP.IPv4Source == DML_WAN_IP_SOURCE_DHCP || p_VirtIf->IP.IPv6Source == DML_WAN_IP_SOURCE_DHCP)
+    if((p_VirtIf->IP.IPv4Source == DML_WAN_IP_SOURCE_DHCP || p_VirtIf->IP.IPv6Source == DML_WAN_IP_SOURCE_DHCP) && (p_VirtIf->IP.SelectedModeTimerStatus != EXPIRED) )
     {
         /* Clear DHCP data */
         WanManager_ClearDHCPData(p_VirtIf);
     }
 
-    /* Start all interface with accept ra disbaled */
-    WanMgr_Configure_accept_ra(p_VirtIf, FALSE);
 
-    if (p_VirtIf->IP.IPv4Source == DML_WAN_IP_SOURCE_DHCP &&
-       (p_VirtIf->IP.Mode == DML_WAN_IP_MODE_DUAL_STACK || p_VirtIf->IP.Mode == DML_WAN_IP_MODE_IPV4_ONLY))
+
+    if(p_VirtIf->IP.SelectedMode == MAPT_MODE && p_VirtIf->IP.SelectedModeTimerStatus != EXPIRED)
     {
-        /* Start DHCPv4 client */
-        p_VirtIf->IP.Dhcp4cPid = WanManager_StartDhcpv4Client(p_VirtIf,pInterface->Name, pInterface->IfaceType);
-        CcspTraceInfo(("%s %d - Started dhcpc on interface %s, dhcpv4_pid %d \n", __FUNCTION__, __LINE__, p_VirtIf->Name, p_VirtIf->IP.Dhcp4cPid));
+        /* Start all interface with accept ra disbaled */
+        WanMgr_Configure_accept_ra(p_VirtIf, FALSE);
+        /* Start DHCPv6 Client */
+        p_VirtIf->IP.Dhcp6cPid = WanManager_StartDhcpv6Client(p_VirtIf, pInterface->IfaceType);
+        CcspTraceInfo(("%s %d - Started dhcpv6 client on interface %s, dhcpv6_pid %d \n", __FUNCTION__, __LINE__, p_VirtIf->Name, p_VirtIf->IP.Dhcp6cPid));
+        CcspTraceInfo(("%s %d - MAPT_MODE preferred \n", __FUNCTION__, __LINE__));
+        // clock start
+        p_VirtIf->IP.SelectedModeTimerStatus = RUNNING;
+        memset(&(p_VirtIf->IP.SelectedModeTimerStart), 0, sizeof(struct timespec));
+        clock_gettime(CLOCK_MONOTONIC_RAW, &(p_VirtIf->IP.SelectedModeTimerStart));
     }
+    else
+    {
+        if (p_VirtIf->IP.IPv4Source == DML_WAN_IP_SOURCE_DHCP &&
+            (p_VirtIf->IP.Mode == DML_WAN_IP_MODE_DUAL_STACK || p_VirtIf->IP.Mode == DML_WAN_IP_MODE_IPV4_ONLY))
+        {
+            /* Start DHCPv4 client */
+            p_VirtIf->IP.Dhcp4cPid = WanManager_StartDhcpv4Client(p_VirtIf,pInterface->Name, pInterface->IfaceType);
+            CcspTraceInfo(("%s %d - Started dhcpc on interface %s, dhcpv4_pid %d \n", __FUNCTION__, __LINE__, p_VirtIf->Name, p_VirtIf->IP.Dhcp4cPid));
+        }
 
-    if(p_VirtIf->IP.IPv6Source == DML_WAN_IP_SOURCE_DHCP &&
+        if(p_VirtIf->IP.IPv6Source == DML_WAN_IP_SOURCE_DHCP && (p_VirtIf->IP.Dhcp6cPid == 0) &&
             (p_VirtIf->IP.Mode == DML_WAN_IP_MODE_DUAL_STACK || p_VirtIf->IP.Mode == DML_WAN_IP_MODE_IPV6_ONLY)
 #if !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
             //TODO: Don't start ipv6 while validating primary for Comcast
             && p_VirtIf->IP.RestartV6Client ==FALSE
 #endif
-      )
-    {
-        /* Start DHCPv6 Client */
-        p_VirtIf->IP.Dhcp6cPid = WanManager_StartDhcpv6Client(p_VirtIf, pInterface->IfaceType);
-        CcspTraceInfo(("%s %d - Started dhcpv6 client on interface %s, dhcpv6_pid %d \n", __FUNCTION__, __LINE__, p_VirtIf->Name, p_VirtIf->IP.Dhcp6cPid));
+          )
+        {
+            /* Start all interface with accept ra disbaled */
+            WanMgr_Configure_accept_ra(p_VirtIf, FALSE);
+            /* Start DHCPv6 Client */
+            p_VirtIf->IP.Dhcp6cPid = WanManager_StartDhcpv6Client(p_VirtIf, pInterface->IfaceType);
+            CcspTraceInfo(("%s %d - Started dhcpv6 client on interface %s, dhcpv6_pid %d \n", __FUNCTION__, __LINE__, p_VirtIf->Name, p_VirtIf->IP.Dhcp6cPid));
+        }
     }
 
     if(strstr(pInterface->BaseInterface, "Cellular") != NULL)
@@ -2341,19 +2362,19 @@ static eWanState_t wan_transition_mapt_up(WanMgr_IfaceSM_Controller_t* pWanIface
     DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIfaceById(pInterface->VirtIfList, pWanIfaceCtrl->VirIfIdx);
 
 #if defined(FEATURE_MAPT)
-    /* Configure IPv6. */
-    ret = wan_setUpMapt();
-    if (ret != RETURN_OK)
+    // verify mapt configuration
+    memset(&(p_VirtIf->MAP.MaptConfig), 0, sizeof(WANMGR_MAPT_CONFIG_DATA));
+    if (WanManager_VerifyMAPTConfiguration(&(p_VirtIf->MAP.dhcp6cMAPTparameters), &(p_VirtIf->MAP.MaptConfig)) == ANSC_STATUS_FAILURE)
     {
-        CcspTraceError(("%s %d - Failed to configure MAP-T \n", __FUNCTION__, __LINE__));
-    }
-
-    if (WanManager_ProcessMAPTConfiguration(&(p_VirtIf->MAP.dhcp6cMAPTparameters), pInterface->Name, p_VirtIf->IP.Ipv6Data.ifname) != RETURN_OK)
-    {
-        CcspTraceError(("%s %d - Error processing MAP-T Parameters \n", __FUNCTION__, __LINE__));
+        CcspTraceError(("%s %d - Error verifying MAP-T Parameters \n", __FUNCTION__, __LINE__));
         CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION to State=%d \n", __FUNCTION__, __LINE__, pInterface->Name, p_VirtIf->eCurrentState));
         return(p_VirtIf->eCurrentState);
     }
+    else
+    {
+        CcspTraceInfo(("%s %d - MAPT Configuration verification success \n", __FUNCTION__, __LINE__));
+    }
+
 #endif
 
     p_VirtIf->MAP.MaptChanged = FALSE;
@@ -2364,10 +2385,24 @@ static eWanState_t wan_transition_mapt_up(WanMgr_IfaceSM_Controller_t* pWanIface
         wan_transition_ipv4_up(pWanIfaceCtrl);
     }
 
+#if defined(FEATURE_MAPT)
+    // configure mapt module
+    ret = wan_setUpMapt();
+    if (ret != RETURN_OK)
+    {
+        CcspTraceError(("%s %d - Failed to configure MAP-T \n", __FUNCTION__, __LINE__));
+    }
+#endif
+
     if (p_VirtIf->IP.Dhcp4cPid > 0)
     {
         /* Stops DHCPv4 client on this interface */
         WanManager_StopDhcpv4Client(p_VirtIf->Name, TRUE);
+
+        // Need to review during DHCP Manager integration.
+        CcspTraceInfo(("%s %d - sleep 2 seconds for dhcpv4 client to send release \n", __FUNCTION__, __LINE__));
+        sleep(2);
+
         p_VirtIf->IP.Dhcp4cPid = 0;
     }
 
@@ -2396,6 +2431,16 @@ static eWanState_t wan_transition_mapt_up(WanMgr_IfaceSM_Controller_t* pWanIface
     {
         WanManager_ConfigurePPPSession(p_VirtIf, FALSE);
     }
+
+#if defined(FEATURE_MAPT)
+    /* Configure MAPT. */
+    if (WanManager_ProcessMAPTConfiguration(&(p_VirtIf->MAP.dhcp6cMAPTparameters), &(p_VirtIf->MAP.MaptConfig), pInterface->Name, p_VirtIf->IP.Ipv6Data.ifname) != RETURN_OK)
+    {
+        CcspTraceError(("%s %d - Error processing MAP-T Parameters \n", __FUNCTION__, __LINE__));
+        CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION to State=%d \n", __FUNCTION__, __LINE__, pInterface->Name, p_VirtIf->eCurrentState));
+        return(p_VirtIf->eCurrentState);
+    }
+#endif
 
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, NULL, 0);
 
@@ -2441,7 +2486,13 @@ static eWanState_t wan_transition_mapt_down(WanMgr_IfaceSM_Controller_t* pWanIfa
         p_VirtIf->IP.pIpcIpv4Data = NULL;
     }
 
-    if(pInterface->BaseInterfaceStatus ==  WAN_IFACE_PHY_STATUS_UP)
+    if (pWanIfaceCtrl->WanEnable == TRUE &&
+        pInterface->Selection.Enable == TRUE &&
+        pInterface->Selection.Status == WAN_IFACE_ACTIVE &&
+        p_VirtIf->Enable == TRUE &&
+        p_VirtIf->Reset == FALSE &&
+        p_VirtIf->VLAN.Reset == FALSE &&
+        pInterface->BaseInterfaceStatus ==  WAN_IFACE_PHY_STATUS_UP)
     {
         if( p_VirtIf->PPP.Enable == FALSE )
         {
@@ -2492,6 +2543,9 @@ static eWanState_t wan_transition_exit(WanMgr_IfaceSM_Controller_t* pWanIfaceCtr
         CcspTraceInfo(("%s %d clear VIRIF_NAME \n", __FUNCTION__, __LINE__));
     }
 #endif
+
+    p_VirtIf->IP.SelectedModeTimerStatus = NOTSTARTED; // Reset Timer
+
     p_VirtIf->Interface_SM_Running = FALSE;
     
     return WAN_STATE_EXIT;
@@ -2776,6 +2830,28 @@ static eWanState_t wan_state_obtaining_ip_addresses(WanMgr_IfaceSM_Controller_t*
         CcspTraceInfo(("%s %d VlanDiscovery timer expired Or VLAN/PPP status DOWN \n", __FUNCTION__, __LINE__));
         p_VirtIf->VLAN.Expired = TRUE;
         return wan_transition_physical_interface_down(pWanIfaceCtrl);
+    }
+
+    if(p_VirtIf->IP.SelectedMode == MAPT_MODE)
+    {
+        if(p_VirtIf->MAP.MaptStatus == WAN_IFACE_MAPT_STATE_UP)
+        {
+            p_VirtIf->IP.SelectedModeTimerStatus = COMPLETE;
+            CcspTraceInfo(("%s %d MAPT option recieved in MAPT Preferred Mode - Timer complete \n", __FUNCTION__, __LINE__));
+        }
+        else
+        {
+            if(p_VirtIf->IP.SelectedModeTimerStatus == RUNNING)
+            {
+                if (difftime(CurrentTime.tv_sec, p_VirtIf->IP.SelectedModeTimerStart.tv_sec) > SELECTED_MODE_TIMEOUT_SECONDS)
+                {
+                    p_VirtIf->IP.SelectedModeTimerStatus = EXPIRED;
+                    CcspTraceInfo(("%s %d MAPT option not recieved in MAPT Preferred Mode - Timer Expired \n", __FUNCTION__, __LINE__));
+                    return wan_transition_wan_validated(pWanIfaceCtrl);
+                }
+                return WAN_STATE_OBTAINING_IP_ADDRESSES;
+            }
+        }
     }
 
     // Ip source changed changed to TRUE
@@ -3232,6 +3308,7 @@ static eWanState_t wan_state_ipv6_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
     if(p_VirtIf->IP.RefreshDHCP == TRUE && 
       p_VirtIf->IP.IPv4Source == DML_WAN_IP_SOURCE_DHCP &&
       p_VirtIf->IP.Mode == DML_WAN_IP_MODE_DUAL_STACK &&
+      p_VirtIf->IP.SelectedModeTimerStatus != COMPLETE &&
       p_VirtIf->IP.Dhcp4cPid <= 0)
     {
         p_VirtIf->IP.Dhcp4cPid = WanManager_StartDhcpv4Client(p_VirtIf, pInterface->Name, pInterface->IfaceType);
@@ -3708,14 +3785,23 @@ static eWanState_t wan_state_mapt_active(WanMgr_IfaceSM_Controller_t* pWanIfaceC
 
             if (wan_setUpMapt() == RETURN_OK)
             {
-                if (WanManager_ProcessMAPTConfiguration(&(p_VirtIf->MAP.dhcp6cMAPTparameters), pInterface->Name, p_VirtIf->IP.Ipv6Data.ifname) == RETURN_OK)
+                memset(&(p_VirtIf->MAP.MaptConfig), 0, sizeof(WANMGR_MAPT_CONFIG_DATA));
+                if (WanManager_VerifyMAPTConfiguration(&(p_VirtIf->MAP.dhcp6cMAPTparameters), &(p_VirtIf->MAP.MaptConfig)) == ANSC_STATUS_SUCCESS)
                 {
-                    p_VirtIf->MAP.MaptChanged = FALSE;
-                    CcspTraceInfo(("%s %d - Successfully updated MAP-T configure Changes for %s Interface \n", __FUNCTION__, __LINE__, p_VirtIf->Name));
+                    CcspTraceInfo(("%s %d - MAPT Configuration verification success \n", __FUNCTION__, __LINE__));
+                    if (WanManager_ProcessMAPTConfiguration(&(p_VirtIf->MAP.dhcp6cMAPTparameters), &(p_VirtIf->MAP.MaptConfig), pInterface->Name, p_VirtIf->IP.Ipv6Data.ifname) == RETURN_OK)
+                    {
+                        p_VirtIf->MAP.MaptChanged = FALSE;
+                        CcspTraceInfo(("%s %d - Successfully updated MAP-T configure Changes for %s Interface \n", __FUNCTION__, __LINE__, p_VirtIf->Name));
+                    }
+                    else
+                    {
+                        CcspTraceError(("%s %d - Failed to configure MAP-T for %s Interface \n", __FUNCTION__, __LINE__, p_VirtIf->Name));
+                    }
                 }
                 else
                 {
-                    CcspTraceError(("%s %d - Failed to configure MAP-T for %s Interface \n", __FUNCTION__, __LINE__, p_VirtIf->Name));
+                    CcspTraceError(("%s %d - Failed to verify and configure MAP-T for %s Interface \n", __FUNCTION__, __LINE__, p_VirtIf->Name));
                 }
             }
             else

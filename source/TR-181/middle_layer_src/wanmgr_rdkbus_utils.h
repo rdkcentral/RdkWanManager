@@ -198,4 +198,12 @@ ANSC_STATUS WanMgr_RdkBusDeleteVlanLink(DML_WAN_IFACE* pInterface );
 int WanMgr_SetMAPTEnableToPSM(DML_VIRTUAL_IFACE* pVirtIf, BOOL Enable);
 #endif
 
+/**************************************************************************************
+ * @brief Select the IP mode.
+ * The function should select the IP Mode based.
+ * @param Interface data structure
+ * @return ANSC_STATUS_SUCCESS upon success else ANSC_STATUS_FAILURE
+ **************************************************************************************/
+ANSC_STATUS WanMgr_GetSelectedIPMode(DML_VIRTUAL_IFACE * pVirtIf);
+
 #endif /* _WANMGR_RDKBUS_UTILS_H_ */
