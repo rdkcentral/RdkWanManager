@@ -2243,7 +2243,7 @@ static eWanState_t wan_transition_mapt_up(WanMgr_IfaceSM_Controller_t* pWanIface
     ret = wan_setUpMapt();
     if (ret != RETURN_OK)
     {
-        CcspTraceError(("%s %d - Failed to configure MAP-T successfully \n", __FUNCTION__, __LINE__));
+        CcspTraceError(("%s %d - Failed to configure MAP-T \n", __FUNCTION__, __LINE__));
     }
 
     if (WanManager_ProcessMAPTConfiguration(&(p_VirtIf->MAP.dhcp6cMAPTparameters), pInterface->Name, p_VirtIf->IP.Ipv6Data.ifname) != RETURN_OK)
