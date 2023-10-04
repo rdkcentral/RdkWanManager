@@ -541,6 +541,7 @@ uint32_t WanManager_StartDhcpv6Client(DML_VIRTUAL_IFACE* pVirtIf, IFACE_TYPE Ifa
 
     CcspTraceInfo(("Enter WanManager_StartDhcpv6Client for  %s \n", pVirtIf->Name));
     pid = start_dhcpv6_client(&params);
+    pVirtIf->IP.Dhcp6cPid = pid;
 
     return pid;
 }
@@ -603,7 +604,7 @@ uint32_t WanManager_StartDhcpv4Client(DML_VIRTUAL_IFACE* pVirtIf, char* baseInte
 
     CcspTraceInfo(("Starting DHCPv4 Client for iface: %s \n", params.ifname));
     pid = start_dhcpv4_client(&params);
-
+    pVirtIf->IP.Dhcp4cPid = pid;
     return pid;
 }
 

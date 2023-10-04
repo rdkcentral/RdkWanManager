@@ -696,6 +696,22 @@ void WanManager_DoSystemAction(const char *from, char *cmd)
     }
 }
 
+/***************************************************************************
+ * @brief Utility function used to check a process is running using PID
+ * @param pid PID of the process to be checked
+ * @return TRUE upon success else FALSE returned
+ ***************************************************************************/
+BOOL WanMgr_IsPIDRunning(UINT pid)
+{
+    /* If sig is 0 (the null signal), error checking is performed but no signal is actually sent. 
+       The null signal can be used to check the validity of pid. */
+    if(kill(pid, 0) == -1 && errno == ESRCH)
+    {
+        CcspTraceInfo(("%s %d - pid %d not running\n", __FUNCTION__, __LINE__, pid));
+        return FALSE;
+    }
+    return TRUE;
+}
 
 BOOL WanManager_IsApplicationRunning(const char *appName, const char * args)
 {
