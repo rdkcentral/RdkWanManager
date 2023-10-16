@@ -296,6 +296,46 @@ ANSC_STATUS wanmgr_sysevents_ipv4Info_init(const char *wanIfName, DEVICE_NETWORK
     return wanmgr_set_Ipv4Sysevent(&ipv4Data, DeviceNwMode);
 }
 
+void  wanmgr_setWanLedState(eWanState_t state)
+{
+    if (sysevent_fd == -1)      return;
+    bool ipv4_state = false;
+    bool ipv6_state = false;
+    bool mapt_state = false;
+    bool valid_state = true;
+    char buff[128] = {0};
+    switch (state)
+    {
+        case WAN_STATE_DUAL_STACK_ACTIVE:
+            ipv4_state = true;
+            ipv6_state = true;
+            break;
+        case WAN_STATE_IPV6_LEASED:
+            ipv6_state = true;
+            break;
+        case WAN_STATE_IPV4_LEASED:
+            ipv4_state = true;
+            break;
+        case WAN_STATE_MAPT_ACTIVE:
+            ipv6_state = true;
+            mapt_state = true;
+            break;
+        case WAN_STATE_OBTAINING_IP_ADDRESSES:
+        case WAN_STATE_EXIT:
+            break;
+        default:
+            // handle wan states related to IPv4/IPv6/MAPT UP/DOWN
+            valid_state = false;
+    }
+
+    if (valid_state == false)
+        return;
+
+    memset (buff, 0, sizeof(buff));
+    snprintf(buff, sizeof(buff) - 1, "ipv4_state:%s,ipv6_state:%s,mapt_state:%s", ipv4_state?"up":"down", ipv6_state?"up":"down", mapt_state?"up":"down");
+    CcspTraceInfo(("%s %d: Setting %s state to %s\n", __FUNCTION__, __LINE__, SYSEVENT_WAN_LED_STATE, buff));
+    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_WAN_LED_STATE, buff, 0);
+}
 
 void wanmgr_sysevents_setWanState(const char * LedState)
 {

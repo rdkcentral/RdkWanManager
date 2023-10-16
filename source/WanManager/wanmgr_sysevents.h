@@ -31,6 +31,7 @@
 
 //Led sysevent
 #define SYSEVENT_LED_STATE "led_event"
+#define SYSEVENT_WAN_LED_STATE "rdkb_wan_status"
 
 #define WAN_LINK_DOWN_STATE            "rdkb_wan_link_down"
 #define WAN_LINK_UP_STATE              "rdkb_wan_link_up"
@@ -294,5 +295,7 @@ int Force_IPv6_toggle (char* wanInterface);
 */
 void wanmgr_get_wan_interface(char *wanInterface);
 #endif
+
+void  wanmgr_setWanLedState(eWanState_t state);
 
 #endif //_WANMGR_SYSEVENTS_H_

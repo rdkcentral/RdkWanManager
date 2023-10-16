@@ -268,10 +268,12 @@ ANSC_STATUS UpdateLedStatus (WanMgr_FailOver_Controller_t* pFailOverController)
                 {
                     DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
                     /* Active Interface State Machine is running, Update the Wan/IP connection status of the interface to LED*/
+                    // Group selected and State machine is running, so update v4/v6/map_t status accordingly
                     if(pWanIfaceData->VirtIfList->eCurrentState != WAN_STATE_EXIT && pWanIfaceData->VirtIfList->eCurrentState != pFailOverController->ActiveIfaceState)
                     {
                         /* Update Only when state changed */
                         CcspTraceInfo(("%s %d Updating LED status of Selected Interface (%s) BaseInterface (%s) \n", __FUNCTION__, __LINE__,pWanIfaceData->DisplayName, pWanIfaceData->BaseInterface));
+                        wanmgr_setWanLedState(pWanIfaceData->VirtIfList->eCurrentState);
                         switch(pWanIfaceData->VirtIfList->eCurrentState)
                         {
                             case WAN_STATE_DUAL_STACK_ACTIVE:
@@ -314,7 +316,7 @@ ANSC_STATUS UpdateLedStatus (WanMgr_FailOver_Controller_t* pFailOverController)
                     else if(pWanIfaceData->VirtIfList->eCurrentState == WAN_STATE_EXIT && pWanIfaceData->BaseInterfaceStatus != pFailOverController->PhyState)
                     {
                         CcspTraceInfo(("%s %d Updating LED status of Selected Interface (%s) BaseInterface (%s)\n", __FUNCTION__, __LINE__,pWanIfaceData->DisplayName, pWanIfaceData->BaseInterface));
-
+                        wanmgr_setWanLedState(pWanIfaceData->VirtIfList->eCurrentState);
                         if(pWanIfaceData->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_UP)
                         {
                             wanmgr_sysevents_setWanState(WAN_LINK_UP_STATE);
@@ -341,7 +343,7 @@ ANSC_STATUS UpdateLedStatus (WanMgr_FailOver_Controller_t* pFailOverController)
         DML_WAN_IFACE_PHY_STATUS BaseInterfaceStatus = WAN_IFACE_PHY_STATUS_DOWN;
         UINT uiTotalIfaces = 0;
         UINT uiLoopCount   = 0;
-
+      
         //Get uiTotalIfaces
         uiTotalIfaces = WanMgr_IfaceData_GetTotalWanIface();
 
@@ -569,7 +571,6 @@ static WcFailOverState_t Transition_ResetScan (WanMgr_FailOver_Controller_t * pF
     pFailOverController->ResetScan = false;
 
     //Update LED
-    CcspTraceInfo(("%s %d Updating LED status (Ipv4/ipv6/mapt down) \n", __FUNCTION__, __LINE__));
 #ifdef FEATURE_MAPT
     wanmgr_sysevents_setWanState(WAN_MAPT_DOWN);
 #endif
