@@ -1047,11 +1047,6 @@ int WanManager_ProcessMAPTConfiguration(ipc_mapt_data_t *dhcp6cMAPTMsgBody, cons
     char cmdInterfaceMTU2[BUFLEN_512];
     char cmdInterfaceMTU3[BUFLEN_512];
 
-    if(get_V6_defgateway_wan_interface(defaultGatewayV6) == RETURN_ERR)
-    {
-        return RETURN_ERR;
-    }
-
     snprintf(cmdinterfaceCreate , sizeof(cmdinterfaceCreate), "echo add %s > /proc/net/nat46/control", MAP_INTERFACE);
     if ((ret = WanManager_DoSystemActionWithStatus("map_nat46", cmdinterfaceCreate)) < RETURN_OK)
     {
@@ -1072,6 +1067,25 @@ int WanManager_ProcessMAPTConfiguration(ipc_mapt_data_t *dhcp6cMAPTMsgBody, cons
     {
         CcspTraceError(("Failed to run: %s:%d", cmdInterfaceUp, ret));
         return ret;
+    }
+
+    int defGatewayCheckMaxRetry = 20; // 5 seconds
+    while(defGatewayCheckMaxRetry > 0)
+    {
+        defGatewayCheckMaxRetry--;
+        if(get_V6_defgateway_wan_interface(defaultGatewayV6) == RETURN_OK)
+        {
+            break;
+        }
+        if(defGatewayCheckMaxRetry == 0)
+        {
+            CcspTraceInfo(("%s %d :: Default gateway route is missing, so can't configure MAP-T (5 seonds wait timed out)\n", __FUNCTION__, __LINE__));
+            return RETURN_ERR;
+        }
+        else
+        {
+            usleep(250000); // 250 milliseconds
+        }
     }
 
     snprintf(cmdInterfaceDefaultRoDel , sizeof(cmdInterfaceDefaultRoDel), "ip route del default");
