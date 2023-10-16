@@ -28,7 +28,7 @@
 #include "wanmgr_rdkbus_apis.h"
 
 /* ---- Global Constants -------------------------- */
-#define SELECTION_PROCESS_LOOP_TIMEOUT 50000 // timeout in milliseconds. This is the state machine loop interval
+#define SELECTION_PROCESS_LOOP_TIMEOUT 250000 // timeout in microseconds. This is the state machine loop interval
 
 extern WANMGR_DATA_ST gWanMgrDataBase;
 
@@ -1403,7 +1403,7 @@ void WanMgr_AutoWanSelectionProcess (void* arg)
 
     while (bRunning)
     {
-        /* Wait up to 500 milliseconds */
+        /* Wait up to 250 milliseconds */
         loopTimer.tv_sec = 0;
         loopTimer.tv_usec = SELECTION_PROCESS_LOOP_TIMEOUT;
 

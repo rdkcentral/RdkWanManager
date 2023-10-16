@@ -32,7 +32,7 @@
 #define ETH_PHY_PATH_DM             "Device.Ethernet.X_RDK_Interface.%d"
 
 /* ---- Global Constants -------------------------- */
-#define SELECTION_PROCESS_LOOP_TIMEOUT 250000 // timeout in milliseconds. This is the state machine loop interval
+#define SELECTION_PROCESS_LOOP_TIMEOUT 250000 // timeout in microseconds. This is the state machine loop interval
 #define MAX_PRIORITY_VALUE 255
 
 extern ANSC_HANDLE bus_handle;
@@ -1044,7 +1044,7 @@ void WanMgr_ParallelScanSelectionProcess (void* arg)
 
     while (bRunning)
     {
-        /* Wait up to 500 milliseconds */
+        /* Wait up to 250 milliseconds */
         tv.tv_sec = 0;
         tv.tv_usec = SELECTION_PROCESS_LOOP_TIMEOUT;
 

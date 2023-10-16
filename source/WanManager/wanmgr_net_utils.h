@@ -144,6 +144,13 @@ BOOL WanManager_IsApplicationRunning(const char *appName, const char * args);
  ***************************************************************************/
 int WanManager_Ipv6AddrUtil(char *ifname,Ipv6OperType opr,int preflft,int vallft);
 
+/***************************************************************************
+ * @brief Utility function used to check a process is running using PID
+ * @param pid PID of the process to be checked
+ * @return TRUE upon success else FALSE returned
+ ***************************************************************************/
+BOOL WanMgr_IsPIDRunning(UINT pid);
+
 #if defined(FEATURE_464XLAT)
 int xlat_configure(char *interface, char *xlat_address);
 int xlat_reconfigure(void);

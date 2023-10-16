@@ -35,7 +35,7 @@
 #include "wanmgr_dhcpv6_apis.h"
 #include "secure_wrapper.h"
 
-#define LOOP_TIMEOUT 50000 // timeout in milliseconds. This is the state machine loop interval
+#define LOOP_TIMEOUT 50000 // timeout in microseconds. This is the state machine loop interval
 #define RESOLV_CONF_FILE "/etc/resolv.conf"
 #define LOOPBACK "127.0.0.1"
 #ifdef FEATURE_IPOE_HEALTH_CHECK
@@ -407,7 +407,8 @@ static void WanMgr_MonitorDhcpApps (WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
     if ((p_VirtIf->IP.Mode == DML_WAN_IP_MODE_IPV4_ONLY || p_VirtIf->IP.Mode == DML_WAN_IP_MODE_DUAL_STACK) &&  // IP.Mode supports V4
         p_VirtIf->IP.IPv4Source == DML_WAN_IP_SOURCE_DHCP && (p_VirtIf->PPP.Enable == FALSE) &&                 // uses DHCP client
         p_VirtIf->MAP.MaptStatus == WAN_IFACE_MAPT_STATE_DOWN &&                                                // MAPT status is DOWN
-        (WanManager_IsApplicationRunning(DHCPV4_CLIENT_NAME, p_VirtIf->Name) != TRUE))                          // but DHCP client not running
+        p_VirtIf->IP.Dhcp4cPid > 0 &&                                                                           // dhcp started by ISM
+        (WanMgr_IsPIDRunning(p_VirtIf->IP.Dhcp4cPid) != TRUE))                                                  // but DHCP client not running
     {
         p_VirtIf->IP.Dhcp4cPid = WanManager_StartDhcpv4Client(p_VirtIf, pInterface->Name, pInterface->IfaceType);
         CcspTraceInfo(("%s %d - SELFHEAL - Started dhcpc on interface %s, dhcpv4_pid %d \n", __FUNCTION__, __LINE__, p_VirtIf->Name, p_VirtIf->IP.Dhcp4cPid));
@@ -416,7 +417,8 @@ static void WanMgr_MonitorDhcpApps (WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
     //Check if IPv6 dhcp client is still running - handling runtime crash of dhcp client
     if ((p_VirtIf->IP.Mode == DML_WAN_IP_MODE_IPV6_ONLY || p_VirtIf->IP.Mode == DML_WAN_IP_MODE_DUAL_STACK) &&  // IP.Mode supports V6
         p_VirtIf->IP.IPv6Source == DML_WAN_IP_SOURCE_DHCP &&                                                    // uses DHCP client
-        (WanManager_IsApplicationRunning(DHCPV6_CLIENT_NAME, p_VirtIf->Name) != TRUE))                          // but DHCP client not running
+        p_VirtIf->IP.Dhcp6cPid > 0 &&                                                                           // dhcp started by ISM
+        (WanMgr_IsPIDRunning(p_VirtIf->IP.Dhcp6cPid) != TRUE))                                                  // but DHCP client not running
     {
         p_VirtIf->IP.Dhcp6cPid = WanManager_StartDhcpv6Client(p_VirtIf, pInterface->IfaceType);
         CcspTraceInfo(("%s %d - SELFHEAL - Started dhcp6c on interface %s, dhcpv6_pid %d \n", __FUNCTION__, __LINE__, p_VirtIf->Name, p_VirtIf->IP.Dhcp6cPid));
@@ -3796,7 +3798,7 @@ static void* WanMgr_InterfaceSMThread( void *arg )
     {
         pWanIfaceCtrl->pIfaceData = NULL;
 
-        /* Wait up to 500 milliseconds */
+        /* Wait up to 50 milliseconds */
         tv.tv_sec = 0;
         tv.tv_usec = LOOP_TIMEOUT;
 

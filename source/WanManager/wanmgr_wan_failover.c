@@ -809,7 +809,7 @@ ANSC_STATUS WanMgr_FailOverThread (void)
 
     while (bRunning)
     {
-        /* Wait up to 500 milliseconds */
+        /* Wait up to 300 milliseconds */
         loopTimer.tv_sec = 0;
         loopTimer.tv_usec = FAILOVER_SM_LOOP_TIMEOUT;
 
