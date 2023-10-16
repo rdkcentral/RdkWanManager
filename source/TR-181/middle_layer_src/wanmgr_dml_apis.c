@@ -247,13 +247,12 @@ LONG WanManager_GetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, ch
     if (strcmp(ParamName, "Data") == 0)
     {
         /* Data value should be empty for all get */
-        snprintf(pValue, pulSize, "%s", "");
+        snprintf(pValue, *pulSize, "%s", "");
         ret = 0;
     }
-
-    if (strcmp(ParamName, "Version") == 0)
+    else if (strcmp(ParamName, "Version") == 0)
     {
-        snprintf(pValue, pulSize, "%s", WAN_MANAGER_VERSION);
+        snprintf(pValue, *pulSize, "%s", WAN_MANAGER_VERSION);
         ret = 0;
     }
 
