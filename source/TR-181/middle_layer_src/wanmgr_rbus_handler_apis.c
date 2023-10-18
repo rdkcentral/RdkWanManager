@@ -35,7 +35,6 @@ static rbusHandle_t rbusHandle;
 char componentName[32] = "WANMANAGER";
 
 BOOL wan_ready_to_go = false;
-unsigned int gSubscribersCount = 0;
 UINT  uiTotalIfaces = 0;
 
 rbusError_t WanMgr_Rbus_SubscribeHandler(rbusHandle_t handle, rbusEventSubAction_t action, const char *eventName, rbusFilter_t filter, int32_t interval, bool *autoPublish);
@@ -61,34 +60,26 @@ typedef struct
 
  ***********************************************************************/
 rbusDataElement_t wanMgrRbusDataElements[NUM_OF_RBUS_PARAMS] = {
-    {WANMGR_CONFIG_WAN_CURRENTACTIVEINTERFACE,  RBUS_ELEMENT_TYPE_EVENT | RBUS_ELEMENT_TYPE_PROPERTY, {WanMgr_Rbus_getHandler, NULL, NULL, NULL, WanMgr_Rbus_SubscribeHandler, NULL}},
-    {WANMGR_CONFIG_WAN_CURRENTSTANDBYINTERFACE, RBUS_ELEMENT_TYPE_EVENT | RBUS_ELEMENT_TYPE_PROPERTY, {WanMgr_Rbus_getHandler, NULL, NULL, NULL, WanMgr_Rbus_SubscribeHandler, NULL}},
-    {WANMGR_CONFIG_WAN_INTERFACEAVAILABLESTATUS,RBUS_ELEMENT_TYPE_EVENT | RBUS_ELEMENT_TYPE_PROPERTY, {WanMgr_Rbus_getHandler, NULL, NULL, NULL, WanMgr_Rbus_SubscribeHandler, NULL}},
-    {WANMGR_CONFIG_WAN_INTERFACEACTIVESTATUS,   RBUS_ELEMENT_TYPE_EVENT | RBUS_ELEMENT_TYPE_PROPERTY, {WanMgr_Rbus_getHandler, NULL, NULL, NULL, WanMgr_Rbus_SubscribeHandler, NULL}},
+    {WANMGR_CONFIG_WAN_CURRENTACTIVEINTERFACE,  RBUS_ELEMENT_TYPE_PROPERTY, {WanMgr_Rbus_getHandler, NULL, NULL, NULL, WanMgr_Rbus_SubscribeHandler, NULL}},
+    {WANMGR_CONFIG_WAN_CURRENTSTANDBYINTERFACE, RBUS_ELEMENT_TYPE_PROPERTY, {WanMgr_Rbus_getHandler, NULL, NULL, NULL, WanMgr_Rbus_SubscribeHandler, NULL}},
+    {WANMGR_CONFIG_WAN_INTERFACEAVAILABLESTATUS,RBUS_ELEMENT_TYPE_PROPERTY, {WanMgr_Rbus_getHandler, NULL, NULL, NULL, WanMgr_Rbus_SubscribeHandler, NULL}},
+    {WANMGR_CONFIG_WAN_INTERFACEACTIVESTATUS,    RBUS_ELEMENT_TYPE_PROPERTY, {WanMgr_Rbus_getHandler, NULL, NULL, NULL, WanMgr_Rbus_SubscribeHandler, NULL}},
 };
 
 rbusDataElement_t wanMgrIfacePublishElements[] = {
     {WANMGR_INFACE, RBUS_ELEMENT_TYPE_TABLE, {NULL, NULL, NULL, NULL, NULL, NULL}},
-    {WANMGR_INFACE_WAN_ENABLE, RBUS_ELEMENT_TYPE_EVENT | RBUS_ELEMENT_TYPE_PROPERTY,
-    {WanMgr_Interface_GetHandler, WanMgr_Interface_SetHandler, NULL, NULL, wanMgrDmlPublishEventHandler, NULL}},
-    {WANMGR_INFACE_ALIASNAME, RBUS_ELEMENT_TYPE_EVENT | RBUS_ELEMENT_TYPE_PROPERTY,
-    {WanMgr_Interface_GetHandler, WanMgr_Interface_SetHandler, NULL, NULL, wanMgrDmlPublishEventHandler, NULL}},
-    {WANMGR_INFACE_PHY_STATUS, RBUS_ELEMENT_TYPE_EVENT | RBUS_ELEMENT_TYPE_PROPERTY,
-    {WanMgr_Interface_GetHandler, WanMgr_Interface_SetHandler, NULL, NULL, wanMgrDmlPublishEventHandler, NULL}},
+    {WANMGR_INFACE_WAN_ENABLE,  RBUS_ELEMENT_TYPE_PROPERTY, {WanMgr_Interface_GetHandler, WanMgr_Interface_SetHandler, NULL, NULL, wanMgrDmlPublishEventHandler, NULL}},
+    {WANMGR_INFACE_ALIASNAME, RBUS_ELEMENT_TYPE_PROPERTY, {WanMgr_Interface_GetHandler, WanMgr_Interface_SetHandler, NULL, NULL, wanMgrDmlPublishEventHandler, NULL}},
+    {WANMGR_INFACE_PHY_STATUS, RBUS_ELEMENT_TYPE_PROPERTY,{WanMgr_Interface_GetHandler, WanMgr_Interface_SetHandler, NULL, NULL, wanMgrDmlPublishEventHandler, NULL}},
 #if defined(WAN_MANAGER_UNIFICATION_ENABLED)
     {WANMGR_VIRTUAL_INFACE, RBUS_ELEMENT_TYPE_TABLE, {NULL, NULL, NULL, NULL, NULL, NULL}},
     {WANMGR_V1_INFACE, RBUS_ELEMENT_TYPE_TABLE, {NULL, NULL, NULL, NULL, NULL, NULL}},
-    {WANMGR_V1_INFACE_PHY_STATUS, RBUS_ELEMENT_TYPE_EVENT | RBUS_ELEMENT_TYPE_PROPERTY,
-    {WanMgr_Interface_GetHandler, NULL, NULL, NULL, wanMgrDmlPublishEventHandler, NULL}},
-    {WANMGR_V1_INFACE_WAN_STATUS, RBUS_ELEMENT_TYPE_EVENT | RBUS_ELEMENT_TYPE_PROPERTY,
-    {WanMgr_Interface_GetHandler, NULL, NULL, NULL, wanMgrDmlPublishEventHandler, NULL}},
-    {WANMGR_V1_INFACE_WAN_LINKSTATUS, RBUS_ELEMENT_TYPE_EVENT | RBUS_ELEMENT_TYPE_PROPERTY,
-    {WanMgr_Interface_GetHandler, NULL, NULL, NULL, wanMgrDmlPublishEventHandler, NULL}},
+    {WANMGR_V1_INFACE_PHY_STATUS, RBUS_ELEMENT_TYPE_PROPERTY, {WanMgr_Interface_GetHandler, NULL, NULL, NULL, wanMgrDmlPublishEventHandler, NULL}},
+    {WANMGR_V1_INFACE_WAN_STATUS, RBUS_ELEMENT_TYPE_PROPERTY, {WanMgr_Interface_GetHandler, NULL, NULL, NULL, wanMgrDmlPublishEventHandler, NULL}},
+    {WANMGR_V1_INFACE_WAN_LINKSTATUS, RBUS_ELEMENT_TYPE_PROPERTY, {WanMgr_Interface_GetHandler, NULL, NULL, NULL, wanMgrDmlPublishEventHandler, NULL}},
 #endif /** WAN_MANAGER_UNIFICATION_ENABLED */
-    {WANMGR_INFACE_WAN_STATUS, RBUS_ELEMENT_TYPE_EVENT | RBUS_ELEMENT_TYPE_PROPERTY,
-    {WanMgr_Interface_GetHandler, WanMgr_Interface_SetHandler, NULL, NULL, wanMgrDmlPublishEventHandler, NULL}},
-    {WANMGR_INFACE_WAN_LINKSTATUS, RBUS_ELEMENT_TYPE_EVENT | RBUS_ELEMENT_TYPE_PROPERTY,
-    {WanMgr_Interface_GetHandler, WanMgr_Interface_SetHandler, NULL, NULL, wanMgrDmlPublishEventHandler, NULL}},
+    {WANMGR_INFACE_WAN_STATUS, RBUS_ELEMENT_TYPE_PROPERTY, {WanMgr_Interface_GetHandler, WanMgr_Interface_SetHandler, NULL, NULL, wanMgrDmlPublishEventHandler, NULL}},
+    {WANMGR_INFACE_WAN_LINKSTATUS, RBUS_ELEMENT_TYPE_PROPERTY, {WanMgr_Interface_GetHandler, WanMgr_Interface_SetHandler, NULL, NULL, wanMgrDmlPublishEventHandler, NULL}},
 };
 
 RemoteDM_list RemoteDMs[] = {
@@ -1348,25 +1339,13 @@ rbusError_t WanMgr_Rbus_SubscribeHandler(rbusHandle_t handle, rbusEventSubAction
 
     CcspTraceWarning(("WanMgr_Rbus_SubscribeHandler called.\n"));
 
-    if ((strcmp(eventName, WANMGR_CONFIG_WAN_CURRENTACTIVEINTERFACE) == 0) ||
-        (strcmp(eventName, WANMGR_CONFIG_WAN_CURRENTSTANDBYINTERFACE) == 0))
+    if (action == RBUS_EVENT_ACTION_SUBSCRIBE)
     {
-        if (action == RBUS_EVENT_ACTION_SUBSCRIBE)
-        {
-            gSubscribersCount += 1;
-        }
-        else
-        {
-            if (gSubscribersCount > 0)
-            {
-                gSubscribersCount -= 1;
-            }
-        }
-        CcspTraceWarning(("Subscribers count changed, new value=%d\n", gSubscribersCount));
+        CcspTraceInfo((" %s %d - %s Subscribed \n", __FUNCTION__, __LINE__, eventName));
     }
     else
     {
-        CcspTraceWarning(("provider: eventSubHandler unexpected eventName %s\n", eventName));
+        CcspTraceInfo((" %s %d - %s Unsubscribed \n", __FUNCTION__, __LINE__, eventName));
     }
     return RBUS_ERROR_SUCCESS;
 }
