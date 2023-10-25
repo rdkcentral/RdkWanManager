@@ -613,6 +613,15 @@ static WcAwPolicyState_t Transition_TryingNextInterface (WanMgr_Policy_Controlle
 
     if (pWanController->activeInterfaceIdx == -1)
     {
+        WANMGR_IFACE_GROUP* pWanIfaceGroup = WanMgr_GetIfaceGroup_locked((pWanController->GroupInst - 1));
+        if (pWanIfaceGroup != NULL)
+        {
+            //All interfaces are scanned atleast once. set InitialScanComplete to TRUE
+            pWanIfaceGroup->InitialScanComplete = TRUE;
+            CcspTraceInfo(("%s %d  group(%d) Initial Scan Completed\n", __FUNCTION__, __LINE__, pWanController->GroupInst));
+            WanMgrDml_GetIfaceGroup_release();
+        }
+
         WanMgr_ResetIfaceTable(pWanController);
     }
 
@@ -984,15 +993,27 @@ static WcAwPolicyState_t State_WaitForInterface (WanMgr_Policy_Controller_t * pW
         return Transition_InterfaceFound(pWanController);
     }
 
+    BOOL IfaceOnlyPossible = WanMgr_CheckIfSelectedIfaceOnlyPossibleWanLink(pWanController);
     // Check if timer expired for selected Interface & check if selected interface is not the only available wan link
     clock_gettime( CLOCK_MONOTONIC_RAW, &(pWanController->SelectionTimeOutEnd));
     if((difftime(pWanController->SelectionTimeOutEnd.tv_sec, pWanController->SelectionTimeOutStart.tv_sec ) > 0)
-            && (WanMgr_CheckIfSelectedIfaceOnlyPossibleWanLink(pWanController) == FALSE))
+            && (IfaceOnlyPossible == FALSE))
     {
         // timer expired for selected iface but there is another interface that can be used
         CcspTraceInfo(("%s %d: Validation Timer expired for interface index:%d and there is another iface that can be possibly used as Wan interface\n", 
                     __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
         return Transition_InterfaceInvalid(pWanController);
+    }
+
+    if(IfaceOnlyPossible == TRUE)
+    {
+        //If seletced interface is the only possible link, other interfaces will not be scanned.  set InitialScanComplete to TRUE
+        WANMGR_IFACE_GROUP* pWanIfaceGroup = WanMgr_GetIfaceGroup_locked((pWanController->GroupInst - 1));
+        if (pWanIfaceGroup != NULL)
+        {
+            pWanIfaceGroup->InitialScanComplete = TRUE;
+            WanMgrDml_GetIfaceGroup_release();
+        }
     }
 
     return STATE_AUTO_WAN_INTERFACE_WAITING;

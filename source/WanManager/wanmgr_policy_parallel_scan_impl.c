@@ -288,6 +288,16 @@ static WcPsPolicyState_t Transition_Start (WanMgr_Policy_Controller_t* pWanContr
         }
     }
 
+    WANMGR_IFACE_GROUP* pWanIfaceGroup = WanMgr_GetIfaceGroup_locked((pWanController->GroupInst - 1));
+    if (pWanIfaceGroup != NULL)
+    {
+        //Parallel scan checks all interfaces simultaniously. Set InitialScanComplete to TRUE.
+        pWanIfaceGroup->InitialScanComplete = TRUE;
+        CcspTraceInfo(("%s %d  group(%d) Initial Scan Completed\n", __FUNCTION__, __LINE__, pWanController->GroupInst));
+        WanMgrDml_GetIfaceGroup_release();
+    }
+
+
     CcspTraceInfo(("%s %d Maximum Timeout Value %d \n", __FUNCTION__, __LINE__, pWanController->InterfaceSelectionTimeOut));
     //Start the selectionTimer
     memset(&(pWanController->SelectionTimeOutStart), 0, sizeof(struct timespec));

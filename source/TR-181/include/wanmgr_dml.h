@@ -394,6 +394,7 @@ typedef struct _WANMGR_IFACE_GROUP_DATA_
     DML_WAN_POLICY     Policy;
     BOOLEAN            ConfigChanged;
     BOOLEAN            ResetSelectedInterface;
+    BOOLEAN            InitialScanComplete;
 }WANMGR_IFACE_GROUP;
 
 typedef struct _WANMGR_IFACE_GROUP_

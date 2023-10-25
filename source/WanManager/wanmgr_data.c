@@ -129,6 +129,7 @@ ANSC_STATUS WanMgr_Group_Configure()
                 pWanIfacegroup->Group[i].SelectionTimeOut = 0;
                 pWanIfacegroup->Group[i].ConfigChanged = FALSE;
                 pWanIfacegroup->Group[i].ResetSelectedInterface = FALSE;
+                pWanIfacegroup->Group[i].InitialScanComplete = FALSE;
                 pWanIfacegroup->Group[i].Policy = AUTOWAN_MODE;
                 WanMgr_RdkBus_getWanPolicy(&(pWanIfacegroup->Group[i].Policy), i);
                 CcspTraceInfo(("%s %d Group[%d] Policy : %d \n", __FUNCTION__, __LINE__, i, pWanIfacegroup->Group[i].Policy));

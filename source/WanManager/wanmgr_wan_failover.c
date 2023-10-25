@@ -118,7 +118,9 @@ int WanMgr_SetGroupSelectedIface (UINT GroupInst, UINT IfaceInst)
     if (pWanIfaceGroup != NULL)
     {
         pWanIfaceGroup->SelectedInterface = IfaceInst;
+        pWanIfaceGroup->InitialScanComplete = TRUE;//if interface is selected set InitialScanComplete to true
         CcspTraceInfo(("%s %d  group(%d) SelectedInterface %d\n", __FUNCTION__, __LINE__, GroupInst, pWanIfaceGroup->SelectedInterface));
+        CcspTraceInfo(("%s %d  group(%d) Initial Scan Completed\n", __FUNCTION__, __LINE__, GroupInst));
         WanMgrDml_GetIfaceGroup_release();
     }
     return ANSC_STATUS_SUCCESS;
@@ -190,6 +192,7 @@ static void WanMgr_FO_IfaceGroupMonitor()
             if( pWanIfaceGroup->InterfaceAvailable && pWanIfaceGroup->State != STATE_GROUP_RUNNING)
             {
                 pWanIfaceGroup->SelectionTimeOut = 0;
+                pWanIfaceGroup->InitialScanComplete = FALSE;
                 UINT TotalIfaces = WanMgr_IfaceData_GetTotalWanIface();
                 for( int uiLoopCount = 0; uiLoopCount < TotalIfaces; uiLoopCount++ )
                 {
@@ -422,7 +425,6 @@ ANSC_STATUS MarkHighPriorityGroup (WanMgr_FailOver_Controller_t* pFailOverContro
 
     UINT highestValidGroup = 0;
     bool GroupChanged = false;
-    bool HigherGroupAvailable = false;
     struct timespec CurrentTime;
 
     for(int i = 0; i < WanMgr_GetTotalNoOfGroups(); i++)
@@ -430,7 +432,7 @@ ANSC_STATUS MarkHighPriorityGroup (WanMgr_FailOver_Controller_t* pFailOverContro
         WANMGR_IFACE_GROUP* pWanIfaceGroup = WanMgr_GetIfaceGroup_locked((i));
         if (pWanIfaceGroup != NULL)
         {
-            if (pWanIfaceGroup->SelectedInterface && !highestValidGroup && (!WaitForHigherGroup || !HigherGroupAvailable))
+            if (pWanIfaceGroup->SelectedInterface && !highestValidGroup)
             {
                 WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked((pWanIfaceGroup->SelectedInterface - 1));
                 if (pWanDmlIfaceData != NULL)
@@ -456,10 +458,11 @@ ANSC_STATUS MarkHighPriorityGroup (WanMgr_FailOver_Controller_t* pFailOverContro
                 /* get the current time */
                 memset(&(CurrentTime), 0, sizeof(struct timespec));
                 clock_gettime(CLOCK_MONOTONIC_RAW, &(CurrentTime));
-                if(difftime(CurrentTime.tv_sec, pFailOverController->GroupSelectionTimer.tv_sec) < pWanIfaceGroup->SelectionTimeOut)
+                /* If wait for WaitForHigherGroup TRUE, it is called from initial scan(No interface is activated yet). Wait for SelectionTimeOut and InitialScanComplete */
+                if((difftime(CurrentTime.tv_sec, pFailOverController->GroupSelectionTimer.tv_sec) < pWanIfaceGroup->SelectionTimeOut) || pWanIfaceGroup->InitialScanComplete == FALSE)
                 {
-                    HigherGroupAvailable = true;
-
+                    WanMgrDml_GetIfaceGroup_release();
+                    break;
                 }
             }
 
