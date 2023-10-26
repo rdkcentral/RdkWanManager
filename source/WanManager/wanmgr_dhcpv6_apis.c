@@ -211,7 +211,6 @@ WanMgr_DmlDhcpv6cGetEntry
         return ANSC_STATUS_FAILURE;
 
     pEntry->Cfg.InstanceNumber = 1;
-    syscfg_init();
 
     /*Cfg members*/
     syscfg_get(NULL, "tr_dhcpv6c_alias", pEntry->Cfg.Alias, sizeof(pEntry->Cfg.Alias));
