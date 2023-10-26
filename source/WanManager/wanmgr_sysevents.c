@@ -132,24 +132,11 @@ static void WanMgr_SyseventClose()
     }
 }
 
-
-ANSC_STATUS syscfg_set_string(const char* name, const char* value)
-{
-    ANSC_STATUS ret = ANSC_STATUS_SUCCESS;
-    if (syscfg_set_commit(NULL, name, value) != 0)
-    {
-        CcspTraceError(("syscfg_set failed: %s %s\n", name, value));
-        ret = ANSC_STATUS_FAILURE;
-    }
-
-    return ret;
-}
-
 ANSC_STATUS wanmgr_sysevents_ipv6Info_init()
 {
     sysevent_set(sysevent_fd, sysevent_token,SYSEVENT_FIELD_IPV6_DOMAIN, "", 0);
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV6_CONNECTION_STATE, WAN_STATUS_DOWN, 0);
-    syscfg_set_string(SYSCFG_FIELD_IPV6_PREFIX_ADDRESS, "");
+    syscfg_set_commit(NULL, SYSCFG_FIELD_IPV6_PREFIX_ADDRESS, "");
     return ANSC_STATUS_SUCCESS;
 }
 
@@ -1337,7 +1324,7 @@ ANSC_STATUS WanMgr_SysEvents_Init(void)
     }
 
     //Initialize syscfg value of ipv6 address to release previous value
-    syscfg_set_string(SYSCFG_FIELD_IPV6_PREFIX_ADDRESS, "");
+    syscfg_set_commit(NULL, SYSCFG_FIELD_IPV6_PREFIX_ADDRESS, "");
 
     return retStatus;
 }

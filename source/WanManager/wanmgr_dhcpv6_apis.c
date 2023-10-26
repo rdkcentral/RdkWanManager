@@ -50,7 +50,6 @@ extern char g_Subsystem[32];
 #if defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) && defined(_COSA_BCM_MIPS_)
 #include <netinet/in.h>
 #endif
-#define SYSCFG_FORMAT_DHCP6C "tr_dhcpv6c"
 #define CLIENT_DUID_FILE "/var/lib/dibbler/client-duid"
 #define DHCPS6V_SERVER_RESTART_FIFO "/tmp/ccsp-dhcpv6-server-restart-fifo.txt"
 
@@ -135,6 +134,17 @@ void _get_shell_output(FILE *fp, char * out, int len)
 
 }
 
+static ANSC_STATUS syscfg_set_string(const char* name, const char* value)
+{
+    ANSC_STATUS ret = ANSC_STATUS_SUCCESS;
+    if (syscfg_set_commit(NULL, name, value) != 0)
+    {
+        CcspTraceError(("syscfg_set failed: %s %s\n", name, value));
+        ret = ANSC_STATUS_FAILURE;
+    }
+
+    return ret;
+}
 
 
 /*
@@ -204,16 +214,16 @@ WanMgr_DmlDhcpv6cGetEntry
     syscfg_init();
 
     /*Cfg members*/
-    syscfg_get(NULL, SYSCFG_FORMAT_DHCP6C "_alias", pEntry->Cfg.Alias, sizeof(pEntry->Cfg.Alias));
+    syscfg_get(NULL, "tr_dhcpv6c_alias", pEntry->Cfg.Alias, sizeof(pEntry->Cfg.Alias));
 
     pEntry->Cfg.SuggestedT1 = pEntry->Cfg.SuggestedT2 = 0;
 
-    if (syscfg_get(NULL, SYSCFG_FORMAT_DHCP6C "_t1", out, sizeof(out)) == 0)
+    if (syscfg_get(NULL, "tr_dhcpv6c_t1", out, sizeof(out)) == 0)
     {
         sscanf(out, "%lu", &pEntry->Cfg.SuggestedT1);
     }
 
-    if (syscfg_get(NULL, SYSCFG_FORMAT_DHCP6C "_t2", out, sizeof(out)) == 0)
+    if (syscfg_get(NULL, "tr_dhcpv6c_t2", out, sizeof(out)) == 0)
     {
         sscanf(out, "%lu", &pEntry->Cfg.SuggestedT2);
     }
@@ -221,18 +231,18 @@ WanMgr_DmlDhcpv6cGetEntry
     /*pEntry->Cfg.Interface stores interface name, dml will calculate the full path name*/
     snprintf(pEntry->Cfg.Interface, sizeof(pEntry->Cfg.Interface), "%s", DML_DHCP_CLIENT_IFNAME);
 
-    syscfg_get(NULL, SYSCFG_FORMAT_DHCP6C "_requested_options", pEntry->Cfg.RequestedOptions, sizeof(pEntry->Cfg.RequestedOptions));
+    syscfg_get(NULL, "tr_dhcpv6c_requested_options", pEntry->Cfg.RequestedOptions, sizeof(pEntry->Cfg.RequestedOptions));
 
-    syscfg_get(NULL, SYSCFG_FORMAT_DHCP6C "_enabled", out, sizeof(out));
+    syscfg_get(NULL, "tr_dhcpv6c_enabled", out, sizeof(out));
     pEntry->Cfg.bEnabled = (out[0] == '1') ? TRUE : FALSE;
 
-    syscfg_get(NULL, SYSCFG_FORMAT_DHCP6C "_iana_enabled", out, sizeof(out));
+    syscfg_get(NULL, "tr_dhcpv6c_iana_enabled", out, sizeof(out));
     pEntry->Cfg.RequestAddresses = (out[0] == '1') ? TRUE : FALSE;
 
-    syscfg_get(NULL, SYSCFG_FORMAT_DHCP6C "_iapd_enabled", out, sizeof(out));
+    syscfg_get(NULL, "tr_dhcpv6c_iapd_enabled", out, sizeof(out));
     pEntry->Cfg.RequestPrefixes = (out[0] == '1') ? TRUE : FALSE;
 
-    syscfg_get(NULL, SYSCFG_FORMAT_DHCP6C "_rapidcommit_enabled", out, sizeof(out));
+    syscfg_get(NULL, "tr_dhcpv6c_rapidcommit_enabled", out, sizeof(out));
     pEntry->Cfg.RapidCommit = (out[0] == '1') ? TRUE : FALSE;
 
     /*Info members*/
@@ -245,14 +255,10 @@ WanMgr_DmlDhcpv6cGetEntry
 
     _get_client_duid(pEntry->Info.DUID, sizeof(pEntry->Info.DUID));
 
-
     /*if we don't have alias, set a default one*/
-    char buf[256] = {0};
-    if (!pEntry->Cfg.Alias[0]) {
-        memset(buf, 0, sizeof(buf));
-        strncpy(buf, SYSCFG_FORMAT_DHCP6C"_alias",sizeof(buf)-1);
-        syscfg_set_string(buf, "Client1");
-        strncpy(pEntry->Cfg.Alias, "Client1",sizeof(pEntry->Cfg.Alias)-1);
+    if (pEntry->Cfg.Alias[0] == 0) {
+        syscfg_set_commit(NULL, "tr_dhcpv6c_alias", "Client1");
+        snprintf(pEntry->Cfg.Alias, sizeof(pEntry->Cfg.Alias), "%s", "Client1");
     }
 
     AnscCopyMemory(&g_dhcpv6_client, pEntry, sizeof(g_dhcpv6_client));
@@ -349,7 +355,6 @@ iface wan0 {
 static int _prepare_client_conf(PDML_DHCPCV6_CFG       pCfg)
 {
     FILE * fp = fopen(TMP_CLIENT_CONF, "w+");
-    char line[256] = {0};
 
     if (fp)
     {
@@ -358,7 +363,7 @@ static int _prepare_client_conf(PDML_DHCPCV6_CFG       pCfg)
         fprintf(fp, "log-level 7\n");
         fprintf(fp, "log-mode full\n");
         fprintf(fp, "duid-type duid-ll\n");
-        fprintf(fp, "script \"%s\" \n",CLIENT_NOTIFY);
+        fprintf(fp, "script \"%s\" \n", CLIENT_NOTIFY);
         fprintf(fp, "reconfigure-accept 1\n");
 #else
         fprintf(fp, "notify-scripts\n");
@@ -369,48 +374,41 @@ static int _prepare_client_conf(PDML_DHCPCV6_CFG       pCfg)
         if (pCfg->RapidCommit)
             fprintf(fp, "    rapid-commit yes\n");
 
-        if ((pCfg->SuggestedT1) || (pCfg->SuggestedT2)) {
-        if (pCfg->RequestAddresses)
+        if ((pCfg->SuggestedT1) || (pCfg->SuggestedT2))
         {
-            fprintf(fp, "    ia {\n");
-
-            if (pCfg->SuggestedT1)
+            if (pCfg->RequestAddresses)
             {
-                memset(line, 0, sizeof(line));
-                snprintf(line, sizeof(line)-1, "    t1 %lu\n", pCfg->SuggestedT1);
-                fprintf(fp, "%s", line);
-            }
+                fprintf(fp, "    ia {\n");
 
-            if (pCfg->SuggestedT2)
+                if (pCfg->SuggestedT1)
+                {
+                    fprintf(fp, "    t1 %lu\n", pCfg->SuggestedT1);
+                }
+    
+                if (pCfg->SuggestedT2)
+                {
+                    fprintf(fp, "    t2 %lu\n", pCfg->SuggestedT2);
+                }
+
+                fprintf(fp, "    }\n");
+            }
+    
+            if (pCfg->RequestPrefixes)
             {
-                memset(line, 0, sizeof(line));
-                snprintf(line, sizeof(line)-1, "    t2 %lu\n", pCfg->SuggestedT2);
-                fprintf(fp, "%s", line);
+                fprintf(fp, "    pd {\n");
+
+                if (pCfg->SuggestedT1)
+                {
+                    fprintf(fp, "    t1 %lu\n", pCfg->SuggestedT1);
+                }
+    
+                if (pCfg->SuggestedT2)
+                {
+                    fprintf(fp, "    t2 %lu\n", pCfg->SuggestedT2);
+                }
+
+                fprintf(fp, "    }\n");
             }
-
-            fprintf(fp, "    }\n");
-        }
-
-        if (pCfg->RequestPrefixes)
-        {
-            fprintf(fp, "    pd {\n");
-
-            if (pCfg->SuggestedT1)
-            {
-                memset(line, 0, sizeof(line));
-                snprintf(line, sizeof(line)-1, "    t1 %lu\n", pCfg->SuggestedT1);
-                fprintf(fp, "%s", line);
-            }
-
-            if (pCfg->SuggestedT2)
-            {
-                memset(line, 0, sizeof(line));
-                snprintf(line, sizeof(line)-1, "    t2 %lu\n", pCfg->SuggestedT2);
-                fprintf(fp, "%s", line);
-            }
-
-            fprintf(fp, "    }\n");
-        }
         }
         else {
             /* RFC3315 - Set T1 and T2 to 0 for IA_NA / IA_PD requests to indicate no preference for it from the gateway side instead operator network(BNG) provides T1/T2 values to gateway. */
@@ -619,77 +617,71 @@ WanMgr_DmlDhcpv6cSetCfg
     )
 {
     UNREFERENCED_PARAMETER(hContext);
-    char buf[256] = {0};
-    char out[256] = {0};
-    int  need_to_restart_service = 0;
+    int commit = 0;
+    int need_to_restart_service = 0;
 
     if (pCfg->InstanceNumber != 1)
         return ANSC_STATUS_FAILURE;
 
     if (strcmp((char *) pCfg->Alias, (char *) g_dhcpv6_client.Cfg.Alias) != 0)
     {
-        strncpy(buf, SYSCFG_FORMAT_DHCP6C"_alias",sizeof(buf)-1);
-        syscfg_set_string(buf,(char*)pCfg->Alias);
+        syscfg_set(NULL, "tr_dhcpv6c_alias", pCfg->Alias);
+        commit = 1;
     }
 
     if (pCfg->SuggestedT1 != g_dhcpv6_client.Cfg.SuggestedT1)
     {
-        strncpy(buf, SYSCFG_FORMAT_DHCP6C"_t1",sizeof(buf)-1);
-        sprintf(out, "%lu", pCfg->SuggestedT1);
-        syscfg_set_string(buf, out);
+        syscfg_set_u(NULL, "tr_dhcpv6c_t1", pCfg->SuggestedT1);
+        commit = 1;
         need_to_restart_service = 1;
     }
 
     if (pCfg->SuggestedT2 != g_dhcpv6_client.Cfg.SuggestedT2)
     {
-        strncpy(buf, SYSCFG_FORMAT_DHCP6C"_t2",sizeof(buf)-1);
-        sprintf(out, "%lu", pCfg->SuggestedT2);
-        syscfg_set_string(buf, out);
+        syscfg_set_u(NULL, "tr_dhcpv6c_t2", pCfg->SuggestedT2);
+        commit = 1;
         need_to_restart_service = 1;
     }
 
     if (strcmp((char *) pCfg->RequestedOptions, (char *) g_dhcpv6_client.Cfg.RequestedOptions) != 0)
     {
-        strncpy(buf, SYSCFG_FORMAT_DHCP6C"_requested_options",sizeof(buf)-1);
-        syscfg_set_string(buf, (char*)pCfg->RequestedOptions);
+        syscfg_set(NULL, "tr_dhcpv6c_requested_options", (char *) pCfg->RequestedOptions);
+        commit = 1;
         need_to_restart_service = 1;
     }
 
     if (pCfg->bEnabled != g_dhcpv6_client.Cfg.bEnabled)
     {
-        strncpy(buf, SYSCFG_FORMAT_DHCP6C"_enabled",sizeof(buf)-1);
-        out[0] = pCfg->bEnabled ? '1':'0';
-        out[1] = 0;
-        syscfg_set_string(buf, out);
+        syscfg_set(NULL, "tr_dhcpv6c_enabled", pCfg->bEnabled ? "1" : "0");
+        commit = 1;
         need_to_restart_service = 1;
     }
 
     if (pCfg->RequestAddresses != g_dhcpv6_client.Cfg.RequestAddresses)
     {
-        strncpy(buf, SYSCFG_FORMAT_DHCP6C"_iana_enabled",sizeof(buf)-1);
-        out[0] = pCfg->RequestAddresses ? '1':'0';
-        out[1] = 0;
-        syscfg_set_string(buf, out);
+        syscfg_set(NULL, "tr_dhcpv6c_iana_enabled", pCfg->RequestAddresses ? "1" : "0");
+        commit = 1;
         need_to_restart_service = 1;
     }
 
     if (pCfg->RequestPrefixes != g_dhcpv6_client.Cfg.RequestPrefixes)
     {
-        strncpy(buf, SYSCFG_FORMAT_DHCP6C"_iapd_enabled",sizeof(buf)-1);
-        out[0] = pCfg->RequestPrefixes ? '1':'0';
-        out[1] = 0;
-        syscfg_set_string(buf, out);
+        syscfg_set(NULL, "tr_dhcpv6c_iapd_enabled", pCfg->RequestPrefixes ? "1" : "0");
+        commit = 1;
         need_to_restart_service = 1;
     }
 
     if (pCfg->RapidCommit != g_dhcpv6_client.Cfg.RapidCommit)
     {
-        strncpy(buf, SYSCFG_FORMAT_DHCP6C"_rapidcommit_enabled",sizeof(buf)-1);
-        out[0] = pCfg->RapidCommit ? '1':'0';
-        out[1] = 0;
-        syscfg_set_string(buf, out);
-        g_dhcpv6_client.Cfg.RapidCommit = pCfg->RapidCommit;
+        syscfg_set(NULL, "tr_dhcpv6c_rapidcommit_enabled", pCfg->RapidCommit ? "1" : "0");
+        commit = 1;
         need_to_restart_service = 1;
+        g_dhcpv6_client.Cfg.RapidCommit = pCfg->RapidCommit;
+    }
+
+    if (commit)
+    {
+        syscfg_commit();
     }
 
     /*update dibbler-client service if necessary*/
@@ -941,14 +933,11 @@ WanMgr_DmlDhcpv6cGetNumberOfSentOption
 {
     UNREFERENCED_PARAMETER(hContext);
     UNREFERENCED_PARAMETER(ulClientInstanceNumber);
-    char buf[256] = {0};
-    char out[256] = {0};
+    char out[32];
 
-
-    strncpy(buf, "tr_dhcp6c_sent_option_num", sizeof(out));
-    if( syscfg_get( NULL, buf, out, sizeof(out)) == 0 )
+    if (syscfg_get(NULL, "tr_dhcp6c_sent_option_num", out, sizeof(out)) == 0 )
     {
-    g_sent_option_num = atoi(out);
+        g_sent_option_num = atoi(out);
     }
 
     if (g_sent_option_num)
@@ -997,62 +986,47 @@ WanMgr_DmlDhcpv6cGetSentOption
 {
     UNREFERENCED_PARAMETER(hContext);
     UNREFERENCED_PARAMETER(ulClientInstanceNumber);
-    char out[256] = {0};
-    char buf[256] = {0};
-    char namespace[256] = {0};
+    char namespace[64];
+    char buf[128];
+    char out[32];
 
-    if ( (int)ulIndex > g_sent_option_num - 1  || !g_sent_options)
+    if ((int) ulIndex > g_sent_option_num - 1 || !g_sent_options)
     {
         return ANSC_STATUS_FAILURE;
     }
 
     /*note in syscfg, sent_options start from 1*/
-    sprintf(namespace, SYSCFG_DHCP6C_SENT_OPTION_FORMAT, ulIndex+1);
-    memset(buf, 0, sizeof(buf));
-    memset(out, 0, sizeof(out));
-    if( syscfg_get( NULL, namespace, out, sizeof(out)) == 0 )
+    snprintf(namespace, sizeof(namespace), SYSCFG_DHCP6C_SENT_OPTION_FORMAT, ulIndex + 1);
+    if (syscfg_get(NULL, namespace, out, sizeof(out)) == 0)
     {
-    sscanf(out, "%lu", &pEntry->InstanceNumber);
+        sscanf(out, "%lu", &pEntry->InstanceNumber);
     }
 
-    memset(buf, 0, sizeof(buf));
-    memset(out, 0, sizeof(out));
     snprintf(buf, sizeof(buf), "%s_alias", namespace);
-    if( syscfg_get( NULL, buf, out, sizeof(out)) == 0 )
-    {
-        strncpy(pEntry->Alias, out, sizeof(pEntry->Alias));
-    }
+    syscfg_get(NULL, buf, pEntry->Alias, sizeof(pEntry->Alias));
 
-    memset(buf, 0, sizeof(buf));
-    memset(out, 0, sizeof(out));
     snprintf(buf, sizeof(buf), "%s_enabled", namespace);
-    if( syscfg_get( NULL, buf, out, sizeof(out)) == 0 )
+    if (syscfg_get(NULL, buf, out, sizeof(out)) == 0)
     {
-        pEntry->bEnabled = (out[0] == '1') ? TRUE:FALSE;
+        pEntry->bEnabled = (out[0] == '1') ? TRUE : FALSE;
     }
 
-    memset(buf, 0, sizeof(buf));
-    memset(out, 0, sizeof(out));
     snprintf(buf, sizeof(buf), "%s_tag", namespace);
-    if( syscfg_get( NULL, namespace, out, sizeof(out)) == 0 )
+    if (syscfg_get(NULL, buf, out, sizeof(out)) == 0)
     {
         sscanf(out, "%lu", &pEntry->Tag);
     }
 
-    memset(buf, 0, sizeof(buf));
-    memset(out, 0, sizeof(out));
     snprintf(buf, sizeof(buf), "%s_value", namespace);
-    if( syscfg_get( NULL, buf, out, sizeof(out)) == 0 )
-    {
-        strncpy(pEntry->Value, out, sizeof(pEntry->Value));
-    }
+    syscfg_get(NULL, buf, pEntry->Value, sizeof(pEntry->Value));
 
     AnscCopyMemory( &g_sent_options[ulIndex], pEntry, sizeof(DML_DHCPCV6_SENT));
 
     /*we only wirte to file when obtaining the last entry*/
-    if (ulIndex == g_sent_option_num-1)
+    if (ulIndex == (g_sent_option_num - 1))
+    {
         _write_dibbler_sent_option_file();
-
+    }
 
     return ANSC_STATUS_SUCCESS;
 }
@@ -1094,8 +1068,8 @@ WanMgr_DmlDhcpv6cSetSentOptionValues
     )
 {
     UNREFERENCED_PARAMETER(hContext);
-    char out[256] = {0};
-    char namespace[256] = {0};
+    char namespace[64];
+    char buf[128];
 
     if (ulClientInstanceNumber != g_dhcpv6_client.Cfg.InstanceNumber)
         return ANSC_STATUS_FAILURE;
@@ -1103,49 +1077,40 @@ WanMgr_DmlDhcpv6cSetSentOptionValues
     if ( (int)ulIndex+1 > g_sent_option_num )
         return ANSC_STATUS_SUCCESS;
 
-    g_sent_options[ulIndex].InstanceNumber  = ulInstanceNumber;
-    AnscCopyString( (char*)g_sent_options[ulIndex].Alias, pAlias);
+    g_sent_options[ulIndex].InstanceNumber = ulInstanceNumber;
+    AnscCopyString((char *) g_sent_options[ulIndex].Alias, pAlias);
 
+    snprintf(namespace, sizeof(namespace), SYSCFG_DHCP6C_SENT_OPTION_FORMAT, ulIndex + 1);
+    syscfg_set_u(NULL, namespace, ulInstanceNumber);
 
-    sprintf(namespace, SYSCFG_DHCP6C_SENT_OPTION_FORMAT, ulIndex+1);
-    snprintf(out, sizeof(out), "%lu", ulInstanceNumber);
-    syscfg_set_string(namespace, out);
-
-    snprintf(out, sizeof(out), "%s_alias", namespace);
-    syscfg_set_string(out, pAlias);
+    snprintf(buf, sizeof(buf), "%s_alias", namespace);
+    syscfg_set_commit(NULL, buf, pAlias);
 
     return ANSC_STATUS_SUCCESS;
 }
 
-static int _syscfg_add_sent_option(PDML_DHCPCV6_SENT      pEntry, int index)
+static int _syscfg_add_sent_option(PDML_DHCPCV6_SENT pEntry, int index)
 {
-    char out[256] = {0};
-    char buf[256] = {0};
-    char namespace[256] = {0};
+    char namespace[64];
+    char buf[128];
 
     if (!pEntry)
         return -1;
 
-    sprintf(namespace, SYSCFG_DHCP6C_SENT_OPTION_FORMAT, index);
-    snprintf(out, sizeof(out), "%lu", pEntry->InstanceNumber);
-    syscfg_set_string(namespace, out);
+    snprintf(namespace, sizeof(namespace), SYSCFG_DHCP6C_SENT_OPTION_FORMAT, index);
+    syscfg_set_u(NULL, namespace, pEntry->InstanceNumber);
 
-    snprintf(out, sizeof(out), "%s_alias", namespace);
-    syscfg_set_string(out, pEntry->Alias);
+    snprintf(buf, sizeof(buf), "%s_alias", namespace);
+    syscfg_set(NULL, buf, pEntry->Alias);
 
     snprintf(buf, sizeof(buf), "%s_enabled", namespace);
-    if (pEntry->bEnabled)
-        sprintf(out, "1");
-    else
-        sprintf(out, "0");
-    syscfg_set_string(buf, out);
+    syscfg_set(NULL, buf, pEntry->bEnabled ? "1" : "0");
 
     snprintf(buf, sizeof(buf), "%s_tag", namespace);
-    snprintf(out, sizeof(out)-1, "%lu", pEntry->Tag);
-    syscfg_set_string(buf, out);
+    syscfg_set_u(NULL, buf, pEntry->Tag);
 
     snprintf(buf, sizeof(buf), "%s_value", namespace);
-    syscfg_set_string(buf, pEntry->Value);
+    syscfg_set(NULL, buf, pEntry->Value);
 
     return 0;
 }
@@ -1159,8 +1124,6 @@ WanMgr_DmlDhcpv6cAddSentOption
     )
 {
     UNREFERENCED_PARAMETER(hContext);
-    char out[256] = {0};
-    char namespace[256] = {0};
     char *realloc_tmp;
 
     /*we only have one client*/
@@ -1179,8 +1142,7 @@ WanMgr_DmlDhcpv6cAddSentOption
 
     _syscfg_add_sent_option(pEntry, g_sent_option_num);
 
-    snprintf(out, sizeof(out)-1, "%d", g_sent_option_num);
-    syscfg_set_string("tr_dhcp6c_sent_option_num", out);
+    syscfg_set_u_commit(NULL, "tr_dhcp6c_sent_option_num", g_sent_option_num);
 
     g_sent_options[g_sent_option_num-1] = *pEntry;
 
@@ -1203,8 +1165,7 @@ WanMgr_DmlDhcpv6cDelSentOption
     )
 {
     UNREFERENCED_PARAMETER(hContext);
-    char out[256] = {0};
-    char namespace[256] = {0};
+    char namespace[64];
     int  i = 0;
     int  j = 0;
     int  saved_enable = 0;
@@ -1212,7 +1173,6 @@ WanMgr_DmlDhcpv6cDelSentOption
     /*we only have one client*/
     if (ulClientInstanceNumber != g_dhcpv6_client.Cfg.InstanceNumber)
         return ANSC_STATUS_FAILURE;
-
 
     for (i=0; i<g_sent_option_num; i++)
     {
@@ -1235,18 +1195,16 @@ WanMgr_DmlDhcpv6cDelSentOption
 
     g_sent_option_num--;
 
-
     /*syscfg unset the last one, since we move the syscfg table ahead*/
-    sprintf(namespace, SYSCFG_DHCP6C_SENT_OPTION_FORMAT, (ULONG)(g_sent_option_num+1));
+    snprintf(namespace, sizeof(namespace), SYSCFG_DHCP6C_SENT_OPTION_FORMAT, (ULONG)(g_sent_option_num + 1));
+
     syscfg_unset(namespace, "inst_num");
     syscfg_unset(namespace, "alias");
     syscfg_unset(namespace, "enabled");
     syscfg_unset(namespace, "tag");
     syscfg_unset(namespace, "value");
 
-    snprintf(out, sizeof(out)-1, "%d", g_sent_option_num);
-    syscfg_set_string("tr_dhcp6c_sent_option_num", out);
-
+    syscfg_set_u_commit(NULL, "tr_dhcp6c_sent_option_num", g_sent_option_num);
 
     /*only take effect when the deleted entry was enabled*/
     if (saved_enable)
@@ -1268,56 +1226,54 @@ WanMgr_DmlDhcpv6cSetSentOption
 {
     UNREFERENCED_PARAMETER(hContext);
     UNREFERENCED_PARAMETER(ulClientInstanceNumber);
-    ULONG                           index  = 0;
-    char                            buf[256] = {0};
-    char                            out[256] = {0};
-    char                            namespace[256] = {0};
-    int                             i = 0;
-    int                             j = 0;
-    int                             need_restart_service = 0;
-    PDML_DHCPCV6_SENT          p_old_entry = NULL;
+    ULONG index = 0;
 
-    for( index=0;  index<g_sent_option_num; index++)
+    for (index = 0; index < g_sent_option_num; index++)
     {
-        if ( pEntry->InstanceNumber == g_sent_options[index].InstanceNumber )
+        if (pEntry->InstanceNumber == g_sent_options[index].InstanceNumber)
         {
-            p_old_entry = &g_sent_options[index];
+            char namespace[64];
+            char buf[128];
+            PDML_DHCPCV6_SENT p_old_entry = &g_sent_options[index];
+            int commit = 0;
+            int need_restart_service = 0;
 
-
-            /*handle syscfg*/
-            sprintf(namespace, SYSCFG_DHCP6C_SENT_OPTION_FORMAT, index+1);
+            snprintf(namespace, sizeof(namespace), SYSCFG_DHCP6C_SENT_OPTION_FORMAT, index + 1);
 
             if (strcmp(pEntry->Alias, p_old_entry->Alias) != 0)
             {
-                snprintf(buf,sizeof(buf)-1, "%s_alias", namespace);
-                syscfg_set_string(buf, pEntry->Alias);
+                snprintf(buf, sizeof(buf), "%s_alias", namespace);
+                syscfg_set(NULL, buf, pEntry->Alias);
+                commit = 1;
             }
 
             if (pEntry->bEnabled != p_old_entry->bEnabled)
             {
-                if (pEntry->bEnabled)
-                    snprintf(out,sizeof(out)-1,"1");
-                else
-                    snprintf(out, sizeof(out)-1,"0");
-                snprintf(buf,sizeof(buf)-1, "%s_enabled", namespace);
-                syscfg_set_string(buf, out);
+                snprintf(buf, sizeof(buf), "%s_enabled", namespace);
+                syscfg_set(NULL, buf, pEntry->bEnabled ? "1" : "0");
+                commit = 1;
                 need_restart_service = 1;
             }
 
-
             if (pEntry->Tag != p_old_entry->Tag)
             {
-                snprintf(buf, sizeof(buf)-1, "%s_tag", namespace);
-                snprintf(out, sizeof(out)-1, "%lu", pEntry->Tag);
-                syscfg_set_string(buf, out);
+                snprintf(buf, sizeof(buf), "%s_tag", namespace);
+                syscfg_set_u(NULL, buf, pEntry->Tag);
+                commit = 1;
                 need_restart_service = 1;
             }
 
             if (strcmp(pEntry->Value, p_old_entry->Value) != 0)
             {
-                snprintf(buf, sizeof(buf)-1, "%s_value", namespace);
-                syscfg_set_string(buf, pEntry->Value);
+                snprintf(buf, sizeof(buf), "%s_value", namespace);
+                syscfg_set(NULL, buf, pEntry->Value);
+                commit = 1;
                 need_restart_service = 1;
+            }
+
+            if (commit)
+            {
+                syscfg_commit();
             }
 
             AnscCopyMemory( &g_sent_options[index], pEntry, sizeof(DML_DHCPCV6_SENT));
@@ -1770,9 +1726,9 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
             {
                 CcspTraceInfo(("remove prefix \n"));
 #if !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE) && !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_))  //TODO: V6 handled in PAM
-                syscfg_set_string(SYSCFG_FIELD_IPV6_PREFIX, "");
-                syscfg_set_string(SYSCFG_FIELD_PREVIOUS_IPV6_PREFIX, "");
-                syscfg_set_string(SYSCFG_FIELD_IPV6_PREFIX_ADDRESS, "");
+                syscfg_set(NULL, SYSCFG_FIELD_IPV6_PREFIX, "");
+                syscfg_set(NULL, SYSCFG_FIELD_PREVIOUS_IPV6_PREFIX, "");
+                syscfg_set_commit(NULL, SYSCFG_FIELD_IPV6_PREFIX_ADDRESS, "");
 #endif
                 WanManager_UpdateInterfaceStatus(pVirtIf, WANMGR_IFACE_CONNECTION_IPV6_DOWN);
             }
@@ -2129,9 +2085,9 @@ int setUpLanPrefixIPv6(DML_VIRTUAL_IFACE* pVirtIf)
         }else /* IFADDRCONF_REMOVE: prefix remove */
         {
             CcspTraceInfo(("remove prefix \n"));
-            syscfg_set_string(SYSCFG_FIELD_IPV6_PREFIX, "");
-            syscfg_set_string(SYSCFG_FIELD_PREVIOUS_IPV6_PREFIX, "");
-            syscfg_set_string(SYSCFG_FIELD_IPV6_PREFIX_ADDRESS, "");
+            syscfg_set(NULL, SYSCFG_FIELD_IPV6_PREFIX, "");
+            syscfg_set(NULL, SYSCFG_FIELD_PREVIOUS_IPV6_PREFIX, "");
+            syscfg_set_commit(NULL, SYSCFG_FIELD_IPV6_PREFIX_ADDRESS, "");
         }
     }
 
