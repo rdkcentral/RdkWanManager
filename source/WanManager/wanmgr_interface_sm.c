@@ -847,7 +847,7 @@ static int checkIpv6LanAddressIsReadyToUse()
                     if(strlen(buffer) == 0 ) {
                         dad_flag = 1;
                     }
-                    pclose(fp_dad);
+                    v_secure_pclose(fp_dad);
                 }
             }
         }
