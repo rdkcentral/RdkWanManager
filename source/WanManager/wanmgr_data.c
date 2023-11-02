@@ -130,6 +130,7 @@ ANSC_STATUS WanMgr_Group_Configure()
                 pWanIfacegroup->Group[i].InterfaceAvailable = 0;
                 pWanIfacegroup->Group[i].SelectedInterface = 0;
                 pWanIfacegroup->Group[i].SelectionTimeOut = 0;
+                pWanIfacegroup->Group[i].ActivationCount = 0;
                 pWanIfacegroup->Group[i].ConfigChanged = FALSE;
                 pWanIfacegroup->Group[i].PersistSelectedIface = FALSE;
                 pWanIfacegroup->Group[i].ResetSelectedInterface = FALSE;

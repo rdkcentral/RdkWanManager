@@ -390,6 +390,7 @@ typedef struct _WANMGR_IFACE_GROUP_DATA_
     UINT               InterfaceAvailable;
     UINT               SelectedInterface;
     UINT               SelectionTimeOut;
+    UINT               ActivationCount;
     BOOLEAN            PersistSelectedIface;
     DML_WAN_POLICY     Policy;
     BOOLEAN            ConfigChanged;

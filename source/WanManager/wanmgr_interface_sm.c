@@ -1608,7 +1608,6 @@ static eWanState_t wan_transition_physical_interface_down(WanMgr_IfaceSM_Control
 
     if(p_VirtIf->Reset == TRUE || p_VirtIf->VLAN.Reset == TRUE || p_VirtIf->VLAN.Expired == TRUE)
     {
-        p_VirtIf->Reset = FALSE;
         CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION REFRESHING WAN\n", __FUNCTION__, __LINE__, pInterface->Name));
         return WAN_STATE_REFRESHING_WAN;
     }
@@ -1771,6 +1770,18 @@ static eWanState_t wan_transition_wan_refreshed(WanMgr_IfaceSM_Controller_t* pWa
         //TODO: NEW_DESIGN check for VLAN table
         WanMgr_RdkBus_ConfigureVlan(p_VirtIf, TRUE);
     }
+    if(p_VirtIf->Reset == TRUE)
+    {
+        //Trigger Reset WFO scan if Wan Refresh/reset is triggered. 
+        WanMgr_Config_Data_t*   pWanConfigData = WanMgr_GetConfigData_locked();
+        if(pWanConfigData != NULL)
+        {
+            CcspTraceInfo(("%s %d: Resetting FO scan thread\n", __FUNCTION__, __LINE__));
+            pWanConfigData->data.ResetFailOverScan = TRUE;
+            WanMgrDml_GetConfigData_release(pWanConfigData);
+        }
+    }
+    p_VirtIf->Reset = FALSE;
     p_VirtIf->VLAN.Reset = FALSE;
     p_VirtIf->VLAN.Expired = FALSE;
 
@@ -1937,11 +1948,6 @@ static eWanState_t wan_transition_ipv4_down(WanMgr_IfaceSM_Controller_t* pWanIfa
     if(p_VirtIf->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_UP && !strcmp(buf, WAN_STATUS_UP))
     {
         CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION IPV6 LEASED\n", __FUNCTION__, __LINE__, pInterface->Name));
-        return WAN_STATE_IPV6_LEASED;
-    }
-    if(pWanIfaceCtrl->eCurrentState == WAN_STATE_DUAL_STACK_ACTIVE)
-    {
-        CcspTraceInfo(("%s %d - Interface '%s' - WAN_STATE_DUAL_STACK_ACTIVE->TRANSITION IPV6 LEASED\n", __FUNCTION__, __LINE__, pInterface->Name));
         return WAN_STATE_IPV6_LEASED;
     }
 
@@ -2216,11 +2222,6 @@ static eWanState_t wan_transition_ipv6_down(WanMgr_IfaceSM_Controller_t* pWanIfa
     if(p_VirtIf->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_UP && !strcmp(buf, WAN_STATUS_UP))
     {
         CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION IPV4 LEASED\n", __FUNCTION__, __LINE__, pInterface->Name));
-        return WAN_STATE_IPV4_LEASED;
-    }
-    if(pWanIfaceCtrl->eCurrentState == WAN_STATE_DUAL_STACK_ACTIVE)
-    {
-        CcspTraceInfo(("%s %d - Interface '%s' - WAN_STATE_DUAL_STACK_ACTIVE->TRANSITION IPV4 LEASED\n", __FUNCTION__, __LINE__, pInterface->Name));
         return WAN_STATE_IPV4_LEASED;
     }
 
@@ -3782,7 +3783,6 @@ static eWanState_t wan_state_refreshing_wan(WanMgr_IfaceSM_Controller_t* pWanIfa
         pInterface->Selection.Enable == FALSE ||
         pInterface->Selection.Status == WAN_IFACE_NOT_SELECTED ||
         p_VirtIf->Enable == FALSE ||
-        p_VirtIf->Reset == TRUE ||
         pInterface->BaseInterfaceStatus !=  WAN_IFACE_PHY_STATUS_UP)
     {
          p_VirtIf->VLAN.Expired = FALSE; //Reset VLAN.Expired

@@ -202,6 +202,8 @@ static ANSC_STATUS WanMgr_ActivateGroup(UINT groupId)
                 if(pWanIfaceData->Selection.Status == WAN_IFACE_SELECTED)
                 {
                     pWanIfaceData->Selection.Status = WAN_IFACE_ACTIVE;
+                    pWanIfaceGroup->ActivationCount++; //update group activation count
+                    CcspTraceInfo(("%s %d Group %d ActivationCount : %d\n", __FUNCTION__, __LINE__, groupId,pWanIfaceGroup->ActivationCount));
                 }
                 WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
             }
@@ -255,6 +257,7 @@ static void WanMgr_FO_IfaceGroupMonitor()
             {
                 pWanIfaceGroup->SelectionTimeOut = 0;
                 pWanIfaceGroup->InitialScanComplete = FALSE;
+                pWanIfaceGroup->ActivationCount = 0;
                 UINT TotalIfaces = WanMgr_IfaceData_GetTotalWanIface();
                 for( int uiLoopCount = 0; uiLoopCount < TotalIfaces; uiLoopCount++ )
                 {
@@ -489,16 +492,16 @@ ANSC_STATUS MarkHighPriorityGroup (WanMgr_FailOver_Controller_t* pFailOverContro
         return ANSC_STATUS_FAILURE;
     }
 
-    UINT highestValidGroup = 0;
     bool GroupChanged = false;
     struct timespec CurrentTime;
+    pFailOverController->HighestValidGroup = 0; 
 
     for(int i = 0; i < WanMgr_GetTotalNoOfGroups(); i++)
     {
         WANMGR_IFACE_GROUP* pWanIfaceGroup = WanMgr_GetIfaceGroup_locked((i));
         if (pWanIfaceGroup != NULL)
         {
-            if (pWanIfaceGroup->SelectedInterface && !highestValidGroup)
+            if (pWanIfaceGroup->SelectedInterface && !pFailOverController->HighestValidGroup)
             {
                 WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked((pWanIfaceGroup->SelectedInterface - 1));
                 if (pWanDmlIfaceData != NULL)
@@ -509,7 +512,7 @@ ANSC_STATUS MarkHighPriorityGroup (WanMgr_FailOver_Controller_t* pFailOverContro
                         (!(pWanIfaceData->IfaceType == REMOTE_IFACE &&  // Check RemoteStatus also for REMOTE_IFACE
                         pWanIfaceData->VirtIfList->RemoteStatus != WAN_IFACE_STATUS_UP)))
                     {
-                        highestValidGroup = (i+1);
+                        pFailOverController->HighestValidGroup = (i+1);
                     }
                     WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
                 }
@@ -517,8 +520,13 @@ ANSC_STATUS MarkHighPriorityGroup (WanMgr_FailOver_Controller_t* pFailOverContro
 
             if(pWanIfaceGroup->ConfigChanged)
             {
-                GroupChanged = true;
+                /* If group Change inprogress, don't select highestValidGroup */
+                CcspTraceInfo(("%s %d: Group list change is in progress. Don't select Interface now. \n", __FUNCTION__, __LINE__));
+                pFailOverController->HighestValidGroup = 0;
+                WanMgrDml_GetIfaceGroup_release();
+                break;
             }
+
             if(WaitForHigherGroup)
             {
                 /* get the current time */
@@ -536,15 +544,6 @@ ANSC_STATUS MarkHighPriorityGroup (WanMgr_FailOver_Controller_t* pFailOverContro
         }
     }
 
-    /* If group Change inprogress, don't select highestValidGroup */
-    if(!GroupChanged)
-    {
-        pFailOverController->HighestValidGroup = highestValidGroup;
-    }else
-    {
-       CcspTraceInfo(("%s %d: Group list change is in progress. Don't select Interface now. \n", __FUNCTION__, __LINE__));
-       pFailOverController->HighestValidGroup = 0; 
-    }
     return ANSC_STATUS_SUCCESS;
 }
 
@@ -645,6 +644,11 @@ static WcFailOverState_t Transition_ResetScan (WanMgr_FailOver_Controller_t * pF
         return STATE_FAILOVER_ERROR;
     }
 
+    if(pFailOverController->CurrentActiveGroup)
+    {
+        WanMgr_DeactivateGroup(pFailOverController->CurrentActiveGroup);
+    }
+
     pFailOverController->CurrentActiveGroup =  0;
     pFailOverController->HighestValidGroup = 0;
     pFailOverController->ResetScan = false;
@@ -723,7 +727,9 @@ static WcFailOverState_t State_GroupActive (WanMgr_FailOver_Controller_t * pFail
                 if (pWanDmlIfaceData != NULL)
                 {
                     DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
-                    if(pWanIfaceData->VirtIfList->Status != WAN_IFACE_STATUS_UP)
+                    /* If CurrentActiveGroup IFACE_STATUS  is not UP and Reset is true means that CurrentActiveGroup interface is refreshed to apply changes.
+                       Wait for the Reset flag to set to false to consider interface is down*/
+                    if(pWanIfaceData->VirtIfList->Status != WAN_IFACE_STATUS_UP && pWanIfaceData->VirtIfList->Reset == FALSE)
                     {
                         CurrentActiveGroup_down = true;
                     }
@@ -742,7 +748,18 @@ static WcFailOverState_t State_GroupActive (WanMgr_FailOver_Controller_t * pFail
 
     if(pFailOverController->HighestValidGroup)
     {
-        if(CurrentActiveGroup_down && (pFailOverController->CurrentActiveGroup < pFailOverController->HighestValidGroup))
+        UINT HighestGrpActivationCount = -1;
+        WANMGR_IFACE_GROUP* pWanIfaceGroup = WanMgr_GetIfaceGroup_locked((pFailOverController->HighestValidGroup -1));
+        if (pWanIfaceGroup != NULL)
+        {
+            /* if ActivationCount is 0, group is activated for the first time */
+            HighestGrpActivationCount = pWanIfaceGroup->ActivationCount;
+            WanMgrDml_GetIfaceGroup_release();
+        }
+
+        if(CurrentActiveGroup_down && (pFailOverController->CurrentActiveGroup < pFailOverController->HighestValidGroup) ||
+          //If the higher group up for the first time, don't wait for restoration delay. Activate Immediatly
+          (HighestGrpActivationCount == 0 && pFailOverController->CurrentActiveGroup > pFailOverController->HighestValidGroup)) 
         {
             CcspTraceInfo(("%s %d : CurrentActiveGroup(%d) Down. Activating Next Highest available group (%d) \n", __FUNCTION__, __LINE__,
                                     pFailOverController->CurrentActiveGroup , pFailOverController->HighestValidGroup));
