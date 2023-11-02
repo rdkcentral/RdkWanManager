@@ -814,8 +814,12 @@ static int CheckV6DefaultRule (void)
 
     while (fgets(output, sizeof(output), fp) != NULL)
     {
+#ifdef FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE
         if ((strncmp(output, "default via ", strlen("default via ")) == 0) &&
-            (strstr(output, "erouter0") != NULL))
+            (strstr(output, wanInterface) != NULL))
+#else
+        if ((strncmp(output, "default via ", strlen("default via ")) == 0))
+#endif
         {
             ret = TRUE; // Default route entry exists
             break;
