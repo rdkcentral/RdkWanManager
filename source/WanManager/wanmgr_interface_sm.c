@@ -2254,8 +2254,8 @@ static eWanState_t wan_transition_mapt_up(WanMgr_IfaceSM_Controller_t* pWanIface
     if (WanManager_ProcessMAPTConfiguration(&(p_VirtIf->MAP.dhcp6cMAPTparameters), pInterface->Name, p_VirtIf->IP.Ipv6Data.ifname) != RETURN_OK)
     {
         CcspTraceError(("%s %d - Error processing MAP-T Parameters \n", __FUNCTION__, __LINE__));
-        p_VirtIf->MAP.MaptStatus = WAN_IFACE_MAPT_STATE_DOWN;
-        return WAN_STATE_MAPT_ACTIVE;
+        CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION to State=%d \n", __FUNCTION__, __LINE__, pInterface->Name, p_VirtIf->eCurrentState));
+        return(p_VirtIf->eCurrentState);
     }
 
     p_VirtIf->MAP.MaptChanged = FALSE;
