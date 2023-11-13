@@ -24,8 +24,8 @@
 #include <rbus.h>
 #include "ccsp_base_api.h"
 
-#define NUM_OF_RBUS_PARAMS                           4
 #define WANMGR_CONFIG_WAN_CURRENTACTIVEINTERFACE     "Device.X_RDK_WanManager.CurrentActiveInterface"
+#define WANMGR_CONFIG_WAN_CURRENT_STATUS             "Device.X_RDK_WanManager.CurrentStatus"
 #define WANMGR_CONFIG_WAN_CURRENTSTANDBYINTERFACE    "Device.X_RDK_WanManager.CurrentStandbyInterface"
 #define WANMGR_CONFIG_WAN_INTERFACEAVAILABLESTATUS   "Device.X_RDK_WanManager.InterfaceAvailableStatus"
 #define WANMGR_CONFIG_WAN_INTERFACEACTIVESTATUS      "Device.X_RDK_WanManager.InterfaceActiveStatus"
