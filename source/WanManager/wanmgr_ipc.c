@@ -449,6 +449,7 @@ ANSC_STATUS WanMgr_SendMsgToIHC (ipoe_msg_type_t msgType, char *ifName)
 
     int bytes = 0;
     int msgSize = sizeof(ipc_ihc_data_t);
+    int socket_timeout_ms = DEFAULT_IPC_SOCKET_TIMEOUT;
 
     sock = nn_socket(AF_SP, NN_PUSH);
     if (sock < 0)
@@ -456,6 +457,10 @@ ANSC_STATUS WanMgr_SendMsgToIHC (ipoe_msg_type_t msgType, char *ifName)
         CcspTraceError(("[%s-%d] nn_socket failed\n"));
         return ANSC_STATUS_FAILURE;
     }
+        
+    CcspTraceInfo(("[%s %d]  Setting NN_SNDTIMEO, NN_RCVTIMEO to %d ms \n", __FUNCTION__, __LINE__, socket_timeout_ms));
+    nn_setsockopt(sock, NN_SOL_SOCKET, NN_SNDTIMEO, &socket_timeout_ms, sizeof(int));
+    nn_setsockopt(sock, NN_SOL_SOCKET, NN_RCVTIMEO, &socket_timeout_ms, sizeof(int));
 
     conn = nn_connect(sock, IHC_IPC_ADDR);
     if (conn < 0)
