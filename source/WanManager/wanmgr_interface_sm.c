@@ -3000,6 +3000,8 @@ static eWanState_t wan_state_ipv4_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
         if((strcmp(IHC_V4_status, IPOE_STATUS_FAILED) == 0) && (p_VirtIf->PPP.Enable == FALSE) && (p_VirtIf->EnableIPoE == TRUE) &&
                 (pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV4Status == IHC_STARTED))
         {
+            //TODO: Restarting firewall to add IPOE_HEALTH_CHECK firewall rules.
+            sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, NULL, 0);
             WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_UP, p_VirtIf->Name);
         }
         p_VirtIf->IP.Ipv4Renewed = FALSE;
@@ -3170,6 +3172,7 @@ static eWanState_t wan_state_ipv6_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
         if((strcmp(IHC_V6_status, IPOE_STATUS_FAILED) == 0) && (p_VirtIf->PPP.Enable == FALSE) && (p_VirtIf->EnableIPoE == TRUE) &&
                 (pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV6Status == IHC_STARTED))
         {
+            //TODO: Restarting firewall to add IPOE_HEALTH_CHECK firewall rules.
             sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, NULL, 0);
             Force_IPv6_toggle(p_VirtIf->Name); //Force Ipv6 toggle to update default route
             WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_IPV6_UP, p_VirtIf->Name);
@@ -3371,6 +3374,8 @@ static eWanState_t wan_state_dual_stack_active(WanMgr_IfaceSM_Controller_t* pWan
         if((strcmp(IHC_V4_status, IPOE_STATUS_FAILED) == 0) && (p_VirtIf->PPP.Enable == FALSE) && (p_VirtIf->EnableIPoE == TRUE) &&
                 (pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV4Status == IHC_STARTED))
         {
+            //TODO: Restarting firewall to add IPOE_HEALTH_CHECK firewall rules.
+            sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, NULL, 0);
             WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_UP, p_VirtIf->Name);
         }
         p_VirtIf->IP.Ipv4Renewed = FALSE;
@@ -3382,6 +3387,7 @@ static eWanState_t wan_state_dual_stack_active(WanMgr_IfaceSM_Controller_t* pWan
         if((strcmp(IHC_V6_status, IPOE_STATUS_FAILED) == 0) && (p_VirtIf->PPP.Enable == FALSE) && (p_VirtIf->EnableIPoE == TRUE) &&
                 (pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV6Status == IHC_STARTED))
         {
+            //TODO: Restarting firewall to add IPOE_HEALTH_CHECK firewall rules.
             sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, NULL, 0);
             Force_IPv6_toggle(p_VirtIf->Name); //Force Ipv6 toggle to update default route
             WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_IPV6_UP, p_VirtIf->Name);
@@ -3569,6 +3575,7 @@ static eWanState_t wan_state_mapt_active(WanMgr_IfaceSM_Controller_t* pWanIfaceC
         if((strcmp(IHC_V6_status, IPOE_STATUS_FAILED) == 0) && (p_VirtIf->PPP.Enable == FALSE) && (p_VirtIf->EnableIPoE == TRUE) &&
                 (pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV6Status == IHC_STARTED))
         {
+            //TODO: Restarting firewall to add IPOE_HEALTH_CHECK firewall rules.
             sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, NULL, 0);
             Force_IPv6_toggle(p_VirtIf->Name); //Force Ipv6 toggle to update default route
             WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_IPV6_UP, p_VirtIf->Name);
