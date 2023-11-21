@@ -514,8 +514,6 @@ static int _dibbler_client_operation(char * arg)
     {
         CcspTraceInfo(("%s start\n", __func__));
 
-#if defined(INTEL_PUMA7) || defined(_COSA_BCM_ARM_)
-
 #if defined(INTEL_PUMA7)
         //Intel Proposed RDKB Generic Bug Fix from XB6 SDK
         /* Waiting for the TLV file to be parsed correctly so that the right erouter mode can be used in the code below.
@@ -545,49 +543,6 @@ static int _dibbler_client_operation(char * arg)
             //When 60s have passed and the file is still not configured by CcspGwprov module
             fprintf(stderr, "\n%s()%s(): TLV data has not been initialized by CcspGwProvApp.Continuing with the previous configuration\n",__FILE__, __FUNCTION__);
         }
-#endif
-#if !defined(_HUB4_PRODUCT_REQ_) && !defined(_DT_WAN_Manager_Enable_)
-        /* This wait loop is not required as we are not configuring IPv6 address on erouter0 interface */
-        fp = v_secure_popen("r", "syscfg get last_erouter_mode");
-	if(!fp)
-        {
-             CcspTraceError(("[%s-%d] failed to opening v_secure_popen pipe !! \n", __FUNCTION__, __LINE__));
-        }
-        else
-        {
-            _get_shell_output(fp, out, sizeof(out));
-	    ret = v_secure_pclose(fp);
-            if(ret !=0) {
-                CcspTraceError(("[%s-%d] failed to closing v_secure_pclose() pipe ret [%d]!! \n", __FUNCTION__, __LINE__,ret));
-            }
-        }
-
-    /* TODO: To be fixed by Comcast
-             IPv6 address assigned to erouter0 gets deleted when erouter_mode=3(IPV4 and IPV6 both)
-             Don't start v6 service in parallel. Wait for wan-status to be set to 'started' by IPv4 DHCP client.
-    */
-        if (strstr(out, "3"))// If last_erouter_mode is both IPV4/IPV6
-    {
-             do{
-                   fp = v_secure_popen("r","sysevent get wan-status");
-		   if(!fp)
-                   {
-                      CcspTraceError(("[%s-%d] failed to opening v_secure_popen pipe !! \n", __FUNCTION__, __LINE__));
-                   }
-                   else
-                   {
-                       _get_shell_output(fp, out, sizeof(out));
-                       ret = v_secure_pclose(fp);
-                       if(ret !=0) {
-                           CcspTraceError(("[%s-%d] failed to closing v_secure_pclose() pipe ret [%d] !! \n", __FUNCTION__, __LINE__,ret));
-                       }
-                   }
-  
-                    CcspTraceInfo(("%s waiting for wan-status to started\n", __func__));
-                    sleep(1);//sleep(1) is to avoid lots of trace msgs when there is latency
-        }while(!strstr(out,"started"));
-    }
-#endif
 #endif
         /*This is for ArrisXB6 */
         /*TCXB6 is also calling service_dhcpv6_client.sh but the actuall script is installed from meta-rdk-oem layer as the intel specific code
