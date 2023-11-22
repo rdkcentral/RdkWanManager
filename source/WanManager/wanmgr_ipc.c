@@ -257,7 +257,7 @@ static ANSC_STATUS Wan_ForceRenewDhcpIPv4(char *ifName)
         CcspTraceInfo(("sending SIGUSR1 to %s[pid=%d], this will let the %s to send renew packet out \n", DHCPV4_CLIENT_NAME, pid, DHCPV4_CLIENT_NAME));
         util_signalProcess(pid, SIGUSR1);
     }
-    return WanMgr_SetInterfaceStatus(ifName, WANMGR_IFACE_CONNECTION_DOWN);
+    return  ANSC_STATUS_SUCCESS; 
 }
 
 static ANSC_STATUS Wan_StopDhcpIPv6(char *ifName)
