@@ -1924,12 +1924,15 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
     }
     else
     {
+        if(pNewIpcMsg->prefixPltime != 0 && pNewIpcMsg->prefixVltime != 0)
+        {
 #ifdef FEATURE_MAPT_DEBUG
-        MaptInfo("--------- Got an event in Wanmanager for MAPT_STOP ---------");
+            MaptInfo("--------- Got an event in Wanmanager for MAPT_STOP ---------");
 #endif
-        // reset MAP-T parameters
-        memset(&(pVirtIf->MAP.dhcp6cMAPTparameters), 0, sizeof(ipc_mapt_data_t));
-        WanManager_UpdateInterfaceStatus(pVirtIf, WANMGR_IFACE_MAPT_STOP);
+            // reset MAP-T parameters
+            memset(&(pVirtIf->MAP.dhcp6cMAPTparameters), 0, sizeof(ipc_mapt_data_t));
+            WanManager_UpdateInterfaceStatus(pVirtIf, WANMGR_IFACE_MAPT_STOP);
+        }
     }
 #endif // FEATURE_MAPT
 
