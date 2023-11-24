@@ -3982,6 +3982,7 @@ void WanMgr_IfaceSM_Init(WanMgr_IfaceSM_Controller_t* pWanIfaceSMCtrl, INT iface
 {
     if(pWanIfaceSMCtrl != NULL)
     {
+        memset(pWanIfaceSMCtrl, 0 , sizeof(WanMgr_IfaceSM_Controller_t));
         pWanIfaceSMCtrl->WanEnable = FALSE;
         pWanIfaceSMCtrl->interfaceIdx = iface_idx;
         pWanIfaceSMCtrl->VirIfIdx = VirIfIdx;

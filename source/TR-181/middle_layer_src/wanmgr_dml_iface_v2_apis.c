@@ -1555,7 +1555,19 @@ BOOL WanVirtualIf_SetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BO
         /* check the parameter name and set the corresponding value */
         if (strcmp(ParamName, "Enable") == 0)
         {
-            p_VirtIf->Enable = bValue;
+            if(p_VirtIf->Enable != bValue)
+            {
+                WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(p_VirtIf->baseIfIdx);
+                if(pWanDmlIfaceData != NULL)
+                {
+                    DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
+                    pWanDmlIface->VirtIfChanged = TRUE;
+                    CcspTraceInfo(("%s %d VirtualInterface %d Enable changed \n", __FUNCTION__, __LINE__, p_VirtIf->VirIfIdx+1));
+
+                    WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+                }
+                p_VirtIf->Enable = bValue;
+            }
             ret = TRUE;
         }
         if (strcmp(ParamName, "EnableDSLite") == 0)

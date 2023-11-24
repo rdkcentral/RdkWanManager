@@ -480,6 +480,7 @@ typedef struct _DML_WAN_INTERFACE
     CHAR                        AliasName[BUFLEN_64];
     BOOL                        MonitorOperStatus;
     BOOL                        WanConfigEnabled;
+    BOOL                        VirtIfChanged;
     BOOL                        CustomConfigEnable;
     CHAR                        CustomConfigPath[BUFLEN_128];
     DML_WAN_IFACE_SCAN_STATUS   InterfaceScanStatus;

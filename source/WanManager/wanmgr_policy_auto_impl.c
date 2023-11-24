@@ -463,6 +463,7 @@ static int WanMgr_StartIfaceStateMachine (WanMgr_Policy_Controller_t * pWanContr
             return ANSC_STATUS_FAILURE;
         }
     }
+    pIfaceData->VirtIfChanged = FALSE;
     return ANSC_STATUS_SUCCESS;
 
 }
@@ -1311,6 +1312,29 @@ static WcAwPolicyState_t State_WanInterfaceActive (WanMgr_Policy_Controller_t * 
                         __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
         }
         return Transistion_WanInterfaceDown (pWanController);
+    }
+
+    if(pActiveInterface->VirtIfChanged == TRUE)
+    {
+        for(int VirtId=0; VirtId < pActiveInterface->NoOfVirtIfs; VirtId++)
+        {
+            DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIface_locked(pWanController->activeInterfaceIdx, VirtId);
+            if(p_VirtIf != NULL )
+            {
+                if(p_VirtIf->Enable == TRUE && p_VirtIf->Interface_SM_Running == FALSE)
+                {
+                    CcspTraceInfo(("%s %d Starting virtual InterfaceStateMachine for %d \n", __FUNCTION__, __LINE__, VirtId));
+                    WanMgr_IfaceSM_Controller_t wanIfCtrl;
+                    WanMgr_IfaceSM_Init(&wanIfCtrl, pWanController->activeInterfaceIdx, VirtId);
+                    if (WanMgr_StartInterfaceStateMachine(&wanIfCtrl) != 0)
+                    {
+                        CcspTraceError(("%s %d: Unable to start interface state machine \n", __FUNCTION__, __LINE__));
+                    }
+                }
+                WanMgr_VirtualIfaceData_release(p_VirtIf);
+            }
+        }
+        pActiveInterface->VirtIfChanged = FALSE;
     }
 
     return STATE_AUTO_WAN_INTERFACE_ACTIVE;

@@ -690,6 +690,7 @@ void WanMgr_IfaceData_Init(WanMgr_Iface_Data_t* pIfaceData, UINT iface_index)
         memset(pWanDmlIface->AliasName, 0, 64);
         memset(pWanDmlIface->BaseInterface, 0, 64);
         pWanDmlIface->BaseInterfaceStatus = WAN_IFACE_PHY_STATUS_DOWN;
+        pWanDmlIface->VirtIfChanged = FALSE;
         pWanDmlIface->Selection.Enable = FALSE;
         pWanDmlIface->Selection.Priority = -1;
         pWanDmlIface->Selection.Timeout = 0;
