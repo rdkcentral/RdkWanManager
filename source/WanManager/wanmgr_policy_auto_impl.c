@@ -796,6 +796,8 @@ static WcAwPolicyState_t Transition_InterfaceValidated (WanMgr_Policy_Controller
                     __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
     }
 
+    sysevent_set(sysevent_fd, sysevent_token, "voip-status", "started", 0);
+
     CcspTraceInfo(("%s %d: setting GroupSelectedInterface(%d) \n", __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
     if (WanMgr_SetGroupSelectedIface (pWanController->GroupInst, (pWanController->activeInterfaceIdx+1)) != ANSC_STATUS_SUCCESS)
     {
