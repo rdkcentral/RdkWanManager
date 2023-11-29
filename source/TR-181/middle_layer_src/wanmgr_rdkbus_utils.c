@@ -958,6 +958,12 @@ ANSC_STATUS WanMgr_GetSelectedIPMode(DML_VIRTUAL_IFACE * pVirtIf)
 {
     char param_value[256] = {0};
 
+    // start default as dual stack.
+    pVirtIf->IP.SelectedMode = DUAL_STACK_MODE;
+
+    // ModeForceEnable set to true on changing the IP.Mode data model.
+    // IP.Mode will have precedence over Preferred Mode when ModeForceEnable is set to true.
+    // ModeForceEnable is reset to false only on Factory Reset.
     if(pVirtIf->IP.ModeForceEnable == FALSE)
     {
         if(CCSP_SUCCESS == WanMgr_RdkBus_GetParamValuesFromDB("Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.IPModeEnable",param_value,sizeof(param_value)))
