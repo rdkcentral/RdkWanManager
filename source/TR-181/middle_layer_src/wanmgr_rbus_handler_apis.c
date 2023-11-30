@@ -116,7 +116,11 @@ static void WanMgr_EnumToString(UINT Enum, UINT EnumType, char* String)
         Ptr = ((Enum == WAN_IFACE_STATUS_INITIALISING)? "Initialising":
                ((Enum == WAN_IFACE_STATUS_VALIDATING)? "Validating":
                ((Enum == WAN_IFACE_STATUS_UP)? "Up":
+#if defined(WAN_MANAGER_UNIFICATION_ENABLED)
+               ((Enum == WAN_IFACE_STATUS_STANDBY)? "Up":
+#else
                ((Enum == WAN_IFACE_STATUS_STANDBY)? "Standby":
+#endif
                ((Enum == WAN_IFACE_STATUS_INVALID)? "Invalid":"Disabled")))));
     }
     else if (EnumType == ENUM_WAN_LINKSTATUS)
