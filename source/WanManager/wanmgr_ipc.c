@@ -43,9 +43,7 @@ extern token_t sysevent_token;
 
 /* ---- Private Functions ------------------------------------ */
 #ifdef FEATURE_IPOE_HEALTH_CHECK
-static ANSC_STATUS Wan_StopDhcpIPv4(char * ifName);
 static ANSC_STATUS Wan_ForceRenewDhcpIPv4(char * ifName);
-static ANSC_STATUS Wan_StopDhcpIPv6(char * ifName);
 #endif /*FEATURE_IPOE_HEALTH_CHECK*/
 
 
@@ -246,37 +244,17 @@ static ANSC_STATUS WanMgr_IpcNewIhcMsg(ipc_ihc_data_t *pIhcMsg)
             break;
         case IPOE_MSG_IHC_ECHO_FAIL_IPV4:
             CcspTraceInfo(("[%s-%d] Received IPOE_MSG_IHC_ECHO_FAIL_IPV4 from IHC for intf: %s \n", __FUNCTION__, __LINE__, pIhcMsg->ifName));
-            if(Wan_StopDhcpIPv4(pIhcMsg->ifName) != ANSC_STATUS_SUCCESS)
-            {
-                CcspTraceError(("[%s-%d] Failed to process IPoE v4 Echo Fail Event \n", __FUNCTION__, __LINE__));
-                return ANSC_STATUS_FAILURE;
-            }
+            return WanMgr_SetInterfaceStatus(pIhcMsg->ifName, WANMGR_IFACE_CONNECTION_DOWN);
             break;
         case IPOE_MSG_IHC_ECHO_FAIL_IPV6:
             CcspTraceInfo(("[%s-%d] Received IPOE_MSG_IHC_ECHO_FAIL_IPV6 from IHC for intf: %s \n", __FUNCTION__, __LINE__, pIhcMsg->ifName));
-            if(Wan_StopDhcpIPv6(pIhcMsg->ifName) != ANSC_STATUS_SUCCESS)
-            {
-                CcspTraceError(("[%s-%d] Failed to process IPoE v6 Echo Fail Event \n", __FUNCTION__, __LINE__));
-                return ANSC_STATUS_FAILURE;
-            }
+            return WanMgr_SetInterfaceStatus(pIhcMsg->ifName, WANMGR_IFACE_CONNECTION_IPV6_DOWN);
             break;
         default:
             CcspTraceError(("[%s-%d] Invalid message type \n", __FUNCTION__, __LINE__));
             return ANSC_STATUS_FAILURE;
     }
     return ANSC_STATUS_SUCCESS;
-}
-
-static ANSC_STATUS Wan_StopDhcpIPv4(char *ifName)
-{
-
-    /* Kill DHCPv4 client */
-    if (WanManager_StopDhcpv4Client(ifName,TRUE) != ANSC_STATUS_SUCCESS)
-    {
-        CcspTraceInfo(("Failed to kill DHCPv4 Client \n"));
-    }
-
-    return WanMgr_SetInterfaceStatus(ifName, WANMGR_IFACE_CONNECTION_DOWN);
 }
 
 static ANSC_STATUS Wan_ForceRenewDhcpIPv4(char *ifName)
@@ -292,17 +270,6 @@ static ANSC_STATUS Wan_ForceRenewDhcpIPv4(char *ifName)
     return  ANSC_STATUS_SUCCESS; 
 }
 
-static ANSC_STATUS Wan_StopDhcpIPv6(char *ifName)
-{
-
-    /* Kill DHCPv6 client */
-    if (WanManager_StopDhcpv6Client(TRUE) != ANSC_STATUS_SUCCESS)
-    {
-        CcspTraceInfo(("Failed to kill DHCPv6 Client \n"));
-    }
-
-    return WanMgr_SetInterfaceStatus(ifName, WANMGR_IFACE_CONNECTION_IPV6_DOWN);
-}
 #endif
 
 ANSC_STATUS Wan_ForceRenewDhcpIPv6(char *ifName)

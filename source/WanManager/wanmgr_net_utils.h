@@ -82,6 +82,11 @@ typedef enum
     WAN_INIT_COMPLETE = 1
 }WanBootEventState;
 
+typedef enum {
+    STOP_DHCP_WITH_RELEASE = 0,
+    STOP_DHCP_WITHOUT_RELEASE,
+} DHCP_RELEASE_BEHAVIOUR;
+
 /* ---- Global Variables -------------------------- */
 
 /* ---- Global Prototypes -------------------------- */
@@ -98,7 +103,7 @@ uint32_t WanManager_StartDhcpv6Client(DML_VIRTUAL_IFACE* pVirtIf, IFACE_TYPE Ifa
  * @param intf Interface name on which the dhcpv4 needs to stop
  * @return ANSC_STATUS_SUCCESS upon success else returned error code.
  ***************************************************************************/
-ANSC_STATUS WanManager_StopDhcpv6Client(char * iface_name);
+ANSC_STATUS WanManager_StopDhcpv6Client(char * iface_name, DHCP_RELEASE_BEHAVIOUR IsReleaseNeeded);
 
 /***************************************************************************
  * @brief API used to start Dhcpv4 client application.
@@ -113,7 +118,7 @@ uint32_t WanManager_StartDhcpv4Client(DML_VIRTUAL_IFACE* pVirtIf, char* baseInte
  * @param IsReleaseNeeded whether release required or not during dhcp stop
  * @return ANSC_STATUS_SUCCESS upon success else returned error code.
  ***************************************************************************/
-ANSC_STATUS WanManager_StopDhcpv4Client(char * iface_name, unsigned char IsReleaseNeeded);
+ANSC_STATUS WanManager_StopDhcpv4Client(char * iface_name, DHCP_RELEASE_BEHAVIOUR IsReleaseNeeded);
 
 /***************************************************************************
  * @brief API used to restart Dhcpv6 client application.

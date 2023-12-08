@@ -576,7 +576,7 @@ uint32_t WanManager_StartDhcpv6Client(DML_VIRTUAL_IFACE* pVirtIf, IFACE_TYPE Ifa
  * @param boolDisconnect : This indicates whether this function called from disconnect context or not.
  *              TRUE (disconnect context) / FALSE (Non disconnect context)
  */
-ANSC_STATUS WanManager_StopDhcpv6Client(char * iface_name)
+ANSC_STATUS WanManager_StopDhcpv6Client(char * iface_name, DHCP_RELEASE_BEHAVIOUR is_release_required)
 {
     if (iface_name == NULL)
     {
@@ -584,14 +584,17 @@ ANSC_STATUS WanManager_StopDhcpv6Client(char * iface_name)
         return 0;
     }
 
-    CcspTraceInfo (("%s %d: Stopping dhcpv6 client for %s\n", __FUNCTION__, __LINE__, iface_name));
+    CcspTraceInfo (("%s %d: Stopping dhcpv6 client for %s %s\n", __FUNCTION__, __LINE__, iface_name, (is_release_required==STOP_DHCP_WITH_RELEASE)? "With release": "."));
 
-    // send unicast DHCPv6 RELEASE
-    int fd = 0;
-    fd = creat("/tmp/dhcpv6_release",S_IRUSR | S_IWUSR | S_IRGRP);
-    if(fd != -1)
+    if (is_release_required == STOP_DHCP_WITH_RELEASE)
     {
-        close(fd);
+        // send unicast DHCPv6 RELEASE
+        int fd = 0;
+        fd = creat("/tmp/dhcpv6_release",S_IRUSR | S_IWUSR | S_IRGRP);
+        if(fd != -1)
+        {
+            close(fd);
+        }
     }
 
     int ret;
@@ -632,7 +635,7 @@ uint32_t WanManager_StartDhcpv4Client(DML_VIRTUAL_IFACE* pVirtIf, char* baseInte
     return pid;
 }
 
-ANSC_STATUS WanManager_StopDhcpv4Client(char * iface_name, unsigned char IsReleaseNeeded)
+ANSC_STATUS WanManager_StopDhcpv4Client(char * iface_name, DHCP_RELEASE_BEHAVIOUR IsReleaseNeeded)
 {
     if (iface_name == NULL)
     {
@@ -640,7 +643,7 @@ ANSC_STATUS WanManager_StopDhcpv4Client(char * iface_name, unsigned char IsRelea
         return 0;
     }
 
-    CcspTraceInfo (("%s %d: Stopping dhcpv4 client for %s\n", __FUNCTION__, __LINE__, iface_name));
+    CcspTraceInfo (("%s %d: Stopping dhcpv4 client for %s %s\n", __FUNCTION__, __LINE__, iface_name, (IsReleaseNeeded==STOP_DHCP_WITH_RELEASE)? "With release": "."));
 #if defined(_DT_WAN_Manager_Enable_)
     WanManager_StopUdhcpcService(iface_name);
     return ANSC_STATUS_SUCCESS;
@@ -651,9 +654,16 @@ ANSC_STATUS WanManager_StopDhcpv4Client(char * iface_name, unsigned char IsRelea
 
     memset (&params, 0, sizeof(dhcp_params));
     params.ifname = iface_name;
-    params.is_release_required = IsReleaseNeeded;
+    params.is_release_required = (IsReleaseNeeded==STOP_DHCP_WITH_RELEASE)?true:false;
 
     ret = stop_dhcpv4_client(&params);
+
+    if (IsReleaseNeeded == STOP_DHCP_WITH_RELEASE)
+    {
+        // Need to review during DHCP Manager integration.
+        CcspTraceInfo(("%s %d - sleep 2 seconds for dhcpv4 client to send release \n", __FUNCTION__, __LINE__));
+        sleep(2);
+    }
 
     return ret;
 }
