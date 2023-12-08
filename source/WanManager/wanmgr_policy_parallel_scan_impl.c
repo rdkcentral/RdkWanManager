@@ -1167,7 +1167,10 @@ void WanMgr_ParallelScanSelectionProcess (void* arg)
         pWanIfaceGroup->ThreadId = 0;
         pWanIfaceGroup->SelectedInterface = 0;
         pWanIfaceGroup->ConfigChanged = 0;
-        pWanIfaceGroup->State = STATE_GROUP_STOPPED;
+        if(pWanIfaceGroup->State != STATE_GROUP_DEACTIVATED)
+        {
+            pWanIfaceGroup->State = STATE_GROUP_STOPPED;
+        }
         WanMgrDml_GetIfaceGroup_release();
     }
     CcspTraceInfo(("%s %d - Exit from SelectionProcess Group(%d) state machine\n", __FUNCTION__, __LINE__, WanController.GroupInst));

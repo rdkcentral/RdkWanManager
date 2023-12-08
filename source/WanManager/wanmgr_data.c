@@ -829,8 +829,12 @@ void WanMgr_Remote_IfaceData_Update(WanMgr_Iface_Data_t* pIfaceData, UINT iface_
         {
             CcspTraceInfo(("%s %d Group(%d) configuration changed  \n", __FUNCTION__, __LINE__, pWanDmlIface->Selection.Group));
             /* Add interface to remote group Available interface list */
-            pWanIfaceGroup->ConfigChanged = TRUE;
             pWanIfaceGroup->InterfaceAvailable |= (1<<pWanDmlIface->uiIfaceIdx);
+            if(pWanIfaceGroup->State != STATE_GROUP_DEACTIVATED)
+            {
+                //If GROUP is DEACTIVATED, setting ConfigChanged flag is not required.
+                pWanIfaceGroup->ConfigChanged = TRUE;
+            }
             WanMgrDml_GetIfaceGroup_release();
             pWanIfaceGroup = NULL;
         }

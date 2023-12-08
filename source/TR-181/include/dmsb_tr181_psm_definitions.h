@@ -26,6 +26,7 @@
 
 #define PSM_WANMANAGER_WANENABLE                            "dmsb.wanmanager.wanenable"
 #define PSM_WANMANAGER_WANMODE                              "dmsb.wanmanager.wanmode"
+#define PSM_WANMANAGER_FAILOVER_TYPE                        "dmsb.wanmanager.FailOverType"
 #define PSM_WANMANAGER_RESTORATION_DELAY                    "dmsb.wanmanager.RestorationDelay"
 #define PSM_WANMANAGER_ALLOW_REMOTE_IFACE                   "dmsb.wanmanager.allowremoteinterfaces"
 #define PSM_WANMANAGER_GROUP_COUNT                          "dmsb.wanmanager.group.Count"

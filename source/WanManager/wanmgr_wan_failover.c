@@ -84,6 +84,7 @@ ANSC_STATUS WanMgr_FailOverCtrlInit(WanMgr_FailOver_Controller_t* pFailOverContr
     }
 
     pFailOverController->WanEnable = FALSE;
+    pFailOverController->FailOverType = HOTSWAP;
     pFailOverController->CurrentActiveGroup = 0;
     pFailOverController->HighestValidGroup = 0;
     pFailOverController->RestorationDelay = 0;
@@ -108,6 +109,16 @@ ANSC_STATUS WanMgr_FailOverCtrlInit(WanMgr_FailOver_Controller_t* pFailOverContr
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
         }
     }
+
+    //Read Failover type from PSM
+    char param_value[256] = {0};
+    int retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(PSM_WANMANAGER_FAILOVER_TYPE, param_value,sizeof(param_value));
+    if (retPsmGet == CCSP_SUCCESS)
+    {
+        _ansc_sscanf(param_value, "%d", &(pFailOverController->FailOverType));
+    }
+
+    return ANSC_STATUS_SUCCESS;
 }
 
 /*
@@ -253,7 +264,7 @@ static void WanMgr_FO_IfaceGroupMonitor()
         WANMGR_IFACE_GROUP* pWanIfaceGroup = WanMgr_GetIfaceGroup_locked((i));
         if (pWanIfaceGroup != NULL)
         {
-            if( pWanIfaceGroup->InterfaceAvailable && pWanIfaceGroup->State != STATE_GROUP_RUNNING)
+            if( pWanIfaceGroup->InterfaceAvailable && pWanIfaceGroup->State != STATE_GROUP_RUNNING && pWanIfaceGroup->State != STATE_GROUP_DEACTIVATED)
             {
                 pWanIfaceGroup->SelectionTimeOut = 0;
                 pWanIfaceGroup->InitialScanComplete = FALSE;
@@ -478,6 +489,20 @@ static WcFailOverState_t Transition_Start (WanMgr_FailOver_Controller_t* pFailOv
     memset(&(pFailOverController->GroupSelectionTimer), 0, sizeof(struct timespec));
     clock_gettime(CLOCK_MONOTONIC_RAW, &(pFailOverController->GroupSelectionTimer));
 
+    if(pFailOverController->FailOverType == COLDSWAP)
+    {
+        CcspTraceInfo(("%s %d FailOverType is set to COLDSWAP. starting all group in decativated state \n", __FUNCTION__, __LINE__));
+        for(int i = 0; i < WanMgr_GetTotalNoOfGroups(); i++)
+        {
+            WANMGR_IFACE_GROUP* pWanIfaceGroup = WanMgr_GetIfaceGroup_locked((i));
+            if (pWanIfaceGroup != NULL)
+            {
+                pWanIfaceGroup->State = STATE_GROUP_DEACTIVATED;
+                WanMgrDml_GetIfaceGroup_release();
+            }
+        }
+    }
+
     return STATE_FAILOVER_SCANNING_GROUP;
 }
 
@@ -512,6 +537,15 @@ ANSC_STATUS MarkHighPriorityGroup (WanMgr_FailOver_Controller_t* pFailOverContro
                         pFailOverController->HighestValidGroup = (i+1);
                     }
                     WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+                }
+            }
+
+            if(pFailOverController->FailOverType == COLDSWAP && !pFailOverController->HighestValidGroup)
+            { 
+                if(pWanIfaceGroup->State == STATE_GROUP_DEACTIVATED)
+                {
+                    CcspTraceInfo(("%s %d: Group (%d) state set to VALID\n", __FUNCTION__, __LINE__, i+1));
+                    pWanIfaceGroup->State = STATE_GROUP_STOPPED;
                 }
             }
 
@@ -574,6 +608,28 @@ static WcFailOverState_t Transition_ActivateGroup (WanMgr_FailOver_Controller_t 
         }
 
         pFailOverController->CurrentActiveGroup = pFailOverController->HighestValidGroup;
+
+        if(pFailOverController->FailOverType == COLDSWAP)
+        {
+            /* Cold swap Enabled. DEACTIVATE(Stop) all the lower priority groups  */
+            //pFailOverController->CurrentActiveGroup varibale holds current active group index +1
+            for(int i = pFailOverController->CurrentActiveGroup; i < WanMgr_GetTotalNoOfGroups(); i++)
+            {
+                WANMGR_IFACE_GROUP* pWanIfaceGroup = WanMgr_GetIfaceGroup_locked((i));
+                if (pWanIfaceGroup != NULL)
+                {
+                    /* STATE_GROUP_DEACTIVATED will stop the selection policy and all the VISM started by it. 
+                     * Do not confuse with Transition_DeactivateGroup which only deactivates the selcted interface from active WAN connection. */
+                    if(pWanIfaceGroup->State == STATE_GROUP_RUNNING)
+                    {
+                        pWanIfaceGroup->State = STATE_GROUP_DEACTIVATED;
+                        pWanIfaceGroup->ConfigChanged = TRUE;
+                        CcspTraceInfo(("%s %d: Group (%d) state set to DEACTIVATED. Selection thread will be stopped. \n", __FUNCTION__, __LINE__, pFailOverController->CurrentActiveGroup+1));
+                    }
+                    WanMgrDml_GetIfaceGroup_release();
+                } 
+            }
+        }
     }else //We should never reach this case.
     {
         CcspTraceError(("%s %d HighestValidGroup not available.\n", __FUNCTION__, __LINE__));
@@ -902,10 +958,9 @@ ANSC_STATUS WanMgr_FailOverThread (void)
 
 
     WanMgr_UpdateFOControllerData(&FWController);
-    //    WanMgr_IfaceGroupMonitor();
-    WanMgr_FO_IfaceGroupMonitor();
 
     fo_sm_state = Transition_Start(&FWController);
+    WanMgr_FO_IfaceGroupMonitor();
 
     while (bRunning)
     {

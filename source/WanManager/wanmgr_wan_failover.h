@@ -39,6 +39,7 @@ typedef enum TelemetryEvents
 typedef  struct _WANMGR_FAILOVER_CONTROLLER_
 {
     BOOL                    WanEnable;
+    FAILOVER_TYPE           FailOverType;
     UINT                    CurrentActiveGroup;
     UINT                    HighestValidGroup;
     struct timespec         GroupSelectionTimer;
