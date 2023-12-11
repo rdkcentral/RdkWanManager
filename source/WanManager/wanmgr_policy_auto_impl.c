@@ -733,6 +733,7 @@ static WcAwPolicyState_t Transition_InterfaceFound (WanMgr_Policy_Controller_t *
         CcspTraceError(("%s %d: unable to start interface state machine\n", __FUNCTION__, __LINE__));
     }
 
+#ifdef WAN_MANAGER_SELECTION_SCAN_TIMEOUT_DISABLE
     // update the  controller SelectedTimeOut for new selected active iface
     pWanController->InterfaceSelectionTimeOut = pActiveInterface->Selection.Timeout;
     CcspTraceInfo(("%s %d: selected interface idx=%d, name=%s, selectionTimeOut=%d \n",
@@ -744,6 +745,7 @@ static WcAwPolicyState_t Transition_InterfaceFound (WanMgr_Policy_Controller_t *
     memset(&(pWanController->SelectionTimeOutStart), 0, sizeof(struct timespec));
     clock_gettime(CLOCK_MONOTONIC_RAW, &(pWanController->SelectionTimeOutStart));
     pWanController->SelectionTimeOutStart.tv_sec += pWanController->InterfaceSelectionTimeOut;
+#endif
 
     return STATE_AUTO_WAN_INTERFACE_SCANNING;
 }
@@ -1079,8 +1081,10 @@ static WcAwPolicyState_t State_WaitForInterface (WanMgr_Policy_Controller_t * pW
     {
         // Phy is UP for selected iface
         CcspTraceInfo(("%s %d: selected interface index:%d is BaseInterface UP\n", __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
+#ifdef WAN_MANAGER_SELECTION_SCAN_TIMEOUT_DISABLE
         CcspTraceInfo(("%s %d: stopping timer\n", __FUNCTION__, __LINE__));
         memset(&(pWanController->SelectionTimeOutStart), 0, sizeof(struct timespec));
+#endif
         return Transition_InterfaceFound(pWanController);
     }
 
