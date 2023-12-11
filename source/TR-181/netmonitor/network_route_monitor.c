@@ -108,6 +108,16 @@ static int WanManager_MaptRouteSetting()
     char vlanIf[BUFLEN_64] = {0};
     char defaultGatewayV6[BUFLEN_128] = {0};
     int ret =0;
+    char partnerID[BUFLEN_32]    = {0};
+
+    syscfg_get(NULL, "PartnerID", partnerID, sizeof(partnerID));
+    int mtu_size_mapt = MTU_DEFAULT_SIZE; /* 1500 */
+    if (strcmp("sky-uk", partnerID) != 0)
+    {
+        mtu_size_mapt = MAPT_MTU_SIZE; /* 1520 */
+    }
+    DBG_MONITOR_PRINT("MAPT MTU Size = %d \n", mtu_size_mapt);
+
     sysevent_get(sysevent_fd, sysevent_token, MAP_WAN_IFACE, vlanIf, sizeof(vlanIf));
     if (!strcmp(vlanIf, "\0"))
     {
@@ -131,7 +141,7 @@ static int WanManager_MaptRouteSetting()
     if(ret != 0) {
          DBG_MONITOR_PRINT("%s %d: Failure in executing command via v_secure_system. ret:[%d] \n", __FUNCTION__,__LINE__,ret);
     }
-    ret = v_secure_system("ip -6 route replace %s via %s dev %s mtu %d", brIPv6Prefix, defaultGatewayV6, vlanIf, MAPT_MTU_SIZE);
+    ret = v_secure_system("ip -6 route replace %s via %s dev %s mtu %d", brIPv6Prefix, defaultGatewayV6, vlanIf, mtu_size_mapt);
     if(ret != 0) {
           DBG_MONITOR_PRINT("%s %d: Failure in executing command via v_secure_system. ret:[%d] \n",__FUNCTION__,__LINE__,ret);
     }

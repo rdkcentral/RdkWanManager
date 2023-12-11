@@ -866,6 +866,16 @@ int WanManager_ProcessMAPTConfiguration(ipc_mapt_data_t *dhcp6cMAPTMsgBody, WANM
 
     MaptData_t maptInfo;
 
+    /* Get PartnerID. In sky-uk MTU size is 1500 and else case its 1520. */
+    char partnerID[BUFLEN_32]    = {0};
+    syscfg_get(NULL, "PartnerID", partnerID, sizeof(partnerID));
+    int mtu_size_mapt = MTU_DEFAULT_SIZE; /* 1500 */
+    if (strcmp("sky-uk", partnerID) != 0)
+    {
+        mtu_size_mapt = MTU_SIZE; /* 1520. */
+    }
+    MaptInfo("mapt: MTU Size = %d \n", mtu_size_mapt);
+
     /* RM16042: Since erouter0 is vlan interface on top of eth3 ptm, we need
        to first set the MTU size of eth3 to 1520 and then change MTU of erouter0.
        Otherwise we can't configure MTU as we are getting `Numerical result out of range` error.
@@ -874,11 +884,11 @@ int WanManager_ProcessMAPTConfiguration(ipc_mapt_data_t *dhcp6cMAPTMsgBody, WANM
     if(!strcmp(DSL_INTERFACE, baseIf))
     {
         strcpy(layer2_iface, PTM_INTERFACE);
-        snprintf(cmdConfigureMTUSize, sizeof(cmdConfigureMTUSize), "ip link set dev %s mtu %d ", layer2_iface, MTU_SIZE);
+        snprintf(cmdConfigureMTUSize, sizeof(cmdConfigureMTUSize), "ip link set dev %s mtu %d ", layer2_iface, mtu_size_mapt);
     }
     else
     {
-        snprintf(cmdConfigureMTUSize, sizeof(cmdConfigureMTUSize), "ip link set dev %s mtu %d ", baseIf, MTU_SIZE);
+        snprintf(cmdConfigureMTUSize, sizeof(cmdConfigureMTUSize), "ip link set dev %s mtu %d ", baseIf, mtu_size_mapt);
     }
 
 #ifdef FEATURE_MAPT_DEBUG
@@ -892,7 +902,7 @@ int WanManager_ProcessMAPTConfiguration(ipc_mapt_data_t *dhcp6cMAPTMsgBody, WANM
     }
 
     /*  Configure erouter0 MTU size. */
-    snprintf(cmdConfigureMTUSize, sizeof(cmdConfigureMTUSize), "ip link set dev %s mtu %d ", vlanIf, MTU_SIZE);
+    snprintf(cmdConfigureMTUSize, sizeof(cmdConfigureMTUSize), "ip link set dev %s mtu %d ", vlanIf, mtu_size_mapt);
 
 #ifdef FEATURE_MAPT_DEBUG
     MaptInfo("mapt: cmdConfigureMTUSize:%s", cmdConfigureMTUSize);
@@ -1123,12 +1133,12 @@ int WanManager_ProcessMAPTConfiguration(ipc_mapt_data_t *dhcp6cMAPTMsgBody, WANM
     }
 
     snprintf(cmdInterfaceDefaultRoDel , sizeof(cmdInterfaceDefaultRoDel), "ip route del default");
-    snprintf(cmdConfigureMTUSize, sizeof(cmdConfigureMTUSize), "ip link set dev %s mtu %d ", MAP_INTERFACE, MTU_SIZE);
+    snprintf(cmdConfigureMTUSize, sizeof(cmdConfigureMTUSize), "ip link set dev %s mtu %d ", MAP_INTERFACE, mtu_size_mapt);
     snprintf(cmdInterfaceMTU1, sizeof(cmdInterfaceMTU1), "echo %d > /proc/sys/net/ipv6/conf/%s/mtu", MTU_DEFAULT_SIZE, vlanIf);
     snprintf(cmdInterfaceMTU2, sizeof(cmdInterfaceMTU2), "ip -6 ro change default via %s dev %s mtu %d", defaultGatewayV6, vlanIf, MTU_DEFAULT_SIZE) ;
     snprintf(cmdEnableIpv4Traffic, sizeof(cmdEnableIpv4Traffic), "ip ro rep default dev %s mtu %d", MAP_INTERFACE, MTU_DEFAULT_SIZE) ;
-    snprintf(cmdInterfaceMTU3, sizeof(cmdInterfaceMTU3), "ip -6 ro rep %s via %s dev %s mtu %d", dhcp6cMAPTMsgBody->brIPv6Prefix, defaultGatewayV6, vlanIf, MTU_SIZE);
-    snprintf(cmdInterfaceDefaultRouteDefault , sizeof(cmdInterfaceDefaultRouteDefault), "ip -6 ro rep %s/128 dev %s mtu %d", ipv6AddressString, MAP_INTERFACE, MTU_SIZE);
+    snprintf(cmdInterfaceMTU3, sizeof(cmdInterfaceMTU3), "ip -6 ro rep %s via %s dev %s mtu %d", dhcp6cMAPTMsgBody->brIPv6Prefix, defaultGatewayV6, vlanIf, mtu_size_mapt);
+    snprintf(cmdInterfaceDefaultRouteDefault , sizeof(cmdInterfaceDefaultRouteDefault), "ip -6 ro rep %s/128 dev %s mtu %d", ipv6AddressString, MAP_INTERFACE, mtu_size_mapt);
 #ifdef FEATURE_MAPT_DEBUG
     MaptInfo("--- map_nat46: Configuration Starts ---");
     MaptInfo("map_nat46: %s", cmdinterfaceCreate);
