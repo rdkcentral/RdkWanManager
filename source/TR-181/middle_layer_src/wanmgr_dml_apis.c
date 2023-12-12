@@ -189,8 +189,11 @@ BOOL WanManager_SetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, ch
         {
             char *webConf = NULL;
             int webSize = 0;
-
+#ifdef _64BIT_ARCH_SUPPORT_            
+            webConf = AnscBase64Decode(pString, (ULONG*)&webSize);
+#else         
             webConf = AnscBase64Decode(pString, &webSize);
+#endif
             if(!webConf)
             {
                 CcspTraceError(("%s: Failed to decode webconfig blob..\n",__FUNCTION__));
