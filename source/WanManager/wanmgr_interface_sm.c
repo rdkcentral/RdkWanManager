@@ -1576,6 +1576,7 @@ static eWanState_t wan_transition_physical_interface_down(WanMgr_IfaceSM_Control
             p_VirtIf->IP.Dhcp6cPid = 0;
     }
 
+    p_VirtIf->IP.SelectedModeTimerStatus = NOTSTARTED; // Reset Timer
 #ifdef FEATURE_IPOE_HEALTH_CHECK
     if(p_VirtIf->EnableIPoE == TRUE && pWanIfaceCtrl->IhcPid > 0)
     {
@@ -2543,8 +2544,6 @@ static eWanState_t wan_transition_exit(WanMgr_IfaceSM_Controller_t* pWanIfaceCtr
         CcspTraceInfo(("%s %d clear VIRIF_NAME \n", __FUNCTION__, __LINE__));
     }
 #endif
-
-    p_VirtIf->IP.SelectedModeTimerStatus = NOTSTARTED; // Reset Timer
 
     p_VirtIf->Interface_SM_Running = FALSE;
     
