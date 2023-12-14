@@ -515,33 +515,48 @@ static int _dibbler_client_operation(char * arg)
         CcspTraceInfo(("%s start\n", __func__));
 
 #if defined(INTEL_PUMA7)
-        //Intel Proposed RDKB Generic Bug Fix from XB6 SDK
-        /* Waiting for the TLV file to be parsed correctly so that the right erouter mode can be used in the code below.
-        For ANYWAN please extend the below code to support the case of TLV config file not being there. */
-      do{
-         fp = v_secure_popen("r","sysevent get TLV202-status");
-	 if(!fp)
-	 {
-	     CcspTraceError(("[%s-%d] failed to opening v_secure_popen pipe !! \n", __FUNCTION__, __LINE__));
-	 }
-         else 
-         {
-             _get_shell_output(fp, out, sizeof(out));
-	     ret = v_secure_pclose(fp);
-	     if(ret !=0) {
-                 CcspTraceError(("[%s-%d] failed to closing v_secure_pclose() pipe ret [%d] !! \n", __FUNCTION__, __LINE__,ret));
-             }
-         }
+        char buf[8] = {0};
+        unsigned char IsEthWANEnabled = FALSE;
 
-         fprintf( stderr, "\n%s:%s(): Waiting for CcspGwProvApp to parse TLV config file\n", __FILE__, __FUNCTION__);
-         sleep(1);//sleep(1) is to avoid lots of trace msgs when there is latency
-         watchdog--;
-        }while((!strstr(out,"success")) && (watchdog != 0));
-
-        if(watchdog == 0)
+        if((0 == access("/nvram/ETHWAN_ENABLE", F_OK)) && 
+           ((0 == syscfg_get( NULL, "eth_wan_enabled", buf, sizeof(buf))) && 
+            (buf[0] != '\0') && 
+            (strncmp(buf, "true", strlen("true")) == 0)))
         {
-            //When 60s have passed and the file is still not configured by CcspGwprov module
-            fprintf(stderr, "\n%s()%s(): TLV data has not been initialized by CcspGwProvApp.Continuing with the previous configuration\n",__FILE__, __FUNCTION__);
+            IsEthWANEnabled = TRUE;
+        }
+
+        //No need to wait if ETHWAN enabled case
+        if( FALSE == IsEthWANEnabled )
+        {
+            //Intel Proposed RDKB Generic Bug Fix from XB6 SDK
+            /* Waiting for the TLV file to be parsed correctly so that the right erouter mode can be used in the code below.
+            For ANYWAN please extend the below code to support the case of TLV config file not being there. */
+            do{
+              fp = v_secure_popen("r","sysevent get TLV202-status");
+              if(!fp)
+              {
+                  CcspTraceError(("[%s-%d] failed to opening v_secure_popen pipe !! \n", __FUNCTION__, __LINE__));
+              }
+              else 
+              {
+                  _get_shell_output(fp, out, sizeof(out));
+              ret = v_secure_pclose(fp);
+              if(ret !=0) {
+                      CcspTraceError(("[%s-%d] failed to closing v_secure_pclose() pipe ret [%d] !! \n", __FUNCTION__, __LINE__,ret));
+                  }
+              }
+
+              fprintf( stderr, "\n%s:%s(): Waiting for CcspGwProvApp to parse TLV config file\n", __FILE__, __FUNCTION__);
+              sleep(1);//sleep(1) is to avoid lots of trace msgs when there is latency
+              watchdog--;
+            }while((!strstr(out,"success")) && (watchdog != 0));
+
+            if(watchdog == 0)
+            {
+                //When 60s have passed and the file is still not configured by CcspGwprov module
+                fprintf(stderr, "\n%s()%s(): TLV data has not been initialized by CcspGwProvApp.Continuing with the previous configuration\n",__FILE__, __FUNCTION__);
+            }
         }
 #endif
         /*This is for ArrisXB6 */
