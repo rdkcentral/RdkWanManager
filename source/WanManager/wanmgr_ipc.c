@@ -36,7 +36,6 @@ typedef struct _WanIpcCtrl_t_
 } WanIpcCtrl_t;
 
 
-static int   ipcListenFd;   /* Unix domain IPC listening socket fd */
 extern int sysevent_fd;
 extern token_t sysevent_token;
 
@@ -294,6 +293,31 @@ static void* IpcServerThread( void *arg )
 
     // local variables
     BOOL bRunning = TRUE;
+    int   ipcListenFd;   /* Unix domain IPC listening socket fd */
+    while(1)
+    {
+
+        CcspTraceError(("%s %d Creating nn_socket and binding %s\n", __FUNCTION__, __LINE__,WAN_MANAGER_ADDR));
+        ipcListenFd = nn_socket(AF_SP, NN_PULL);
+
+        if (ipcListenFd < 0)
+        {
+            CcspTraceError(("Error: nn_socket failed[%s]\n",nn_strerror(nn_errno ())));
+            return ANSC_STATUS_FAILURE;
+        }
+
+        if (nn_bind(ipcListenFd, WAN_MANAGER_ADDR) < 0)
+        {
+            CcspTraceError(("Error: nn_bind failed[%s] to %s retry...\n",nn_strerror(nn_errno ()), WAN_MANAGER_ADDR));
+            nn_close (ipcListenFd);
+            sleep(5);
+        }else
+        {
+            CcspTraceInfo(("%s %d ipcListenFd %d bind is successful\n", __FUNCTION__, __LINE__, ipcListenFd));
+            break;
+        }
+    }
+
 
     int bytes = 0;
     int msg_size = sizeof(ipc_msg_payload_t);
@@ -350,25 +374,6 @@ static void* IpcServerThread( void *arg )
     pthread_exit(NULL);
 }
 
-static ANSC_STATUS IpcServerInit()
-{
-    ANSC_STATUS ret = ANSC_STATUS_SUCCESS;
-    uint32_t i;
-
-    if ((ipcListenFd = nn_socket(AF_SP, NN_PULL)) < 0)
-    {
-        CcspTraceError(("Error: nn_socket failed[%s]\n",nn_strerror(nn_errno ())));
-        return ANSC_STATUS_FAILURE;
-    }
-    if ((i = nn_bind(ipcListenFd, WAN_MANAGER_ADDR)) < 0)
-    {
-        CcspTraceError(("Error: nn_bind failed[%s]\n",nn_strerror(nn_errno ())));
-        nn_close(ipcListenFd);
-        return ANSC_STATUS_FAILURE;
-    }
-
-    return ANSC_STATUS_SUCCESS;
-}
 
 #ifdef FEATURE_IPOE_HEALTH_CHECK
 ANSC_STATUS WanMgr_SendMsgToIHC (ipoe_msg_type_t msgType, char *ifName)
@@ -480,12 +485,6 @@ ANSC_STATUS WanMgr_StartIpcServer()
     ANSC_STATUS retStatus = ANSC_STATUS_FAILURE;
     int ret = -1;
 
-    if(IpcServerInit() != ANSC_STATUS_SUCCESS)
-    {
-        CcspTraceInfo(("Failed to initialise IPC messaging"));
-        return -1;
-    }
-
     //create thread
     ret = pthread_create( &ipcThreadId, NULL, &IpcServerThread, NULL );
 
@@ -501,9 +500,3 @@ ANSC_STATUS WanMgr_StartIpcServer()
     return retStatus ;
 }
 
-ANSC_STATUS WanMgr_CloseIpcServer(void)
-{
-    //nn_close(ipcListenFd);
-
-    return ANSC_STATUS_SUCCESS ;
-}
