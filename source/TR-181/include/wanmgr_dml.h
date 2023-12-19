@@ -179,6 +179,22 @@ typedef enum _DML_WAN_IP_MODE
     DML_WAN_IP_MODE_NO_IP
 } DML_WAN_IP_MODE;
 
+typedef enum _DML_WAN_IP_PREFERRED_MODE
+{
+    DUAL_STACK_MODE = 1,
+    MAPT_MODE,
+    MAPE_MODE,
+    DSLITE_MODE
+} DML_WAN_IP_PREFERRED_MODE;
+
+typedef enum _TIMER_STATUS
+{
+    NOTSTARTED = 1,
+    EXPIRED,
+    RUNNING,
+    COMPLETE
+} TIMER_STATUS;
+
 /*
  *  Wan Marking object
  */
@@ -303,6 +319,11 @@ typedef struct _DML_WANIFACE_IP
     BOOL                        RefreshDHCP;
     BOOL                        RestartV6Client; //This is a workaround to restart dhcpv6 client for the platform where PAM configures IPv6. !FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE
     DML_WAN_IP_MODE             Mode;
+    DML_WAN_IP_PREFERRED_MODE   PreferredMode;
+    DML_WAN_IP_PREFERRED_MODE   SelectedMode;
+    struct timespec             SelectedModeTimerStart;
+    TIMER_STATUS                SelectedModeTimerStatus;
+    BOOL                        ModeForceEnable;
     BOOL                        Ipv4Changed;
     BOOL                        Ipv6Changed;
 #ifdef FEATURE_IPOE_HEALTH_CHECK
@@ -338,6 +359,15 @@ typedef struct
     BOOL maptAssigned;     /**< Have we been assigned mapt config ? */
     BOOL isFMR;
 }MaptData_t;
+
+typedef struct _WANMGR_MAPT_CONFIG_DATA_
+{
+    int psidValue;
+    char ipAddressString[BUFLEN_32];
+    char ipLANAddressString[BUFLEN_32];
+    int psidLen;
+}WANMGR_MAPT_CONFIG_DATA;
+
 #endif
 
 typedef struct _DML_WANIFACE_MAP
@@ -347,6 +377,7 @@ typedef struct _DML_WANIFACE_MAP
     BOOL                        MaptChanged;
 #ifdef FEATURE_MAPT
     ipc_mapt_data_t dhcp6cMAPTparameters;
+    WANMGR_MAPT_CONFIG_DATA     MaptConfig;
 #endif
 } DML_WANIFACE_MAP;
 

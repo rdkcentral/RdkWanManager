@@ -760,6 +760,11 @@ void WanMgr_VirtIface_Init(DML_VIRTUAL_IFACE * pVirtIf, UINT iface_index)
     pVirtIf->IP.Mode = DML_WAN_IP_MODE_DUAL_STACK;
     pVirtIf->IP.Ipv4Changed = FALSE;
     pVirtIf->IP.Ipv6Changed = FALSE;
+    pVirtIf->IP.PreferredMode = DUAL_STACK_MODE;
+    pVirtIf->IP.SelectedMode = DUAL_STACK_MODE;
+    pVirtIf->IP.ModeForceEnable = FALSE;
+    pVirtIf->IP.SelectedModeTimerStatus = NOTSTARTED;
+    memset(&(pVirtIf->IP.SelectedModeTimerStart), 0, sizeof(struct timespec));
 #ifdef FEATURE_IPOE_HEALTH_CHECK
     pVirtIf->IP.Ipv4Renewed = FALSE;
     pVirtIf->IP.Ipv6Renewed = FALSE;
@@ -771,6 +776,9 @@ void WanMgr_VirtIface_Init(DML_VIRTUAL_IFACE * pVirtIf, UINT iface_index)
     pVirtIf->MAP.MaptStatus = WAN_IFACE_MAPT_STATE_DOWN;
     memset(pVirtIf->MAP.Path, 0, 64);
     pVirtIf->MAP.MaptChanged = FALSE;
+#ifdef FEATURE_MAPT
+    memset(&(pVirtIf->MAP.MaptConfig), 0, sizeof(WANMGR_MAPT_CONFIG_DATA));
+#endif
     memset(pVirtIf->DSLite.Path, 0, 64);
     pVirtIf->DSLite.Status = WAN_IFACE_DSLITE_STATE_DOWN;
     pVirtIf->DSLite.Changed = FALSE;

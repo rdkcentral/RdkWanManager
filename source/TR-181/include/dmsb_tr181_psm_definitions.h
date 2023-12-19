@@ -50,6 +50,8 @@
 #define PSM_WANMANAGER_IF_VIRIF_IP_MODE                     "dmsb.wanmanager.if.%d.VirtualInterface.%d.IP.Mode"
 #define PSM_WANMANAGER_IF_VIRIF_IP_V4SOURCE                 "dmsb.wanmanager.if.%d.VirtualInterface.%d.IP.IPv4Source"
 #define PSM_WANMANAGER_IF_VIRIF_IP_V6SOURCE                 "dmsb.wanmanager.if.%d.VirtualInterface.%d.IP.IPv6Source"
+#define PSM_WANMANAGER_IF_VIRIF_IP_PREFERREDMODE            "dmsb.wanmanager.if.%d.VirtualInterface.%d.IP.PreferredMode"
+#define PSM_WANMANAGER_IF_VIRIF_IP_MODE_FORCE_ENABLE        "dmsb.wanmanager.if.%d.VirtualInterface.%d.IP.ModeForceEnable"
 
 #if defined(WAN_MANAGER_UNIFICATION_ENABLED)
 #define PSM_WANMANAGER_IF_SELECTION_ENABLE                  "dmsb.wanmanager.if.%d.Selection.Enable"
