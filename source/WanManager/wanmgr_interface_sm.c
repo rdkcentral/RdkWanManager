@@ -2479,7 +2479,6 @@ static eWanState_t wan_transition_mapt_down(WanMgr_IfaceSM_Controller_t* pWanIfa
     /* Clear DHCPv4 client */
     WanManager_UpdateInterfaceStatus (p_VirtIf, WANMGR_IFACE_CONNECTION_DOWN);
     memset(&(p_VirtIf->IP.Ipv4Data), 0, sizeof(WANMGR_IPV4_DATA));
-    p_VirtIf->IP.Dhcp4cPid = 0;
 
     if(p_VirtIf->IP.pIpcIpv4Data != NULL)
     {
