@@ -1498,6 +1498,9 @@ static eWanState_t wan_transition_start(WanMgr_IfaceSM_Controller_t* pWanIfaceCt
         WanMgr_RdkBus_ConfigureVlan(p_VirtIf, TRUE);
     }
 
+    /*Should Update available status */
+    Update_Interface_Status();
+
     CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION START\n", __FUNCTION__, __LINE__, pInterface->Name));
 
     p_VirtIf->Interface_SM_Running = TRUE;

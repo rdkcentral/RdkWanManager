@@ -1798,10 +1798,8 @@ ANSC_STATUS Update_Interface_Status()
                 }
                 else // MODEM_MODE
                 {
-                    if(pWanIfaceData->Selection.Status == WAN_IFACE_ACTIVE)
-                    {
-                        strncpy(newIface->CurrentActive, MESH_IFNAME, sizeof(MESH_IFNAME));
-                    }
+                    /*In Modem/Extender Mode, CurrentActiveInterface should be always Mesh Interface Name*/
+                    strncpy(newIface->CurrentActive, MESH_IFNAME, sizeof(MESH_IFNAME));
                 }
                 /* Sort the link list based on priority */
                 SortedInsert(&head, newIface);
