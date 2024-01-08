@@ -266,7 +266,7 @@ int get_Virtual_Interface_FromPSM(ULONG instancenum, ULONG virtInsNum ,DML_VIRTU
         pVirtIf->Enable = TRUE;
     }
 
-#if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE) /* TODO: This is a workaround for the platforms using same Wan Name.*/
+#if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE) || defined(_PLATFORM_RASPBERRYPI_)/* TODO: This is a workaround for the platforms using same Wan Name.*/
     _ansc_memset(param_name, 0, sizeof(param_name));
     _ansc_memset(param_value, 0, sizeof(param_value));
     _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_NAME, instancenum, (virtInsNum + 1));
