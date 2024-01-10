@@ -768,7 +768,8 @@ static WcPsPolicyState_t State_ScanningInterface (WanMgr_Policy_Controller_t * p
                     highPriorityValue = -1; //set negative value to give highest priority for last active link interface
 
                     if(pWanIfaceData->VirtIfList->Status == WAN_IFACE_STATUS_UP ||
-                            pWanIfaceData->VirtIfList->Status == WAN_IFACE_STATUS_STANDBY)
+                            pWanIfaceData->VirtIfList->Status == WAN_IFACE_STATUS_STANDBY ||
+                                    pWanIfaceData->VirtIfList->Status == WAN_IFACE_STATUS_VALID)
                     {
                         pWanController->activeInterfaceIdx = uiLoopCount;
                         WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
@@ -785,8 +786,9 @@ static WcPsPolicyState_t State_ScanningInterface (WanMgr_Policy_Controller_t * p
 
                 /* Set the highest priority Active interface */
                 if((pWanIfaceData->VirtIfList->Status == WAN_IFACE_STATUS_UP ||
-                            pWanIfaceData->VirtIfList->Status == WAN_IFACE_STATUS_STANDBY) &&
-                        pWanIfaceData->Selection.Priority <= highPriorityActiveValue)
+                        pWanIfaceData->VirtIfList->Status == WAN_IFACE_STATUS_STANDBY ||
+                            pWanIfaceData->VirtIfList->Status == WAN_IFACE_STATUS_VALID) &&
+                                pWanIfaceData->Selection.Priority <= highPriorityActiveValue)
                 {
                     pWanController->activeInterfaceIdx = uiLoopCount;
                     highPriorityActiveValue = pWanIfaceData->Selection.Priority;

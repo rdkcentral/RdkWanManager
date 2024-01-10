@@ -1157,7 +1157,8 @@ static WcAwPolicyState_t State_ScanningInterface (WanMgr_Policy_Controller_t * p
 
     // checked if iface is validated or only interface enabled
     if ((pActiveInterface->VirtIfList->Status == WAN_IFACE_STATUS_UP) || 
-            (pActiveInterface->VirtIfList->Status == WAN_IFACE_STATUS_STANDBY))
+        (pActiveInterface->VirtIfList->Status == WAN_IFACE_STATUS_STANDBY) ||
+        (pActiveInterface->VirtIfList->Status == WAN_IFACE_STATUS_VALID))
     {
         CcspTraceInfo(("%s %d: Interface validated\n", __FUNCTION__, __LINE__));
         return Transition_InterfaceValidated(pWanController);

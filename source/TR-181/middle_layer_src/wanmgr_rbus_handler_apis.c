@@ -122,7 +122,8 @@ static void WanMgr_EnumToString(UINT Enum, UINT EnumType, char* String)
 #else
                ((Enum == WAN_IFACE_STATUS_STANDBY)? "Standby":
 #endif
-               ((Enum == WAN_IFACE_STATUS_INVALID)? "Invalid":"Disabled")))));
+               ((Enum == WAN_IFACE_STATUS_VALID)? "Standby": // Valid to standby only for dm display
+               ((Enum == WAN_IFACE_STATUS_INVALID)? "Invalid":"Disabled"))))));
     }
     else if (EnumType == ENUM_WAN_LINKSTATUS)
     {
