@@ -1645,6 +1645,10 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
             CcspTraceInfo(("assigned IPv6 address \n"));
             connected = TRUE;
 #if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE) || (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_)) //TODO: V6 handled in PAM
+            /* TODO: Assign IPv6 address on Wan Interface when received, if dhcpv6 client didn't assign on the ineterface. 
+             * Currently dibbler client will assign IA_NA to the interface. 
+             * VISM will assign the prefix on LAN interface.  
+             */
         }
 #else
             if (strcmp(pDhcp6cInfoCur->address, pNewIpcMsg->address))
@@ -1807,6 +1811,8 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
         {
             CcspTraceInfo(("IPv6 configuration has been changed \n"));
             pVirtIf->IP.Ipv6Changed = TRUE;
+            CcspTraceInfo(("%s %d - RestartConnectivityCheck triggered. \n", __FUNCTION__, __LINE__));
+            pVirtIf->IP.RestartConnectivityCheck = TRUE;
         }
         else
         {
@@ -1820,9 +1826,7 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
             }
             sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_RADVD_RESTART, NULL, 0);
 #endif
-#ifdef FEATURE_IPOE_HEALTH_CHECK
             pVirtIf->IP.Ipv6Renewed = TRUE;
-#endif
         }
         // update current IPv6 Data
         memcpy(&(pVirtIf->IP.Ipv6Data), &(Ipv6DataTemp), sizeof(WANMGR_IPV6_DATA));

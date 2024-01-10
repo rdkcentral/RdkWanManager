@@ -837,7 +837,6 @@ int WanManager_DoRestartApp(const char *appName, const char *cmdLineArgs)
     return WanManager_DoStartApp(appName, cmdLineArgs);
 }
 
-
 #ifdef FEATURE_IPOE_HEALTH_CHECK
 UINT WanManager_StartIpoeHealthCheckService(const char *ifName)
 {

@@ -111,6 +111,13 @@
 #define WANMGR_ALIASNAME_CHECK                        (strstr(name, WANMGR_INFACE_ALIASNAME_SUFFIX))
 #endif /* WAN_MANAGER_UNIFICATION_ENABLED */
 
+//TandD connectivity check DML
+#define TANDD_START_CONNECTIVITY_CHECK               "Device.X_RDK_DNSInternet.StartConnectivityCheck()"
+#define TANDD_STOP_CONNECTIVITY_CHECK                "Device.X_RDK_DNSInternet.StopConnectivityCheck()"
+#define TANDD_CONNECTIVITY_CHECK_RESULT              "Device.Diagnostics.X_RDK_DNSInternet.WANInterface.[%s].MonitorResult"
+#define TANDD_CONNECTIVITY_CHECK_TREE                "Device.Diagnostics.X_RDK_DNSInternet.WANInterface."
+#define TANDD_CONNECTIVITY_CHECK_MONITOR_STR         "MonitorResult"
+
 typedef enum _IDM_MSG_OPERATION
 {
     IDM_SET = 1,
@@ -172,4 +179,6 @@ ANSC_STATUS WanMgr_WanRemoteIfaceConfigure(WanMgr_DeviceChangeEvent * pDeviceCha
 BOOL WanMgr_Rbus_discover_components(char const *ModuleList);
 #endif //_HUB4_PRODUCT_REQ_
 void WanMgr_Rbus_SubscribeWanReady();
+/* WCC - Wan Connectivity Check*/
+ANSC_STATUS WanMgr_Configure_TAD_WCC(DML_VIRTUAL_IFACE *pVirtIf, WCC_EVENT Event);
 #endif

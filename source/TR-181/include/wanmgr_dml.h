@@ -260,6 +260,30 @@ typedef enum {
     COLDSWAP
 } FAILOVER_TYPE;
 
+typedef enum {
+    WAN_CONNECTION_UNKNOWN =0,
+    WAN_CONNECTIVITY_UP = 1,
+    WAN_CONNECTIVITY_DOWN,
+} CONNECTIVITY_STATUS;
+
+typedef enum {
+    WAN_CONNECTIVITY_TYPE_NO_CHECK = 1,
+    WAN_CONNECTIVITY_TYPE_IHC,
+    WAN_CONNECTIVITY_TYPE_TAD,
+} CONNECTIVITY_CHECK_TYPE;
+
+typedef enum {
+    CONNECTION_MSG_IPV4 = 1,
+    CONNECTION_MSG_IPV6
+} CONNECTION_TYPE;
+
+/* WCC -  WAN CONNECTIVITY CHECK */
+typedef enum {
+    WCC_STOP = 0,
+    WCC_START,
+    WCC_RESTART,
+} WCC_EVENT;
+
 typedef struct _DATAMODEL_PPP
 {
     BOOL                          Enable;
@@ -321,8 +345,13 @@ typedef struct _DML_WANIFACE_IP
     CHAR                        Interface[BUFLEN_64];
     DML_WAN_IFACE_IPV4_STATUS   Ipv4Status;
     DML_WAN_IFACE_IPV6_STATUS   Ipv6Status;
+    CONNECTIVITY_CHECK_TYPE     ConnectivityCheckType;
+    CONNECTIVITY_STATUS         Ipv4ConnectivityStatus;
+    CONNECTIVITY_STATUS         Ipv6ConnectivityStatus;
     DML_WAN_IP_SOURCE           IPv4Source;
     DML_WAN_IP_SOURCE           IPv6Source;
+    BOOL                        ConnectivityCheckRunning;
+    BOOL                        RestartConnectivityCheck;
     BOOL                        RefreshDHCP;
     BOOL                        RestartV6Client; //This is a workaround to restart dhcpv6 client for the platform where PAM configures IPv6. !FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE
     DML_WAN_IP_MODE             Mode;
@@ -333,10 +362,8 @@ typedef struct _DML_WANIFACE_IP
     BOOL                        ModeForceEnable;
     BOOL                        Ipv4Changed;
     BOOL                        Ipv6Changed;
-#ifdef FEATURE_IPOE_HEALTH_CHECK
     BOOL                        Ipv4Renewed;
     BOOL                        Ipv6Renewed;
-#endif
     WANMGR_IPV4_DATA            Ipv4Data;
     WANMGR_IPV6_DATA            Ipv6Data;
     ipc_dhcpv4_data_t*          pIpcIpv4Data;

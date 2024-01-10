@@ -251,6 +251,9 @@ int get_Virtual_Interface_FromPSM(ULONG instancenum, ULONG virtInsNum ,DML_VIRTU
     if(strcmp(param_value, PSM_ENABLE_STRING_TRUE) == 0)
     {
         pVirtIf->EnableIPoE = TRUE;
+        CcspTraceInfo(("%s %d IP.ConnectivityCheckType set to WAN_CONNECTIVITY_TYPE_IHC \n", __FUNCTION__, __LINE__));
+        /* Set ConnectivityCheckType to IPOE Health Check if it is enabled. */
+        pVirtIf->IP.ConnectivityCheckType = WAN_CONNECTIVITY_TYPE_IHC;
     }
 
     _ansc_memset(param_name, 0, sizeof(param_name));
@@ -452,8 +455,8 @@ int write_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFACE* p_In
 #if defined(WAN_MANAGER_UNIFICATION_ENABLED)
     memset(param_value, 0, sizeof(param_value));
     memset(param_name, 0, sizeof(param_name));
-    _ansc_sprintf(param_value, "%s", p_Interface->BaseInterface );
-    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_BASEINTERFACE, instancenum);
+    snprintf(param_value, sizeof(param_value), "%s", p_Interface->BaseInterface );
+    snprintf(param_name, sizeof(param_name), PSM_WANMANAGER_IF_BASEINTERFACE, instancenum);
     WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
 #endif
 

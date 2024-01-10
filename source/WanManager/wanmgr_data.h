@@ -78,4 +78,5 @@ DML_VLAN_IFACE_TABLE* WanMgr_getVlanIface_locked(UINT baseIfidx, UINT virtIfIdx,
 void WanMgr_VlanIfaceMutex_release(DML_VLAN_IFACE_TABLE* vlanIf);
 DML_VIRTIF_MARKING* WanMgr_getVirtualMarking_locked(UINT baseIfidx, UINT virtIfIdx, UINT Markingid);
 void WanMgr_VirtMarkingMutex_release(DML_VIRTIF_MARKING* virtMarking);
+DML_VIRTUAL_IFACE* WanMgr_GetVirtIfDataByAlias_locked(char* iface_name);
 #endif  //_WANMGR_DATA_H_

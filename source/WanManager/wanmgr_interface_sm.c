@@ -104,6 +104,10 @@ extern int mapt_feature_enable_changed;
 #endif //FEATURE_MAPT
 static eWanState_t wan_transition_exit(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
 
+static ANSC_STATUS WanMgr_StartConnectivityCheck(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
+static ANSC_STATUS WanMgr_StopConnectivityCheck(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
+static ANSC_STATUS WanMgr_SendMsgTo_ConnectivityCheck(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl , CONNECTION_TYPE type, BOOL ConnStatus);
+
 /***************************************************************************
  * @brief API used to check the incoming nameserver is valid
  * @param af indicates ip address family
@@ -119,6 +123,14 @@ int IsValidDnsServer(int32_t af, const char *nameServer);
  * @return RETURN_OK upon success else returned error code.
  *********************************************************************************/
 static int wan_setUpIPv4(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl);
+
+/********************************************************************************
+ * @brief clear IPv4 adress from the interface.
+ * This API calls the HAL/linux system routine to configure ipv4.
+ * @param pWanIfaceCtrl Interface state machine data - iface and config wan data
+ * @return RETURN_OK upon success else returned error code.
+ *********************************************************************************/
+static int wan_deconfigIPv4onInterface(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl);
 
 /********************************************************************************
  * @brief Unconfig IPV4 configuration on the interface.
@@ -431,6 +443,36 @@ static void WanMgr_MonitorDhcpApps (WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
         t2_event_d("SYS_ERROR_DHCPV6Client_notrunning", 1);
 #endif
     }
+
+    if(p_VirtIf->IP.ConnectivityCheckType == WAN_CONNECTIVITY_TYPE_TAD && 
+       p_VirtIf->IP.ConnectivityCheckRunning == TRUE &&
+       p_VirtIf->IP.RestartConnectivityCheck == TRUE)
+    { 
+        CcspTraceInfo(("%s %d - Triggering Restart ConnectivityCheck \n", __FUNCTION__, __LINE__));
+        WanMgr_Configure_TAD_WCC( p_VirtIf, WCC_RESTART);
+    }
+
+#ifdef FEATURE_IPOE_HEALTH_CHECK
+    if(p_VirtIf->IP.ConnectivityCheckType == WAN_CONNECTIVITY_TYPE_IHC &&
+       p_VirtIf->IP.ConnectivityCheckRunning == TRUE &&
+       pWanIfaceCtrl->IhcPid > 0 &&
+      (WanMgr_IsPIDRunning(pWanIfaceCtrl->IhcPid) != TRUE)) 
+    {
+        WanMgr_StartConnectivityCheck(pWanIfaceCtrl);
+        if(pWanIfaceCtrl->IhcV4Status == IHC_STARTED)
+        {
+            pWanIfaceCtrl->IhcV4Status = IHC_STOPPED; //Reset status falg to start 
+            WanMgr_SendMsgTo_ConnectivityCheck(pWanIfaceCtrl, CONNECTION_MSG_IPV4 , TRUE);
+        }
+
+        if(pWanIfaceCtrl->IhcV6Status == IHC_STARTED)
+        {
+            pWanIfaceCtrl->IhcV6Status = IHC_STOPPED; //Reset status falg to start 
+            WanMgr_SendMsgTo_ConnectivityCheck(pWanIfaceCtrl, CONNECTION_MSG_IPV6 , TRUE);
+        }
+        CcspTraceInfo(("%s %d - SELFHEAL - Started ipoe_health_check  on interface %s, pid %d \n", __FUNCTION__, __LINE__, p_VirtIf->Name, pWanIfaceCtrl->IhcPid));
+    }
+#endif
 }
 
 #if defined(FEATURE_464XLAT)
@@ -547,9 +589,7 @@ void WanManager_UpdateInterfaceStatus(DML_VIRTUAL_IFACE* pVirtIf, wanmgr_iface_s
         {
             pVirtIf->IP.Ipv4Status = WAN_IFACE_IPV4_STATE_DOWN;
             pVirtIf->IP.Ipv4Changed = FALSE;
-#ifdef FEATURE_IPOE_HEALTH_CHECK
             pVirtIf->IP.Ipv4Renewed = FALSE;
-#endif
             strncpy(pVirtIf->IP.Ipv4Data.ip, "", sizeof(pVirtIf->IP.Ipv4Data.ip));
             break;
         }
@@ -562,9 +602,7 @@ void WanManager_UpdateInterfaceStatus(DML_VIRTUAL_IFACE* pVirtIf, wanmgr_iface_s
         {
             pVirtIf->IP.Ipv6Status = WAN_IFACE_IPV6_STATE_DOWN;
             pVirtIf->IP.Ipv6Changed = FALSE;
-#ifdef FEATURE_IPOE_HEALTH_CHECK
             pVirtIf->IP.Ipv6Renewed = FALSE;
-#endif
             pVirtIf->MAP.MaptStatus = WAN_IFACE_MAPT_STATE_DOWN;     // reset MAPT flag
             pVirtIf->MAP.MaptChanged = FALSE;                        // reset MAPT flag
             strncpy(pVirtIf->IP.Ipv6Data.address, "", sizeof(pVirtIf->IP.Ipv6Data.address));
@@ -996,6 +1034,38 @@ static void updateInterfaceToVoiceManager(WanMgr_IfaceSM_Controller_t* pWanIface
     }
 }
 
+static int wan_deconfigIPv4onInterface(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
+{
+    if ((pWanIfaceCtrl == NULL) || (pWanIfaceCtrl->pIfaceData == NULL))
+    {
+        CcspTraceError(("%s %d - Invalid args \n", __FUNCTION__, __LINE__));
+        return RETURN_ERR;
+    }
+
+    int ret = RETURN_OK;
+    char cmdStr[BUFLEN_256] = {0}; 
+
+    DML_WAN_IFACE * pInterface = pWanIfaceCtrl->pIfaceData;
+    DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIfaceById(pInterface->VirtIfList, pWanIfaceCtrl->VirIfIdx);
+
+#ifdef LTE_USB_FEATURE_ENABLED
+    if( 0 != strcmp(p_VirtIf->Name, "usb0" ) )
+#endif /** LTE_USB_FEATURE_ENABLED */
+    {
+        /* Need to remove the network from the routing table by
+        * doing "ifconfig L3IfName 0.0.0.0"
+        * wanData->ipv4Data.ifname is Empty.
+        */
+        snprintf(cmdStr, sizeof(cmdStr), "ifconfig %s 0.0.0.0", p_VirtIf->Name);
+        if (WanManager_DoSystemActionWithStatus("wan_deconfigIPv4onInterface: ifconfig L3IfName 0.0.0.0", (cmdStr)) != 0)
+        {
+            CcspTraceError(("%s %d - failed to run cmd: %s", __FUNCTION__, __LINE__, cmdStr));
+            ret = RETURN_ERR;
+        }
+    }
+    return ret;
+}
+
 static int wan_setUpIPv4(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
 {
 
@@ -1018,33 +1088,10 @@ static int wan_setUpIPv4(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
     DML_WAN_IFACE * pInterface = pWanIfaceCtrl->pIfaceData;
     DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIfaceById(pInterface->VirtIfList, pWanIfaceCtrl->VirIfIdx);
 
-    /** Setup IPv4: such as
-     * "ifconfig eth0 10.6.33.165 netmask 255.255.255.192 broadcast 10.6.33.191 up"
-     */
      if (wanmgr_set_Ipv4Sysevent(&p_VirtIf->IP.Ipv4Data, pWanIfaceCtrl->DeviceNwMode) != ANSC_STATUS_SUCCESS)
      {
          CcspTraceError(("%s %d - Could not store ipv4 data!", __FUNCTION__, __LINE__));
      }
-
-    if (WanManager_GetBCastFromIpSubnetMask(p_VirtIf->IP.Ipv4Data.ip, p_VirtIf->IP.Ipv4Data.mask, bCastStr) != RETURN_OK)
-    {
-        CcspTraceError((" %s %d - bad address %s/%s \n",__FUNCTION__,__LINE__, p_VirtIf->IP.Ipv4Data.ip, p_VirtIf->IP.Ipv4Data.mask));
-        return RETURN_ERR;
-    }
-
-    snprintf(cmdStr, sizeof(cmdStr), "ifconfig %s %s netmask %s broadcast %s mtu %u",
-             p_VirtIf->IP.Ipv4Data.ifname, p_VirtIf->IP.Ipv4Data.ip, p_VirtIf->IP.Ipv4Data.mask, bCastStr, p_VirtIf->IP.Ipv4Data.mtuSize);
-    CcspTraceInfo(("%s %d -  IP configuration = %s \n", __FUNCTION__, __LINE__, cmdStr));
-    WanManager_DoSystemAction("setupIPv4:", cmdStr);
-
-    /** Need to manually add route if the connection is PPP connection*/
-    if (p_VirtIf->PPP.Enable == TRUE)
-    {
-        if (WanManager_AddGatewayRoute(&p_VirtIf->IP.Ipv4Data) != RETURN_OK)
-        {
-            CcspTraceError(("%s %d - Failed to set up system gateway", __FUNCTION__, __LINE__));
-        }
-    }
 
     /** configure DNS */
     if (RETURN_OK != wan_updateDNS(pWanIfaceCtrl, TRUE, (p_VirtIf->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_UP)))
@@ -1158,22 +1205,6 @@ static int wan_tearDownIPv4(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
     else
     {
         CcspTraceInfo(("%s %d -  IPv4 DNS servers unconfig successfully \n", __FUNCTION__, __LINE__));
-    }
-
-#ifdef LTE_USB_FEATURE_ENABLED
-    if( 0 != strcmp(p_VirtIf->Name, "usb0" ) )
-#endif /** LTE_USB_FEATURE_ENABLED */
-    {
-        /* Need to remove the network from the routing table by
-        * doing "ifconfig L3IfName 0.0.0.0"
-        * wanData->ipv4Data.ifname is Empty.
-        */
-        snprintf(cmdStr, sizeof(cmdStr), "ifconfig %s 0.0.0.0", p_VirtIf->Name);
-        if (WanManager_DoSystemActionWithStatus("wan_tearDownIPv4: ifconfig L3IfName 0.0.0.0", (cmdStr)) != 0)
-        {
-            CcspTraceError(("%s %d - failed to run cmd: %s", __FUNCTION__, __LINE__, cmdStr));
-            ret = RETURN_ERR;
-        }
     }
 
     /*TODO:
@@ -1401,6 +1432,181 @@ static ANSC_STATUS WanManager_StopIHC(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl
 }
 #endif
 
+static ANSC_STATUS WanMgr_StartConnectivityCheck(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
+{
+    CcspTraceInfo(("[%s:%d] \n", __FUNCTION__, __LINE__));
+    if (pWanIfaceCtrl == NULL || pWanIfaceCtrl->pIfaceData == NULL)
+    {
+        CcspTraceError(("%s %d - Invalid args\n", __FUNCTION__, __LINE__));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    DML_WAN_IFACE* pInterface = pWanIfaceCtrl->pIfaceData;
+    DML_VIRTUAL_IFACE* pVirtIf = WanMgr_getVirtualIfaceById(pInterface->VirtIfList, pWanIfaceCtrl->VirIfIdx);
+
+    if(pVirtIf->IP.ConnectivityCheckRunning == TRUE)
+    {
+        CcspTraceInfo(("[%s:%d] ConnectivityCheck already running\n", __FUNCTION__, __LINE__));
+        return ANSC_STATUS_SUCCESS;
+    }
+
+    if(pVirtIf->IP.ConnectivityCheckType == WAN_CONNECTIVITY_TYPE_TAD)
+    {
+        CcspTraceInfo(("%s %d ConnectivityCheck Type is TAD \n", __FUNCTION__, __LINE__));
+        WanMgr_Configure_TAD_WCC( pVirtIf,  WCC_START);
+    }
+    else if(pVirtIf->IP.ConnectivityCheckType == WAN_CONNECTIVITY_TYPE_IHC)
+    {
+        CcspTraceInfo(("%s %d ConnectivityCheck Type is IHC \n", __FUNCTION__, __LINE__));
+#ifdef FEATURE_IPOE_HEALTH_CHECK
+        if ( pWanIfaceCtrl->IhcPid <= 0 )
+        {
+            // IHC enabled but not running, So Starting IHC
+            UINT IhcPid = 0;
+            IhcPid = WanManager_StartIpoeHealthCheckService(pVirtIf->Name);
+            if (IhcPid > 0)
+            {
+                pWanIfaceCtrl->IhcPid = IhcPid;
+                CcspTraceInfo(("%s %d - Starting IPoE Health Check pid - %u for interface %s \n",
+                                __FUNCTION__, __LINE__, pWanIfaceCtrl->IhcPid, pVirtIf->Name));
+            }
+            else
+            {
+                CcspTraceError(("%s %d - Failed to start IPoE Health Check for interface %s \n", __FUNCTION__, __LINE__, pVirtIf->Name));
+            }
+        }
+#endif
+    }else
+    {
+        CcspTraceInfo(("[%s:%d] ConnectivityCheck not configured.\n", __FUNCTION__, __LINE__));
+    }
+    pVirtIf->IP.ConnectivityCheckRunning = TRUE;    
+    
+    return ANSC_STATUS_SUCCESS;
+}
+
+static ANSC_STATUS WanMgr_StopConnectivityCheck(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
+{
+    CcspTraceInfo(("[%s:%d] \n", __FUNCTION__, __LINE__));
+    if (pWanIfaceCtrl == NULL || pWanIfaceCtrl->pIfaceData == NULL)
+    {
+        CcspTraceError(("%s %d - Invalid args\n", __FUNCTION__, __LINE__));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    DML_WAN_IFACE* pInterface = pWanIfaceCtrl->pIfaceData;
+    DML_VIRTUAL_IFACE* pVirtIf = WanMgr_getVirtualIfaceById(pInterface->VirtIfList, pWanIfaceCtrl->VirIfIdx);
+
+    if(pVirtIf->IP.ConnectivityCheckRunning == FALSE)
+    {
+        CcspTraceInfo(("[%s:%d] ConnectivityCheck Already stopped.\n", __FUNCTION__, __LINE__));
+        return ANSC_STATUS_SUCCESS;
+    }
+
+    if(pVirtIf->IP.ConnectivityCheckType == WAN_CONNECTIVITY_TYPE_TAD)
+    {
+        CcspTraceInfo(("%s %d ConnectivityCheck Type is TAD \n", __FUNCTION__, __LINE__));
+        WanMgr_Configure_TAD_WCC( pVirtIf,  WCC_STOP);
+    }
+    else if(pVirtIf->IP.ConnectivityCheckType == WAN_CONNECTIVITY_TYPE_IHC)
+    {
+        CcspTraceInfo(("%s %d ConnectivityCheck Type is IHC \n", __FUNCTION__, __LINE__));
+#ifdef FEATURE_IPOE_HEALTH_CHECK
+        if(pWanIfaceCtrl->IhcPid > 0)
+        {
+            WanManager_StopIHC(pWanIfaceCtrl);
+        }
+#endif  // FEATURE_IPOE_HEALTH_CHECK
+
+    }else
+    {
+        CcspTraceInfo(("[%s:%d] ConnectivityCheck not configured.\n", __FUNCTION__, __LINE__));
+    }
+
+    pVirtIf->IP.ConnectivityCheckRunning = FALSE;
+    return ANSC_STATUS_SUCCESS;
+}
+
+static ANSC_STATUS WanMgr_SendMsgTo_ConnectivityCheck(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl , CONNECTION_TYPE type, BOOL ConnStatus)
+{
+    CcspTraceInfo(("[%s:%d] \n", __FUNCTION__, __LINE__));
+    if (pWanIfaceCtrl == NULL || pWanIfaceCtrl->pIfaceData == NULL)
+    {
+        CcspTraceError(("%s %d - Invalid args\n", __FUNCTION__, __LINE__));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    DML_WAN_IFACE* pInterface = pWanIfaceCtrl->pIfaceData;
+    DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIfaceById(pInterface->VirtIfList, pWanIfaceCtrl->VirIfIdx);
+
+    if(p_VirtIf->IP.ConnectivityCheckRunning == FALSE)
+    {
+        CcspTraceInfo(("[%s:%d] ConnectivityCheck Not running. Starting \n", __FUNCTION__, __LINE__));
+        WanMgr_StartConnectivityCheck(pWanIfaceCtrl);
+    }
+
+    if(p_VirtIf->IP.ConnectivityCheckType == WAN_CONNECTIVITY_TYPE_TAD)
+    {
+        //Currently TestAndDiagnostic dns check doesn't require additional message afte start. DO nothing.
+    }
+    else if(p_VirtIf->IP.ConnectivityCheckType == WAN_CONNECTIVITY_TYPE_IHC)
+    {
+#ifdef FEATURE_IPOE_HEALTH_CHECK
+        char IHC_status[BUFLEN_16] = {0};
+        if(type == CONNECTION_MSG_IPV4 && ConnStatus == TRUE)
+        {
+            sysevent_get(sysevent_fd, sysevent_token, IPOE_HEALTH_CHECK_V4_STATUS, IHC_status, sizeof(IHC_status));
+            if(pWanIfaceCtrl->IhcV4Status == IHC_STOPPED ||
+                    p_VirtIf->IP.Ipv4Changed == TRUE  ||
+                    (p_VirtIf->IP.Ipv4Renewed == TRUE && (strcmp(IHC_status, IPOE_STATUS_FAILED) == 0)))
+            {
+                if(p_VirtIf->IP.Ipv4Renewed == TRUE && (strcmp(IHC_status, IPOE_STATUS_FAILED) == 0))
+                {
+                    //Restarting firewall to add IPOE_HEALTH_CHECK firewall rules.
+                    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, NULL, 0);
+                }
+                WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_UP, p_VirtIf->Name);
+                pWanIfaceCtrl->IhcV4Status = IHC_STARTED;
+            }
+        }
+        else if(type == CONNECTION_MSG_IPV4 && ConnStatus == FALSE)
+        {
+                CcspTraceInfo(("%s %d Sending IPOE_MSG_WAN_CONNECTION_DOWN \n", __FUNCTION__, __LINE__));
+                WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_DOWN, p_VirtIf->Name);
+                pWanIfaceCtrl->IhcV4Status = IHC_STOPPED;
+        }
+        else if(type == CONNECTION_MSG_IPV6 && ConnStatus == TRUE)
+        {
+            sysevent_get(sysevent_fd, sysevent_token, IPOE_HEALTH_CHECK_V6_STATUS, IHC_status, sizeof(IHC_status));
+            if(pWanIfaceCtrl->IhcV6Status == IHC_STOPPED ||
+                    p_VirtIf->IP.Ipv6Changed == TRUE  ||
+                    (p_VirtIf->IP.Ipv6Renewed == TRUE && (strcmp(IHC_status, IPOE_STATUS_FAILED) == 0)))
+            {
+                if(p_VirtIf->IP.Ipv6Renewed == TRUE && (strcmp(IHC_status, IPOE_STATUS_FAILED) == 0))
+                {
+                    //Restarting firewall to add IPOE_HEALTH_CHECK firewall rules.
+                    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, NULL, 0);
+                }
+               WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_IPV6_UP, p_VirtIf->Name);
+               pWanIfaceCtrl->IhcV6Status = IHC_STARTED;
+            }
+        }
+        else if(type == CONNECTION_MSG_IPV6 && ConnStatus == FALSE)
+        {
+                CcspTraceInfo(("%s %d Sending IPOE_MSG_WAN_CONNECTION_IPV6_DOWN \n", __FUNCTION__, __LINE__));
+                WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_IPV6_DOWN, p_VirtIf->Name);
+                pWanIfaceCtrl->IhcV6Status = IHC_STOPPED;
+        }
+
+#endif
+
+    }else
+    {
+        CcspTraceInfo(("[%s:%d] ConnectivityCheck not configured.\n", __FUNCTION__, __LINE__));
+    }
+
+    return ANSC_STATUS_SUCCESS;
+}
 
 /* WanManager_ClearDHCPData */
 /* This function must be used only with the mutex locked */
@@ -1414,9 +1620,7 @@ static ANSC_STATUS WanManager_ClearDHCPData(DML_VIRTUAL_IFACE * pVirtIf)
     /* DHCPv4 client */
     pVirtIf->IP.Ipv4Status = WAN_IFACE_IPV4_STATE_DOWN;
     pVirtIf->IP.Ipv4Changed = FALSE;
-#ifdef FEATURE_IPOE_HEALTH_CHECK
     pVirtIf->IP.Ipv4Renewed = FALSE;
-#endif
     memset(&(pVirtIf->IP.Ipv4Data), 0, sizeof(WANMGR_IPV4_DATA));
     pVirtIf->IP.Dhcp4cPid = 0;
     if(pVirtIf->IP.pIpcIpv4Data != NULL)
@@ -1428,9 +1632,7 @@ static ANSC_STATUS WanManager_ClearDHCPData(DML_VIRTUAL_IFACE * pVirtIf)
     /* DHCPv6 client */
     pVirtIf->IP.Ipv6Status = WAN_IFACE_IPV6_STATE_DOWN;
     pVirtIf->IP.Ipv6Changed = FALSE;
-#ifdef FEATURE_IPOE_HEALTH_CHECK
     pVirtIf->IP.Ipv6Renewed = FALSE;
-#endif
     memset(&(pVirtIf->IP.Ipv6Data), 0, sizeof(WANMGR_IPV6_DATA));
     pVirtIf->IP.Dhcp6cPid = 0;
     if(pVirtIf->IP.pIpcIpv6Data != NULL)
@@ -1438,6 +1640,10 @@ static ANSC_STATUS WanManager_ClearDHCPData(DML_VIRTUAL_IFACE * pVirtIf)
         free(pVirtIf->IP.pIpcIpv6Data);
         pVirtIf->IP.pIpcIpv6Data = NULL;
     }
+
+    //Init ConnectivityStatus to UP
+    pVirtIf->IP.Ipv4ConnectivityStatus = WAN_CONNECTIVITY_UP; 
+    pVirtIf->IP.Ipv6ConnectivityStatus = WAN_CONNECTIVITY_UP;
 
     return ANSC_STATUS_SUCCESS;
 }
@@ -1588,12 +1794,7 @@ static eWanState_t wan_transition_physical_interface_down(WanMgr_IfaceSM_Control
     }
 
     p_VirtIf->IP.SelectedModeTimerStatus = NOTSTARTED; // Reset Timer
-#ifdef FEATURE_IPOE_HEALTH_CHECK
-    if(p_VirtIf->EnableIPoE == TRUE && pWanIfaceCtrl->IhcPid > 0)
-    {
-        WanManager_StopIHC(pWanIfaceCtrl);
-    }
-#endif  // FEATURE_IPOE_HEALTH_CHECK
+    WanMgr_StopConnectivityCheck(pWanIfaceCtrl);
 
     if (p_VirtIf->PPP.Enable == TRUE)
     {
@@ -1863,21 +2064,12 @@ static eWanState_t wan_transition_ipv4_up(WanMgr_IfaceSM_Controller_t* pWanIface
         CcspTraceError(("%s %d - Failed to configure IPv4 successfully \n", __FUNCTION__, __LINE__));
     }
 
-#ifdef FEATURE_IPOE_HEALTH_CHECK
-        if (p_VirtIf->PPP.Enable == FALSE)
-        {
-            if ((p_VirtIf->EnableIPoE == TRUE) && (pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV4Status == IHC_STOPPED))
-            {
-                WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_UP, p_VirtIf->Name);
-                pWanIfaceCtrl->IhcV4Status = IHC_STARTED;
-            }
-        }
-#endif
+    WanMgr_StartConnectivityCheck(pWanIfaceCtrl);
+    WanMgr_SendMsgTo_ConnectivityCheck(pWanIfaceCtrl, CONNECTION_MSG_IPV4 , TRUE);
+
     /* Force reset ipv4 state global flag. */
     p_VirtIf->IP.Ipv4Changed = FALSE;
-#ifdef FEATURE_IPOE_HEALTH_CHECK
     p_VirtIf->IP.Ipv4Renewed = FALSE;
-#endif
 
     Update_Interface_Status();
     sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_WAN_SERVICE_STATUS, buf, sizeof(buf));
@@ -1964,6 +2156,7 @@ static eWanState_t wan_transition_ipv4_down(WanMgr_IfaceSM_Controller_t* pWanIfa
     }
 #endif
 
+    wan_deconfigIPv4onInterface(pWanIfaceCtrl); //delete IPv4 address from the interface
     if(p_VirtIf->Status == WAN_IFACE_STATUS_UP)
     {
         if (wan_tearDownIPv4(pWanIfaceCtrl) != RETURN_OK)
@@ -1973,16 +2166,7 @@ static eWanState_t wan_transition_ipv4_down(WanMgr_IfaceSM_Controller_t* pWanIfa
         wanmgr_sysevents_ipv4Info_init(p_VirtIf->Name, pWanIfaceCtrl->DeviceNwMode); // reset the sysvent/syscfg fields
     }
 
-#ifdef FEATURE_IPOE_HEALTH_CHECK
-        if (p_VirtIf->PPP.Enable == FALSE)
-        {
-            if((p_VirtIf->EnableIPoE) && (pWanIfaceCtrl->IhcPid > 0))
-            {
-                WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_DOWN, p_VirtIf->Name);
-                pWanIfaceCtrl->IhcV4Status = IHC_STOPPED;
-            }
-        }
-#endif
+    WanMgr_SendMsgTo_ConnectivityCheck(pWanIfaceCtrl, CONNECTION_MSG_IPV4 , FALSE);
 
     Update_Interface_Status();
     sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_IPV6_CONNECTION_STATE, buf, sizeof(buf));
@@ -2135,16 +2319,9 @@ static eWanState_t wan_transition_ipv6_up(WanMgr_IfaceSM_Controller_t* pWanIface
         CcspTraceError(("%s %d - Failed to configure IPv6 successfully \n", __FUNCTION__, __LINE__));
     }
 
-#ifdef FEATURE_IPOE_HEALTH_CHECK
-        if (p_VirtIf->PPP.Enable == FALSE)
-        {
-           if ((p_VirtIf->EnableIPoE) && (pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV6Status == IHC_STOPPED))
-           {
-               WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_IPV6_UP, p_VirtIf->Name);
-               pWanIfaceCtrl->IhcV6Status = IHC_STARTED;
-           }
-        }
-#endif
+    WanMgr_StartConnectivityCheck(pWanIfaceCtrl);
+    WanMgr_SendMsgTo_ConnectivityCheck(pWanIfaceCtrl, CONNECTION_MSG_IPV6 , TRUE);
+
     Update_Interface_Status();
     sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_WAN_SERVICE_STATUS, buf, sizeof(buf));
     //TODO: Firewall IPv6 FORWARD rules are not working if SYSEVENT_WAN_SERVICE_STATUS is set for REMOTE_IFACE. Modify firewall similar for backup interface similar to primary.
@@ -2254,16 +2431,7 @@ static eWanState_t wan_transition_ipv6_down(WanMgr_IfaceSM_Controller_t* pWanIfa
 		xlat_process_stop(p_VirtIf->Name);
 	}
 #endif
-#ifdef FEATURE_IPOE_HEALTH_CHECK
-        if ( p_VirtIf->PPP.Enable == FALSE )
-        {
-            if ((p_VirtIf->EnableIPoE) && (pWanIfaceCtrl->IhcPid > 0))
-            {
-                WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_IPV6_DOWN, p_VirtIf->Name);
-                pWanIfaceCtrl->IhcV6Status = IHC_STOPPED;
-            }
-        }
-#endif
+    WanMgr_SendMsgTo_ConnectivityCheck(pWanIfaceCtrl, CONNECTION_MSG_IPV6 , FALSE);
 
     Update_Interface_Status();
     sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_IPV4_CONNECTION_STATE, buf, sizeof(buf));
@@ -2324,9 +2492,7 @@ static eWanState_t wan_transition_mapt_feature_refresh(WanMgr_IfaceSM_Controller
     /* DHCPv6 client */
     p_VirtIf->IP.Ipv6Status = WAN_IFACE_IPV6_STATE_DOWN;
     p_VirtIf->IP.Ipv6Changed = FALSE;
-#ifdef FEATURE_IPOE_HEALTH_CHECK
     p_VirtIf->IP.Ipv6Renewed = FALSE;
-#endif
     memset(&(p_VirtIf->IP.Ipv6Data), 0, sizeof(WANMGR_IPV6_DATA));
     p_VirtIf->IP.Dhcp6cPid = 0;
     if(p_VirtIf->IP.pIpcIpv6Data != NULL)
@@ -2604,6 +2770,12 @@ static eWanState_t wan_transition_standby(WanMgr_IfaceSM_Controller_t* pWanIface
         WanMgr_Publish_WanStatus(pWanIfaceCtrl->interfaceIdx, pWanIfaceCtrl->VirIfIdx);
     }
 
+    //Start ConnectivityCheck while receiving Ip except IPOE health check case
+    if(p_VirtIf->IP.ConnectivityCheckType != WAN_CONNECTIVITY_TYPE_IHC)
+    {
+        WanMgr_StartConnectivityCheck(pWanIfaceCtrl);
+    }
+
     Update_Interface_Status();
     DmlSetVLANInUseToPSMDB(p_VirtIf);
     CcspTraceInfo(("%s %d - TRANSITION WAN_STATE_STANDBY\n", __FUNCTION__, __LINE__));
@@ -2636,6 +2808,13 @@ static eWanState_t wan_transition_standby_deconfig_ips(WanMgr_IfaceSM_Controller
         }
     }
 #endif
+
+    //FIXME: Currently ipoe_health_check doesn't support multiple instances. Kill the process if the inetrface is not active.
+    if(p_VirtIf->IP.ConnectivityCheckType == WAN_CONNECTIVITY_TYPE_IHC)
+    {
+        CcspTraceInfo(("%s %d -Moving to standby. Stopping connectivity check. %s \n", __FUNCTION__, __LINE__, p_VirtIf->Name));
+        WanMgr_StopConnectivityCheck(pWanIfaceCtrl);
+    }
 
     if (p_VirtIf->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_UP)
     {
@@ -3102,41 +3281,6 @@ static eWanState_t wan_state_ipv4_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
     DML_WAN_IFACE* pInterface = pWanIfaceCtrl->pIfaceData;
     DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIfaceById(pInterface->VirtIfList, pWanIfaceCtrl->VirIfIdx);
 
-
-#ifdef FEATURE_IPOE_HEALTH_CHECK
-    if ((p_VirtIf->EnableIPoE == TRUE) && (p_VirtIf->PPP.Enable == FALSE))
-    {
-        // IHC is enabled
-        if ( pWanIfaceCtrl->IhcPid <= 0 )
-        {
-            // IHC enabled but not running, So Starting IHC
-            UINT IhcPid = 0;
-            IhcPid = WanManager_StartIpoeHealthCheckService(p_VirtIf->Name);
-            if (IhcPid > 0)
-            {
-                pWanIfaceCtrl->IhcPid = IhcPid;
-                CcspTraceInfo(("%s %d - Starting IPoE Health Check pid - %u for interface %s \n", 
-                                __FUNCTION__, __LINE__, pWanIfaceCtrl->IhcPid, p_VirtIf->Name));
-            }
-            else
-            {
-                CcspTraceError(("%s %d - Failed to start IPoE Health Check for interface %s \n", __FUNCTION__, __LINE__, p_VirtIf->Name));
-            }
-        }
-        if ( (pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV4Status == IHC_STOPPED) )
-        {
-            // sending v4 UP event to IHC, IHC will starts to send BFD v4 packets to BNG
-            WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_UP, p_VirtIf->Name);
-            pWanIfaceCtrl->IhcV4Status = IHC_STARTED;
-        }
-    }
-    else if (pWanIfaceCtrl->IhcPid > 0)
-    {
-        // IHC is disabled, but is still running, so stop it
-        WanManager_StopIHC(pWanIfaceCtrl);
-    }
-#endif // FEATURE_IPOE_HEALTH_CHECK
-
     //Start dhcpv6 client if Ip mode changed runtime
     if(p_VirtIf->IP.RefreshDHCP == TRUE &&
       p_VirtIf->IP.IPv6Source == DML_WAN_IP_SOURCE_DHCP &&
@@ -3183,13 +3327,7 @@ static eWanState_t wan_state_ipv4_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
         {
             if (wan_setUpIPv4(pWanIfaceCtrl) == RETURN_OK)
             {
-#ifdef FEATURE_IPOE_HEALTH_CHECK
-                if ((p_VirtIf->PPP.Enable == FALSE) && (p_VirtIf->EnableIPoE == TRUE) &&
-                        (pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV4Status == IHC_STARTED))
-                {
-                    WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_UP, p_VirtIf->Name);
-                }
-#endif
+                WanMgr_SendMsgTo_ConnectivityCheck(pWanIfaceCtrl, CONNECTION_MSG_IPV4 , TRUE);
                 p_VirtIf->IP.Ipv4Changed = FALSE;
                 CcspTraceInfo(("%s %d - Successfully updated IPv4 configure Changes for %s Interface \n",
                             __FUNCTION__, __LINE__, p_VirtIf->Name));
@@ -3249,21 +3387,11 @@ static eWanState_t wan_state_ipv4_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
             wanmgr_Ipv6Toggle();
         }
     }
-#ifdef FEATURE_IPOE_HEALTH_CHECK
     else if (p_VirtIf->IP.Ipv4Renewed == TRUE)
     {
-        char IHC_V4_status[BUFLEN_16] = {0};
-        sysevent_get(sysevent_fd, sysevent_token, IPOE_HEALTH_CHECK_V4_STATUS, IHC_V4_status, sizeof(IHC_V4_status));
-        if((strcmp(IHC_V4_status, IPOE_STATUS_FAILED) == 0) && (p_VirtIf->PPP.Enable == FALSE) && (p_VirtIf->EnableIPoE == TRUE) &&
-                (pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV4Status == IHC_STARTED))
-        {
-            //TODO: Restarting firewall to add IPOE_HEALTH_CHECK firewall rules.
-            sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, NULL, 0);
-            WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_UP, p_VirtIf->Name);
-        }
+        WanMgr_SendMsgTo_ConnectivityCheck(pWanIfaceCtrl, CONNECTION_MSG_IPV4 , TRUE);
         p_VirtIf->IP.Ipv4Renewed = FALSE;
     }
-#endif
 #if defined(FEATURE_MAPT) || defined(FEATURE_SUPPORT_MAPT_NAT46)
     else if (p_VirtIf->EnableMAPT == TRUE &&
             pInterface->Selection.Status == WAN_IFACE_ACTIVE &&
@@ -3290,40 +3418,6 @@ static eWanState_t wan_state_ipv6_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
 
     DML_WAN_IFACE* pInterface = pWanIfaceCtrl->pIfaceData;
     DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIfaceById(pInterface->VirtIfList, pWanIfaceCtrl->VirIfIdx);
-
-#ifdef FEATURE_IPOE_HEALTH_CHECK
-    if ((p_VirtIf->EnableIPoE == TRUE) && (p_VirtIf->PPP.Enable == FALSE))
-    {
-        // IHC is enabled
-        if ( pWanIfaceCtrl->IhcPid <= 0 )
-        {
-            // IHC enabled but not running, So Starting IHC
-            UINT IhcPid = 0;
-            IhcPid = WanManager_StartIpoeHealthCheckService(p_VirtIf->Name);
-            if (IhcPid > 0)
-            {
-                pWanIfaceCtrl->IhcPid = IhcPid;
-                CcspTraceInfo(("%s %d - Starting IPoE Health Check pid - %u for interface %s \n", 
-                                __FUNCTION__, __LINE__, pWanIfaceCtrl->IhcPid, p_VirtIf->Name));
-            }
-            else
-            {
-                CcspTraceError(("%s %d - Failed to start IPoE Health Check for interface %s \n", __FUNCTION__, __LINE__, p_VirtIf->Name));
-            }
-        }
-        if ((pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV6Status == IHC_STOPPED))
-        {
-            // sending v6 UP event to IHC, IHC starts to send BFD v6 packts to BNG
-            WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_IPV6_UP, p_VirtIf->Name);
-            pWanIfaceCtrl->IhcV6Status = IHC_STARTED;
-        }
-    }
-    else if (pWanIfaceCtrl->IhcPid > 0)
-    {
-        // IHC is disabled, but is still running, so stop it
-        WanManager_StopIHC(pWanIfaceCtrl);
-    }
-#endif 
 
     //Start dhcpv4 client if Ip mode changed runtime
     if(p_VirtIf->IP.RefreshDHCP == TRUE && 
@@ -3370,13 +3464,7 @@ static eWanState_t wan_state_ipv6_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
             {
                 if (wan_setUpIPv6(pWanIfaceCtrl) == RETURN_OK)
                 {
-#ifdef FEATURE_IPOE_HEALTH_CHECK
-                    if ((p_VirtIf->PPP.Enable == FALSE) && (p_VirtIf->EnableIPoE == TRUE) && 
-                        (pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV6Status == IHC_STARTED))
-                    {
-                        WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_IPV6_UP, p_VirtIf->Name);
-                    }
-#endif
+                    WanMgr_SendMsgTo_ConnectivityCheck(pWanIfaceCtrl, CONNECTION_MSG_IPV6 , TRUE);
                     p_VirtIf->IP.Ipv6Changed = FALSE;
                     CcspTraceInfo(("%s %d - Successfully updated IPv6 configure Changes for %s Interface \n",
                                     __FUNCTION__, __LINE__, p_VirtIf->Name));
@@ -3422,36 +3510,22 @@ static eWanState_t wan_state_ipv6_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
         }
     }
 #endif //FEATURE_MAPT
-#ifdef FEATURE_IPOE_HEALTH_CHECK
     else if (p_VirtIf->IP.Ipv6Renewed == TRUE)
     {
-        char IHC_V6_status[BUFLEN_16] = {0};
-        sysevent_get(sysevent_fd, sysevent_token, IPOE_HEALTH_CHECK_V6_STATUS, IHC_V6_status, sizeof(IHC_V6_status));
-        if((strcmp(IHC_V6_status, IPOE_STATUS_FAILED) == 0) && (p_VirtIf->PPP.Enable == FALSE) && (p_VirtIf->EnableIPoE == TRUE) &&
-                (pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV6Status == IHC_STARTED))
-        {
-            //TODO: Restarting firewall to add IPOE_HEALTH_CHECK firewall rules.
-            sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, NULL, 0);
-            Force_IPv6_toggle(p_VirtIf->Name); //Force Ipv6 toggle to update default route
-            WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_IPV6_UP, p_VirtIf->Name);
-        }
+        WanMgr_SendMsgTo_ConnectivityCheck(pWanIfaceCtrl, CONNECTION_MSG_IPV6 , TRUE);
         p_VirtIf->IP.Ipv6Renewed = FALSE;
     }
-#endif
     wanmgr_Ipv6Toggle();
 #if defined(FEATURE_IPOE_HEALTH_CHECK) && defined(IPOE_HEALTH_CHECK_LAN_SYNC_SUPPORT)
-    if((p_VirtIf->PPP.Enable == FALSE) && (p_VirtIf->EnableIPoE == TRUE) && (pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV6Status == IHC_STARTED))
+    if(lanState == LAN_STATE_STOPPED)
     {
-        if(lanState == LAN_STATE_STOPPED)
-        {
-            WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_IPV6_DOWN, p_VirtIf->Name);
-            lanState = LAN_STATE_RESET;
-        }
-        else if(lanState == LAN_STATE_STARTED)
-        {
-            WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_IPV6_UP, p_VirtIf->Name);
-            lanState = LAN_STATE_RESET;
-        }
+        WanMgr_SendMsgTo_ConnectivityCheck(pWanIfaceCtrl, CONNECTION_MSG_IPV6 , FALSE);
+        lanState = LAN_STATE_RESET;
+    }
+    else if(lanState == LAN_STATE_STARTED)
+    {
+        WanMgr_SendMsgTo_ConnectivityCheck(pWanIfaceCtrl, CONNECTION_MSG_IPV6 , TRUE);
+        lanState = LAN_STATE_RESET;
     }
 #endif
     return WAN_STATE_IPV6_LEASED;
@@ -3466,46 +3540,6 @@ static eWanState_t wan_state_dual_stack_active(WanMgr_IfaceSM_Controller_t* pWan
 
     DML_WAN_IFACE* pInterface = pWanIfaceCtrl->pIfaceData;
     DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIfaceById(pInterface->VirtIfList, pWanIfaceCtrl->VirIfIdx);
-
-#ifdef FEATURE_IPOE_HEALTH_CHECK
-    if ((p_VirtIf->EnableIPoE == TRUE) && (p_VirtIf->PPP.Enable == FALSE))
-    {
-        // IHC is enabled
-        if (pWanIfaceCtrl->IhcPid <= 0)
-        {
-            // IHC enabled but not running, So Starting IHC
-            UINT IhcPid = 0;
-            IhcPid = WanManager_StartIpoeHealthCheckService(p_VirtIf->Name);
-            if (IhcPid > 0)
-            {
-                pWanIfaceCtrl->IhcPid = IhcPid;
-                CcspTraceInfo(("%s %d - Starting IPoE Health Check pid - %u for interface %s \n", 
-                                __FUNCTION__, __LINE__, pWanIfaceCtrl->IhcPid, p_VirtIf->Name));
-            }
-            else
-            {
-                CcspTraceError(("%s %d - Failed to start IPoE Health Check for interface %s \n", __FUNCTION__, __LINE__, p_VirtIf->Name));
-            }
-        }
-        if ((pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV4Status == IHC_STOPPED))
-        {
-            // sending v4 UP event to IHC, IHC starts to send BFD v4 packts to BNG
-            WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_UP, p_VirtIf->Name);
-            pWanIfaceCtrl->IhcV4Status = IHC_STARTED;
-        }
-        if ((pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV6Status == IHC_STOPPED))
-        {
-            // sending v6 UP event to IHC, IHC starts to send BFD v6 packts to BNG
-            WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_IPV6_UP, p_VirtIf->Name);
-            pWanIfaceCtrl->IhcV6Status = IHC_STARTED;
-        }
-    }
-    else if (pWanIfaceCtrl->IhcPid > 0)
-    {
-        // IHC Disbled but running, So Stoping IHC
-        WanManager_StopIHC(pWanIfaceCtrl);
-    }
-#endif
 
     if (pWanIfaceCtrl->WanEnable == FALSE ||
         pInterface->Selection.Enable == FALSE ||
@@ -3540,13 +3574,7 @@ static eWanState_t wan_state_dual_stack_active(WanMgr_IfaceSM_Controller_t* pWan
         {
             if (wan_setUpIPv4(pWanIfaceCtrl) == RETURN_OK)
             {
-#ifdef FEATURE_IPOE_HEALTH_CHECK
-                if ((p_VirtIf->PPP.Enable == FALSE) && (p_VirtIf->EnableIPoE == TRUE) &&
-                        (pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV4Status == IHC_STARTED))
-                {
-                    WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_UP, p_VirtIf->Name);
-                }
-#endif
+                WanMgr_SendMsgTo_ConnectivityCheck(pWanIfaceCtrl, CONNECTION_MSG_IPV4 , TRUE);
                 p_VirtIf->IP.Ipv4Changed = FALSE;
                 CcspTraceInfo(("%s %d - Successfully updated IPv4 configure Changes for %s Interface \n",
                             __FUNCTION__, __LINE__, p_VirtIf->Name));
@@ -3576,13 +3604,7 @@ static eWanState_t wan_state_dual_stack_active(WanMgr_IfaceSM_Controller_t* pWan
             {
                 if (wan_setUpIPv6(pWanIfaceCtrl) == RETURN_OK)
                 {
-#ifdef FEATURE_IPOE_HEALTH_CHECK
-                    if ((p_VirtIf->PPP.Enable == FALSE) && (p_VirtIf->EnableIPoE == TRUE) &&
-                            (pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV6Status == IHC_STARTED))
-                    {
-                        WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_IPV6_UP, p_VirtIf->Name);
-                    }
-#endif
+                    WanMgr_SendMsgTo_ConnectivityCheck(pWanIfaceCtrl, CONNECTION_MSG_IPV6 , TRUE);
                     p_VirtIf->IP.Ipv6Changed = FALSE;
                     CcspTraceInfo(("%s %d - Successfully updated IPv6 configure Changes for %s Interface \n",
                                 __FUNCTION__, __LINE__, p_VirtIf->Name));
@@ -3624,53 +3646,31 @@ static eWanState_t wan_state_dual_stack_active(WanMgr_IfaceSM_Controller_t* pWan
         }
     }
 #endif //FEATURE_MAPT
-#ifdef FEATURE_IPOE_HEALTH_CHECK
     else if (p_VirtIf->IP.Ipv4Renewed == TRUE)
     {
-        char IHC_V4_status[BUFLEN_16] = {0};
-        sysevent_get(sysevent_fd, sysevent_token, IPOE_HEALTH_CHECK_V4_STATUS, IHC_V4_status, sizeof(IHC_V4_status));
-        if((strcmp(IHC_V4_status, IPOE_STATUS_FAILED) == 0) && (p_VirtIf->PPP.Enable == FALSE) && (p_VirtIf->EnableIPoE == TRUE) &&
-                (pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV4Status == IHC_STARTED))
-        {
-            //TODO: Restarting firewall to add IPOE_HEALTH_CHECK firewall rules.
-            sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, NULL, 0);
-            WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_UP, p_VirtIf->Name);
-        }
+        WanMgr_SendMsgTo_ConnectivityCheck(pWanIfaceCtrl, CONNECTION_MSG_IPV4 , TRUE);
         p_VirtIf->IP.Ipv4Renewed = FALSE;
     }
     else if (p_VirtIf->IP.Ipv6Renewed == TRUE)
     {
-        char IHC_V6_status[BUFLEN_16] = {0};
-        sysevent_get(sysevent_fd, sysevent_token, IPOE_HEALTH_CHECK_V6_STATUS, IHC_V6_status, sizeof(IHC_V6_status));
-        if((strcmp(IHC_V6_status, IPOE_STATUS_FAILED) == 0) && (p_VirtIf->PPP.Enable == FALSE) && (p_VirtIf->EnableIPoE == TRUE) &&
-                (pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV6Status == IHC_STARTED))
-        {
-            //TODO: Restarting firewall to add IPOE_HEALTH_CHECK firewall rules.
-            sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, NULL, 0);
-            Force_IPv6_toggle(p_VirtIf->Name); //Force Ipv6 toggle to update default route
-            WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_IPV6_UP, p_VirtIf->Name);
-        }
+        WanMgr_SendMsgTo_ConnectivityCheck(pWanIfaceCtrl, CONNECTION_MSG_IPV6 , TRUE);
         p_VirtIf->IP.Ipv6Renewed = FALSE;
     }
-#endif
 
     // Start DHCP apps if not started
     WanMgr_MonitorDhcpApps(pWanIfaceCtrl);
 
     wanmgr_Ipv6Toggle();
 #if defined(FEATURE_IPOE_HEALTH_CHECK) && defined(IPOE_HEALTH_CHECK_LAN_SYNC_SUPPORT)
-    if((p_VirtIf->PPP.Enable == FALSE) && (p_VirtIf->EnableIPoE == TRUE) && (pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV6Status == IHC_STARTED))
+    if(lanState == LAN_STATE_STOPPED)
     {
-        if(lanState == LAN_STATE_STOPPED)
-        {
-            WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_IPV6_DOWN, p_VirtIf->Name);
-            lanState = LAN_STATE_RESET;
-        }
-        else if(lanState == LAN_STATE_STARTED)
-        {
-            WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_IPV6_UP, p_VirtIf->Name);
-            lanState = LAN_STATE_RESET;
-        }
+        WanMgr_SendMsgTo_ConnectivityCheck(pWanIfaceCtrl, CONNECTION_MSG_IPV6 , FALSE);
+        lanState = LAN_STATE_RESET;
+    }
+    else if(lanState == LAN_STATE_STARTED)
+    {
+        WanMgr_SendMsgTo_ConnectivityCheck(pWanIfaceCtrl, CONNECTION_MSG_IPV6 , TRUE);
+        lanState = LAN_STATE_RESET;
     }
 #endif
     return WAN_STATE_DUAL_STACK_ACTIVE;
@@ -3686,40 +3686,6 @@ static eWanState_t wan_state_mapt_active(WanMgr_IfaceSM_Controller_t* pWanIfaceC
 
     DML_WAN_IFACE* pInterface = pWanIfaceCtrl->pIfaceData;
     DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIfaceById(pInterface->VirtIfList, pWanIfaceCtrl->VirIfIdx);
-
-#ifdef FEATURE_IPOE_HEALTH_CHECK
-    if ((p_VirtIf->EnableIPoE == TRUE) && (p_VirtIf->PPP.Enable == FALSE))
-    {
-        // IHC is enabled
-        if (pWanIfaceCtrl->IhcPid <= 0)
-        {
-            // IHC enabled but not running, So Starting IHC
-            UINT IhcPid = 0;
-            IhcPid = WanManager_StartIpoeHealthCheckService(p_VirtIf->Name);
-            if (IhcPid > 0)
-            {
-                pWanIfaceCtrl->IhcPid = IhcPid;
-                CcspTraceInfo(("%s %d - Starting IPoE Health Check pid - %u for interface %s \n", 
-                                __FUNCTION__, __LINE__, pWanIfaceCtrl->IhcPid, p_VirtIf->Name));
-            }
-            else
-            {
-                CcspTraceError(("%s %d - Failed to start IPoE Health Check for interface %s \n", __FUNCTION__, __LINE__, p_VirtIf->Name));
-            }
-        }
-        if ((pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV6Status == IHC_STOPPED))
-        {
-            // sending v6 UP event to IHC, IHC starts to send BFD v6 packts to BNG
-            WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_IPV6_UP, p_VirtIf->Name);
-            pWanIfaceCtrl->IhcV6Status = IHC_STARTED;
-        }
-    }
-    else if (pWanIfaceCtrl->IhcPid > 0)
-    {
-        // IHC Disbled but running, So Stoping IHC
-        WanManager_StopIHC(pWanIfaceCtrl);
-    }
-#endif
 
     if (pWanIfaceCtrl->WanEnable == FALSE ||
         pInterface->Selection.Enable == FALSE ||
@@ -3761,13 +3727,7 @@ static eWanState_t wan_state_mapt_active(WanMgr_IfaceSM_Controller_t* pWanIfaceC
             {
                 if (wan_setUpIPv6(pWanIfaceCtrl) == RETURN_OK)
                 {
-#ifdef FEATURE_IPOE_HEALTH_CHECK
-                    if ((p_VirtIf->PPP.Enable == FALSE) && (p_VirtIf->EnableIPoE == TRUE) &&
-                            (pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV6Status == IHC_STARTED))
-                    {
-                        WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_IPV6_UP, p_VirtIf->Name);
-                    }
-#endif
+                    WanMgr_SendMsgTo_ConnectivityCheck(pWanIfaceCtrl, CONNECTION_MSG_IPV6 , TRUE);
                     p_VirtIf->IP.Ipv6Changed = FALSE;
                     CcspTraceInfo(("%s %d - Successfully updated IPv6 configure Changes for %s Interface \n",
                                 __FUNCTION__, __LINE__, p_VirtIf->Name));
@@ -3836,40 +3796,26 @@ static eWanState_t wan_state_mapt_active(WanMgr_IfaceSM_Controller_t* pWanIfaceC
         }
     }
 #endif
-#ifdef FEATURE_IPOE_HEALTH_CHECK
     else if (p_VirtIf->IP.Ipv6Renewed == TRUE)
     {
-        char IHC_V6_status[BUFLEN_16] = {0};
-        sysevent_get(sysevent_fd, sysevent_token, IPOE_HEALTH_CHECK_V6_STATUS, IHC_V6_status, sizeof(IHC_V6_status));
-        if((strcmp(IHC_V6_status, IPOE_STATUS_FAILED) == 0) && (p_VirtIf->PPP.Enable == FALSE) && (p_VirtIf->EnableIPoE == TRUE) &&
-                (pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV6Status == IHC_STARTED))
-        {
-            //TODO: Restarting firewall to add IPOE_HEALTH_CHECK firewall rules.
-            sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, NULL, 0);
-            Force_IPv6_toggle(p_VirtIf->Name); //Force Ipv6 toggle to update default route
-            WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_IPV6_UP, p_VirtIf->Name);
-        }
+        WanMgr_SendMsgTo_ConnectivityCheck(pWanIfaceCtrl, CONNECTION_MSG_IPV6 , TRUE);
         p_VirtIf->IP.Ipv6Renewed = FALSE;
     }
-#endif
 
     // Start DHCP apps if not started
     WanMgr_MonitorDhcpApps(pWanIfaceCtrl);
 
     wanmgr_Ipv6Toggle();
 #if defined(FEATURE_IPOE_HEALTH_CHECK) && defined(IPOE_HEALTH_CHECK_LAN_SYNC_SUPPORT)
-    if((p_VirtIf->PPP.Enable == FALSE) && (p_VirtIf->EnableIPoE == TRUE) && (pWanIfaceCtrl->IhcPid > 0) && (pWanIfaceCtrl->IhcV6Status == IHC_STARTED))
+    if(lanState == LAN_STATE_STOPPED)
     {
-        if(lanState == LAN_STATE_STOPPED)
-        {
-            WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_IPV6_DOWN, p_VirtIf->Name);
-            lanState = LAN_STATE_RESET;
-        }
-        else if(lanState == LAN_STATE_STARTED)
-        {
-            WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_IPV6_UP, p_VirtIf->Name);
-            lanState = LAN_STATE_RESET;
-        }
+        WanMgr_SendMsgTo_ConnectivityCheck(pWanIfaceCtrl, CONNECTION_MSG_IPV6 , FALSE);
+        lanState = LAN_STATE_RESET;
+    }
+    else if(lanState == LAN_STATE_STARTED)
+    {
+        WanMgr_SendMsgTo_ConnectivityCheck(pWanIfaceCtrl, CONNECTION_MSG_IPV6 , TRUE);
+        lanState = LAN_STATE_RESET;
     }
 #endif
     return WAN_STATE_MAPT_ACTIVE;

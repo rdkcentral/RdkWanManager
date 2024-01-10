@@ -54,6 +54,15 @@ typedef struct
     bool  subscription_request;
 } RemoteDM_list;
 
+typedef struct TAD_WCC_Event_ {
+    char         IfaceName[64];
+    char         Alias[64];
+    char         IPv4_DNS_Servers[512];
+    char         IPv6_DNS_Servers[512];
+    WCC_EVENT    Event;
+} TAD_WCC_Event;
+void *WanMgr_Configure_WCC_Thread(void *arg);
+
 /***********************************************************************
 
   Data Elements declaration:
@@ -1178,7 +1187,7 @@ ANSC_STATUS WanMgr_RbusExit()
         }
 
 #if defined(WAN_MANAGER_UNIFICATION_ENABLED)
-        snprintf(param_name,sizeof(param_name) ,"%s.%s.%d", param_name, WANMGR_VIRTUALINFACE_TABLE_PREFIX, (1));
+        snprintf(param_name,sizeof(param_name) ,"%s.%d.%s.%d",  WANMGR_INFACE_TABLE, (i+1), WANMGR_VIRTUALINFACE_TABLE_PREFIX, (1));
         rc = rbusTable_unregisterRow(rbusHandle, param_name);
         if(rc != RBUS_ERROR_SUCCESS)
         {
@@ -1628,6 +1637,8 @@ static void CPEInterface_AsyncMethodHandler(
                     char AliasName[64] = {0};
                     snprintf(AliasName, sizeof(AliasName), "REMOTE_%s" , pValue);
                     strncpy( pWanIfaceData->AliasName, AliasName,sizeof(pWanIfaceData->AliasName)-1 );
+                    //Set Alias name of Virtual interface
+                    strncpy( pWanIfaceData->VirtIfList->Alias, AliasName,sizeof(pWanIfaceData->VirtIfList->Alias)-1 );
                 }
                 else if( WANMGR_PHY_STATUS_CHECK )
                 {
@@ -1751,6 +1762,196 @@ ANSC_STATUS WanMgr_RestartUpdateRemoteIface()
     return ANSC_STATUS_SUCCESS;
 }
 #endif
+static void WanMgr_TandD_EventHandler(rbusHandle_t handle, rbusEvent_t const* event, rbusEventSubscription_t* subscription)
+{
+    (void)handle;
+    (void)subscription;
+
+    const char* eventName = event->name;
+
+    if((eventName == NULL))
+    {
+        CcspTraceError(("%s : FAILED , value is NULL\n",__FUNCTION__));
+        return;
+    }
+
+    if (strstr(eventName, TANDD_CONNECTIVITY_CHECK_TREE) && strstr(eventName, TANDD_CONNECTIVITY_CHECK_MONITOR_STR))
+    {
+        char Alias[64] = {0};
+        CcspTraceInfo(("%s %d: Received %s\n", __FUNCTION__, __LINE__, eventName));
+        sscanf(eventName, "Device.Diagnostics.X_RDK_DNSInternet.WANInterface.[%63[^]]].MonitorResult", Alias);
+        CcspTraceInfo(("%s %d MonitorResult interface Alias : %s\n", __FUNCTION__, __LINE__,Alias));
+        rbusValue_t value;
+        value = rbusObject_GetValue(event->data, "value");
+        CONNECTIVITY_STATUS res = rbusValue_GetUInt32(value);
+
+        DML_VIRTUAL_IFACE *p_VirtIf = WanMgr_GetVirtIfDataByAlias_locked(Alias);
+        if(p_VirtIf != NULL)
+        {
+            p_VirtIf->IP.Ipv4ConnectivityStatus = res;
+            p_VirtIf->IP.Ipv6ConnectivityStatus = res;
+            WanMgr_VirtualIfaceData_release(p_VirtIf);
+            CcspTraceInfo(("%s %d: Successfully assigned Connectivity Result %s for interface %s\n", __FUNCTION__, __LINE__, (res==1)?"WAN_CONNECTIVITY_UP":"WAN_CONNECTIVITY_DOWN", Alias));
+        }
+    }
+}
+
+/* WCC - Wan Connectivity Check*/
+ANSC_STATUS WanMgr_Configure_TAD_WCC(DML_VIRTUAL_IFACE *p_VirtIf,  WCC_EVENT Event)
+{
+    pthread_t                threadId;
+    int                      iErrorCode     = 0;
+
+
+    if(Event != WCC_STOP && (p_VirtIf->IP.Ipv4Data.dnsServer[0] == '\0') && (p_VirtIf->IP.Ipv4Data.dnsServer1[0] == '\0') &&
+      (p_VirtIf->IP.Ipv6Data.nameserver[0] == '\0') && (p_VirtIf->IP.Ipv6Data.nameserver1[0] == '\0'))
+    {
+        CcspTraceError(("%s %d: DNS servers are not configured. (TAD) DNS health check not triggered\n",__FUNCTION__, __LINE__));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    TAD_WCC_Event *pTADEvent = malloc(sizeof(TAD_WCC_Event));
+    memset(pTADEvent, 0, sizeof(TAD_WCC_Event));
+    strncpy(pTADEvent->IfaceName, p_VirtIf->Name, sizeof(pTADEvent->IfaceName)-1);
+    strncpy(pTADEvent->Alias, p_VirtIf->Alias, sizeof(pTADEvent->Alias)-1);
+    snprintf(pTADEvent->IPv4_DNS_Servers, sizeof(pTADEvent->IPv4_DNS_Servers), "%s,%s",p_VirtIf->IP.Ipv4Data.dnsServer,p_VirtIf->IP.Ipv4Data.dnsServer1);
+    snprintf(pTADEvent->IPv6_DNS_Servers, sizeof(pTADEvent->IPv6_DNS_Servers), "%s,%s",p_VirtIf->IP.Ipv6Data.nameserver,p_VirtIf->IP.Ipv6Data.nameserver1);
+    pTADEvent->Event = Event;
+
+    //Run in thread to avoid mutex deadlock between WanManager and rbus handle
+    iErrorCode = pthread_create( &threadId, NULL, &WanMgr_Configure_WCC_Thread, pTADEvent);
+    if( 0 != iErrorCode )
+    {
+        CcspTraceError(("%s %d - Failed to start WanMgr_Configure_WCC_Thread EC:%d\n", __FUNCTION__, __LINE__, iErrorCode ));
+        free(pTADEvent);
+        return ANSC_STATUS_FAILURE;
+    }
+    CcspTraceInfo(("%s %d - WanMgr_Configure_WCC_Thread Started Successfully\n", __FUNCTION__, __LINE__ ));
+    p_VirtIf->IP.RestartConnectivityCheck = FALSE; //RESET RestartConnectivityCheck trigger
+    return ANSC_STATUS_SUCCESS;
+}
+
+
+
+void *WanMgr_Configure_WCC_Thread(void *arg)
+{
+
+    TAD_WCC_Event * pTADEvent = (TAD_WCC_Event *) arg;
+    pthread_detach(pthread_self());
+
+    rbusObject_t inParams;
+    rbusObject_t outParams = NULL;
+    rbusValue_t value;
+
+    rbusObject_Init(&inParams, NULL);
+
+    CcspTraceInfo(("%s %d:  TAD connectivity check event for : Name:%s Alias :%s \n", __FUNCTION__, __LINE__, pTADEvent->IfaceName, pTADEvent->Alias));
+    // set linux interface name
+    rbusValue_Init(&value);
+    rbusValue_SetString(value, pTADEvent->IfaceName );
+    rbusObject_SetValue(inParams, "linux_interface_name", value);
+    rbusValue_Release(value);
+
+    // set alias
+    rbusValue_Init(&value);
+    rbusValue_SetString(value, pTADEvent->Alias );
+    rbusObject_SetValue(inParams, "alias", value);
+    rbusValue_Release(value);
+
+
+    // set IPv4 nameserver list
+    CcspTraceInfo(("%s %d:  IPv4_DNS_Servers %s  \n", __FUNCTION__, __LINE__, pTADEvent->IPv4_DNS_Servers));
+
+    rbusValue_Init(&value);
+    rbusValue_SetString(value, pTADEvent->IPv4_DNS_Servers );
+    rbusObject_SetValue(inParams, "IPv4_DNS_Servers", value);
+    rbusValue_Release(value);
+
+    //TODO: MeshWANInterface_UlaAddr is a workaround for remote interfaces, Should be removed after moving ULA ipv6 configurations to WanManager.
+    if(strncmp(pTADEvent->Alias, "REMOTE", 6)==0)
+    {
+        char nameServerList[512] = {0};
+        sysevent_get(sysevent_fd, sysevent_token, "MeshWANInterface_UlaAddr", nameServerList, sizeof(nameServerList));
+        strtok(nameServerList, "/");
+        snprintf(pTADEvent->IPv6_DNS_Servers, sizeof(pTADEvent->IPv6_DNS_Servers), "%s,", strtok(nameServerList, "/"));
+    }
+    CcspTraceInfo(("%s %d:  IPv6_DNS_Servers %s  \n", __FUNCTION__, __LINE__, pTADEvent->IPv6_DNS_Servers));
+
+    // set IPv6 nameserver list
+    rbusValue_Init(&value);
+    rbusValue_SetString(value,  pTADEvent->IPv6_DNS_Servers );
+    rbusObject_SetValue(inParams, "IPv6_DNS_Servers", value);
+    rbusValue_Release(value);
+
+    rbusError_t rc = RBUS_ERROR_SUCCESS;
+
+    char dml[512] = {0};
+    snprintf(dml, sizeof(dml), TANDD_CONNECTIVITY_CHECK_RESULT, pTADEvent->Alias);
+
+
+    if(pTADEvent->Event == WCC_STOP || pTADEvent->Event == WCC_RESTART )
+    {
+        //Unsubscribe TANDD_CONNECTIVITY_CHECK_RESULT 
+        rc = rbusEvent_Unsubscribe(rbusHandle, dml);
+        if(rc != RBUS_ERROR_SUCCESS)
+        {
+            CcspTraceError(("%s %d - Failed to Unsubscribe %s, Error=%s \n", __FUNCTION__, __LINE__, dml, rbusError_ToString(rc)));
+            free(pTADEvent);
+            return NULL;
+        }
+        CcspTraceInfo(("%s %d:  Unsubscribed to %s  \n", __FUNCTION__, __LINE__, dml));
+
+        //Stop connectivity check 
+        rc = rbusMethod_Invoke(rbusHandle, TANDD_STOP_CONNECTIVITY_CHECK, inParams, &outParams);
+        rbusObject_Release(inParams);
+
+        //Currently, TandD doesn't send reply outParams Release if resource allocated resource.
+        if(outParams)
+            rbusObject_Release(outParams);
+
+        if(rc != RBUS_ERROR_SUCCESS)
+        {
+            CcspTraceError(("%s %d: ConnectivityCheck: rbusMethod_Invoke(%s) failed\n",__FUNCTION__, __LINE__, TANDD_STOP_CONNECTIVITY_CHECK));
+            free(pTADEvent);
+            return NULL;
+        }
+        CcspTraceInfo(("%s %d: ConnectivityCheck: rbusMethod_Invoke %s success\n",__FUNCTION__, __LINE__ , TANDD_STOP_CONNECTIVITY_CHECK ));
+    }
+
+    if(pTADEvent->Event == WCC_START || pTADEvent->Event == WCC_RESTART )
+    {
+        //Start connectivity check 
+        rc = rbusMethod_Invoke(rbusHandle, TANDD_START_CONNECTIVITY_CHECK, inParams, &outParams);
+        rbusObject_Release(inParams);
+
+        //Currently, TandD doesn't send reply outParams Release if resource allocated resource.
+        if(outParams)
+            rbusObject_Release(outParams);
+
+        if(rc != RBUS_ERROR_SUCCESS)
+        {
+            CcspTraceError(("%s %d: ConnectivityCheck: rbusMethod_Invoke(%s) failed\n",__FUNCTION__, __LINE__, TANDD_START_CONNECTIVITY_CHECK));
+            free(pTADEvent);
+            return NULL;
+        }
+        CcspTraceInfo(("%s %d: ConnectivityCheck: rbusMethod_Invoke %s success\n",__FUNCTION__, __LINE__ , TANDD_START_CONNECTIVITY_CHECK));
+
+        //Subcribe TANDD_CONNECTIVITY_CHECK_RESULT 
+        rc = RBUS_ERROR_SUCCESS;
+        rc = rbusEvent_Subscribe(rbusHandle, dml, WanMgr_TandD_EventHandler, NULL, 60);
+        if(rc != RBUS_ERROR_SUCCESS)
+        {
+            CcspTraceError(("%s %d - Failed to Subscribe %s, Error=%s \n", __FUNCTION__, __LINE__, dml, rbusError_ToString(rc)));
+            free(pTADEvent);
+            return NULL;
+        }
+        CcspTraceInfo(("%s %d: startConnectivityCheck() Subscribed to %s  n", __FUNCTION__, __LINE__, dml));
+    }
+
+    free(pTADEvent);
+    pthread_exit(NULL);
+    return NULL;
+}
 
 #if defined(_HUB4_PRODUCT_REQ_) ||  defined(_PLATFORM_RASPBERRYPI_)
 BOOL WanMgr_Rbus_discover_components(char const *pModuleList)

@@ -1505,11 +1505,6 @@ BOOL WanVirtualIf_GetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BO
             *pBool = p_VirtIf->EnableDSLite;
             ret = TRUE;
         }
-        if (strcmp(ParamName, "EnableIPoEHealthCheck") == 0)
-        {
-            *pBool = p_VirtIf->EnableIPoE;
-            ret = TRUE;
-        }
         if (strcmp(ParamName, "EnableMAPT") == 0)
         {
             *pBool = p_VirtIf->EnableMAPT;
@@ -1579,11 +1574,6 @@ BOOL WanVirtualIf_SetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BO
         if (strcmp(ParamName, "EnableDSLite") == 0)
         {
             p_VirtIf->EnableDSLite = bValue;
-            ret = TRUE;
-        }
-        if (strcmp(ParamName, "EnableIPoEHealthCheck") == 0)
-        {
-            p_VirtIf->EnableIPoE = bValue;
             ret = TRUE;
         }
         if (strcmp(ParamName, "EnableMAPT") == 0)
