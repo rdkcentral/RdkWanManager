@@ -2781,13 +2781,6 @@ static eWanState_t wan_state_validating_wan(WanMgr_IfaceSM_Controller_t* pWanIfa
         }
     }
 
-    if(strstr(pInterface->BaseInterface, "Cellular") != NULL)
-    {
-        if(p_VirtIf->VLAN.Status !=  WAN_IFACE_LINKSTATUS_UP)
-        {
-            return WAN_STATE_VALIDATING_WAN;
-        }
-    }
     //TODO: VLAN and PPP are validated in previous states. Use this state to validate WAN interface that does not use PPP or VLAN
     return wan_transition_wan_validated(pWanIfaceCtrl);
 
