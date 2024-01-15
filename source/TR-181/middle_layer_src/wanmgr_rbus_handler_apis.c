@@ -59,8 +59,9 @@ typedef struct
   Data Elements declaration:
 
  ***********************************************************************/
-rbusDataElement_t wanMgrRbusDataElements[NUM_OF_RBUS_PARAMS] = {
+rbusDataElement_t wanMgrRbusDataElements[] = {
     {WANMGR_CONFIG_WAN_CURRENTACTIVEINTERFACE,  RBUS_ELEMENT_TYPE_PROPERTY, {WanMgr_Rbus_getHandler, NULL, NULL, NULL, WanMgr_Rbus_SubscribeHandler, NULL}},
+    {WANMGR_CONFIG_WAN_CURRENT_STATUS,  RBUS_ELEMENT_TYPE_PROPERTY, {WanMgr_Rbus_getHandler, NULL, NULL, NULL, WanMgr_Rbus_SubscribeHandler, NULL}},
     {WANMGR_CONFIG_WAN_CURRENTSTANDBYINTERFACE, RBUS_ELEMENT_TYPE_PROPERTY, {WanMgr_Rbus_getHandler, NULL, NULL, NULL, WanMgr_Rbus_SubscribeHandler, NULL}},
     {WANMGR_CONFIG_WAN_INTERFACEAVAILABLESTATUS,RBUS_ELEMENT_TYPE_PROPERTY, {WanMgr_Rbus_getHandler, NULL, NULL, NULL, WanMgr_Rbus_SubscribeHandler, NULL}},
     {WANMGR_CONFIG_WAN_INTERFACEACTIVESTATUS,    RBUS_ELEMENT_TYPE_PROPERTY, {WanMgr_Rbus_getHandler, NULL, NULL, NULL, WanMgr_Rbus_SubscribeHandler, NULL}},
@@ -554,6 +555,10 @@ rbusError_t WanMgr_Rbus_getHandler(rbusHandle_t handle, rbusProperty_t property,
         else if (strcmp(name, WANMGR_CONFIG_WAN_INTERFACEACTIVESTATUS) == 0)
         {
             rbusValue_SetString(value, pWanDmlData->InterfaceActiveStatus);
+        }
+        else if (strcmp(name, WANMGR_CONFIG_WAN_CURRENT_STATUS) == 0)
+        {
+            rbusValue_SetString(value, pWanDmlData->CurrentStatus);
         }
         else
         {
@@ -1070,7 +1075,7 @@ ANSC_STATUS WanMgr_Rbus_Init()
     }
 
     // Register data elements
-    rc = rbus_regDataElements(rbusHandle, NUM_OF_RBUS_PARAMS, wanMgrRbusDataElements);
+    rc = rbus_regDataElements(rbusHandle, ARRAY_SZ(wanMgrRbusDataElements), wanMgrRbusDataElements);
 
     if (rc != RBUS_ERROR_SUCCESS)
     {
@@ -1153,7 +1158,7 @@ ANSC_STATUS WanMgr_RbusExit()
     char param_name[256] = {0};
 
     CcspTraceInfo(("%s %d - WanMgr_RbusExit called\n", __FUNCTION__, __LINE__ ));
-    rbus_unregDataElements(rbusHandle, NUM_OF_RBUS_PARAMS, wanMgrRbusDataElements);
+    rbus_unregDataElements(rbusHandle, ARRAY_SZ(wanMgrRbusDataElements), wanMgrRbusDataElements);
 
     rbus_unregDataElements(rbusHandle, wanMgrIfacePublishElements, wanMgrIfacePublishElements);
     for (int i = 0; i < uiTotalIfaces; i++)

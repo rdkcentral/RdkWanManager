@@ -1721,6 +1721,7 @@ ANSC_STATUS Update_Interface_Status()
     CHAR    InterfaceAvailableStatus[BUFLEN_64]  = {0};
     CHAR    InterfaceActiveStatus[BUFLEN_64]     = {0};
     CHAR    CurrentActiveInterface[BUFLEN_64] = {0};
+    CHAR    CurrentWanStatus[BUFLEN_16] = "Down";
     CHAR    CurrentStandbyInterface[BUFLEN_64] = {0};
 
     CHAR    prevInterfaceAvailableStatus[BUFLEN_64]  = {0};
@@ -1756,6 +1757,7 @@ ANSC_STATUS Update_Interface_Status()
                 //TODO: NEW_DESIGN revisit this code for Name and status
                 for(int virIf_id=0; virIf_id< pWanIfaceData->NoOfVirtIfs; virIf_id++)
                 {
+                //Note: This function uses first Virtual interface as primary to set status information.
                 DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIfaceById(pWanIfaceData->VirtIfList, virIf_id);
                 struct IFACE_INFO *newIface = calloc(1, sizeof( struct IFACE_INFO));
                 newIface->next = NULL;
@@ -1783,6 +1785,7 @@ ANSC_STATUS Update_Interface_Status()
                     if(pWanIfaceData->Selection.Status == WAN_IFACE_ACTIVE)
                     {
                         snprintf(newIface->CurrentActive, sizeof(newIface->CurrentActive), "%s", p_VirtIf->Name);
+                        snprintf(CurrentWanStatus,sizeof(CurrentWanStatus), "%s", (p_VirtIf->Status == WAN_IFACE_STATUS_UP)?"Up":"Down");
 #if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
                         /* Update Only for Gateway mode. Wan IP Interface entry not added in PAM for MODEM_MODE */
                         WanMgr_RdkBus_setWanIpInterfaceData(p_VirtIf);
@@ -1880,6 +1883,14 @@ ANSC_STATUS Update_Interface_Status()
         else
         {
             CcspTraceInfo(("%s %d -CurrentActiveInterface- No update\n",__FUNCTION__,__LINE__));
+        }
+
+        if(strcmp(pWanDmlData->CurrentStatus, CurrentWanStatus) != 0)
+        { 
+            CcspTraceInfo(("%s %d -Publishing Wan CurrentStatus change - old status [%s] => new status [%s]\n",__FUNCTION__,__LINE__,pWanDmlData->CurrentStatus, CurrentWanStatus));
+            WanMgr_Rbus_String_EventPublish_OnValueChange(WANMGR_CONFIG_WAN_CURRENT_STATUS, pWanDmlData->CurrentStatus, CurrentWanStatus);
+            memset(pWanDmlData->CurrentStatus, 0, sizeof(pWanDmlData->CurrentStatus));
+            strncpy(pWanDmlData->CurrentStatus, CurrentWanStatus, sizeof(pWanDmlData->CurrentStatus) - 1);
         }
 
         CcspTraceInfo(("%s %d -CurrentStandbyInterface- [%s] [%s]\n",__FUNCTION__,__LINE__,pWanDmlData->CurrentStandbyInterface,CurrentStandbyInterface));
