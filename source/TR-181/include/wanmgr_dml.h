@@ -502,6 +502,7 @@ typedef struct _DML_IFACE_SELECTION
     BOOL                        ActiveLink;
     UINT                        Group;
     BOOL                        RequiresReboot;
+    BOOL                        RebootTriggerStatus;
 } DML_IFACE_SELECTION;
 
 typedef struct _DML_WAN_INTERFACE

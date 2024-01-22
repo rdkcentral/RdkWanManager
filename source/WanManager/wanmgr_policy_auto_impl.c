@@ -894,6 +894,7 @@ static WcAwPolicyState_t Transition_ReconfigurePlatform (WanMgr_Policy_Controlle
     // set Selection.Status = WAN_IFACE_NOT_SELECTED, to tear down iface sm 
     DML_WAN_IFACE * pActiveInterface = &(pWanController->pWanActiveIfaceData->data);
     pActiveInterface->Selection.Status = WAN_IFACE_NOT_SELECTED;
+    pActiveInterface->Selection.RebootTriggerStatus = TRUE;
     CcspTraceInfo(("%s %d: setting Selection.Status for interface:%d as NOT_SELECTED \n", __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
 
     return STATE_AUTO_WAN_REBOOT_PLATFORM;

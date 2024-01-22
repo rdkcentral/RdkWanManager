@@ -1929,7 +1929,8 @@ static eWanState_t wan_transition_ipv4_down(WanMgr_IfaceSM_Controller_t* pWanIfa
 
             if ((pInterface->BaseInterfaceStatus !=  WAN_IFACE_PHY_STATUS_UP)                                   // WAN BaseInterface Down, STOP_DHCP_WITHOUT_RELEASE
                     || p_VirtIf->Reset == TRUE                                                                  // WAN Refresh going on, STOP_DHCP_WITHOUT_RELEASE
-                    || (p_VirtIf->VLAN.Enable == TRUE && p_VirtIf->VLAN.Status == WAN_IFACE_LINKSTATUS_DOWN))   // VLAN Link Down, STOP_DHCP_WITHOUT_RELEASE
+                    || (p_VirtIf->VLAN.Enable == TRUE && p_VirtIf->VLAN.Status == WAN_IFACE_LINKSTATUS_DOWN)    // VLAN Link Down, STOP_DHCP_WITHOUT_RELEASE
+                    || (pInterface->Selection.RebootTriggerStatus == TRUE))           // Hardware Reconfiguration reboot going on, STOP_DHCP_WITHOUT_RELEASE
             {
                 release_action = STOP_DHCP_WITHOUT_RELEASE;
             }
@@ -2210,7 +2211,8 @@ static eWanState_t wan_transition_ipv6_down(WanMgr_IfaceSM_Controller_t* pWanIfa
 
         if ((pInterface->BaseInterfaceStatus !=  WAN_IFACE_PHY_STATUS_UP)                                   // WAN BaseInterface Down, STOP_DHCP_WITHOUT_RELEASE
                 || p_VirtIf->Reset == TRUE                                                                  // WAN Refresh going on, STOP_DHCP_WITHOUT_RELEASE
-                || (p_VirtIf->VLAN.Enable == TRUE && p_VirtIf->VLAN.Status == WAN_IFACE_LINKSTATUS_DOWN))   // VLAN Link Down, STOP_DHCP_WITHOUT_RELEASE
+                || (p_VirtIf->VLAN.Enable == TRUE && p_VirtIf->VLAN.Status == WAN_IFACE_LINKSTATUS_DOWN)    // VLAN Link Down, STOP_DHCP_WITHOUT_RELEASE
+                || (pInterface->Selection.RebootTriggerStatus == TRUE))           // Hardware Reconfiguration reboot going on, STOP_DHCP_WITHOUT_RELEASE
         {
             release_action = STOP_DHCP_WITHOUT_RELEASE;
         }

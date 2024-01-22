@@ -729,6 +729,7 @@ void WanMgr_IfaceData_Init(WanMgr_Iface_Data_t* pIfaceData, UINT iface_index)
         pWanDmlIface->Selection.ActiveLink = FALSE;
 	    pWanDmlIface->Selection.Status = WAN_IFACE_NOT_SELECTED;
         pWanDmlIface->Selection.RequiresReboot = FALSE;
+        pWanDmlIface->Selection.RebootTriggerStatus = FALSE;
 	    pWanDmlIface->Selection.Group = 1;
         pWanDmlIface->InterfaceScanStatus = WAN_IFACE_STATUS_NOT_SCANNED;
 
