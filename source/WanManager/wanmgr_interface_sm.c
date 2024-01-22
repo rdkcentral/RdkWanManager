@@ -1037,9 +1037,6 @@ static int wan_setUpIPv4(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
     CcspTraceInfo(("%s %d -  IP configuration = %s \n", __FUNCTION__, __LINE__, cmdStr));
     WanManager_DoSystemAction("setupIPv4:", cmdStr);
 
-    snprintf(cmdStr, sizeof(cmdStr), "sendarp -s %s -d %s", ETH_BRIDGE_NAME, ETH_BRIDGE_NAME);
-    WanManager_DoSystemAction("setupIPv4", cmdStr);
-
     /** Need to manually add route if the connection is PPP connection*/
     if (p_VirtIf->PPP.Enable == TRUE)
     {
