@@ -35,13 +35,6 @@
 
 #define WAN_LINK_DOWN_STATE            "rdkb_wan_link_down"
 #define WAN_LINK_UP_STATE              "rdkb_wan_link_up"
-#define WAN_IPV4_UP                    "rdkb_ipv4_up"
-#define WAN_IPV4_DOWN                  "rdkb_ipv4_down"
-#define WAN_IPV6_UP                    "rdkb_ipv6_up"
-#define WAN_IPV6_DOWN                  "rdkb_ipv6_down"
-#define WAN_MAPT_UP                   "rdkb_mapt_up"
-#define WAN_MAPT_DOWN                 "rdkb_mapt_down"
-#define WAN_ESTABLISH                 "rdkb_wan_establish"
 #define DSL_TRAINING                  "rdkb_dsl_training"
 
 /* The following defines are used for sysevent retrieval. */

@@ -351,41 +351,7 @@ ANSC_STATUS UpdateLedStatus (WanMgr_FailOver_Controller_t* pFailOverController)
                         /* Update Only when state changed */
                         CcspTraceInfo(("%s %d Updating LED status of Selected Interface (%s) BaseInterface (%s) \n", __FUNCTION__, __LINE__,pWanIfaceData->DisplayName, pWanIfaceData->BaseInterface));
                         wanmgr_setWanLedState(pWanIfaceData->VirtIfList->eCurrentState);
-                        switch(pWanIfaceData->VirtIfList->eCurrentState)
-                        {
-                            case WAN_STATE_DUAL_STACK_ACTIVE:
-                                wanmgr_sysevents_setWanState(WAN_IPV4_UP);
-                                wanmgr_sysevents_setWanState(WAN_IPV6_UP);
-                                break;
 
-                            case WAN_STATE_IPV6_LEASED:
-#ifdef FEATURE_MAPT
-                                wanmgr_sysevents_setWanState(WAN_MAPT_DOWN);
-#endif
-                                wanmgr_sysevents_setWanState(WAN_IPV4_DOWN);
-                                wanmgr_sysevents_setWanState(WAN_IPV6_UP);
-                                break;
-
-                            case WAN_STATE_IPV4_LEASED:
-                                wanmgr_sysevents_setWanState(WAN_IPV6_DOWN);
-                                wanmgr_sysevents_setWanState(WAN_IPV4_UP);
-
-                                break;
-
-#ifdef FEATURE_MAPT
-                            case WAN_STATE_MAPT_ACTIVE:
-                                wanmgr_sysevents_setWanState(WAN_MAPT_UP);
-                                break;
-#endif
-                            default:
-#ifdef FEATURE_MAPT
-                                wanmgr_sysevents_setWanState(WAN_MAPT_DOWN);
-#endif
-                                wanmgr_sysevents_setWanState(WAN_IPV6_DOWN);
-                                wanmgr_sysevents_setWanState(WAN_IPV4_DOWN);
-                                wanmgr_sysevents_setWanState(WAN_LINK_UP_STATE);
-                                break;
-                        }
                         pFailOverController->ActiveIfaceState = pWanIfaceData->VirtIfList->eCurrentState;
                         pFailOverController->PhyState = WAN_IFACE_PHY_STATUS_UP; //If ISM running, set Phystate to UP
                     }
@@ -707,11 +673,7 @@ static WcFailOverState_t Transition_ResetScan (WanMgr_FailOver_Controller_t * pF
     pFailOverController->ResetScan = false;
 
     //Update LED
-#ifdef FEATURE_MAPT
-    wanmgr_sysevents_setWanState(WAN_MAPT_DOWN);
-#endif
-    wanmgr_sysevents_setWanState(WAN_IPV6_DOWN);
-    wanmgr_sysevents_setWanState(WAN_IPV4_DOWN);
+    wanmgr_setWanLedState(WAN_STATE_EXIT); 
     pFailOverController->ActiveIfaceState = -1;
     pFailOverController->PhyState = WAN_IFACE_PHY_STATUS_UNKNOWN;
 
