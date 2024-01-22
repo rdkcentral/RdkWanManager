@@ -27,7 +27,7 @@
 #include "wanmgr_dhcpv4_apis.h"
 
 #define WANMGR_MAX_IPC_PROCCESS_TRY             5
-#define WANMGR_IPC_PROCCESS_TRY_WAIT_TIME       30000 //us
+#define WANMGR_IPC_PROCCESS_TRY_WAIT_TIME       100000 //us
 
 
 typedef struct _WanIpcCtrl_t_
