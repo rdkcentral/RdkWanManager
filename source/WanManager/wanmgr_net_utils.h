@@ -30,11 +30,7 @@
 //
 //
 /* ---- Global Constants -------------------------- */
-#ifdef DHCPv6_CLIENT_TI_DHCP6C
-#define DHCPV6_CLIENT_NAME "ti_dhcp6c"
-#else
 #define DHCPV6_CLIENT_NAME "dibbler-client"
-#endif
 //
 
 
