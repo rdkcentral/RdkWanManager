@@ -21,7 +21,7 @@
 #define _WANMGR_RBUS_H_
 #ifdef RBUS_BUILD_FLAG_ENABLE
 #include "ansc_platform.h"
-#include <rbus.h>
+#include <rbus/rbus.h>
 #include "ccsp_base_api.h"
 
 #define WANMGR_CONFIG_WAN_CURRENTACTIVEINTERFACE     "Device.X_RDK_WanManager.CurrentActiveInterface"
