@@ -448,6 +448,9 @@ static INT WanMgr_Policy_AutoWan_GetLastKnownModeInterfaceIndex(void)
                             break;
                             case WAN_MODE_SECONDARY:
                             {
+#if defined(_SCER11BEL_PRODUCT_REQ_)
+                                type = 3;
+#endif
                                 if (type == WAN_IFACE_TYPE_SECONDARY)
                                 {
                                     return iActiveWanIdx;
