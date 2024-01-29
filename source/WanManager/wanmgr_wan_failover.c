@@ -478,9 +478,6 @@ static WcFailOverState_t Transition_Start (WanMgr_FailOver_Controller_t* pFailOv
     memset(&(pFailOverController->GroupSelectionTimer), 0, sizeof(struct timespec));
     clock_gettime(CLOCK_MONOTONIC_RAW, &(pFailOverController->GroupSelectionTimer));
 
-    CcspTraceInfo(("%s %d Updating LED status LinkDown \n", __FUNCTION__, __LINE__));
-    wanmgr_sysevents_setWanState(WAN_LINK_DOWN_STATE);
-
     return STATE_FAILOVER_SCANNING_GROUP;
 }
 
