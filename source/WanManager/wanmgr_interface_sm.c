@@ -862,13 +862,13 @@ static int checkIpv6LanAddressIsReadyToUse(char *ifname)
      /*TODO:
      *Below Code should be removed once V6 Prefix/IP is assigned on erouter0 Instead of brlan0 for sky Devices.
      */
-    strcpy(IfaceName, ETH_BRIDGE_NAME);
+    strncpy(IfaceName, ETH_BRIDGE_NAME, sizeof(IfaceName)-1);
     sysevent_get(sysevent_fd, sysevent_token, "bridge_mode", Output, sizeof(Output));
     BridgeMode = atoi(Output);
     if (BridgeMode != 0)
     {
         memset(IfaceName, 0, sizeof(IfaceName));
-        strncpy(IfaceName, ifname, strlen(ifname));
+        strncpy(IfaceName, ifname, sizeof(IfaceName)-1);
     }
     CcspTraceInfo(("%s-%d: IfaceName=%s, BridgeMode=%d \n", __FUNCTION__, __LINE__, IfaceName, BridgeMode));
 
@@ -3953,21 +3953,6 @@ ANSC_STATUS WanMgr_InterfaceSMThread_Init(WanMgr_IfaceSM_Controller_t* pWanIface
     return retStatus;
 }
 
-
-ANSC_STATUS WanMgr_InterfaceSMThread_Finalise(void)
-{
-    int retStatus = ANSC_STATUS_SUCCESS;
-
-    retStatus = WanMgr_CloseIpcServer();
-    if(retStatus != ANSC_STATUS_SUCCESS)
-    {
-        CcspTraceError(("%s %d - IPC Thread failed to start!\n", __FUNCTION__, __LINE__ ));
-    }
-
-    return retStatus;
-}
-
-
 static ANSC_STATUS WanMgr_IfaceIpcMsg_handle(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
 {
     if((pWanIfaceCtrl == NULL) || (pWanIfaceCtrl->pIfaceData == NULL))
@@ -4183,9 +4168,6 @@ static void* WanMgr_InterfaceSMThread( void *arg )
         }
 
     }
-
-    WanMgr_InterfaceSMThread_Finalise();
-
 
     CcspTraceInfo(("%s %d - Interface state machine (TID %lu) exiting for iface idx %d\n", __FUNCTION__, __LINE__, syscall(SYS_gettid), pWanIfaceCtrl->interfaceIdx));
 
