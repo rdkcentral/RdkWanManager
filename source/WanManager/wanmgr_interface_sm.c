@@ -1642,10 +1642,6 @@ static ANSC_STATUS WanManager_ClearDHCPData(DML_VIRTUAL_IFACE * pVirtIf)
         pVirtIf->IP.pIpcIpv6Data = NULL;
     }
 
-    //Init ConnectivityStatus to UP
-    pVirtIf->IP.Ipv4ConnectivityStatus = WAN_CONNECTIVITY_UP; 
-    pVirtIf->IP.Ipv6ConnectivityStatus = WAN_CONNECTIVITY_UP;
-
     return ANSC_STATUS_SUCCESS;
 }
 
@@ -1879,7 +1875,9 @@ static eWanState_t wan_transition_wan_validated(WanMgr_IfaceSM_Controller_t* pWa
         WanManager_ClearDHCPData(p_VirtIf);
     }
 
-
+    //Init ConnectivityStatus to UP
+    p_VirtIf->IP.Ipv4ConnectivityStatus = WAN_CONNECTIVITY_UP;
+    p_VirtIf->IP.Ipv6ConnectivityStatus = WAN_CONNECTIVITY_UP;
 
     if(p_VirtIf->IP.SelectedMode == MAPT_MODE && p_VirtIf->IP.SelectedModeTimerStatus != EXPIRED)
     {
