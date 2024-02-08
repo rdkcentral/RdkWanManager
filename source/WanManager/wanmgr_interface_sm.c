@@ -1097,6 +1097,7 @@ static int wan_setUpIPv4(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
         int  uptime = 0;
         char buffer[64] = {0};
 
+        sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_WAN_SERVICE_STATUS, WAN_STATUS_STARTED, 0);
         sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_WAN_STATUS, WAN_STATUS_STARTED, 0);
         CcspTraceInfo(("%s %d - wan-status event set to started \n", __FUNCTION__, __LINE__));
 
@@ -1254,6 +1255,7 @@ static int wan_setUpIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
     //TODO: Firewall IPv6 FORWARD rules are not working if SYSEVENT_WAN_SERVICE_STATUS is set for REMOTE_IFACE. Modify firewall similar for backup interface similar to primary.
     if (strcmp(buf, WAN_STATUS_STARTED)&& pInterface->IfaceType != REMOTE_IFACE)
     {
+        sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_WAN_SERVICE_STATUS, WAN_STATUS_STARTED, 0);
         sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_WAN_STATUS, WAN_STATUS_STARTED, 0);
         CcspTraceInfo(("%s %d - wan-status event set to started \n", __FUNCTION__, __LINE__));
         /*TODO: touch /var/wan_started for wan-initialized.path in systemd and register /etc/utopia/post.d/. 
