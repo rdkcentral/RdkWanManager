@@ -40,7 +40,6 @@
 /* ---- Global Constants -------------------------- */
 #define LOOP_TIMEOUT 500000 // timeout in milliseconds. This is the state machine loop interval
 #define WAN_PHY_NAME "erouter0"
-
 /* fixed mode policy states */
 typedef enum {
     STATE_WAN_SELECTING_INTERFACE = 0,
@@ -3336,16 +3335,14 @@ static WcBWanPolicyState_t Transition_BackupWanInterfaceUp(WanMgr_Policy_Control
         return Transition_BackupWanSelectingInterface(pWanController);
     }
 
-    //Start wan over backup wan interface
-    CcspTraceInfo(("%s %d - Starting WAN services\n", __FUNCTION__, __LINE__));
-    WanMgr_Policy_CheckAndStopUDHCPClientOverWanInterface(pFixedInterface->VirtIfList->Name, BACKUP_WAN_DHCPC_PID_FILE);
+    if (-1 == WanMgr_Policy_CheckAndStartUDHCPClientOverWanInterface( pFixedInterface->VirtIfList->Name, WAN_START_FOR_BACKUP_WAN, BACKUP_WAN_DHCPC_PID_FILE, BACKUP_WAN_DHCPC_SOURCE_FILE ))
+    {
+        return STATE_BACKUP_WAN_INTERFACE_DOWN;
+    }
 
     pFixedInterface->VirtIfList->VLAN.Status = WAN_IFACE_LINKSTATUS_UP;
     pFixedInterface->VirtIfList->Status = WAN_IFACE_STATUS_UP;
     Update_Interface_Status();
-
-    //WAN UDHCPC Start
-    WanMgr_Policy_CheckAndStartUDHCPClientOverWanInterface( pFixedInterface->VirtIfList->Name, WAN_START_FOR_BACKUP_WAN, BACKUP_WAN_DHCPC_PID_FILE, BACKUP_WAN_DHCPC_SOURCE_FILE );
 
     CcspTraceInfo(("%s - Starting IP Monitoring for '%d' instance\n", __FUNCTION__, pWanController->activeInterfaceIdx + 1));
 
@@ -3460,31 +3457,21 @@ static WcBWanPolicyState_t Transition_BackupWanInterfaceInActive(WanMgr_Policy_C
     }
 
     pFixedInterface->Selection.Status = WAN_IFACE_SELECTED;
-    pFixedInterface->VirtIfList->Status =  WAN_IFACE_STATUS_DISABLED;
 
     //Update current active interface variable
     Update_Interface_Status();
 
-    if(-1 == WanMgr_Policy_BackupWan_CheckAnyLocalWANIsPhysicallyActive() )
+    if (!WanMgr_FirewallRuleConfig("deconfigure", pFixedInterface->VirtIfList->Name))
     {
-        CcspTraceInfo(("%s %d - State changed to STATE_BACKUP_WAN_WAITING \n", __FUNCTION__, __LINE__));
-        return STATE_BACKUP_WAN_WAITING;
+        CcspTraceError(("%s-%d : Failed to De-Configure Firewall Rules \n",__FUNCTION__, __LINE__));
     }
-    else
+    //Delete Default v6 route config.
+    sysevent_get(sysevent_fd, sysevent_token, "remotewan_routeset", tmpBuf, sizeof(tmpBuf));
+    if (strcmp(tmpBuf,"true") == 0 )
     {
-        if (!WanMgr_FirewallRuleConfig("deconfigure", pFixedInterface->VirtIfList->Name))
+        if (!WanMgr_delBackUpIpv6Route(pFixedInterface->VirtIfList->Name))
         {
-            CcspTraceError(("%s-%d : Failed to De-Configure Firewall Rules \n",__FUNCTION__, __LINE__));
-        }
-
-	//Delete Default v6 route config.
-        sysevent_get(sysevent_fd, sysevent_token, "remotewan_routeset", tmpBuf, sizeof(tmpBuf));
-        if (strcmp(tmpBuf,"true") == 0 )
-        {
-            if (!WanMgr_delBackUpIpv6Route(pFixedInterface->VirtIfList->Name))
-            {
-                CcspTraceError(("%s-%d : Failed to del Ipv6 Default Route \n",__FUNCTION__, __LINE__));
-            }
+            CcspTraceError(("%s-%d : Failed to del Ipv6 Default Route \n",__FUNCTION__, __LINE__));
         }
     }
 
@@ -3507,6 +3494,34 @@ static WcBWanPolicyState_t Transition_BackupWanInterfaceDown(WanMgr_Policy_Contr
         return Transition_BackupWanSelectingInterface(pWanController);
     }
 
+    //Update current active interface variable
+    Update_Interface_Status();
+
+    if((pFixedInterface->VirtIfList->Status == WAN_IFACE_STATUS_UP) &&
+       (pFixedInterface->VirtIfList->RemoteStatus == WAN_IFACE_STATUS_UP))
+    {
+        if(-1 == WanMgr_Policy_BackupWan_CheckAnyLocalWANIsPhysicallyActive() )
+        {
+            CcspTraceInfo(("%s %d - State changed to STATE_BACKUP_WAN_WAITING \n", __FUNCTION__, __LINE__));
+            return STATE_BACKUP_WAN_WAITING;
+        }
+        else if (pFixedInterface->VirtIfList->Status == WAN_IFACE_STATUS_UP)
+        {
+            if (!WanMgr_FirewallRuleConfig("deconfigure", pFixedInterface->VirtIfList->Name))
+            {
+                CcspTraceError(("%s-%d : Failed to De-Configure Firewall Rules \n",__FUNCTION__, __LINE__));
+            }
+            //Delete v6 default route.
+            sysevent_get(sysevent_fd, sysevent_token, "remotewan_routeset", tmpBuf, sizeof(tmpBuf));
+            if (strcmp(tmpBuf,"true") == 0 )
+            {
+                if (!WanMgr_delBackUpIpv6Route(pFixedInterface->VirtIfList->Name))
+                {
+                    CcspTraceError(("%s-%d : Failed to del Ipv6 Default Route \n",__FUNCTION__, __LINE__));
+                }
+            }
+        }
+    }
     // Reset Physical link status when state machine is teardown
     pFixedInterface->Selection.ActiveLink = FALSE;
     pFixedInterface->VirtIfList->VLAN.Status = WAN_IFACE_LINKSTATUS_DOWN;
@@ -3514,32 +3529,9 @@ static WcBWanPolicyState_t Transition_BackupWanInterfaceDown(WanMgr_Policy_Contr
     pFixedInterface->VirtIfList->Status = WAN_IFACE_STATUS_DISABLED;
     pFixedInterface->VirtIfList->IP.Ipv4Status = WAN_IFACE_IPV4_STATE_UNKNOWN;
     pFixedInterface->VirtIfList->IP.Ipv6Status = WAN_IFACE_IPV6_STATE_UNKNOWN;
-
     //Update current active interface variable
     Update_Interface_Status();
 
-    if(-1 == WanMgr_Policy_BackupWan_CheckAnyLocalWANIsPhysicallyActive() )
-    {
-        CcspTraceInfo(("%s %d - State changed to STATE_BACKUP_WAN_WAITING \n", __FUNCTION__, __LINE__));
-        return STATE_BACKUP_WAN_WAITING;
-    }
-    else
-    {
-        if (!WanMgr_FirewallRuleConfig("deconfigure", pFixedInterface->VirtIfList->Name))
-        {
-            CcspTraceError(("%s-%d : Failed to De-Configure Firewall Rules \n",__FUNCTION__, __LINE__));
-        }
-
-	//Delete v6 default route.
-        sysevent_get(sysevent_fd, sysevent_token, "remotewan_routeset", tmpBuf, sizeof(tmpBuf));
-        if (strcmp(tmpBuf,"true") == 0 )
-        {
-            if (!WanMgr_delBackUpIpv6Route(pFixedInterface->VirtIfList->Name))
-            {
-                CcspTraceError(("%s-%d : Failed to del Ipv6 Default Route \n",__FUNCTION__, __LINE__));
-            }
-        }
-    }
     WanMgr_Policy_CheckAndStopUDHCPClientOverWanInterface(pFixedInterface->VirtIfList->Name, BACKUP_WAN_DHCPC_PID_FILE);
 
     CcspTraceInfo(("%s %d - State changed to STATE_BACKUP_WAN_INTERFACE_DOWN \n", __FUNCTION__, __LINE__));
@@ -3561,34 +3553,7 @@ static WcBWanPolicyState_t Transition_BackupWanInterfaceWaitingPrimaryUp(WanMgr_
         return Transition_BackupWanSelectingInterface(pWanController);
     }
 
-    if (!WanMgr_FirewallRuleConfig("deconfigure", pFixedInterface->VirtIfList->Name))
-    {
-        CcspTraceError(("%s-%d : Failed to De-Configure Firewall Rules \n",__FUNCTION__, __LINE__));
-    }
-
-    //Delete v6 default route.
-    sysevent_get(sysevent_fd, sysevent_token, "remotewan_routeset", tmpBuf, sizeof(tmpBuf));
-    if (strcmp(tmpBuf,"true") == 0 )
-    {
-        if (!WanMgr_delBackUpIpv6Route(pFixedInterface->VirtIfList->Name))
-        {
-            CcspTraceError(("%s-%d : Failed to del Ipv6 Default Route \n",__FUNCTION__, __LINE__));
-        }
-    }
-
-    if ( (pWanController->WanEnable == FALSE) ||
-         (pWanController->AllowRemoteInterfaces == FALSE) ||
-         (pFixedInterface->Selection.Enable == FALSE) ||
-         (pFixedInterface->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_DOWN)||
-         (pFixedInterface->VirtIfList->VLAN.Status != WAN_IFACE_LINKSTATUS_UP) ||
-         (WAN_IFACE_STATUS_UP != pFixedInterface->VirtIfList->Status) )
-    {
-        CcspTraceInfo(("%s %d - State changed to STATE_BACKUP_WAN_INTERFACE_DOWN \n", __FUNCTION__, __LINE__));
-        return STATE_BACKUP_WAN_INTERFACE_DOWN;
-    }
-
-    CcspTraceInfo(("%s %d - State changed to STATE_BACKUP_WAN_INTERFACE_INACTIVE \n", __FUNCTION__, __LINE__));
-    return STATE_BACKUP_WAN_INTERFACE_INACTIVE;
+    return Transition_BackupWanInterfaceDown(pWanController);
 }
 
 /*********************************************************************************/
