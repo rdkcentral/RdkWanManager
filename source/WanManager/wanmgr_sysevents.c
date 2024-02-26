@@ -1053,6 +1053,7 @@ int Force_IPv6_toggle (char* wanInterface)
     if(ret != 0) {
         CcspTraceWarning(("%s: Failure in executing command via v_secure_system. ret:[%d] \n", __FUNCTION__,ret));
     }
+    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV6_TOGGLE, "FALSE", 0); //Reset toggle flag to false.
 
     return ret;
 }
@@ -1110,8 +1111,8 @@ void WanMgr_Configure_accept_ra(DML_VIRTUAL_IFACE * pVirtIf, BOOL EnableRa)
         v_secure_system("sysctl -w net.ipv6.conf.%s.accept_ra_pinfo=0",pVirtIf->Name);
         v_secure_system("sysctl -w net.ipv6.conf.%s.accept_ra_defrtr=1",pVirtIf->Name);
         v_secure_system("sysctl -w net.ipv6.conf.all.forwarding=1");
-        CcspTraceInfo(("%s %d Reset the ipv6 toggle after ra accept \n", __FUNCTION__, __LINE__));
-        sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV6_TOGGLE, "TRUE", 0);
+        CcspTraceInfo(("%s %d IPv6 toggle after ra accept \n", __FUNCTION__, __LINE__));
+        Force_IPv6_toggle(pVirtIf->Name); // Do a IPv6 toggle to send Router Solicit
     }
 }
 

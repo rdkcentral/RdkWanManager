@@ -3041,7 +3041,8 @@ static eWanState_t wan_state_obtaining_ip_addresses(WanMgr_IfaceSM_Controller_t*
         {
             if(p_VirtIf->IP.SelectedModeTimerStatus == RUNNING)
             {
-                if (difftime(CurrentTime.tv_sec, p_VirtIf->IP.SelectedModeTimerStart.tv_sec) > SELECTED_MODE_TIMEOUT_SECONDS)
+                if (difftime(CurrentTime.tv_sec, p_VirtIf->IP.SelectedModeTimerStart.tv_sec) > SELECTED_MODE_TIMEOUT_SECONDS ||
+                    p_VirtIf->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_UP)
                 {
                     p_VirtIf->IP.SelectedModeTimerStatus = EXPIRED;
                     CcspTraceInfo(("%s %d MAPT option not recieved in MAPT Preferred Mode - Timer Expired \n", __FUNCTION__, __LINE__));

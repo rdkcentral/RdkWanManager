@@ -1892,10 +1892,10 @@ int setUpLanPrefixIPv6(DML_VIRTUAL_IFACE* pVirtIf)
     CcspTraceInfo(("%s %d Updating SYSEVENT_CURRENT_WAN_IFNAME %s\n", __FUNCTION__, __LINE__,pVirtIf->IP.Ipv6Data.ifname));
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_CURRENT_WAN_IFNAME, pVirtIf->IP.Ipv6Data.ifname, 0);
 
+#if !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_))  //TODO: V6 handled in PAM
     /* Enable accept ra */
     WanMgr_Configure_accept_ra(pVirtIf, TRUE);
 
-#if !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_))  //TODO: V6 handled in PAM
     int index = strcspn(pVirtIf->IP.Ipv6Data.sitePrefix, "/");
     if (index < strlen(pVirtIf->IP.Ipv6Data.sitePrefix))
     {
