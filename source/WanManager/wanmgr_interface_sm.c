@@ -1083,6 +1083,10 @@ static int wan_setUpIPv4(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
     }
     fclose(fp);
 
+    //Enabling IP forwarding 
+    CcspTraceInfo(("%s %d - net.ipv4.ip_forward set to 1 \n", __FUNCTION__, __LINE__));
+    v_secure_system("sysctl -w net.ipv4.ip_forward=1");
+
     if (strstr(pInterface->BaseInterface, "Ethernet"))
     {
         sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_ETHWAN_INITIALIZED, "1", 0);
