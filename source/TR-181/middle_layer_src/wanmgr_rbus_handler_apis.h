@@ -34,6 +34,7 @@
 #define X_RDK_REMOTE_INVOKE                          "Device.X_RDK_Remote.Invoke()"
 #define X_RDK_REMOTE_DEVICE_NUM_OF_ENTRIES           "Device.X_RDK_Remote.DeviceNumberOfEntries"
 #define X_RDK_REMOTE_DEVICE_MAC                      "Device.X_RDK_Remote.Device.%d.MAC"
+#define X_RDK_REMOTE_DEVICE_STATUS                   "Device.X_RDK_Remote.Device.%d.Status"
 #define MAX_NO_OF_RBUS_REMOTE_PARAMS                 64
 
 #if defined(WAN_MANAGER_UNIFICATION_ENABLED)
@@ -126,6 +127,14 @@ typedef enum _IDM_MSG_OPERATION
     IDM_REQUEST,
 
 }IDM_MSG_OPERATION;
+
+typedef enum _IDM_REMOTE_DEVICE_STATUS
+{
+   DEVICE_NOT_DETECTED = 0,
+   DEVICE_DETECTED,
+   DEVICE_AUTHENTICATED,
+   DEVICE_CONNECTED
+} IDM_REMOTE_DEVICE_STATUS;
 
 typedef struct _DeviceChangeEvent {
     char         mac_addr[64];

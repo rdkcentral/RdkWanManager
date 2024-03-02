@@ -1137,7 +1137,7 @@ WanMgr_DmlDhcpv6cAddSentOption
     }
     else
     {
-        g_sent_options = realloc_tmp;
+        g_sent_options = (DML_DHCPCV6_SENT *)realloc_tmp;
     }
 
     _syscfg_add_sent_option(pEntry, g_sent_option_num);

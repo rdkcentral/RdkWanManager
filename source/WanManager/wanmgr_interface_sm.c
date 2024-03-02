@@ -26,6 +26,7 @@
 #include "platform_hal.h"
 #include "wanmgr_sysevents.h"
 #include "wanmgr_ipc.h"
+#include "wanmgr_rdkbus_apis.h"
 #include "wanmgr_rdkbus_utils.h"
 #include "wanmgr_data.h"
 #include "wanmgr_interface_sm.h"

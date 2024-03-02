@@ -93,5 +93,6 @@ typedef struct {
 ANSC_STATUS WanMgr_WebConfig_Process_Wanmanager_Params(msgpack_object obj, WanMgr_WebConfig_t *pWebConfig);
 ANSC_STATUS WanMgr_WebConfig_Process_ifParams( WebConfig_Wan_Interface_Table_t *e, msgpack_object_map *map );
 ANSC_STATUS WaneMgr_WebConfig_Process_MarkingEntry(WebConfig_Wan_Marking_Table_t *e, msgpack_object_map *map);
+ANSC_STATUS WanMgr_WebConfig_Process_WanFailOver_Params(msgpack_object obj, WanMgr_WebConfig_t *pWebConfig);
 
 #endif /* _WAN_MANAGER_WEBCONFIG_H */

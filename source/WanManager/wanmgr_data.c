@@ -19,6 +19,7 @@
 
 
 #include "wanmgr_data.h"
+#include "wanmgr_rdkbus_apis.h"
 
 #if defined(WAN_MANAGER_UNIFICATION_ENABLED) && (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_))
 extern ANSC_STATUS WanMgr_CheckAndResetV2PSMEntries(UINT IfaceCount);
@@ -176,7 +177,7 @@ ANSC_STATUS WanMgr_VirtIfConfVLAN(DML_VIRTUAL_IFACE *p_VirtIf, UINT Ifid)
         if(p_VlanIf == NULL)
         {
             CcspTraceError(("%s %d: AnscAllocateMemory failed \n", __FUNCTION__, __LINE__));
-            return;
+            return ANSC_STATUS_FAILURE;
         }
         p_VlanIf->Index = i;
         p_VlanIf->VirIfIdx = p_VirtIf->VirIfIdx;
@@ -201,7 +202,7 @@ ANSC_STATUS WanMgr_VirtIfConfVLAN(DML_VIRTUAL_IFACE *p_VirtIf, UINT Ifid)
         if(p_Marking == NULL)
         {
             CcspTraceError(("%s %d: AnscAllocateMemory failed \n", __FUNCTION__, __LINE__));
-            return;
+            return ANSC_STATUS_FAILURE;
         }
         p_Marking->VirtMarkingInstanceNumber = i;
         p_Marking->VirIfIdx = p_VirtIf->VirIfIdx;
@@ -221,7 +222,9 @@ ANSC_STATUS WanMgr_VirtIfConfVLAN(DML_VIRTUAL_IFACE *p_VirtIf, UINT Ifid)
         CcspTraceInfo(("%s %d Adding Marking entry %d \n", __FUNCTION__, __LINE__, p_Marking->VirtMarkingInstanceNumber));
         WanMgr_AddVirtMarkingToList(&(p_VirtIf->VLAN.VirtMarking),p_Marking);
     }
+    return ANSC_STATUS_SUCCESS;
 }
+
 ANSC_STATUS WanMgr_WanIfaceConfInit(WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl)
 {
     CcspTraceInfo(("%s %d Initialize Wan Iface Conf \n", __FUNCTION__, __LINE__));
@@ -496,7 +499,7 @@ ANSC_STATUS WanMgr_AddVirtVlanIfToList(DML_VLAN_IFACE_TABLE** head, DML_VLAN_IFA
         return ANSC_STATUS_SUCCESS;
     }
 
-    DML_VIRTUAL_IFACE* last = *head;
+    DML_VLAN_IFACE_TABLE *last = *head;
     while (last->next != NULL)
         last = last->next;
 
@@ -533,7 +536,7 @@ ANSC_STATUS WanMgr_AddVirtMarkingToList(DML_VIRTIF_MARKING** head, DML_VIRTIF_MA
         return ANSC_STATUS_SUCCESS;
     }
 
-    DML_VIRTUAL_IFACE* last = *head;
+    DML_VIRTIF_MARKING* last = *head;
     while (last->next != NULL)
         last = last->next;
 
@@ -900,7 +903,7 @@ ANSC_STATUS WanMgr_Remote_IfaceData_configure(char *remoteCPEMac, int  *iface_in
                 if(p_VirtIf == NULL)
                 {
                     CcspTraceError(("%s %d: AnscAllocateMemory failed \n", __FUNCTION__, __LINE__));
-                    return;
+                    return ANSC_STATUS_FAILURE;
                 }
                 WanMgr_VirtIface_Init(p_VirtIf, i);
                 *iface_index = pWanIfaceCtrl->ulTotalNumbWanInterfaces;

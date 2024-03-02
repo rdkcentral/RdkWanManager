@@ -96,7 +96,7 @@ extern ANSC_HANDLE bus_handle;
 extern int sysevent_fd;
 extern token_t sysevent_token;
 
-
+extern int stop_dhcpv4_client (dhcp_params * params);
 
 #if defined (DUID_UUID_ENABLE)
 #define DUID_TYPE "0004"  /* duid-type duid-uuid 4 */

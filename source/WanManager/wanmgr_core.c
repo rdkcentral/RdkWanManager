@@ -24,6 +24,7 @@
 #include "wanmgr_rdkbus_apis.h"
 #include "wanmgr_ipc.h"
 #include "wanmgr_controller.h"
+#include "wanmgr_data.h"
 #include "secure_wrapper.h"
 #ifdef RBUS_BUILD_FLAG_ENABLE
 #include "wanmgr_rbus_handler_apis.h"

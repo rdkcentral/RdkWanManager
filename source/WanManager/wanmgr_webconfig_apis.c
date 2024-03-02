@@ -32,7 +32,8 @@
 #include "wanmgr_webconfig_apis.h"
 #include "wanmgr_webconfig.h"
 #include "wanmgr_data.h"
-
+#include "wanmgr_dml_apis.h"
+#include "messagebus_interface_helper.h"
 
 
 /* WanMgr_Process_Webconfig_Request: */
@@ -52,13 +53,15 @@
 pErr WanMgr_Process_Webconfig_Request(void *Data)
 {
     pErr execRetVal = NULL;
-    int i, j, insNum, ifInsNum;
+    int i, j;
     char alias[BUFFER_LENGTH_16];
     char dmlAlias[BUFFER_LENGTH_16];
     char dmlIfName[BUFFER_LENGTH_64];
     char markingPath[BUFFER_LENGTH_512];
     UINT uiTotalIfaces = 0;
     ULONG nameLength = 0;
+    ULONG ifInsNum;
+    ULONG insNum;
     WanMgr_Iface_Data_t*   pWanDmlIfaceData = NULL;
 
     CcspTraceInfo(("%s : Starting WAN Blob Data Processing\n",__FUNCTION__));
@@ -154,7 +157,7 @@ pErr WanMgr_Process_Webconfig_Request(void *Data)
                                     Marking_SetParamIntValue((ANSC_HANDLE) pCxtLink, PARAM_NAME_ETHERNET_PRIORITY_MARK,
                                             pWebConfig->ifTable[i].markingTable[j].ethernetPriorityMark);
                                     pCxtLink->bNew = false;
-                                    CcspTraceInfo(("%s : Committing marking entry instance: %d..\n",
+                                    CcspTraceInfo(("%s : Committing marking entry instance: %lu..\n",
                                                 __FUNCTION__, insNum));
                                     Marking_Commit((ANSC_HANDLE)pCxtLink);
                                     break;
@@ -177,20 +180,20 @@ pErr WanMgr_Process_Webconfig_Request(void *Data)
                         // Matching entry not found, add a new entry with new Alias and EthernetPriorityMark
                         snprintf(markingPath,sizeof(markingPath),"%s%d.%s", TABLE_NAME_WAN_INTERFACE,
                                 ifInsNum, TABLE_NAME_WAN_MARKING);
-                        if (CCSP_SUCCESS == CcspCcMbi_AddTblRow( 0, markingPath, &insNum, NULL) )
+                        if (CCSP_SUCCESS == CcspCcMbi_AddTblRow( 0, markingPath, (int *)&insNum, NULL) )
                         {
-                            CcspTraceInfo(("%s : Added new entry at %s, instnce-number: %d..\n", __FUNCTION__,
+                            CcspTraceInfo(("%s : Added new entry at %s, instnce-number: %lu..\n", __FUNCTION__,
                                         markingPath, insNum));
                             pCxtLink = Marking_GetEntry((ANSC_HANDLE)pWanDmlIfaceData, markingCount, &insNum);
 
                             if(pCxtLink)
                             {
-                                CcspTraceInfo(("%s : Fetched new entry , instnce-number: %d..\n", __FUNCTION__, insNum));
+                                CcspTraceInfo(("%s : Fetched new entry , instnce-number: %lu..\n", __FUNCTION__, insNum));
                                 Marking_SetParamStringValue((ANSC_HANDLE)pCxtLink, PARAM_NAME_MARK_ALIAS, alias);
                                 Marking_SetParamIntValue((ANSC_HANDLE)pCxtLink, PARAM_NAME_ETHERNET_PRIORITY_MARK,
                                         pWebConfig->ifTable[i].markingTable[j].ethernetPriorityMark);
                                 pCxtLink->bNew = true;
-                                CcspTraceInfo(("%s : Committing marking entry instance: %d ..\n", __FUNCTION__, insNum));
+                                CcspTraceInfo(("%s : Committing marking entry instance: %lu ..\n", __FUNCTION__, insNum));
                                 Marking_Commit((ANSC_HANDLE)pCxtLink);
                             }
                             else

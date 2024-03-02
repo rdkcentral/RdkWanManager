@@ -303,7 +303,7 @@ static void* IpcServerThread( void *arg )
         if (ipcListenFd < 0)
         {
             CcspTraceError(("Error: nn_socket failed[%s]\n",nn_strerror(nn_errno ())));
-            return ANSC_STATUS_FAILURE;
+            return NULL;
         }
 
         if (nn_bind(ipcListenFd, WAN_MANAGER_ADDR) < 0)

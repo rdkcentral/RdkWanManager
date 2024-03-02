@@ -26,6 +26,8 @@
 #include "wanmgr_interface_sm.h"
 #include "wanmgr_platform_events.h"
 #include "wanmgr_rdkbus_apis.h"
+#include "wanmgr_wan_failover.h"
+#include "wanmgr_net_utils.h"
 
 /* ---- Global Constants -------------------------- */
 #define SELECTION_PROCESS_LOOP_TIMEOUT 250000 // timeout in microseconds. This is the state machine loop interval
@@ -1533,7 +1535,7 @@ static WcAwPolicyState_t State_WaitingForInterfaceSMExit(WanMgr_Policy_Controlle
     return STATE_AUTO_WAN_SM_EXIT;
 }
 
-void WanMgr_AutoWanSelectionProcess (void* arg)
+void *WanMgr_AutoWanSelectionProcess (void* arg)
 {
     CcspTraceInfo(("%s %d \n", __FUNCTION__, __LINE__));
 
@@ -1548,7 +1550,7 @@ void WanMgr_AutoWanSelectionProcess (void* arg)
     if(WanMgr_Controller_PolicyCtrlInit(&WanController) != ANSC_STATUS_SUCCESS)
     {
         CcspTraceError(("%s %d: Policy Controller Error \n", __FUNCTION__, __LINE__));
-        return ANSC_STATUS_FAILURE;
+        return NULL;
     }
 
     WanController.GroupInst = (UINT)arg;

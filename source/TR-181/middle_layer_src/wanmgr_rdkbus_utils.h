@@ -173,6 +173,9 @@ void* WanMgr_RdkBus_WanIfRefreshThread( void *arg );
 ANSC_STATUS DmlGetInstanceByKeywordFromPandM(char *ifname, int *piInstanceNumber);
 ANSC_STATUS WanMgr_RdkBus_SetRequestIfComponent(char *pPhyPath, char *pInputparamName, char *pInputParamValue, enum dataType_e type);
 ANSC_STATUS WaitForInterfaceComponentReady(char *pPhyPath);
+ANSC_STATUS WanMgr_RdkBus_setRestorationDelay(UINT delay);
+ANSC_STATUS WanManager_ConfigurePPPSession(DML_VIRTUAL_IFACE* pVirtIf, BOOL PPPEnable);
+ANSC_STATUS WanMgr_RdkBus_ConfigureVlan(DML_VIRTUAL_IFACE* pVirtIf, BOOL VlanEnable);
 
 /* WanMgr_GetBaseInterfaceStatus()
  * Updates current BaseInterfaceStatus of WanInterfaces using a DM get of BaseInterface Dml.

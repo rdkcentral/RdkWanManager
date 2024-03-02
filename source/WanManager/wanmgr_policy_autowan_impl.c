@@ -25,10 +25,12 @@
 #include <syscfg/syscfg.h>
 #include "wanmgr_controller.h"
 #include "wanmgr_data.h"
+#include "wanmgr_rdkbus_apis.h"
 #include "wanmgr_rdkbus_utils.h"
 #include "wanmgr_interface_sm.h"
 #include "wanmgr_platform_events.h"
 #include "wanmgr_sysevents.h"
+#include "wanmgr_net_utils.h"
 #include <time.h>
 #include <pthread.h>
 #include "secure_wrapper.h"
@@ -3803,7 +3805,7 @@ static WcBWanPolicyState_t State_BackupWanInterfaceActive(WanMgr_Policy_Controll
         }
         else
         {
-            struct timeval now;
+            struct timespec now;
             clock_gettime( CLOCK_MONOTONIC_RAW, &(now));
             if(difftime(now.tv_sec, RestorationDelayTimer.tv_sec ) > 0)
             {
@@ -3907,7 +3909,7 @@ static WcBWanPolicyState_t State_BackupWanInterfaceWaitingPrimaryUp(WanMgr_Polic
     return STATE_BACKUP_WAN_WAITING;
 }
 
-ANSC_STATUS Wanmgr_BackupWan_StateMachineThread(void *arg)
+void *Wanmgr_BackupWan_StateMachineThread(void *arg)
 {
     CcspTraceInfo(("%s %d \n", __FUNCTION__, __LINE__));
 
@@ -3928,7 +3930,7 @@ ANSC_STATUS Wanmgr_BackupWan_StateMachineThread(void *arg)
     if(WanMgr_Controller_PolicyCtrlInit(&WanPolicyCtrl) != ANSC_STATUS_SUCCESS)
     {
         CcspTraceError(("%s %d Policy Controller Error \n", __FUNCTION__, __LINE__));
-        return ANSC_STATUS_FAILURE;
+        return NULL;
     }
 
     fmob_sm_state = Transition_StartBakupWan(&WanPolicyCtrl);
@@ -4007,6 +4009,7 @@ ANSC_STATUS Wanmgr_BackupWan_StateMachineThread(void *arg)
     }
 
     CcspTraceInfo(("%s %d - Exit from state machine\n", __FUNCTION__, __LINE__));
+    return NULL;
 }
 
 ANSC_STATUS WanMgr_Policy_BackupWan(void)

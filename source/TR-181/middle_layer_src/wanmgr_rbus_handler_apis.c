@@ -21,6 +21,7 @@
 #include "wanmgr_data.h"
 #include "wanmgr_net_utils.h"
 #include "wanmgr_rbus_handler_apis.h"
+#include "wanmgr_rdkbus_apis.h"
 #include "dmsb_tr181_psm_definitions.h"
 enum {
 ENUM_PHY = 1,
@@ -39,13 +40,13 @@ UINT  uiTotalIfaces = 0;
 
 rbusError_t WanMgr_Rbus_SubscribeHandler(rbusHandle_t handle, rbusEventSubAction_t action, const char *eventName, rbusFilter_t filter, int32_t interval, bool *autoPublish);
 rbusError_t WanMgr_Rbus_getHandler(rbusHandle_t handle, rbusProperty_t property, rbusGetHandlerOptions_t *opts);
-ANSC_STATUS WanMgr_Rbus_EventPublishHandler(char *dm_event, void *dm_value, rbusValueType_t valueType);
+ANSC_STATUS WanMgr_Rbus_EventPublishHandler(const char *dm_event, void *dm_value, rbusValueType_t valueType);
 
 rbusError_t wanMgrDmlPublishEventHandler(rbusHandle_t handle, rbusEventSubAction_t action, const char* name, rbusFilter_t filter, int32_t interval, bool* autoPublish);
 rbusError_t WanMgr_Interface_GetHandler(rbusHandle_t handle, rbusProperty_t property, rbusGetHandlerOptions_t* opts);
 rbusError_t WanMgr_Interface_SetHandler(rbusHandle_t handle, rbusProperty_t prop, rbusSetHandlerOptions_t* opts);
 static void CPEInterface_AsyncMethodHandler( rbusHandle_t handle, char const* methodName, rbusError_t error, rbusObject_t params);
-static int WanMgr_Remote_IfaceData_index(char *macAddress);
+static int WanMgr_Remote_IfaceData_index(const char *macAddress);
 
 typedef struct
 {
@@ -144,7 +145,7 @@ static void WanMgr_EnumToString(UINT Enum, UINT EnumType, char* String)
     }
 }
 
-static void WanMgr_StringToEnum(UINT *Enum, UINT EnumType, char* String)
+static void WanMgr_StringToEnum(UINT *Enum, UINT EnumType, const char* String)
 {
 
     if (EnumType == ENUM_PHY)
@@ -674,7 +675,7 @@ static void WanMgr_Rbus_EventReceiveHandler(rbusHandle_t handle, rbusEvent_t con
             CcspTraceError(("%s %d - Memory allocation failed \n", __FUNCTION__, __LINE__));
             return;
         }
-        char *Mac = rbusValue_GetString(value, NULL);
+        const char *Mac = rbusValue_GetString(value, NULL);
         if(Mac != NULL)
         {
             strncpy(remoteMac,Mac,MAC_ADDR_SIZE);
@@ -741,19 +742,19 @@ static void WanMgr_Rbus_EventReceiveHandler(rbusHandle_t handle, rbusEvent_t con
 
         rbusValue_t value;
         value = rbusObject_GetValue(event->data, "Mac_source");
-        char *pMac = rbusValue_GetString(value, NULL);
+        const char *pMac = rbusValue_GetString(value, NULL);
         CcspTraceInfo(("%s %d - from source MAC %s\n", __FUNCTION__, __LINE__, pMac));
 
-        cpeInterfaceIndex =  WanMgr_Remote_IfaceData_index(pMac);
+        cpeInterfaceIndex = WanMgr_Remote_IfaceData_index(pMac);
 
         if (cpeInterfaceIndex >= 0)
         {
             value = rbusObject_GetValue(event->data, "param_name");
-            char *pParamName = rbusValue_GetString(value, NULL);
+            const char *pParamName = rbusValue_GetString(value, NULL);
             CcspTraceInfo(("%s %d - param_name %s\n", __FUNCTION__, __LINE__, pParamName));
 
             value = rbusObject_GetValue(event->data, "param_value");
-            char *pValue = rbusValue_GetString(value, NULL);
+            const char *pValue = rbusValue_GetString(value, NULL);
             CcspTraceInfo(("%s %d - param_value %s\n", __FUNCTION__, __LINE__, pValue));
 
             WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(cpeInterfaceIndex);
@@ -1168,9 +1169,9 @@ ANSC_STATUS WanMgr_RbusExit()
     char param_name[256] = {0};
 
     CcspTraceInfo(("%s %d - WanMgr_RbusExit called\n", __FUNCTION__, __LINE__ ));
-    rbus_unregDataElements(rbusHandle, ARRAY_SZ(wanMgrRbusDataElements), wanMgrRbusDataElements);
+    rbus_unregDataElements(rbusHandle, (int)ARRAY_SZ(wanMgrRbusDataElements), wanMgrRbusDataElements);
 
-    rbus_unregDataElements(rbusHandle, wanMgrIfacePublishElements, wanMgrIfacePublishElements);
+    rbus_unregDataElements(rbusHandle, (int)ARRAY_SZ(wanMgrIfacePublishElements), wanMgrIfacePublishElements);
     for (int i = 0; i < uiTotalIfaces; i++)
     {
         memset(param_name, 0, sizeof(param_name));
@@ -1223,7 +1224,7 @@ ANSC_STATUS WanMgr_RbusExit()
 /*******************************************************************************
   WanMgr_Rbus_EventPublishHandler(): publish rbus events
  ********************************************************************************/
-ANSC_STATUS WanMgr_Rbus_EventPublishHandler(char *dm_event, void *dm_value, rbusValueType_t valueType)
+ANSC_STATUS WanMgr_Rbus_EventPublishHandler(const char *dm_event, void *dm_value, rbusValueType_t valueType)
 {
     rbusEvent_t event;
     rbusObject_t rdata;
@@ -1369,7 +1370,7 @@ rbusError_t WanMgr_Rbus_SubscribeHandler(rbusHandle_t handle, rbusEventSubAction
     return RBUS_ERROR_SUCCESS;
 }
 
-void WanMgr_WanRemoteIfaceConfigure_thread(void *arg);
+void *WanMgr_WanRemoteIfaceConfigure_thread(void *arg);
 pthread_mutex_t RemoteIfaceConfigure_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 ANSC_STATUS WanMgr_WanRemoteIfaceConfigure(WanMgr_DeviceChangeEvent * pDeviceChangeEvent)
@@ -1398,7 +1399,7 @@ ANSC_STATUS WanMgr_WanRemoteIfaceConfigure(WanMgr_DeviceChangeEvent * pDeviceCha
     usleep(10000);
     return ANSC_STATUS_SUCCESS;
 }
-void WanMgr_WanRemoteIfaceConfigure_thread(void *arg)
+void *WanMgr_WanRemoteIfaceConfigure_thread(void *arg)
 {
     int  cpeInterfaceIndex   = -1;
     int  newInterfaceIndex   = -1;
@@ -1425,7 +1426,8 @@ void WanMgr_WanRemoteIfaceConfigure_thread(void *arg)
             CcspTraceError(("%s %d - Remote device not connected. So no need to add it in Interface table.\n", __FUNCTION__, __LINE__));
             free(pDeviceChangeEvent);
             pthread_mutex_unlock(&RemoteIfaceConfigure_mutex);
-            return ANSC_STATUS_FAILURE;
+            /* it is detached and no one has joined, return null */
+            return NULL;
         }
 
         // Initialise remote CPE's wan interface with default
@@ -1434,7 +1436,7 @@ void WanMgr_WanRemoteIfaceConfigure_thread(void *arg)
             CcspTraceError(("%s %d - Failed to configure remote Wan Interface Entry.\n", __FUNCTION__, __LINE__));
             free(pDeviceChangeEvent);
             pthread_mutex_unlock(&RemoteIfaceConfigure_mutex);
-            return ANSC_STATUS_FAILURE;
+            return NULL;
         }
 
         WanMgr_GetIfaceAliasNameByIndex(newInterfaceIndex,AliasName);
@@ -1447,7 +1449,7 @@ void WanMgr_WanRemoteIfaceConfigure_thread(void *arg)
                             __FUNCTION__, __LINE__, (newInterfaceIndex+1), WANMGR_INFACE_TABLE, rc));
             free(pDeviceChangeEvent);
             pthread_mutex_unlock(&RemoteIfaceConfigure_mutex);
-            return rc;
+            return NULL;
         }
         CcspTraceInfo(("%s %d - Iterface(%d) Table (%s) Registartion Successfully AliasName[%s]\n", 
                        __FUNCTION__, __LINE__, (newInterfaceIndex+1), WANMGR_INFACE_TABLE,AliasName));
@@ -1458,7 +1460,7 @@ void WanMgr_WanRemoteIfaceConfigure_thread(void *arg)
         {
             CcspTraceError(("%s %d - Iterface(%d) Table (%s) Registartion failed, Error=%d \n", __FUNCTION__, __LINE__, (newInterfaceIndex+1), WANMGR_V1_INFACE_TABLE, rc));
             pthread_mutex_unlock(&RemoteIfaceConfigure_mutex);
-            return rc;
+            return NULL;
         }
         else
         {
@@ -1473,7 +1475,7 @@ void WanMgr_WanRemoteIfaceConfigure_thread(void *arg)
             CcspTraceError(("%s %d - VirtualInterface(%d) Table (%s) Registartion failed, Error=%d \n", __FUNCTION__, __LINE__, 1, tmpVIfTableName, rc));
             free(pDeviceChangeEvent);
             pthread_mutex_unlock(&RemoteIfaceConfigure_mutex);
-            return rc;
+            return NULL;
         }
         else
         {
@@ -1497,7 +1499,7 @@ void WanMgr_WanRemoteIfaceConfigure_thread(void *arg)
             free(pDeviceChangeEvent);
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
             pthread_mutex_unlock(&RemoteIfaceConfigure_mutex);
-            return ANSC_STATUS_SUCCESS;
+            return NULL;
         }
 
         CcspTraceInfo(("%s %d: Setting interface:%d to Selection.Enable = TRUE\n", __FUNCTION__, __LINE__, cpeInterfaceIndex));
@@ -1573,7 +1575,7 @@ void WanMgr_WanRemoteIfaceConfigure_thread(void *arg)
 
     free(pDeviceChangeEvent);
     pthread_exit(NULL);
-    return ANSC_STATUS_SUCCESS;
+    return NULL;
 }
 
 static void CPEInterface_AsyncMethodHandler(
@@ -1602,7 +1604,7 @@ static void CPEInterface_AsyncMethodHandler(
         rbusValue_t value;
 
         value = rbusObject_GetValue(params, "Mac_source");
-        char *pMac = rbusValue_GetString(value, NULL);
+        const char *pMac = rbusValue_GetString(value, NULL);
         CcspTraceInfo(("%s %d - from source MAC %s\n", __FUNCTION__, __LINE__, pMac));
 
         cpeInterfaceIndex =  WanMgr_Remote_IfaceData_index(pMac);
@@ -1610,11 +1612,11 @@ static void CPEInterface_AsyncMethodHandler(
         if (cpeInterfaceIndex >= 0)
         {
             value = rbusObject_GetValue(params, "param_name");
-            char *name = rbusValue_GetString(value, NULL);
+            const char *name = rbusValue_GetString(value, NULL);
             CcspTraceInfo(("%s %d - param_name %s\n", __FUNCTION__, __LINE__, name));
 
             value = rbusObject_GetValue(params, "param_value");
-            char *pValue = rbusValue_GetString(value, NULL);
+            const char *pValue = rbusValue_GetString(value, NULL);
             CcspTraceInfo(("%s %d - param_value %s\n", __FUNCTION__, __LINE__, pValue));
 
             WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(cpeInterfaceIndex);
@@ -1666,7 +1668,7 @@ static void CPEInterface_AsyncMethodHandler(
     }
 }
 
-static int WanMgr_Remote_IfaceData_index(char *macAddress)
+static int WanMgr_Remote_IfaceData_index(const char *macAddress)
 {
     int cpeInterfaceIndex = -1;
     UINT uiTotalIfaces = 0;
@@ -1708,6 +1710,7 @@ ANSC_STATUS WanMgr_RestartUpdateRemoteIface()
     char dmQuery[BUFLEN_256] = {0};
     char dmValue[BUFLEN_256] = {0};
     int numofRemoteEntries = 0;
+    ANSC_STATUS status = ANSC_STATUS_SUCCESS;
 
     CcspTraceInfo(("%s %d - Enter \n", __FUNCTION__, __LINE__));
 
@@ -1744,6 +1747,9 @@ ANSC_STATUS WanMgr_RestartUpdateRemoteIface()
     //IDM first entry will be local device.
     if(numofRemoteEntries > 1)
     {
+        UINT deviceStatus = DEVICE_NOT_DETECTED;
+        WanMgr_DeviceChangeEvent * pDeviceChangeEvent;
+
         for( int i = 2; i <= numofRemoteEntries; i++)
         {
             memset(dmQuery, 0, sizeof(dmQuery));
@@ -1752,14 +1758,32 @@ ANSC_STATUS WanMgr_RestartUpdateRemoteIface()
             if ( ANSC_STATUS_FAILURE == WanMgr_RdkBus_GetParamValueFromAnyComp (dmQuery, dmValue))
             {
                 CcspTraceError(("%s-%d: %s, Failed to get param value\n", __FUNCTION__, __LINE__, dmQuery));
+                status = ANSC_STATUS_FAILURE;
+                continue;
             }
             CcspTraceInfo(("%s %d - Remote device MAC %s \n", __FUNCTION__, __LINE__,dmValue));
-            char *remoteMac = malloc(MAC_ADDR_SIZE + 1);
-            strncpy(remoteMac, dmValue, MAC_ADDR_SIZE+1);
-            WanMgr_WanRemoteIfaceConfigure(remoteMac);
+
+            pDeviceChangeEvent = (WanMgr_DeviceChangeEvent *)malloc (sizeof(WanMgr_DeviceChangeEvent));
+            if (pDeviceChangeEvent == NULL)
+            {
+                CcspTraceError(("%s %d: malloc failure:%s\n", __FUNCTION__, __LINE__, strerror(errno)));
+                status = ANSC_STATUS_FAILURE;
+                break;
+            }
+            memset(pDeviceChangeEvent, 0, sizeof(WanMgr_DeviceChangeEvent));
+            strncpy(pDeviceChangeEvent->mac_addr, dmValue, sizeof(pDeviceChangeEvent->mac_addr)-1);
+            /* check if device is available */
+            memset(dmQuery, 0, sizeof(dmQuery));
+            snprintf(dmQuery, sizeof(dmQuery)-1, X_RDK_REMOTE_DEVICE_STATUS, i); 
+            if (WanMgr_Rbus_getUintParamValue(dmQuery, &deviceStatus) == ANSC_STATUS_SUCCESS)
+                pDeviceChangeEvent->available = (deviceStatus == DEVICE_CONNECTED) ? true : false;
+            else
+                pDeviceChangeEvent->available = false;
+            CcspTraceInfo(("%s %d: Received remote iface with MAC:%s available:%d\n", __FUNCTION__, __LINE__, pDeviceChangeEvent->mac_addr, pDeviceChangeEvent->available));
+            WanMgr_WanRemoteIfaceConfigure(pDeviceChangeEvent);
         }
     }
-    return ANSC_STATUS_SUCCESS;
+    return status;
 }
 #endif
 static void WanMgr_TandD_EventHandler(rbusHandle_t handle, rbusEvent_t const* event, rbusEventSubscription_t* subscription)

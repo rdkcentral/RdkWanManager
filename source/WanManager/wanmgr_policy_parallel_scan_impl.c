@@ -27,6 +27,7 @@
 #include "wanmgr_platform_events.h"
 #include "wanmgr_rdkbus_apis.h"
 #include "wanmgr_wan_failover.h"
+#include "wanmgr_net_utils.h"
 
 #define ETH_HW_CONFIGURATION_DM     "Device.Ethernet.Interface.%d.Upstream"
 #define ETH_PHY_PATH_DM             "Device.Ethernet.X_RDK_Interface.%d"
@@ -1053,7 +1054,7 @@ static WcPsPolicyState_t State_InterfaceTearDown (WanMgr_Policy_Controller_t * p
 /*********************************************************************************/
 /**************************** SM THREAD ******************************************/
 /*********************************************************************************/ 
-void WanMgr_ParallelScanSelectionProcess (void* arg)
+void *WanMgr_ParallelScanSelectionProcess (void* arg)
 {
     CcspTraceInfo(("%s %d \n", __FUNCTION__, __LINE__));
 
@@ -1068,7 +1069,7 @@ void WanMgr_ParallelScanSelectionProcess (void* arg)
     if(WanMgr_Controller_PolicyCtrlInit(&WanController) != ANSC_STATUS_SUCCESS)
     {
         CcspTraceError(("%s %d: Policy Controller Error \n", __FUNCTION__, __LINE__));
-        return ANSC_STATUS_FAILURE;
+        return NULL;
     }
 
     WanController.GroupInst = (UINT)arg;

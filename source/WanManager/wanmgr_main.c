@@ -59,6 +59,7 @@
 #include "wanmgr_ssp_global.h"
 #include "wanmgr_core.h"
 #include "wanmgr_data.h"
+#include "wanmgr_webconfig_apis.h"
 #include "stdlib.h"
 #include "ccsp_dm_api.h"
 

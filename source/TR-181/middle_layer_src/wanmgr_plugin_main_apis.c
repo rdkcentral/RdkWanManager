@@ -68,6 +68,8 @@
 
 //#include "dml_tr181_custom_cfg.h"
 #include "wanmgr_plugin_main_apis.h"
+#include "wanmgr_dhcpv4_internal.h"
+#include "wanmgr_dhcpv6_internal.h"
 
 /*PCOSA_DIAG_PLUGIN_INFO             g_pCosaDiagPluginInfo;*/
 COSAGetParamValueByPathNameProc    g_GetParamValueByPathNameProc;

@@ -58,5 +58,6 @@ ANSC_STATUS WanMgrDmlWanWebConfigInit( void );
 int WanMgr_WanData_Rollback_Handler(void);
 size_t WanMgr_WanData_Timeout_Handler(size_t numOfEntries);
 void WanMgr_WanData_Free_Resources(void *arg);
+ANSC_STATUS WanMgrDmlWanFailOverDataSet (const void * pData, size_t len);
 
 #endif /* _WANMGR_WAN_APIS_H */

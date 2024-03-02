@@ -1063,7 +1063,7 @@ void wanmgr_Ipv6Toggle()
     char v6Toggle[BUFLEN_128] = {0};
 #if (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_)) &&  !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)//TODO: V6 handled in PAM
     /*Ipv6 handled in PAM.  No Toggle Needed. */
-    return RETURN_OK;
+    return;
 #endif
 
     sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_IPV6_TOGGLE, v6Toggle, sizeof(v6Toggle));

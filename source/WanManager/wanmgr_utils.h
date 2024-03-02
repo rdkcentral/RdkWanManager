@@ -155,6 +155,7 @@ int util_collectProcess(int pid, int timeout);
 int util_runCommandInShellBlocking(char *command);
 int util_getZombiePidByName(char * name);
 void WanManager_Util_GetShell_output(FILE *fp, char *out, int len);
+int WanMgr_SetRestartWanInfo (const char * param, int idx, char * value);
 
 ANSC_STATUS WanMgr_RestartUpdateCfg (const char * param, int idx, char * output, int size);
 ANSC_STATUS WanMgr_RestartUpdateCfg_Bool (const char * param, int idx, BOOL* output);

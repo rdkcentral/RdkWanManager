@@ -333,7 +333,7 @@ int util_getNameByPid(int pid, char *nameBuf, int nameBufLen)
  * @return     : SUCCESS if matches, else returns failure
  *
  */
-static int find_strstr (char * basestr, int basestr_len, char * substr, int substr_len)
+static int find_strstr (char * basestr, int basestr_len, const char * substr, int substr_len)
 {
     if ((basestr == NULL) || (substr == NULL))
     {
@@ -446,7 +446,7 @@ int util_getPidByName(const char *name, const char * args)
                             //CcspTraceInfo(("%s %d: comparing cmdline from proc:%s with %s\n", __FUNCTION__, __LINE__, cmdline, args));
                             if (find_strstr(cmdline, sizeof(cmdline), args, strlen(args)) == ANSC_STATUS_SUCCESS)
                             {
-               rval = pid;
+                                rval = pid;
                                 found = true;
                             }
                         }
@@ -737,7 +737,7 @@ static int LaunchApp(const char *appName, const char *cmdLineArgs)
     }
 
     CcspTraceInfo(("spawning %s args %s\n", appName, cmdLineArgs));
-    ret = util_spawnProcess(&exeBuf, cmdLineArgs, &pid);
+    ret = util_spawnProcess(exeBuf, cmdLineArgs, &pid);
     if (ret != RETURN_OK)
     {
         CcspTraceError(("could not spawn child %s args %s \n", exeBuf, cmdLineArgs));

@@ -20,6 +20,7 @@
 
 /* ---- Include Files ---------------------------------------- */
 
+#include "wanmgr_data.h"
 #include "wanmgr_wan_failover.h"
 #ifdef ENABLE_FEATURE_TELEMETRY2_0
 #include <telemetry_busmessage_sender.h>
@@ -27,8 +28,8 @@
 
 #define FAILOVER_SM_LOOP_TIMEOUT 300000 // timeout 
 
-extern void WanMgr_AutoWanSelectionProcess (void* arg);
-extern void WanMgr_ParallelScanSelectionProcess (void* arg);
+extern void *WanMgr_AutoWanSelectionProcess (void* arg);
+extern void *WanMgr_ParallelScanSelectionProcess (void* arg);
 
 /* SELECTION STATES */
 static WcFailOverState_t State_ScanningGroup (WanMgr_FailOver_Controller_t * pFailOverController);
@@ -66,7 +67,7 @@ static void WanMgr_TelemetryEventTrigger(TelemetryEvent_t TelemetryEvent)
                 lastEvent = TelemetryEvent;
                 CcspTraceInfo(("%s-%d : Telemetry Event Trigger : %s \n", __FUNCTION__, __LINE__, TelemetryEventStr[TelemetryEvent]));
 #ifdef ENABLE_FEATURE_TELEMETRY2_0
-                t2_event_d(TelemetryEventStr[TelemetryEvent], 1);
+                t2_event_d((char *)&TelemetryEventStr[TelemetryEvent], 1);
 #endif
     }
 }
