@@ -18,3 +18,9 @@
 ##########################################################################
 
 SUBDIRS = TR-181 WanManager
+
+
+if WITH_GTEST_SUPPORT
+SUBDIRS += test
+endif
+
