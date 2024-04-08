@@ -1079,11 +1079,7 @@ static int wan_setUpIPv4(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
     int ret = RETURN_OK;
     char cmdStr[BUFLEN_128 + IP_ADDR_LENGTH] = {0};
     char bCastStr[IP_ADDR_LENGTH] = {0};
-    char line[BUFLEN_64] = {0};
     char buf[BUFLEN_32] = {0};
-    char *cp = NULL;
-    FILE *fp = NULL;
-
 
     DEVICE_NETWORKING_MODE DeviceNwMode = pWanIfaceCtrl->DeviceNwMode;
     DML_WAN_IFACE * pInterface = pWanIfaceCtrl->pIfaceData;
@@ -1119,17 +1115,10 @@ static int wan_setUpIPv4(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_CURRENT_WAN_IPADDR, p_VirtIf->IP.Ipv4Data.ip, 0);
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_CURRENT_WAN_SUBNET, p_VirtIf->IP.Ipv4Data.mask, 0);
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_CURRENT_WAN_STATE, WAN_STATUS_UP, 0);
-    if ((fp = fopen("/proc/uptime", "rb")) == NULL)
-    {
-        return RETURN_ERR;
-    }
-    if (fgets(line, sizeof(line), fp) != NULL)
-    {
-        if ((cp = strchr(line, ',')) != NULL)
-            *cp = '\0';
-        sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_WAN_START_TIME, line, 0);
-    }
-    fclose(fp);
+
+    snprintf(buf, sizeof(buf), "%u", WanManager_getUpTime());
+
+    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_WAN_START_TIME, buf, 0);
 
     //Enabling IP forwarding 
     CcspTraceInfo(("%s %d - net.ipv4.ip_forward set to 1 \n", __FUNCTION__, __LINE__));
