@@ -405,69 +405,54 @@ ANSC_STATUS maptInfo_set(const MaptData_t *maptInfo)
         return ANSC_STATUS_FAILURE;
     }
 
-    char name[BUFLEN_64] = {0};
-    char value[BUFLEN_64] = {0};
+    char value[32];
 
-    snprintf(name, sizeof(name), SYSEVENT_MAPT_CONFIG_FLAG);
-    sysevent_set(sysevent_fd, sysevent_token,name, maptInfo->maptConfigFlag, 0);
+    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_MAPT_CONFIG_FLAG, maptInfo->maptConfigFlag, 0);
 
-    snprintf(name, sizeof(name),SYSEVENT_MAPT_RATIO);
     snprintf(value, sizeof(value), "%d", maptInfo->ratio);
-    sysevent_set(sysevent_fd, sysevent_token,name, value, 0);
+    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_MAPT_RATIO, value, 0);
 
-    snprintf(name, sizeof(name), SYSEVENT_MAPT_IPADDRESS);
-    sysevent_set(sysevent_fd, sysevent_token,name, maptInfo->ipAddressString, 0);
+    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_MAPT_IPADDRESS, maptInfo->ipAddressString, 0);
+    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_MAP_BR_IPV6_PREFIX, maptInfo->brIpv6PrefixString, 0);
+    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_MAP_RULE_IPADDRESS, maptInfo->ruleIpAddressString, 0);
+    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_MAPT_IPV6_ADDRESS, maptInfo->ipv6AddressString, 0);
+    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_MAP_RULE_IPV6_ADDRESS, maptInfo->ruleIpv6AddressString, 0);
 
-    snprintf(name, sizeof(name), SYSEVENT_MAP_BR_IPV6_PREFIX);
-    sysevent_set(sysevent_fd, sysevent_token,name, maptInfo->brIpv6PrefixString, 0);
-
-    snprintf(name, sizeof(name), SYSEVENT_MAP_RULE_IPADDRESS);
-    sysevent_set(sysevent_fd, sysevent_token,name, maptInfo->ruleIpAddressString, 0);
-
-    snprintf(name, sizeof(name), SYSEVENT_MAPT_IPV6_ADDRESS);
-    sysevent_set(sysevent_fd, sysevent_token,name, maptInfo->ipv6AddressString, 0);
-
-    snprintf(name, sizeof(name), SYSEVENT_MAP_RULE_IPV6_ADDRESS);
-    sysevent_set(sysevent_fd, sysevent_token,name, maptInfo->ruleIpv6AddressString, 0);
-
-    snprintf(name, sizeof(name), SYSEVENT_MAPT_PSID_OFFSET);
     snprintf(value, sizeof(value), "%d", maptInfo->psidOffset);
-    sysevent_set(sysevent_fd, sysevent_token,name, value, 0);
+    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_MAPT_PSID_OFFSET, value, 0);
 
-    snprintf(name, sizeof(name), SYSEVENT_MAPT_PSID_VALUE);
     snprintf(value, sizeof(value), "%d", maptInfo->psidValue);
-    sysevent_set(sysevent_fd, sysevent_token,name, value, 0);
+    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_MAPT_PSID_VALUE, value, 0);
 
-    snprintf(name, sizeof(name), SYSEVENT_MAPT_PSID_LENGTH);
     snprintf(value, sizeof(value), "%d", maptInfo->psidLen);
-    sysevent_set(sysevent_fd, sysevent_token,name, value, 0);
+    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_MAPT_PSID_LENGTH, value, 0);
 
-    if(maptInfo->maptAssigned)
+    if (maptInfo->maptAssigned)
     {
-        strncpy(value, "MAPT", 4);
+        snprintf(value, sizeof(value), "%s", "MAPT");
     }
-    else if(maptInfo->mapeAssigned)
+    else if (maptInfo->mapeAssigned)
     {
-        strncpy(value, "MAPE", 4);
+        snprintf(value, sizeof(value), "%s", "MAPE");
     }
     else
     {
-        strncpy(value, "NON-MAP", 7);
+        snprintf(value, sizeof(value), "%s", "NON-MAP");
     }
-    sysevent_set(sysevent_fd, sysevent_token,SYSEVENT_MAP_TRANSPORT_MODE, value, 0);
+    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_MAP_TRANSPORT_MODE, value, 0);
 
-    if(maptInfo->isFMR ==1)
+    if (maptInfo->isFMR == 1)
     {
-        strncpy(value, "TRUE", 4);
+        snprintf(value, sizeof(value), "%s", "TRUE");
     }
     else
     {
-        strncpy(value, "FALSE", 5);
+        snprintf(value, sizeof(value), "%s", "FALSE");
     }
-    sysevent_set(sysevent_fd, sysevent_token,SYSEVENT_MAP_IS_FMR, value, 0);
+    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_MAP_IS_FMR, value, 0);
 
     snprintf(value, sizeof(value), "%d", maptInfo->eaLen);
-    sysevent_set(sysevent_fd, sysevent_token,SYSEVENT_MAP_EA_LENGTH, value, 0);
+    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_MAP_EA_LENGTH, value, 0);
 
     return ANSC_STATUS_SUCCESS;
 }
@@ -475,23 +460,14 @@ ANSC_STATUS maptInfo_set(const MaptData_t *maptInfo)
 ANSC_STATUS maptInfo_reset()
 {
     sysevent_set(sysevent_fd, sysevent_token,SYSEVENT_MAPT_CONFIG_FLAG, RESET, 0);
-
     sysevent_set(sysevent_fd, sysevent_token,SYSEVENT_MAPT_RATIO, "", 0);
-
     sysevent_set(sysevent_fd, sysevent_token,SYSEVENT_MAPT_IPADDRESS, "", 0);
-
     sysevent_set(sysevent_fd, sysevent_token,SYSEVENT_MAPT_IPV6_ADDRESS, "", 0);
-
     sysevent_set(sysevent_fd, sysevent_token,SYSEVENT_MAPT_PSID_OFFSET, "", 0);
-
     sysevent_set(sysevent_fd, sysevent_token,SYSEVENT_MAPT_PSID_VALUE, "", 0);
-
     sysevent_set(sysevent_fd, sysevent_token,SYSEVENT_MAPT_PSID_LENGTH, "", 0);
-
     sysevent_set(sysevent_fd, sysevent_token,SYSEVENT_MAP_TRANSPORT_MODE, "NONE", 0);//default value
-
     sysevent_set(sysevent_fd, sysevent_token,SYSEVENT_MAP_IS_FMR, "", 0);
-
     sysevent_set(sysevent_fd, sysevent_token,SYSEVENT_MAP_EA_LENGTH, "", 0);
 
     return ANSC_STATUS_SUCCESS;
@@ -504,14 +480,10 @@ static int set_default_conf_entry()
     FILE *fp;
 #ifdef FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE
     char wanInterface[BUFLEN_64] = {'\0'};
-    char cmd[BUFLEN_128] = {'\0'};
-#endif
+    char cmd[BUFLEN_128];
 
-    memset(result, 0, sizeof(result));
-
-#ifdef FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE
     wanmgr_get_wan_interface(wanInterface);
-    snprintf(cmd, BUFLEN_128, "/sys/class/net/%s/address", wanInterface);
+    snprintf(cmd, sizeof(cmd), "/sys/class/net/%s/address", wanInterface);
     fp = fopen(cmd,"r");
 #else
     fp = fopen(WAN_PHY_ADDRESS,"r");
@@ -520,12 +492,13 @@ static int set_default_conf_entry()
         CcspTraceError(("%s %d cannot open file \n", __FUNCTION__, __LINE__));
         return 0;
     }
+    memset(result, 0, sizeof(result));
     fgets(result, sizeof(result), fp);
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_ETH_WAN_MAC, result, 0);
     fclose(fp);
     // By default unset dhcpv4 time offset. If dhcpv4 time offset is used, it will be set by function "wanmgr_sysevents_ipv4Info_set"
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_DHCPV4_TIME_OFFSET, UNSET, 0);
-    syscfg_set(NULL, SYSCFG_NTP_ENABLED, "1"); // Enable NTP in case of ETHWAN
+    syscfg_set_commit(NULL, SYSCFG_NTP_ENABLED, "1"); // Enable NTP in case of ETHWAN
 
     // set DHCPv4 Vendor specific option 43
     memset(result, 0, sizeof(result));
@@ -535,7 +508,6 @@ static int set_default_conf_entry()
         sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_DHCPV4_OPT_43, result, 0);
     }
 
-    syscfg_commit();
     return 0;
 }
 
