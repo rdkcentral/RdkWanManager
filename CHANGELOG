@@ -1,0 +1,12 @@
+RdkWanManager Changelog
+-----------------------
+ 1.0.0
+  - First release for RDKWanManager
+  Supported Features:
+    - WAN Fail Over
+    - WAN AutoWAN and Parallel Scan
+    - Configurable WAN Interface Name
+    - Dual Stack
+    - MAP-T
+    - Multi-VLAN
+    - VLAN discovery
