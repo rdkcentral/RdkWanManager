@@ -1,0 +1,17 @@
+RdkWanManager Changelog
+-----------------------
+ 1.0.0
+  - First release for RDKWanManager
+  Supported Features:
+    - RBUS/DBUS
+    - DSL/WANoE/GPON/CELLULAR/DOCSIS
+    - IPv6/Ipv4
+    - DHCP/PPPoE/PPPoA/Stateless IPv6/IAPD
+    - IPOE Health Check
+    - WAN Fail Over Policy between WAN interface groups
+    - WAN AutoWAN and Parallel Scan Policies
+    - Configurable WAN Interface Name
+    - Dual Stack
+    - MAP-T
+    - Multi-VLAN
+    - VLAN discovery
