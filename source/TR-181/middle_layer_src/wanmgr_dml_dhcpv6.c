@@ -610,13 +610,13 @@ Client3_GetParamBoolValue
     if (strcmp(ParamName, "Enable") == 0)
     {
         /* collect value */
-#if defined(WAN_MANAGER_UNIFICATION_ENABLED) 
+//#if defined(WAN_MANAGER_UNIFICATION_ENABLED) 
         /* For unification enabled builds Device.DHCPv6.Client.1.Enable is not used to start the DHCP v6 client. Check if the dhcpv6 client running. */
         CcspTraceInfo(("%s %d Calling WanMgr_DmlDhcpv6cGetEnabled to get dhcpv6 status. \n", __FUNCTION__, __LINE__));
         *pBool   =WanMgr_DmlDhcpv6cGetEnabled(NULL);
-#else
+/*#else
         *pBool   = pDhcpc->Cfg.bEnabled;
-#endif
+#endif*/
 
         return TRUE;
     }
