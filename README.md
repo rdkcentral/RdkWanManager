@@ -12,7 +12,7 @@ WAN Manager comprises of several internal modules:
 ==================================================
 1. WAN Manager will run a single instance of the Failover Policy, which provides runtime failover/switching between different Groups of interfaces.
 2. WAN Manager will run N instances of a Selection Policy, one instance per interface Group.
-    1. This Selection Policy may be AutoWAN, Parallel Scan, or a Fixed Mode policy. Different policies use different algorithms for selecting an interface to be used for WAN. (e.g. the AutoWAN policy tries one interface one by one until one has been validated for Internet Access.)
+    1. This Selection Policy may be AutoWAN, Parallel Scan. Different policies use different algorithms for selecting an interface to be used for WAN. (e.g. the AutoWAN policy tries one interface one by one until one has been validated for Internet Access.)
     2. The Selection Policies only run for interfaces within a selected Group. (E.g. if you want to run AutoWAN policy to select one interface between DOCSIS and EthWAN, you would mark both DOCSIS and EthWAN as belonging to Group 1, and then run the AutoWAN policy on Group 1 only.)
     3. For multiple Groups of interfaces, you need to run multiple Selection Policies, one for each Group.
         1. This allows for more flexible configurations, such as running an AutoWAN policy between DOCSIS and EthWAN (Group 1), and allowing for runtime failover between the Group 1 interface and a Group 2 interface (e.g. LTE).
