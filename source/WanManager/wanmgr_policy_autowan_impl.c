@@ -263,20 +263,15 @@ static void WanMgr_SetInterface(char *IfaceName, char *state)
 
 static void WanMgr_disable_ra(char *IfaceName)
 {
-
     if ((strlen(IfaceName) <=0 ) || (IfaceName[0] == '\0'))
     {
         CcspTraceError(("%s-%d : Interface Name is Null\n", __FUNCTION__, __LINE__));
         return;
     }
 
-    char command[256] = {0};
-    int ret = 0;
-    memset(command, 0, sizeof(command));
-    snprintf(command, sizeof(command), "echo 0 > /proc/sys/net/ipv6/conf/%s/accept_ra ", IfaceName);
-    ret = WanManager_DoSystemActionWithStatus("accept_ra:", command);
-    if(ret != RETURN_OK) {
-        CcspTraceWarning(("%s-%d : Failure in executing command via v_secure_system. ret:[%d] \n", __FUNCTION__, __LINE__, ret));
+    if (sysctl_iface_set("/proc/sys/net/ipv6/conf/%s/accept_ra", IfaceName, "0") != 0)
+    {
+        CcspTraceWarning(("%s-%d : Failure writing to /proc file\n", __FUNCTION__, __LINE__));
     }
 }
 
@@ -994,11 +989,10 @@ static INT StartWanClients(WanMgr_AutoWan_SMInfo_t *pSmInfo)
                     } // (eRouterMode == ERT_MODE_IPV6)
                     else if(eRouterMode == ERT_MODE_IPV4 || eRouterMode == ERT_MODE_DUAL)
                     {
-                        ret = v_secure_system("sysctl -w net.ipv6.conf.%s.accept_ra=2",pFixedInterface->VirtIfList->Name);
+                        ret = sysctl_iface_set("/proc/sys/net/ipv6/conf/%s/accept_ra", pFixedInterface->VirtIfList->Name, "2");
                         if(ret != 0) {
-                            CcspTraceWarning(("%s : Failure in executing command via v_secure_system. ret:[%d] \n",__FUNCTION__, ret));
+                            CcspTraceWarning(("%s-%d : Failure writing to /proc file\n", __FUNCTION__, __LINE__));
                         }
-                        //system("sysctl -w net.ipv6.conf.eth3.accept_ra=2");
                         v_secure_system("killall udhcpc");
                         ret = v_secure_system("udhcpc -i %s &", pFixedInterface->VirtIfList->Name);
                         if(ret != 0) {
@@ -1043,9 +1037,10 @@ static INT StartWanClients(WanMgr_AutoWan_SMInfo_t *pSmInfo)
                 else
                 {
                     v_secure_system("killall udhcpc");
-                    ret = v_secure_system("sysctl -w net.ipv6.conf.%s.accept_ra=2",pFixedInterface->VirtIfList->Name);
+
+                    ret = sysctl_iface_set("/proc/sys/net/ipv6/conf/%s/accept_ra", pFixedInterface->VirtIfList->Name, "2");
                     if(ret != 0) {
-                        CcspTraceWarning(("%s : Failure in executing command via v_secure_system. ret:[%d] \n",__FUNCTION__, ret));
+                        CcspTraceWarning(("%s-%d : Failure writing to /proc file\n", __FUNCTION__, __LINE__));
                     }
 #if defined(INTEL_PUMA7)
                     if(0 == strncmp(udhcpcEnable, "true", 4))

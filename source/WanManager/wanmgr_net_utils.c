@@ -1076,16 +1076,14 @@ int WanManager_ProcessMAPTConfiguration(ipc_mapt_data_t *dhcp6cMAPTMsgBody, WANM
 #endif  //IVI_MULTI_BRIDGE_SUPPORT
 #endif  //IVI_KERNEL_SUPPORT
 
-    snprintf(cmdDisableMapFiltering, sizeof(cmdDisableMapFiltering), "echo 0 > /proc/sys/net/ipv4/conf/%s/rp_filter", vlanIf);
-
 #ifdef FEATURE_MAPT_DEBUG
-    MaptInfo("mapt: Disable RP Filtering:%s", cmdDisableMapFiltering);
+    MaptInfo("mapt: Disable RP Filtering: echo 0 > /proc/sys/net/ipv4/conf/%s/rp_filter", vlanIf);
 #endif
 
-    if ((ret = WanManager_DoSystemActionWithStatus("mapt", cmdDisableMapFiltering)) < RETURN_OK)
+    if (sysctl_iface_set("/proc/sys/net/ipv4/conf/%s/rp_filter", vlanIf, "0") != 0)
     {
-        CcspTraceError(("Failed to run: %s:%d", cmdDisableMapFiltering, ret));
-        return ret;
+        CcspTraceError(("%s-%d : Failure writing to /proc file\n", __FUNCTION__, __LINE__));
+        return RETURN_ERR;
     }
 
 #ifdef NAT46_KERNEL_SUPPORT
