@@ -189,7 +189,8 @@ BOOL WanManager_SetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, ch
         if (strcmp(ParamName, "Data") == 0)
         {
             char *webConf = NULL;
-            ULONG webSize = 0;
+            size_t webSize = 0;
+
             webConf = AnscBase64Decode(pString, &webSize);
             if(!webConf)
             {
@@ -212,7 +213,7 @@ BOOL WanManager_SetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, ch
         else if (strcmp(ParamName, "WanFailoverData") == 0)
         {
             char *webConf = NULL;
-            ULONG webSize = 0;
+            size_t webSize = 0;
 
             webConf = AnscBase64Decode(pString, &webSize);
             if(!webConf)
