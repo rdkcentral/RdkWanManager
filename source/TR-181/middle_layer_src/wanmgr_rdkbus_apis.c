@@ -1724,7 +1724,6 @@ ANSC_STATUS Update_Interface_Status()
     CHAR    InterfaceAvailableStatus[BUFLEN_64]  = {0};
     CHAR    InterfaceActiveStatus[BUFLEN_64]     = {0};
     CHAR    CurrentActiveInterface[BUFLEN_64] = {0};
-    CHAR    CurrentWanStatus[BUFLEN_16] = "Down";
     CHAR    CurrentStandbyInterface[BUFLEN_64] = {0};
 
     CHAR    prevInterfaceAvailableStatus[BUFLEN_64]  = {0};
@@ -1733,6 +1732,7 @@ ANSC_STATUS Update_Interface_Status()
     CHAR    prevCurrentStandbyInterface[BUFLEN_64] = {0};
 
 #ifdef RBUS_BUILD_FLAG_ENABLE
+    CHAR    CurrentWanStatus[BUFLEN_16] = "Down";
     bool    publishAvailableStatus  = FALSE;
     bool    publishActiveStatus = FALSE;
     bool    publishCurrentActiveInf  = FALSE;
@@ -1788,7 +1788,9 @@ ANSC_STATUS Update_Interface_Status()
                     if(pWanIfaceData->Selection.Status == WAN_IFACE_ACTIVE)
                     {
                         snprintf(newIface->CurrentActive, sizeof(newIface->CurrentActive), "%s", p_VirtIf->Name);
+#ifdef RBUS_BUILD_FLAG_ENABLE
                         snprintf(CurrentWanStatus,sizeof(CurrentWanStatus), "%s", (p_VirtIf->Status == WAN_IFACE_STATUS_UP)?"Up":"Down");
+#endif
 #if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
                         /* Update Only for Gateway mode. Wan IP Interface entry not added in PAM for MODEM_MODE */
                         WanMgr_RdkBus_setWanIpInterfaceData(p_VirtIf);
@@ -1886,6 +1888,7 @@ ANSC_STATUS Update_Interface_Status()
             CcspTraceInfo(("%s %d -CurrentActiveInterface- No update\n",__FUNCTION__,__LINE__));
         }
 
+#ifdef RBUS_BUILD_FLAG_ENABLE
         if(strcmp(pWanDmlData->CurrentStatus, CurrentWanStatus) != 0)
         { 
             CcspTraceInfo(("%s %d -Publishing Wan CurrentStatus change - old status [%s] => new status [%s]\n",__FUNCTION__,__LINE__,pWanDmlData->CurrentStatus, CurrentWanStatus));
@@ -1893,6 +1896,7 @@ ANSC_STATUS Update_Interface_Status()
             memset(pWanDmlData->CurrentStatus, 0, sizeof(pWanDmlData->CurrentStatus));
             strncpy(pWanDmlData->CurrentStatus, CurrentWanStatus, sizeof(pWanDmlData->CurrentStatus) - 1);
         }
+#endif
 
         CcspTraceInfo(("%s %d -CurrentStandbyInterface- [%s] [%s]\n",__FUNCTION__,__LINE__,pWanDmlData->CurrentStandbyInterface,CurrentStandbyInterface));
         if(strcmp(pWanDmlData->CurrentStandbyInterface,CurrentStandbyInterface) != 0)
