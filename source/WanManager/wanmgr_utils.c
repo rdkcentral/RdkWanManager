@@ -23,6 +23,9 @@
 #include <errno.h>
 #include <sys/sysinfo.h>
 #include <sys/wait.h>  /* for waitpid */
+#include <sys/stat.h>
+#include <fcntl.h>
+
 #include "wanmgr_utils.h"
 #include "ipc_msg.h"
 
@@ -1095,4 +1098,35 @@ ANSC_STATUS WanMgr_RestartUpdateCfg_Bool (const char * param, int idx, BOOL* out
         return ANSC_STATUS_FAILURE;
     }
     return ANSC_STATUS_SUCCESS;
+}
+
+int sysctl_iface_set(const char *path, const char *ifname, const char *content)
+{
+    char buf[128];
+    char *filename;
+    size_t len;
+    int fd;
+
+    if (ifname) {
+        snprintf(buf, sizeof(buf), path, ifname);
+        filename = buf;
+    }
+    else
+        filename = path;
+
+    if ((fd = open(filename, O_WRONLY)) < 0) {
+        perror("Failed to open file");
+        return -1;
+    }
+
+    len = strlen(content);
+    if (write(fd, content, len) != (ssize_t) len) {
+        perror("Failed to write to file");
+        close(fd);
+        return -1;
+    }
+
+    close(fd);
+
+    return 0;
 }
