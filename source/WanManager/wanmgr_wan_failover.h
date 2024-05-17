@@ -63,5 +63,5 @@ typedef enum {
 } WcFailOverState_t;
 
 int WanMgr_SetGroupSelectedIface (UINT GroupInst, UINT IfaceInst);
-
+void WanMgr_TelemetryEventTrigger(WanMgr_FailOver_Controller_t* pFailOverController);
 #endif /* _WANMGR_WAN_FAILOVER_H_ */
