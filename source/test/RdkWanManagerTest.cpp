@@ -22,11 +22,13 @@
 
 extern "C" {
 #include "wanmgr_data.h"
+#include "wanmgr_wan_failover.h"
 }
 using namespace std;
 using ::testing::_;
 using ::testing::Return;
 using ::testing::UnitTest;
+using ::testing::Eq;
 using ::testing::StrEq;
 using ::testing::IsNull;
 using ::testing::NotNull;
@@ -46,12 +48,20 @@ class MockWanMgr
 public:
     MOCK_METHOD(void, WanMgrDml_GetIfaceData_release, (WanMgr_Iface_Data_t* pWanIfaceData), ());
     MOCK_METHOD(int, pthread_mutex_lock, (pthread_mutex_t *mutex), ());
+    MOCK_METHOD(void, t2_event_d, (char *Telemtrylog, int a));
+
 };
+
+MATCHER_P2(StrCmpLen, expected_str, n, "") {
+    return strncmp(arg, expected_str, n) == 0;
+}
+
+MockWanMgr *mockWanMgr = nullptr;
 
 class WanMgrWCCTest : public ::testing::Test 
 {
 protected:
-    MockWanMgr mockWanMgr;
+    MockWanMgr mock;
 
     WanMgrWCCTest() {}
 
@@ -63,6 +73,7 @@ protected:
         cout << "SetUp() : Test Suite Name: " << UnitTest::GetInstance()->current_test_info()->test_suite_name() 
             << " Test Case Name: " << UnitTest::GetInstance()->current_test_info()->name() << endl;
 
+        mockWanMgr = &mock;
         //Initialise mutex attributes
         pthread_mutexattr_t     muttex_attr;
         pthread_mutexattr_init(&muttex_attr);
@@ -118,6 +129,7 @@ protected:
         free(pWanIfaceCtrl->pIface);
         pWanIfaceCtrl->pIface = NULL;
         pthread_mutex_destroy(&(gWanMgrDataBase.gDataMutex));
+        mockWanMgr = nullptr;
     }
 };
 
@@ -222,3 +234,128 @@ TEST_F(WanMgrWCCTest, TestConfigureTADWithoutDns)
 
     WanMgr_VirtualIfaceData_release(result);
 }
+
+
+
+
+/**********************************************************************************
+ *Class for WanfailOver tetsing, Note: Currently only Telemetry event is tested.*
+ **********************************************************************************/
+class WanfailOver : public WanMgrWCCTest
+{
+protected:
+
+   WanMgr_FailOver_Controller_t  FWController; 
+    WanfailOver() {}
+
+    virtual ~WanfailOver() {}
+
+    virtual void SetUp()
+    {
+        WanMgrWCCTest::SetUp();
+        memset(&FWController, 0, sizeof(FWController));
+    }
+
+    virtual void TearDown() 
+    {
+
+        WanMgrWCCTest::TearDown();
+    }
+};
+
+/* Mock funtion for t2_event_d
+ */
+extern "C" void t2_event_d(char *Telemtrylog, int a)
+{
+    if (mockWanMgr) {
+        mockWanMgr->t2_event_d(Telemtrylog, a);
+    }
+}
+
+/* 
+ * Unit test for the WanMgr_TelemetryEventTrigger() function.
+ * 
+ * This test specifically targets the WAN_FAILOVER_SUCCESS event. 
+ * When the WAN_FAILOVER_SUCCESS event is triggered, the function is expected to call t2_event_d 
+ * to send telemetry events.
+ * 
+ * Two calls to t2_event_d are expected:
+ * 1. The first call should report the telemetry timing.
+ * 2. The second call should report the telemetry count.
+ */
+
+TEST_F(WanfailOver, TelemetryFailOverOSuccess) 
+{
+    //Start the FailOver Timer for telemetry
+    memset(&(FWController.FailOverTimer), 0, sizeof(struct timespec));
+    clock_gettime(CLOCK_MONOTONIC_RAW, &(FWController.FailOverTimer));
+    auto& exp1 =EXPECT_CALL(mock,t2_event_d(StrCmpLen("WFO_FAILOVER_SUCCESS: Total Time Taken", strlen("WFO_FAILOVER_SUCCESS: Total Time Taken")), Eq(1)))
+        .Times(1);
+    EXPECT_CALL(mock,t2_event_d(StrCmpLen("WAN_FAILOVER_SUCCESS_COUNT", strlen("WAN_FAILOVER_SUCCESS_COUNT")), Eq(1)))
+        .Times(1)
+        .After(exp1);
+    FWController.TelemetryEvent = WAN_FAILOVER_SUCCESS;
+    WanMgr_TelemetryEventTrigger(&FWController); 
+}
+
+/* 
+ * Unit test for the WanMgr_TelemetryEventTrigger() function.
+ * 
+ * This test specifically targets the WAN_RESTORE_SUCCESS event. 
+ * When the WAN_RESTORE_SUCCESS event is triggered, the function is expected to call t2_event_d 
+ * to send telemetry events.
+ * 
+ * Two calls to t2_event_d are expected:
+ * 1. The first call should report the telemetry timing.
+ * 2. The second call should report the telemetry count.
+ */
+TEST_F(WanfailOver, TelemetryRestoreSuccess) 
+{
+    //Start the FailOver Timer for telemetry
+    memset(&(FWController.FailOverTimer), 0, sizeof(struct timespec));
+    clock_gettime(CLOCK_MONOTONIC_RAW, &(FWController.FailOverTimer));
+    auto& exp1 =EXPECT_CALL(mock,t2_event_d(StrCmpLen("WFO_RESTORE_SUCCESS: Total Time Taken", strlen("WFO_RESTORE_SUCCESS: Total Time Taken")), Eq(1)))
+        .Times(1);
+    EXPECT_CALL(mock,t2_event_d(StrCmpLen("WAN_RESTORE_SUCCESS_COUNT", strlen("WAN_RESTORE_SUCCESS_COUNT")), Eq(1)))
+        .Times(1)
+        .After(exp1);
+    FWController.TelemetryEvent = WAN_RESTORE_SUCCESS;
+    WanMgr_TelemetryEventTrigger(&FWController); 
+}
+
+/* 
+ * Unit test for the WanMgr_TelemetryEventTrigger() function.
+ * 
+ * This test specifically targets the WAN_RESTORE_FAIL event. 
+ * When the WAN_RESTORE_FAIL event is triggered, the function is expected to call t2_event_d 
+ * to send telemetry events.
+ * 
+ * One call to t2_event_d is expected:
+ * 1. The second call should report the telemetry count.
+ */
+TEST_F(WanfailOver, TelemetryRestoreFail)
+{
+    EXPECT_CALL(mock,t2_event_d(StrCmpLen("WAN_RESTORE_FAIL_COUNT", strlen("WAN_RESTORE_FAIL_COUNT")), Eq(1)))
+        .Times(1);
+    FWController.TelemetryEvent = WAN_RESTORE_FAIL;
+    WanMgr_TelemetryEventTrigger(&FWController);
+}
+
+/* 
+ * Unit test for the WanMgr_TelemetryEventTrigger() function.
+ * 
+ * This test specifically targets the WAN_FAILOVER_FAIL event. 
+ * When the WAN_FAILOVER_FAIL event is triggered, the function is expected to call t2_event_d 
+ * to send telemetry events.
+ * 
+ * One call to t2_event_d is expected:
+ * 1. The second call should report the telemetry count.
+ */
+TEST_F(WanfailOver, TelemetryFailOverFail)
+{
+    EXPECT_CALL(mock,t2_event_d(StrCmpLen("WAN_FAILOVER_FAIL_COUNT", strlen("WAN_FAILOVER_FAIL_COUNT")), Eq(1)))
+        .Times(1);
+    FWController.TelemetryEvent = WAN_FAILOVER_FAIL;
+    WanMgr_TelemetryEventTrigger(&FWController);
+}
+

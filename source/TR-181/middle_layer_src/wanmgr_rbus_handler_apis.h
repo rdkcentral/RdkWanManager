@@ -190,4 +190,6 @@ BOOL WanMgr_Rbus_discover_components(char const *ModuleList);
 void WanMgr_Rbus_SubscribeWanReady();
 /* WCC - Wan Connectivity Check*/
 ANSC_STATUS WanMgr_Configure_TAD_WCC(DML_VIRTUAL_IFACE *pVirtIf, WCC_EVENT Event);
+ANSC_STATUS WanMgr_Configure_TAD_CCPolicy(char *v4gateway, char *pv4dns, char *sv4dns, char *pv6dns, 
+                                          char *sv6dns, char *IfName, const char * alias, WCC_EVENT Event);
 #endif

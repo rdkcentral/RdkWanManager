@@ -52,6 +52,18 @@ static token_t sysevent_msg_token;
 #define WAN_PHY_ADDRESS "/sys/class/net/erouter0/address"
 #define LAN_BRIDGE_NAME "brlan0"
 
+/*Below Code should be remove, Once Comcast policy Deprecated.*/
+#if (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_)) && !defined(WAN_MANAGER_UNIFICATION_ENABLED)
+#if defined(FEATURE_TAD_HEALTH_CHECK)
+    char primary_v4gateway[128] = {0};
+    char primary_v4dns[128] = {0};
+    char primary_v6dns[256] = {0};
+    char backup_v4dns[128] = {0};
+    char backup_v6dns[256] = {0};
+    char primary_v6ip_address[128] = {0};
+#endif
+#endif
+
 static int lan_wan_started = 0;
 static int ipv4_connection_up = 0;
 static int ipv6_connection_up = 0;
@@ -545,6 +557,92 @@ static void  WanMgr_BridgeModeChanged(int BridgeMode)
 }
 #endif //WAN_MANAGER_UNIFICATION_ENABLED
 
+#if defined FEATURE_TAD_HEALTH_CHECK
+/*Below Code should be remove, Once Comcast policy Deprecated.*/
+static int WanMgr_TriggerPrimaryDnsConnectivityRestart(void)
+{
+    INT ret = -1;
+    INT  uiWanIdx      = 0;
+    UINT uiTotalIfaces = -1;
+
+    //Get uiTotalIfaces
+    uiTotalIfaces = WanMgr_IfaceData_GetTotalWanIface();
+    if(uiTotalIfaces > 0)
+    {
+        for(uiWanIdx = 0; uiWanIdx < uiTotalIfaces; ++uiWanIdx )
+        {
+            WanMgr_Iface_Data_t*   pWanDmlIfaceData = WanMgr_GetIfaceData_locked(uiWanIdx);
+            if(pWanDmlIfaceData != NULL)
+            {
+                DML_WAN_IFACE* pInterface = NULL;
+
+                pInterface = &(pWanDmlIfaceData->data);
+                if(pInterface == NULL)
+                {
+                    WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+                    return -1;
+                }
+
+                /* If WAN Interface Type is REMOTE then we need to return that index to proceed further */
+                if( ( TRUE == pInterface->Selection.Enable ) &&
+                    ( LOCAL_IFACE == pInterface->IfaceType ) &&
+                    ( pInterface->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_UP) )
+                {
+                    pInterface->VirtIfList->IP.RestartConnectivityCheck = TRUE;
+                    CcspTraceInfo(("%s-%d: DNS Connectivity Check Restart for Interface=%s\n", __FUNCTION__, __LINE__, pInterface->VirtIfList->Name));
+                    WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+                    ret = 0;
+                }
+                WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+            }
+        }
+    }
+    return ret;
+}
+
+static int WanMgr_TriggerBackupDnsConnectivityRestart(void)
+{
+    INT ret = -1;
+    INT  uiWanIdx      = 0;
+    UINT uiTotalIfaces = -1;
+
+    //Get uiTotalIfaces
+    uiTotalIfaces = WanMgr_IfaceData_GetTotalWanIface();
+    if(uiTotalIfaces > 0)
+    {
+        for(uiWanIdx = 0; uiWanIdx < uiTotalIfaces; ++uiWanIdx )
+        {
+            WanMgr_Iface_Data_t*   pWanDmlIfaceData = WanMgr_GetIfaceData_locked(uiWanIdx);
+            if(pWanDmlIfaceData != NULL)
+            {
+                DML_WAN_IFACE* pInterface = NULL;
+
+                pInterface = &(pWanDmlIfaceData->data);
+                if(pInterface == NULL)
+                {
+                    WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+                    return -1;
+                }
+
+                /* If WAN Interface Type is REMOTE then we need to return that index to proceed further */
+                if( ( TRUE == pInterface->Selection.Enable ) &&
+                    ( REMOTE_IFACE == pInterface->IfaceType ) &&
+                    ( pInterface->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_UP) )
+                {
+                    pInterface->VirtIfList->IP.RestartConnectivityCheck = TRUE;
+                    CcspTraceInfo(("%s-%d: DNS Connectivity Check Restart for Interface=%s\n", __FUNCTION__, __LINE__, pInterface->VirtIfList->Name));
+                    WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+                    ret = 0;
+                }
+                WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+            }
+        }
+    }
+    return ret;
+}
+
+#endif
+
 static void *WanManagerSyseventHandler(void *args)
 {
     CcspTraceInfo(("%s %d \n", __FUNCTION__, __LINE__));
@@ -575,6 +673,18 @@ static void *WanManagerSyseventHandler(void *args)
     async_id_t bridge_status_asyncid;
     async_id_t multinet1_status_asyncid;
 #endif //WAN_MANAGER_UNIFICATION_ENABLED
+
+/*Below Code should be remove, Once Comcast policy Deprecated.*/
+#if (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_)) && !defined(WAN_MANAGER_UNIFICATION_ENABLED)
+#if defined(FEATURE_TAD_HEALTH_CHECK)
+    async_id_t primary_v4gateway_asyncid;
+    async_id_t primary_v4dns_asyncid;
+    async_id_t primary_v6dns_asyncid;
+    async_id_t backup_v4dns_asyncid;
+    async_id_t backup_v6dns_asyncid;
+    async_id_t primary_v6ipaddress_asyncid;
+#endif
+#endif
 
 #if defined (_HUB4_PRODUCT_REQ_)
     sysevent_set_options(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_ULA_ADDRESS, TUPLE_FLAG_EVENT);
@@ -629,6 +739,29 @@ static void *WanManagerSyseventHandler(void *args)
     sysevent_setnotification(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_MULTINET1_STATUS, &multinet1_status_asyncid);
     
 #endif /* WAN_MANAGER_UNIFICATION_ENABLED */
+
+/*Below Code should be remove, Once Comcast policy Deprecated.*/
+#if (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_)) && !defined(WAN_MANAGER_UNIFICATION_ENABLED)
+#if defined(FEATURE_TAD_HEALTH_CHECK)
+    sysevent_set_options(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_IPV4_GATEWAY, TUPLE_FLAG_EVENT);
+    sysevent_setnotification(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_IPV4_GATEWAY, &primary_v4gateway_asyncid);
+
+    sysevent_set_options(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_IPV4_DNS, TUPLE_FLAG_EVENT);
+    sysevent_setnotification(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_IPV4_DNS, &primary_v4dns_asyncid);
+
+    sysevent_set_options(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_IPV6_DNS, TUPLE_FLAG_EVENT);
+    sysevent_setnotification(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_IPV6_DNS, &primary_v6dns_asyncid);
+
+    sysevent_set_options(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_BACKUP_IPv4_DNS, TUPLE_FLAG_EVENT);
+    sysevent_setnotification(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_BACKUP_IPv4_DNS, &backup_v4dns_asyncid);
+
+    sysevent_set_options(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_BACKUP_IPV6_DNS, TUPLE_FLAG_EVENT);
+    sysevent_setnotification(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_BACKUP_IPV6_DNS, &backup_v6dns_asyncid);
+
+    sysevent_set_options(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_IPV6_ADDRESS, TUPLE_FLAG_EVENT);
+    sysevent_setnotification(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_IPV6_ADDRESS, &primary_v6ipaddress_asyncid);
+#endif
+#endif
 
     for(;;)
     {
@@ -904,6 +1037,136 @@ static void *WanManagerSyseventHandler(void *args)
                 }
             }
 #endif
+/*Below Code should be remove, Once Comcast policy Deprecated.*/
+#if (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_)) && !defined(WAN_MANAGER_UNIFICATION_ENABLED)
+#if defined(FEATURE_TAD_HEALTH_CHECK)
+            else if ((strcmp(name, SYSEVENT_WAN_STATUS) == 0) && (strcmp(val, SYSEVENT_VALUE_STOPPED) == 0))
+            {
+                memset(primary_v4gateway, 0, sizeof(primary_v4gateway));
+                memset(primary_v4dns, 0, sizeof(primary_v4dns));
+                memset(primary_v6dns, 0, sizeof(primary_v6dns));
+                memset(primary_v6ip_address, 0, sizeof(primary_v6ip_address));
+            }
+            else if (strcmp(name, SYSEVENT_IPV6_ADDRESS) == 0)
+            {
+                char output[32] = {0};
+                sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_IPV6_ADDRESS, output, sizeof(output));
+                CcspTraceInfo(("%s-%d: Primary v6 Ip Address=%s, Val=%s, current_v6ip_Address=%s, prev_v6ip_address=%s \n",
+                                __FUNCTION__, __LINE__, name, val, output, primary_v6ip_address));
+                if((strlen(output) > 0) && (strcmp(output, primary_v6ip_address) != 0))
+                {
+                    if(WanMgr_TriggerPrimaryDnsConnectivityRestart() == -1)
+                    {
+                        CcspTraceError(("%s-%d: Failed to Trigger Primary DNS Connectivity Check Restart for v6 IP address change \n", __FUNCTION__, __LINE__));
+                    }
+                    else
+                    {
+                        memset(primary_v6ip_address, 0, sizeof(primary_v6ip_address));
+                        strncpy(primary_v6ip_address, output, sizeof(primary_v6ip_address));
+                    }
+                }
+            }
+            else if (strcmp(name, SYSEVENT_IPV4_GATEWAY) == 0)
+            {
+                char output[32] = {0};
+                sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_IPV4_GATEWAY, output, sizeof(output));
+                CcspTraceInfo(("%s-%d: Primary Gateway Name=%s, Val=%s, current_vgateway=%s, prev_v4gateway=%s \n", 
+                                __FUNCTION__, __LINE__, name, val, output, primary_v4gateway));
+                if((strlen(output) > 0) && (strcmp(output, primary_v4gateway) != 0))
+                {
+                    if(WanMgr_TriggerPrimaryDnsConnectivityRestart() == -1)
+                    {
+                        CcspTraceError(("%s-%d: Failed to Trigger Primary V4 DNS Connectivity Check Restart for v4 Gateway change \n", __FUNCTION__, __LINE__));
+                    }
+                    else
+                    {
+                        memset(primary_v4gateway, 0, sizeof(primary_v4gateway));
+                        strncpy(primary_v4gateway, output, sizeof(primary_v4gateway));
+                    }
+                }
+            }
+
+            else if (strcmp(name, SYSEVENT_IPV4_DNS) == 0)
+            {
+                char output[32] = {0};
+                sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_IPV4_DNS, output, sizeof(output));
+                CcspTraceInfo(("%s-%d: Primary Name=%s, Val=%s, current_ipv4dns=%s, prev_ipv4dns=%s \n", 
+                                __FUNCTION__, __LINE__, name, val, output, primary_v4dns));
+                if((strlen(output) > 0) && (strcmp(output, primary_v4dns) != 0))
+                {
+                    if(WanMgr_TriggerPrimaryDnsConnectivityRestart() == -1)
+                    {
+                        CcspTraceError(("%s-%d: Failed to Trigger Primary V4 DNS Connectivity Check Restart \n", __FUNCTION__, __LINE__));
+                    }
+                    else
+                    {
+                        memset(primary_v4dns, 0, sizeof(primary_v4dns));
+                        strncpy(primary_v4dns, output, sizeof(primary_v4dns));
+                    }
+                }
+            }
+
+            else if (strcmp(name, SYSEVENT_IPV6_DNS) == 0)
+            {
+                char output[32] = {0};
+                sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_IPV6_DNS, output, sizeof(output));
+                CcspTraceInfo(("%s-%d: Primary Name=%s, Val=%s, current_ipv6dns=%s, prev_ipv6dns=%s \n", 
+                                __FUNCTION__, __LINE__, name, val, output, primary_v6dns));
+                if((strlen(output) > 0) && (strcmp(output, primary_v6dns) != 0))
+                {
+                    if(WanMgr_TriggerPrimaryDnsConnectivityRestart() == -1)
+                    {
+                        CcspTraceError(("%s-%d: Failed to Trigger Primary V6 DNS Connectivity Check Restart \n", __FUNCTION__, __LINE__));
+                    }
+                    else
+                    {
+                        memset(primary_v6dns, 0, sizeof(primary_v6dns));
+                        strncpy(primary_v6dns, output, sizeof(primary_v6dns));
+                    }
+                }
+            }
+
+            else if (strcmp(name, SYSEVENT_BACKUP_IPv4_DNS) == 0)
+            {
+                char output[32] = {0};
+                sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_BACKUP_IPv4_DNS, output, sizeof(output));
+                CcspTraceInfo(("%s-%d: Backup Name=%s, Val=%s, current_ipv4dns=%s, prev_ipv4dns=%s \n", 
+                                __FUNCTION__, __LINE__, name, val, output, backup_v4dns));
+                if((strlen(output) > 0) && (strcmp(output, backup_v4dns) != 0))
+                {
+                    if(WanMgr_TriggerBackupDnsConnectivityRestart() == -1)
+                    {
+                        CcspTraceError(("%s-%d: Failed to Trigger Backup V6 DNS Connectivity Check Restart \n", __FUNCTION__, __LINE__));
+                    }
+                    else
+                    {
+                        memset(backup_v4dns, 0, sizeof(backup_v4dns));
+                        strncpy(backup_v4dns, output, sizeof(backup_v4dns));
+                    }
+                }
+            }
+
+            else if (strcmp(name, SYSEVENT_BACKUP_IPV6_DNS) == 0)
+            {
+                char output[32] = {0};
+                sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_BACKUP_IPV6_DNS, output, sizeof(output));
+                CcspTraceInfo(("%s-%d: Backup: Name=%s, Val=%s, current_ipv6dns=%s, prev_ipv6dns=%s \n", 
+                                __FUNCTION__, __LINE__, name, val, output, backup_v6dns));
+                if((strlen(output) > 0) && (strcmp(output, backup_v6dns) != 0))
+                {
+                    if(WanMgr_TriggerBackupDnsConnectivityRestart() == -1)
+                    {
+                        CcspTraceError(("%s-%d: Failed to Trigger Backup V6 DNS Connectivity Check Restart \n", __FUNCTION__, __LINE__));
+                    }
+                    else
+                    {
+                        memset(backup_v6dns, 0, sizeof(backup_v6dns));
+                        strncpy(backup_v6dns, output, sizeof(backup_v6dns));
+                    }
+                }
+            }
+#endif
+#endif
             else
             {
                 CcspTraceWarning(("%s %d undefined event %s:%s \n", __FUNCTION__, __LINE__, name, val));
@@ -982,14 +1245,14 @@ static int do_toggle_v6_status (void)
     {
         CcspTraceInfo(("%s %d toggle initiated\n", __FUNCTION__, __LINE__));
 
-        ret = v_secure_system("sysctl -w net.ipv6.conf.%s.disable_ipv6=1", wanInterface);
-        if (ret != 0) {
-            CcspTraceWarning(("%s %d: Failure in executing command via v_secure_system. ret:[%d]\n", __FUNCTION__, __LINE__, ret));
+        if (sysctl_iface_set("/proc/sys/net/ipv6/conf/%s/disable_ipv6", wanInterface, "1") != 0)
+        {
+            CcspTraceWarning(("%s-%d : Failure writing to /proc file\n", __FUNCTION__, __LINE__));
         }
 
-        ret = v_secure_system("sysctl -w net.ipv6.conf.%s.disable_ipv6=0", wanInterface);
-        if (ret != 0) {
-            CcspTraceWarning(("%s %d: Failure in executing command via v_secure_system. ret:[%d]\n", __FUNCTION__, __LINE__, ret));
+        if (sysctl_iface_set("/proc/sys/net/ipv6/conf/%s/disable_ipv6", wanInterface, "0") != 0)
+        {
+            CcspTraceWarning(("%s-%d : Failure writing to /proc file\n", __FUNCTION__, __LINE__));
         }
     }
 
@@ -1007,14 +1270,14 @@ int Force_IPv6_toggle (char* wanInterface)
     int ret = 0;
     CcspTraceInfo(("%s %d force toggle initiated\n", __FUNCTION__, __LINE__));
 
-    ret = v_secure_system("sysctl -w net.ipv6.conf.%s.disable_ipv6=1", wanInterface);
-    if (ret != 0) {
-        CcspTraceWarning(("%s %d: Failure in executing command via v_secure_system. ret:[%d]\n", __FUNCTION__, __LINE__, ret));
+    if (sysctl_iface_set("/proc/sys/net/ipv6/conf/%s/disable_ipv6", wanInterface, "1") != 0)
+    {
+        CcspTraceWarning(("%s-%d : Failure writing to /proc file\n", __FUNCTION__, __LINE__));
     }
 
-    ret = v_secure_system("sysctl -w net.ipv6.conf.%s.disable_ipv6=0", wanInterface);
-    if (ret != 0) {
-        CcspTraceWarning(("%s %d: Failure in executing command via v_secure_system. ret:[%d]\n", __FUNCTION__, __LINE__, ret));
+    if (sysctl_iface_set("/proc/sys/net/ipv6/conf/%s/disable_ipv6", wanInterface, "0") != 0)
+    {
+        CcspTraceWarning(("%s-%d : Failure writing to /proc file\n", __FUNCTION__, __LINE__));
     }
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV6_TOGGLE, "FALSE", 0); //Reset toggle flag to false.
 
@@ -1104,26 +1367,35 @@ static int getVendorClassInfo(char *buffer, int length)
     return 0;
 }
 
-INT wanmgr_isWanStarted()
+INT wanmgr_isWanStandby()
 {
     char wan_st[BUFLEN_16];
     memset(wan_st,0,sizeof(wan_st));
     sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_WAN_STATUS, wan_st, sizeof(wan_st));
 
-    CcspTraceInfo(("%s %d - get wan status\n", __FUNCTION__, __LINE__));
-    CcspTraceInfo(("****************************************************\n"));
-    CcspTraceInfo(("   Wan Status = %s\n", wan_st));
-    CcspTraceInfo(("****************************************************\n"));
-    if (!strcmp(wan_st, SYSEVENT_VALUE_STARTED))
+    if (!strcmp(wan_st, "standby"))
     {
-        CcspTraceInfo(("%s %d - wan started\n", __FUNCTION__, __LINE__));
         return 1;
     }
 
     return 0;
 }
 
-static INT WanMgr_GetWanServiceStatus(void)
+INT wanmgr_isWanStarted()
+{
+    char wan_st[BUFLEN_16];
+    memset(wan_st,0,sizeof(wan_st));
+    sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_WAN_STATUS, wan_st, sizeof(wan_st));
+
+    if (!strcmp(wan_st, SYSEVENT_VALUE_STARTED))
+    {
+        return 1;
+    }
+
+    return 0;
+}
+
+INT WanMgr_GetWanServiceStatus(void)
 {
     INT ret = -1;
     char wan_st[BUFLEN_16];
@@ -1142,7 +1414,7 @@ static INT WanMgr_GetWanServiceStatus(void)
     return ret;
 }
 
-static INT WanMgr_GetWanStatus(void)
+INT WanMgr_GetWanStatus(void)
 {
     INT ret = -1;
     char wan_st[BUFLEN_16];
@@ -1161,7 +1433,7 @@ static INT WanMgr_GetWanStatus(void)
     return ret;
 }
 
-static INT WanMgr_GetWanRoutedStatus(void)
+INT WanMgr_GetWanRoutedStatus(void)
 {
     INT ret = -1;
     char wan_st[BUFLEN_16];

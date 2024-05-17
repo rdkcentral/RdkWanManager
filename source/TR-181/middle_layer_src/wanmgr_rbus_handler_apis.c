@@ -1820,6 +1820,49 @@ static void WanMgr_TandD_EventHandler(rbusHandle_t handle, rbusEvent_t const* ev
     }
 }
 
+/* WCC - Comcast Policy Wan Connectivity Check
+ * Should be removed once Comcast policy deprecated.
+ */
+ANSC_STATUS WanMgr_Configure_TAD_CCPolicy(char *v4gateway, char *pv4dns, char *sv4dns, 
+                                          char *pv6dns, char *sv6dns, char *IfName, const char * alias, WCC_EVENT Event)
+{
+    pthread_t                threadId;
+    int                      iErrorCode     = 0;
+
+    if (alias == NULL)
+    {
+        CcspTraceError(("%s %d: invalid args\n",__FUNCTION__, __LINE__));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    if(Event != WCC_STOP && (pv4dns[0] == '\0') && (sv4dns[0] == '\0') &&
+      (pv6dns[0] == '\0') && (sv6dns[0] == '\0'))
+    {
+        CcspTraceError(("%s %d: DNS servers are not configured. (TAD) DNS health check not triggered\n",__FUNCTION__, __LINE__));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    TAD_WCC_Event *pTADEvent = malloc(sizeof(TAD_WCC_Event));
+    memset(pTADEvent, 0, sizeof(TAD_WCC_Event));
+    strncpy(pTADEvent->IfaceName, IfName, sizeof(pTADEvent->IfaceName)-1);
+    strncpy(pTADEvent->Alias, alias, sizeof(pTADEvent->Alias)-1);
+    snprintf(pTADEvent->IPv4_Gateway, sizeof(pTADEvent->IPv4_Gateway), "%s", v4gateway);
+    snprintf(pTADEvent->IPv4_DNS_Servers, sizeof(pTADEvent->IPv4_DNS_Servers), "%s,%s",pv4dns, sv4dns);
+    snprintf(pTADEvent->IPv6_DNS_Servers, sizeof(pTADEvent->IPv6_DNS_Servers), "%s,%s",pv6dns, sv6dns);
+    pTADEvent->Event = Event;
+
+    //Run in thread to avoid mutex deadlock between WanManager and rbus handle
+    iErrorCode = pthread_create( &threadId, NULL, &WanMgr_Configure_WCC_Thread, pTADEvent);
+    if( 0 != iErrorCode )
+    {
+        CcspTraceError(("%s %d - Failed to start WanMgr_Configure_WCC_Thread EC:%d\n", __FUNCTION__, __LINE__, iErrorCode ));
+        free(pTADEvent);
+        return ANSC_STATUS_FAILURE;
+    }
+    CcspTraceInfo(("%s %d - WanMgr_Configure_WCC_Thread Started Successfully\n", __FUNCTION__, __LINE__ ));
+    return ANSC_STATUS_SUCCESS;
+}
+
 /* WCC - Wan Connectivity Check*/
 ANSC_STATUS WanMgr_Configure_TAD_WCC(DML_VIRTUAL_IFACE *p_VirtIf,  WCC_EVENT Event)
 {

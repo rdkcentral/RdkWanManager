@@ -59,7 +59,7 @@ static const char * const TelemetryEventStr[] =
 /*
  * Trigger Telemetry Events for FailOver Between Groups.
  */
-static void WanMgr_TelemetryEventTrigger(WanMgr_FailOver_Controller_t* pFailOverController)
+void WanMgr_TelemetryEventTrigger(WanMgr_FailOver_Controller_t* pFailOverController)
 {
     static TelemetryEvent_t lastEvent = 0; 
     if (lastEvent != pFailOverController->TelemetryEvent)
@@ -90,7 +90,7 @@ static void WanMgr_TelemetryEventTrigger(WanMgr_FailOver_Controller_t* pFailOver
 
         CcspTraceInfo(("%s-%d : Telemetry Event Trigger : %s \n", __FUNCTION__, __LINE__, TelemetryEventStr[lastEvent]));
 #ifdef ENABLE_FEATURE_TELEMETRY2_0
-        t2_event_d((char *)&TelemetryEventStr[lastEvent], 1);
+        t2_event_d(TelemetryEventStr[lastEvent], 1);
 #endif
     }
 }
