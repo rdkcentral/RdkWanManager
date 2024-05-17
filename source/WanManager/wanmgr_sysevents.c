@@ -982,14 +982,14 @@ static int do_toggle_v6_status (void)
     {
         CcspTraceInfo(("%s %d toggle initiated\n", __FUNCTION__, __LINE__));
 
-        ret = v_secure_system("sysctl -w net.ipv6.conf.%s.disable_ipv6=1", wanInterface);
-        if (ret != 0) {
-            CcspTraceWarning(("%s %d: Failure in executing command via v_secure_system. ret:[%d]\n", __FUNCTION__, __LINE__, ret));
+        if (sysctl_iface_set("/proc/sys/net/ipv6/conf/%s/disable_ipv6", wanInterface, "1") != 0)
+        {
+            CcspTraceWarning(("%s-%d : Failure writing to /proc file\n", __FUNCTION__, __LINE__));
         }
 
-        ret = v_secure_system("sysctl -w net.ipv6.conf.%s.disable_ipv6=0", wanInterface);
-        if (ret != 0) {
-            CcspTraceWarning(("%s %d: Failure in executing command via v_secure_system. ret:[%d]\n", __FUNCTION__, __LINE__, ret));
+        if (sysctl_iface_set("/proc/sys/net/ipv6/conf/%s/disable_ipv6", wanInterface, "0") != 0)
+        {
+            CcspTraceWarning(("%s-%d : Failure writing to /proc file\n", __FUNCTION__, __LINE__));
         }
     }
 
@@ -1007,14 +1007,14 @@ int Force_IPv6_toggle (char* wanInterface)
     int ret = 0;
     CcspTraceInfo(("%s %d force toggle initiated\n", __FUNCTION__, __LINE__));
 
-    ret = v_secure_system("sysctl -w net.ipv6.conf.%s.disable_ipv6=1", wanInterface);
-    if (ret != 0) {
-        CcspTraceWarning(("%s %d: Failure in executing command via v_secure_system. ret:[%d]\n", __FUNCTION__, __LINE__, ret));
+    if (sysctl_iface_set("/proc/sys/net/ipv6/conf/%s/disable_ipv6", wanInterface, "1") != 0)
+    {
+        CcspTraceWarning(("%s-%d : Failure writing to /proc file\n", __FUNCTION__, __LINE__));
     }
 
-    ret = v_secure_system("sysctl -w net.ipv6.conf.%s.disable_ipv6=0", wanInterface);
-    if (ret != 0) {
-        CcspTraceWarning(("%s %d: Failure in executing command via v_secure_system. ret:[%d]\n", __FUNCTION__, __LINE__, ret));
+    if (sysctl_iface_set("/proc/sys/net/ipv6/conf/%s/disable_ipv6", wanInterface, "0") != 0)
+    {
+        CcspTraceWarning(("%s-%d : Failure writing to /proc file\n", __FUNCTION__, __LINE__));
     }
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV6_TOGGLE, "FALSE", 0); //Reset toggle flag to false.
 
