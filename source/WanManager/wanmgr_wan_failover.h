@@ -43,6 +43,7 @@ typedef  struct _WANMGR_FAILOVER_CONTROLLER_
     UINT                    CurrentActiveGroup;
     UINT                    HighestValidGroup;
     struct timespec         GroupSelectionTimer;
+    struct timespec         FailOverTimer;
     UINT                    RestorationDelay;
     BOOL                    ResetScan;
     DML_WAN_IFACE_PHY_STATUS PhyState;
@@ -62,5 +63,5 @@ typedef enum {
 } WcFailOverState_t;
 
 int WanMgr_SetGroupSelectedIface (UINT GroupInst, UINT IfaceInst);
-
+void WanMgr_TelemetryEventTrigger(WanMgr_FailOver_Controller_t* pFailOverController);
 #endif /* _WANMGR_WAN_FAILOVER_H_ */

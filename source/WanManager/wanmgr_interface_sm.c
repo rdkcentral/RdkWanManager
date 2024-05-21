@@ -39,6 +39,8 @@
 #include <telemetry_busmessage_sender.h>
 #endif
 
+#define IF_SIZE      32
+#define DEFAULT_IFNAME    "erouter0"
 #define LOOP_TIMEOUT 50000 // timeout in microseconds. This is the state machine loop interval
 #define RESOLV_CONF_FILE "/etc/resolv.conf"
 #define LOOPBACK "127.0.0.1"
@@ -988,10 +990,11 @@ static int checkIpv6AddressAssignedToBridge(char *IfaceName)
 }
 
 
-static void updateInterfaceToVoiceManager(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
+static void updateInterfaceToVoiceManager(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl, bool voip_started)
 {
     ANSC_STATUS retStatus        = ANSC_STATUS_FAILURE;
     bool isUpdate                = false;
+    char voipIfName[IF_SIZE]     = {0};
 
     if((NULL == pWanIfaceCtrl) || (NULL == pWanIfaceCtrl->pIfaceData))
     {
@@ -1006,10 +1009,20 @@ static void updateInterfaceToVoiceManager(WanMgr_IfaceSM_Controller_t* pWanIface
     {
         /* Update VOIP vlan name to TelcoVoiceManager */
         isUpdate = true;
+
+	// Update the Interface name after auto wan sesning is complete.
+        // When interface is down (due to cable removal etc) set Interface name to empty string
+        if (voip_started)
+            strncpy(voipIfName, p_VirtIf->Name, sizeof(voipIfName));
     }
     else if(0 == strcmp("DATA", p_VirtIf->Alias))
     {
         isUpdate = true;
+
+        // Update the Interface name after auto wan sesning is complete.
+        // When interface is down (due to cable removal etc) set Interface name to empty string
+        if (voip_started)
+            strncpy(voipIfName, DEFAULT_IFNAME, sizeof(voipIfName));
 
         /* If there is a VOIP interface present, then do not update DATA vlan name to TelecoVoiceManager. */
         for(int virIf_id=0; virIf_id< pWanIfaceData->NoOfVirtIfs; virIf_id++)
@@ -2039,8 +2052,11 @@ static eWanState_t wan_transition_ipv4_up(WanMgr_IfaceSM_Controller_t* pWanIface
     p_VirtIf->Status = WAN_IFACE_STATUS_UP;
 
 #if defined(_DT_WAN_Manager_Enable_)
-    /* Update voice interface name to TelcoVoiceManager */
-    updateInterfaceToVoiceManager(pWanIfaceCtrl);
+    if ((0 == strcmp("DATA", p_VirtIf->Alias)) || (0 == strcmp("VOIP", p_VirtIf->Alias)))
+    {
+        /* Update voice interface name to TelcoVoiceManager */
+        updateInterfaceToVoiceManager(pWanIfaceCtrl, true);
+    }
 
     if(strcmp(p_VirtIf->Alias, "DATA"))
     {
@@ -2304,8 +2320,11 @@ static eWanState_t wan_transition_ipv6_up(WanMgr_IfaceSM_Controller_t* pWanIface
     p_VirtIf->Status = WAN_IFACE_STATUS_UP;
 
 #if defined(_DT_WAN_Manager_Enable_)
-    /* Update voice interface name to TelcoVoiceManager */
-    updateInterfaceToVoiceManager(pWanIfaceCtrl);
+    if ((0 == strcmp("DATA", p_VirtIf->Alias)) || (0 == strcmp("VOIP", p_VirtIf->Alias)))
+    {
+        /* Update voice interface name to TelcoVoiceManager */
+        updateInterfaceToVoiceManager(pWanIfaceCtrl, true);
+    }
 #endif
     if (pWanIfaceCtrl->interfaceIdx != -1)
     {
@@ -3015,6 +3034,12 @@ static eWanState_t wan_state_obtaining_ip_addresses(WanMgr_IfaceSM_Controller_t*
         p_VirtIf->PPP.LinkStatus ==  WAN_IFACE_PPP_LINK_STATUS_CONFIGURING ||
         p_VirtIf->Reset == TRUE)
     {
+        if ((0 == strcmp("DATA", p_VirtIf->Alias)) || (0 == strcmp("VOIP", p_VirtIf->Alias)))
+        {
+            /* Update voice interface name to TelcoVoiceManager */
+            updateInterfaceToVoiceManager(pWanIfaceCtrl, false);
+        }
+
         return wan_transition_physical_interface_down(pWanIfaceCtrl);
     }
 
@@ -3030,6 +3055,13 @@ static eWanState_t wan_state_obtaining_ip_addresses(WanMgr_IfaceSM_Controller_t*
     {
         CcspTraceInfo(("%s %d VlanDiscovery timer expired Or VLAN/PPP status DOWN \n", __FUNCTION__, __LINE__));
         p_VirtIf->VLAN.Expired = TRUE;
+
+        if ((0 == strcmp("DATA", p_VirtIf->Alias)) || (0 == strcmp("VOIP", p_VirtIf->Alias)))
+        {
+            /* Update voice interface name to TelcoVoiceManager */
+            updateInterfaceToVoiceManager(pWanIfaceCtrl, false);
+        }
+
         return wan_transition_physical_interface_down(pWanIfaceCtrl);
     }
 

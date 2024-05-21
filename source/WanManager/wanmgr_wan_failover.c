@@ -59,15 +59,38 @@ static const char * const TelemetryEventStr[] =
 /*
  * Trigger Telemetry Events for FailOver Between Groups.
  */
-static void WanMgr_TelemetryEventTrigger(TelemetryEvent_t TelemetryEvent)
+void WanMgr_TelemetryEventTrigger(WanMgr_FailOver_Controller_t* pFailOverController)
 {
     static TelemetryEvent_t lastEvent = 0; 
-    if (lastEvent != TelemetryEvent)
+    if (lastEvent != pFailOverController->TelemetryEvent)
     {
-                lastEvent = TelemetryEvent;
-                CcspTraceInfo(("%s-%d : Telemetry Event Trigger : %s \n", __FUNCTION__, __LINE__, TelemetryEventStr[TelemetryEvent]));
+        //WanFailover / Restoration telemetry with timer
+        if(pFailOverController->TelemetryEvent == WAN_FAILOVER_SUCCESS || pFailOverController->TelemetryEvent == WAN_RESTORE_SUCCESS)
+        {
+            char TelemetryLog[256] = {0};
+            /* get the current time */
+            struct timespec CurrentTime;
+            memset(&(CurrentTime), 0, sizeof(struct timespec));
+            clock_gettime(CLOCK_MONOTONIC_RAW, &(CurrentTime));
+            double elapsedTime = CurrentTime.tv_sec - pFailOverController->FailOverTimer.tv_sec  + (double) (CurrentTime.tv_nsec - pFailOverController->FailOverTimer.tv_nsec)/1.0e9;
+            if(pFailOverController->TelemetryEvent  == WAN_RESTORE_SUCCESS)
+            {
+                elapsedTime -= pFailOverController->RestorationDelay;
+                snprintf(TelemetryLog, sizeof(TelemetryLog), "WFO_RESTORE_SUCCESS: Total Time Taken in %.3f",TelemetryEventStr[lastEvent],elapsedTime);
+            }else
+            {
+                snprintf(TelemetryLog, sizeof(TelemetryLog), "WFO_FAILOVER_SUCCESS: Total Time Taken in %.3f",TelemetryEventStr[lastEvent],elapsedTime);
+            }
+            CcspTraceInfo(("%s-%d : %s \n", __FUNCTION__, __LINE__, TelemetryLog));
 #ifdef ENABLE_FEATURE_TELEMETRY2_0
-                t2_event_d((char *)&TelemetryEventStr[TelemetryEvent], 1);
+            t2_event_d(TelemetryLog, 1);
+#endif
+        }
+        lastEvent = pFailOverController->TelemetryEvent;
+
+        CcspTraceInfo(("%s-%d : Telemetry Event Trigger : %s \n", __FUNCTION__, __LINE__, TelemetryEventStr[lastEvent]));
+#ifdef ENABLE_FEATURE_TELEMETRY2_0
+        t2_event_d(TelemetryEventStr[lastEvent], 1);
 #endif
     }
 }
@@ -755,11 +778,18 @@ static WcFailOverState_t State_GroupActive (WanMgr_FailOver_Controller_t * pFail
         {
             CcspTraceInfo(("%s %d : CurrentActiveGroup(%d) Down. Activating Next Highest available group (%d) \n", __FUNCTION__, __LINE__,
                                     pFailOverController->CurrentActiveGroup , pFailOverController->HighestValidGroup));
+            //Start the FailOver Timer for telemetry
+            memset(&(pFailOverController->FailOverTimer), 0, sizeof(struct timespec));
+            clock_gettime(CLOCK_MONOTONIC_RAW, &(pFailOverController->FailOverTimer));
+
             return Transition_DeactivateGroup (pFailOverController); 
         }
         else if (pFailOverController->CurrentActiveGroup > pFailOverController->HighestValidGroup)
         {
             CcspTraceInfo(("%s %d :  Found Highest available group (%d). Starting Restoration Timer \n", __FUNCTION__, __LINE__,pFailOverController->HighestValidGroup));
+            //Start the FailOver Timer for telemetry
+            memset(&(pFailOverController->FailOverTimer), 0, sizeof(struct timespec));
+            clock_gettime(CLOCK_MONOTONIC_RAW, &(pFailOverController->FailOverTimer));
             return Transition_Restoration (pFailOverController);
         }
     } 
@@ -919,7 +949,7 @@ ANSC_STATUS WanMgr_FailOverThread (void)
 #if defined(FEATURE_RDKB_LED_MANAGER)
         UpdateLedStatus(&FWController);
 #endif
-        WanMgr_TelemetryEventTrigger(FWController.TelemetryEvent);
+        WanMgr_TelemetryEventTrigger(&FWController);
         // process states
         switch (fo_sm_state)
         {
