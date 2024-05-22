@@ -365,6 +365,7 @@ static int _prepare_client_conf(PDML_DHCPCV6_CFG       pCfg)
         fprintf(fp, "script \"%s\" \n", CLIENT_NOTIFY);
         fprintf(fp, "reconfigure-accept 1\n");
 #else
+        fprintf(fp, "duid-type duid-ll\n");
         fprintf(fp, "notify-scripts\n");
 #endif
 
