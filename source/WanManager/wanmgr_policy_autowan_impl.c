@@ -531,18 +531,11 @@ static int isAnyRemoteInterfaceActive(void)
                     WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
                     return 0;
                 }
-                ret = 0;
+                ret = WAN_IFACE_UNKNOWN;
                 if ((pWanIfaceData->IfaceType == REMOTE_IFACE) &&
                     (pWanIfaceData->Selection.Enable == TRUE))
                 {
-                    if(pWanIfaceData->Selection.Status == WAN_IFACE_ACTIVE)
-                    {
-                        ret = 1;
-                    }
-                    else if(pWanIfaceData->Selection.Status == WAN_IFACE_SELECTED)
-                    {
-                        ret = 2;
-                    }
+                    ret = pWanIfaceData->Selection.Status;
                     WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
                     break;
                 }
@@ -555,6 +548,89 @@ static int isAnyRemoteInterfaceActive(void)
 #endif
 
 #if defined(FEATURE_TAD_HEALTH_CHECK)
+
+int WanMgr_TriggerPrimaryDnsConnectivityRestart(void)
+{
+    INT ret = -1;
+    INT  uiWanIdx      = 0;
+    UINT uiTotalIfaces = -1;
+
+    //Get uiTotalIfaces
+    uiTotalIfaces = WanMgr_IfaceData_GetTotalWanIface();
+    if(uiTotalIfaces > 0)
+    {
+        for(uiWanIdx = 0; uiWanIdx < uiTotalIfaces; ++uiWanIdx )
+        {
+            WanMgr_Iface_Data_t*   pWanDmlIfaceData = WanMgr_GetIfaceData_locked(uiWanIdx);
+            if(pWanDmlIfaceData != NULL)
+            {
+                DML_WAN_IFACE* pInterface = NULL;
+
+                pInterface = &(pWanDmlIfaceData->data);
+                if(pInterface == NULL)
+                {
+                    WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+                    return -1;
+                }
+
+                /* If WAN Interface Type is REMOTE then we need to return that index to proceed further */
+                if( ( TRUE == pInterface->Selection.Enable ) &&
+                    ( LOCAL_IFACE == pInterface->IfaceType ) &&
+                    ( pInterface->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_UP) )
+                {
+                    pInterface->VirtIfList->IP.RestartConnectivityCheck = TRUE;
+                    CcspTraceInfo(("%s-%d: DNS Connectivity Check Restart for Interface=%s\n", __FUNCTION__, __LINE__, pInterface->VirtIfList->Name));
+                    WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+                    ret = 0;
+                }
+                WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+            }
+        }
+    }
+    return ret;
+}
+
+int WanMgr_TriggerBackupDnsConnectivityRestart(void)
+{
+    INT ret = -1;
+    INT  uiWanIdx      = 0;
+    UINT uiTotalIfaces = -1;
+
+    //Get uiTotalIfaces
+    uiTotalIfaces = WanMgr_IfaceData_GetTotalWanIface();
+    if(uiTotalIfaces > 0)
+    {
+        for(uiWanIdx = 0; uiWanIdx < uiTotalIfaces; ++uiWanIdx )
+        {
+            WanMgr_Iface_Data_t*   pWanDmlIfaceData = WanMgr_GetIfaceData_locked(uiWanIdx);
+            if(pWanDmlIfaceData != NULL)
+            {
+                DML_WAN_IFACE* pInterface = NULL;
+
+                pInterface = &(pWanDmlIfaceData->data);
+                if(pInterface == NULL)
+                {
+                    WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+                    return -1;
+                }
+
+                /* If WAN Interface Type is REMOTE then we need to return that index to proceed further */
+                if( ( TRUE == pInterface->Selection.Enable ) &&
+                    ( REMOTE_IFACE == pInterface->IfaceType ) &&
+                    ( pInterface->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_UP) )
+                {
+                    pInterface->VirtIfList->IP.RestartConnectivityCheck = TRUE;
+                    CcspTraceInfo(("%s-%d: DNS Connectivity Check Restart for Interface=%s\n", __FUNCTION__, __LINE__, pInterface->VirtIfList->Name));
+                    WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+                    ret = 0;
+                }
+                WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+            }
+        }
+    }
+    return ret;
+}
+
 static void WanMgr_Ipv6Config(char *IfName)
 {
     char command[BUFLEN_256]={0};
@@ -592,10 +668,7 @@ static void WanMgr_ConfigReset(char *Action, char *IfName)
     {
         snprintf(command, sizeof(command), "ip -4 route del table erouter default dev %s", IfName);
     }
-    else
-    {
-        return;
-    }
+
     if (RETURN_OK != WanManager_DoSystemActionWithStatus("v4 Default Route ", command))
     {
         CcspTraceError(("%s-%d : execution Failed for cmd [%s] \n",__FUNCTION__, __LINE__, command));
@@ -644,8 +717,8 @@ static void WanMgr_BreakString(char *output, char *PrimaryDns, char *SecondaryDn
 
 static ANSC_STATUS WanMgr_Trigger_TAD(DML_WAN_IFACE  *pFixedInterface, WCC_EVENT event)
 {
-    char v4PrimaryDnsServer[32] = {0};
-    char v4SecondaryDnsServer[32] = {0};
+    char v4PrimaryDnsServer[64] = {0};
+    char v4SecondaryDnsServer[64] = {0};
     char v6PrimaryDnsServer[128] = {0};
     char v6SecondaryDnsServer[128] = {0};
     static char v4Gateway[32] = {0};
@@ -679,7 +752,7 @@ static ANSC_STATUS WanMgr_Trigger_TAD(DML_WAN_IFACE  *pFixedInterface, WCC_EVENT
     {
         /*workaround: v6 Address Removed from erouter0 Interface , so Reconfiguring*/
         WanMgr_Ipv6Config(pFixedInterface->VirtIfList->Name);
-        if(v4GatewayChanged)
+        if(v4GatewayChanged && (isAnyRemoteInterfaceActive() != WAN_IFACE_ACTIVE))
         {
             WanMgr_ConfigReset("configure", pFixedInterface->VirtIfList->Name);
         }
@@ -689,8 +762,13 @@ static ANSC_STATUS WanMgr_Trigger_TAD(DML_WAN_IFACE  *pFixedInterface, WCC_EVENT
         ((strlen(v6PrimaryDnsServer) > 0) || (strlen(v6SecondaryDnsServer) > 0)) &&
         (strlen(v4Gateway) > 0))
     {
-        retStatus = WanMgr_Configure_TAD_CCPolicy(v4Gateway, v4PrimaryDnsServer, v4SecondaryDnsServer, v6PrimaryDnsServer, v6SecondaryDnsServer,
-                                                  pFixedInterface->VirtIfList->Name, pFixedInterface->AliasName, event);
+        strncpy(pFixedInterface->VirtIfList->IP.Ipv4Data.dnsServer, v4PrimaryDnsServer, sizeof(v4PrimaryDnsServer));
+        strncpy(pFixedInterface->VirtIfList->IP.Ipv4Data.dnsServer1, v4SecondaryDnsServer, sizeof(v4SecondaryDnsServer));
+        strncpy(pFixedInterface->VirtIfList->IP.Ipv6Data.nameserver, v6PrimaryDnsServer, sizeof(v6PrimaryDnsServer));
+        strncpy(pFixedInterface->VirtIfList->IP.Ipv6Data.nameserver1, v6SecondaryDnsServer, sizeof(v6SecondaryDnsServer));
+        strncpy(pFixedInterface->VirtIfList->IP.Ipv4Data.gateway, v4Gateway, sizeof(v4Gateway));
+
+	retStatus = WanMgr_Configure_TAD_WCC(pFixedInterface->VirtIfList, event);
         if(retStatus == ANSC_STATUS_FAILURE)
         {
             CcspTraceError(("%s %d: Failed to Start TAD Connectivity Check on Primary Interface. \n",__FUNCTION__, __LINE__));
@@ -701,8 +779,8 @@ static ANSC_STATUS WanMgr_Trigger_TAD(DML_WAN_IFACE  *pFixedInterface, WCC_EVENT
 
 static ANSC_STATUS WanMgr_Trigger_Backup_TAD(DML_WAN_IFACE  *pFixedInterface, WCC_EVENT event)
 {
-    char v4PrimaryDnsServer[32] = {0};
-    char v4SecondaryDnsServer[32] = {0};
+    char v4PrimaryDnsServer[64] = {0};
+    char v4SecondaryDnsServer[64] = {0};
     char v6PrimaryDnsServer[128] = {0};
     char v6SecondaryDnsServer[128] = {0};
     char v4Gateway[32] = {0};
@@ -723,11 +801,21 @@ static ANSC_STATUS WanMgr_Trigger_Backup_TAD(DML_WAN_IFACE  *pFixedInterface, WC
     strncpy(v4Gateway, output, sizeof(v4Gateway));
     CcspTraceInfo(("%s-%d : v4Gateway=%s \n", __FUNCTION__, __LINE__, v4Gateway));
 
-    retStatus = WanMgr_Configure_TAD_CCPolicy(v4Gateway, v4PrimaryDnsServer, v4SecondaryDnsServer, v6PrimaryDnsServer, v6SecondaryDnsServer,
-                                               pFixedInterface->VirtIfList->Name, pFixedInterface->AliasName, event);
-    if(retStatus == ANSC_STATUS_FAILURE)
+    if (((strlen(v4PrimaryDnsServer) > 0) || (strlen(v4SecondaryDnsServer)) > 0) ||
+        ((strlen(v6PrimaryDnsServer) > 0) || (strlen(v6SecondaryDnsServer) > 0)) &&
+        (strlen(v4Gateway) > 0))
     {
-        CcspTraceError(("%s %d: Failed to Start TAD Connectivity Check on Backup Interface. \n",__FUNCTION__, __LINE__));
+        strncpy(pFixedInterface->VirtIfList->IP.Ipv4Data.dnsServer, v4PrimaryDnsServer, sizeof(v4PrimaryDnsServer));
+        strncpy(pFixedInterface->VirtIfList->IP.Ipv4Data.dnsServer1, v4SecondaryDnsServer, sizeof(v4SecondaryDnsServer));
+        strncpy(pFixedInterface->VirtIfList->IP.Ipv6Data.nameserver, v6PrimaryDnsServer, sizeof(v6PrimaryDnsServer));
+        strncpy(pFixedInterface->VirtIfList->IP.Ipv6Data.nameserver1, v6SecondaryDnsServer, sizeof(v6SecondaryDnsServer));
+        strncpy(pFixedInterface->VirtIfList->IP.Ipv4Data.gateway, v4Gateway, sizeof(v4Gateway));
+
+        retStatus = WanMgr_Configure_TAD_WCC(pFixedInterface->VirtIfList, event);
+        if(retStatus == ANSC_STATUS_FAILURE)
+        {
+            CcspTraceError(("%s %d: Failed to Start TAD Connectivity Check on Backup Interface. \n",__FUNCTION__, __LINE__));
+        }
     }
     return retStatus;
 }
@@ -1013,7 +1101,7 @@ static WcFmobPolicyState_t State_FixedWanInterfaceValidated(WanMgr_Policy_Contro
         return Transition_FixedWanInterfaceDown(pWanController);
     }
 
-    if (isAnyRemoteInterfaceActive() == 0)
+    if (isAnyRemoteInterfaceActive() != WAN_IFACE_ACTIVE)
     {
         CcspTraceInfo(("%s %d - Remote Interface Down \n", __FUNCTION__, __LINE__));
          TelemetryRestoreStatus = STATUS_SWITCHOVER_STARTED;
@@ -1076,7 +1164,7 @@ static WcFmobPolicyState_t State_FixedWanInterfaceDown(WanMgr_Policy_Controller_
     {
 #ifdef WAN_FAILOVER_SUPPORTED
         TelemetryBackUpStatus = STATUS_SWITCHOVER_STOPED;
-        if ((isAnyRemoteInterfaceActive() == 1)
+        if ((isAnyRemoteInterfaceActive() == WAN_IFACE_ACTIVE)
 #if defined(FEATURE_TAD_HEALTH_CHECK)
             && (pFixedInterface->VirtIfList->IP.ConnectivityCheckType != WAN_CONNECTIVITY_TYPE_TAD)
 #endif
@@ -1160,7 +1248,7 @@ static WcFmobPolicyState_t State_FixedWanInterfaceUp(WanMgr_Policy_Controller_t*
                     }
                 }
 #if defined(WAN_FAILOVER_SUPPORTED)
-                if(isAnyRemoteInterfaceActive() == 0)
+                if(isAnyRemoteInterfaceActive() != WAN_IFACE_ACTIVE)
 #endif
                 {
                     sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_NET_CONNECTIVITY_CHECK, buf, sizeof(buf));
@@ -1170,7 +1258,6 @@ static WcFmobPolicyState_t State_FixedWanInterfaceUp(WanMgr_Policy_Controller_t*
                         WanMgr_Sysevent_SetConnectivityCheckState(NET_CONNNECTIVITY_CHECK_STARTED);
                         WanMgr_enable_ra(pFixedInterface->VirtIfList->Name);
                         WanMgr_ConfigReset("configure", pFixedInterface->VirtIfList->Name);
-                        WanMgr_ConfigReset("dnsv6configure", pFixedInterface->VirtIfList->Name);
                         wanmgr_setwanstart();
                     }
                 }
@@ -1241,7 +1328,7 @@ static WcFmobPolicyState_t State_FixedWanInterfaceActive(WanMgr_Policy_Controlle
     if (pFixedInterface->VirtIfList != NULL)
     {
         if((pFixedInterface->VirtIfList->IP.ConnectivityCheckType == WAN_CONNECTIVITY_TYPE_TAD) &&
-           (isAnyRemoteInterfaceActive() == 2) )
+           (isAnyRemoteInterfaceActive() >= WAN_IFACE_SELECTED) )
         {
             if(pFixedInterface->VirtIfList->IP.Ipv4ConnectivityStatus == WAN_CONNECTIVITY_DOWN &&
                pFixedInterface->VirtIfList->IP.Ipv6ConnectivityStatus == WAN_CONNECTIVITY_DOWN)
@@ -1262,8 +1349,6 @@ static WcFmobPolicyState_t State_FixedWanInterfaceActive(WanMgr_Policy_Controlle
     {
         if (WanMgr_Trigger_TAD(pFixedInterface, WCC_RESTART) == ANSC_STATUS_SUCCESS)
         {
-            /*If there is change in v6 DNS, Update in resolv.conf  */
-            WanMgr_ConfigReset("dnsv6configure", pFixedInterface->VirtIfList->Name);
             pFixedInterface->VirtIfList->IP.RestartConnectivityCheck = FALSE;
         }
     }
@@ -2215,7 +2300,7 @@ static WcFmobPolicyState_t State_AutoWanInterfaceValidated(WanMgr_AutoWan_SMInfo
         return STATE_WAN_INTERFACE_DOWN;
     }
 
-    if (isAnyRemoteInterfaceActive() == 0)
+    if (isAnyRemoteInterfaceActive() != WAN_IFACE_ACTIVE)
     {
         CcspTraceInfo(("%s %d - Remote Down \n", __FUNCTION__, __LINE__));
         TelemetryRestoreStatus = STATUS_SWITCHOVER_STARTED;
@@ -2298,7 +2383,7 @@ static WcFmobPolicyState_t State_WanInterfaceValidated(WanMgr_AutoWan_SMInfo_t *
         return STATE_WAN_INTERFACE_DOWN;
     }
 
-    if (isAnyRemoteInterfaceActive() == 0)
+    if (isAnyRemoteInterfaceActive() != WAN_IFACE_ACTIVE)
     {
         wanmgr_setwanstart();
         CcspTraceInfo(("%s %d - Remote Interface Down \n", __FUNCTION__, __LINE__));
@@ -2728,7 +2813,7 @@ static WcFmobPolicyState_t State_WanConfiguringInterface(WanMgr_AutoWan_SMInfo_t
 
     }
 #ifdef WAN_FAILOVER_SUPPORTED
-    if (isAnyRemoteInterfaceActive() == 1)
+    if (isAnyRemoteInterfaceActive() == WAN_IFACE_ACTIVE)
     {
         // We are setting accept_ra to 0 to stop router advertise accept on erouter0 and to stop changing
         // default route on eroter0 interface when backup is active and validating Primary Interface link.
@@ -2969,7 +3054,7 @@ static WcFmobPolicyState_t State_WanInterfaceActive(WanMgr_AutoWan_SMInfo_t *pSm
     if (pFixedInterface->VirtIfList != NULL)
     {
         if((pFixedInterface->VirtIfList->IP.ConnectivityCheckType == WAN_CONNECTIVITY_TYPE_TAD) &&
-           ((isAnyRemoteInterfaceActive() == 2)) )
+           ((isAnyRemoteInterfaceActive() >= WAN_IFACE_SELECTED)) )
         {
             if(pFixedInterface->VirtIfList->IP.Ipv4ConnectivityStatus == WAN_CONNECTIVITY_DOWN &&
                pFixedInterface->VirtIfList->IP.Ipv6ConnectivityStatus == WAN_CONNECTIVITY_DOWN)
@@ -2991,8 +3076,6 @@ static WcFmobPolicyState_t State_WanInterfaceActive(WanMgr_AutoWan_SMInfo_t *pSm
     {
         if (WanMgr_Trigger_TAD(pFixedInterface, WCC_RESTART) == ANSC_STATUS_SUCCESS)
         {
-            /*If there is change in v6 DNS, Update in resolv.conf  */
-            WanMgr_ConfigReset("dnsv6configure", pFixedInterface->VirtIfList->Name);
             pFixedInterface->VirtIfList->IP.RestartConnectivityCheck = FALSE;
         }
     }
@@ -3092,7 +3175,7 @@ static WcFmobPolicyState_t State_WanInterfaceUp(WanMgr_AutoWan_SMInfo_t *pSmInfo
                         pFixedInterface->VirtIfList->IP.RestartConnectivityCheck = FALSE;
                     }
                 }
-                if(isAnyRemoteInterfaceActive() == 0)
+                if(isAnyRemoteInterfaceActive() != WAN_IFACE_ACTIVE)
                 {
 #ifdef WAN_FAILOVER_SUPPORTED
                     TelemetryBackUpStatus = STATUS_SWITCHOVER_STOPED;
@@ -3104,7 +3187,6 @@ static WcFmobPolicyState_t State_WanInterfaceUp(WanMgr_AutoWan_SMInfo_t *pSmInfo
                         WanMgr_Sysevent_SetConnectivityCheckState(NET_CONNNECTIVITY_CHECK_STARTED);
                         WanMgr_enable_ra(pFixedInterface->VirtIfList->Name);
                         WanMgr_ConfigReset("configure", pFixedInterface->VirtIfList->Name);
-                        WanMgr_ConfigReset("dnsv6configure", pFixedInterface->VirtIfList->Name);
                         wanmgr_setwanstart();
                     }
                 }
@@ -3167,7 +3249,7 @@ static WcFmobPolicyState_t State_WanInterfaceDown(WanMgr_AutoWan_SMInfo_t *pSmIn
     {
 #ifdef WAN_FAILOVER_SUPPORTED
         TelemetryBackUpStatus = STATUS_SWITCHOVER_STOPED;
-        if ((isAnyRemoteInterfaceActive() == 1)
+        if ((isAnyRemoteInterfaceActive() == WAN_IFACE_ACTIVE)
 #if defined(FEATURE_TAD_HEALTH_CHECK)
             && (pFixedInterface->VirtIfList->IP.ConnectivityCheckType != WAN_CONNECTIVITY_TYPE_TAD)
 #endif
@@ -3247,7 +3329,7 @@ static WcFmobPolicyState_t State_WaitingForInterface(WanMgr_AutoWan_SMInfo_t *pS
                 {
 #ifdef WAN_FAILOVER_SUPPORTED
                     TelemetryBackUpStatus = STATUS_SWITCHOVER_STOPED;
-                    if ((isAnyRemoteInterfaceActive() == 1)
+                    if ((isAnyRemoteInterfaceActive() == WAN_IFACE_ACTIVE)
 #if defined(FEATURE_TAD_HEALTH_CHECK)
                       && (pFixedInterface->VirtIfList->IP.ConnectivityCheckType != WAN_CONNECTIVITY_TYPE_TAD)
 #endif

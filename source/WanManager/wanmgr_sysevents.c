@@ -55,12 +55,15 @@ static token_t sysevent_msg_token;
 /*Below Code should be remove, Once Comcast policy Deprecated.*/
 #if (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_)) && !defined(WAN_MANAGER_UNIFICATION_ENABLED)
 #if defined(FEATURE_TAD_HEALTH_CHECK)
-    char primary_v4gateway[128] = {0};
-    char primary_v4dns[128] = {0};
-    char primary_v6dns[256] = {0};
-    char backup_v4dns[128] = {0};
-    char backup_v6dns[256] = {0};
-    char primary_v6ip_address[128] = {0};
+static char primary_v4gateway[128] = {0};
+static char primary_v4dns[128] = {0};
+static char primary_v6dns[256] = {0};
+static char backup_v4dns[128] = {0};
+static char backup_v6dns[256] = {0};
+static char primary_v6ip_address[128] = {0};
+
+extern int WanMgr_TriggerBackupDnsConnectivityRestart(void);
+extern int WanMgr_TriggerPrimaryDnsConnectivityRestart(void);
 #endif
 #endif
 
@@ -556,92 +559,6 @@ static void  WanMgr_BridgeModeChanged(int BridgeMode)
     }
 }
 #endif //WAN_MANAGER_UNIFICATION_ENABLED
-
-#if defined FEATURE_TAD_HEALTH_CHECK
-/*Below Code should be remove, Once Comcast policy Deprecated.*/
-static int WanMgr_TriggerPrimaryDnsConnectivityRestart(void)
-{
-    INT ret = -1;
-    INT  uiWanIdx      = 0;
-    UINT uiTotalIfaces = -1;
-
-    //Get uiTotalIfaces
-    uiTotalIfaces = WanMgr_IfaceData_GetTotalWanIface();
-    if(uiTotalIfaces > 0)
-    {
-        for(uiWanIdx = 0; uiWanIdx < uiTotalIfaces; ++uiWanIdx )
-        {
-            WanMgr_Iface_Data_t*   pWanDmlIfaceData = WanMgr_GetIfaceData_locked(uiWanIdx);
-            if(pWanDmlIfaceData != NULL)
-            {
-                DML_WAN_IFACE* pInterface = NULL;
-
-                pInterface = &(pWanDmlIfaceData->data);
-                if(pInterface == NULL)
-                {
-                    WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
-                    return -1;
-                }
-
-                /* If WAN Interface Type is REMOTE then we need to return that index to proceed further */
-                if( ( TRUE == pInterface->Selection.Enable ) &&
-                    ( LOCAL_IFACE == pInterface->IfaceType ) &&
-                    ( pInterface->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_UP) )
-                {
-                    pInterface->VirtIfList->IP.RestartConnectivityCheck = TRUE;
-                    CcspTraceInfo(("%s-%d: DNS Connectivity Check Restart for Interface=%s\n", __FUNCTION__, __LINE__, pInterface->VirtIfList->Name));
-                    WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
-                    ret = 0;
-                }
-                WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
-            }
-        }
-    }
-    return ret;
-}
-
-static int WanMgr_TriggerBackupDnsConnectivityRestart(void)
-{
-    INT ret = -1;
-    INT  uiWanIdx      = 0;
-    UINT uiTotalIfaces = -1;
-
-    //Get uiTotalIfaces
-    uiTotalIfaces = WanMgr_IfaceData_GetTotalWanIface();
-    if(uiTotalIfaces > 0)
-    {
-        for(uiWanIdx = 0; uiWanIdx < uiTotalIfaces; ++uiWanIdx )
-        {
-            WanMgr_Iface_Data_t*   pWanDmlIfaceData = WanMgr_GetIfaceData_locked(uiWanIdx);
-            if(pWanDmlIfaceData != NULL)
-            {
-                DML_WAN_IFACE* pInterface = NULL;
-
-                pInterface = &(pWanDmlIfaceData->data);
-                if(pInterface == NULL)
-                {
-                    WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
-                    return -1;
-                }
-
-                /* If WAN Interface Type is REMOTE then we need to return that index to proceed further */
-                if( ( TRUE == pInterface->Selection.Enable ) &&
-                    ( REMOTE_IFACE == pInterface->IfaceType ) &&
-                    ( pInterface->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_UP) )
-                {
-                    pInterface->VirtIfList->IP.RestartConnectivityCheck = TRUE;
-                    CcspTraceInfo(("%s-%d: DNS Connectivity Check Restart for Interface=%s\n", __FUNCTION__, __LINE__, pInterface->VirtIfList->Name));
-                    WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
-                    ret = 0;
-                }
-                WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
-            }
-        }
-    }
-    return ret;
-}
-
-#endif
 
 static void *WanManagerSyseventHandler(void *args)
 {
