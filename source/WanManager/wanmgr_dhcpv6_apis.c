@@ -361,14 +361,12 @@ static int _prepare_client_conf(PDML_DHCPCV6_CFG       pCfg)
 #if defined(_DT_WAN_Manager_Enable_)
         fprintf(fp, "log-level 7\n");
         fprintf(fp, "log-mode full\n");
-        fprintf(fp, "duid-type duid-ll\n");
         fprintf(fp, "script \"%s\" \n", CLIENT_NOTIFY);
         fprintf(fp, "reconfigure-accept 1\n");
 #else
-        fprintf(fp, "duid-type duid-ll\n");
         fprintf(fp, "notify-scripts\n");
 #endif
-
+        fprintf(fp, "duid-type duid-ll\n");
         fprintf(fp, "iface %s {\n", pCfg->Interface);
 
         if (pCfg->RapidCommit)
