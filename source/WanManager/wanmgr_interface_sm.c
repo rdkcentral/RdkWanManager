@@ -1046,14 +1046,14 @@ static void updateInterfaceToVoiceManager(WanMgr_IfaceSM_Controller_t* pWanIface
     {
 
         /* Set X_RDK_BoundIfName of TelcoVoiceManager */
-        retStatus = WanMgr_RdkBus_SetParamValues(VOICE_COMPONENT_NAME, VOICE_DBUS_PATH, VOICE_BOUND_IF_NAME, p_VirtIf->Name, ccsp_string, TRUE);
+        retStatus = WanMgr_RdkBus_SetParamValues(VOICE_COMPONENT_NAME, VOICE_DBUS_PATH, VOICE_BOUND_IF_NAME, voipIfName, ccsp_string, TRUE);
         if (ANSC_STATUS_SUCCESS == retStatus)
         {
-            CcspTraceInfo(("%s %d - Successfully set [%s] to VoiceManager \n", __FUNCTION__, __LINE__, p_VirtIf->Name));
+            CcspTraceInfo(("%s %d - Successfully set [%s] to VoiceManager \n", __FUNCTION__, __LINE__, voipIfName));
         }
         else
         {
-            CcspTraceInfo(("%s %d - Failed setting [%s] to VoiceManager \n", __FUNCTION__, __LINE__, p_VirtIf->Name));
+            CcspTraceInfo(("%s %d - Failed setting [%s] to VoiceManager \n", __FUNCTION__, __LINE__, voipIfName));
         }
     }
 }
