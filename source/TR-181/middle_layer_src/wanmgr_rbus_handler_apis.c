@@ -60,6 +60,8 @@ typedef struct TAD_WCC_Event_ {
     char         Alias[64];
     char         IPv4_DNS_Servers[512];
     char         IPv6_DNS_Servers[512];
+    char         IPv4_Gateway[32];
+    char         IPv6_Gateway[256];
     WCC_EVENT    Event;
 } TAD_WCC_Event;
 void *WanMgr_Configure_WCC_Thread(void *arg);
@@ -1839,7 +1841,9 @@ ANSC_STATUS WanMgr_Configure_TAD_WCC(DML_VIRTUAL_IFACE *p_VirtIf,  WCC_EVENT Eve
     strncpy(pTADEvent->IfaceName, p_VirtIf->Name, sizeof(pTADEvent->IfaceName)-1);
     strncpy(pTADEvent->Alias, p_VirtIf->Alias, sizeof(pTADEvent->Alias)-1);
     snprintf(pTADEvent->IPv4_DNS_Servers, sizeof(pTADEvent->IPv4_DNS_Servers), "%s,%s",p_VirtIf->IP.Ipv4Data.dnsServer,p_VirtIf->IP.Ipv4Data.dnsServer1);
+    snprintf(pTADEvent->IPv4_Gateway, sizeof(pTADEvent->IPv4_Gateway), "%s",p_VirtIf->IP.Ipv4Data.gateway);
     snprintf(pTADEvent->IPv6_DNS_Servers, sizeof(pTADEvent->IPv6_DNS_Servers), "%s,%s",p_VirtIf->IP.Ipv6Data.nameserver,p_VirtIf->IP.Ipv6Data.nameserver1);
+    //TODO: Add Ipv6 gateway address after integrating with DHCP manager. Currently, wanmanager doesn't have information of IPv6 gateway address
     pTADEvent->Event = Event;
 
     //Run in thread to avoid mutex deadlock between WanManager and rbus handle
@@ -1869,7 +1873,10 @@ void *WanMgr_Configure_WCC_Thread(void *arg)
 
     rbusObject_Init(&inParams, NULL);
 
-    CcspTraceInfo(("%s %d:  TAD connectivity check event for : Name:%s Alias :%s \n", __FUNCTION__, __LINE__, pTADEvent->IfaceName, pTADEvent->Alias));
+    CcspTraceInfo(("%s %d:  TAD connectivity check event for  Name:%s Alias :%s Event :%s\n"
+                , __FUNCTION__, __LINE__, pTADEvent->IfaceName, pTADEvent->Alias,
+                pTADEvent->Event == WCC_START?"START":(pTADEvent->Event == WCC_RESTART?"RESTART":"STOP")));
+
     // set linux interface name
     rbusValue_Init(&value);
     rbusValue_SetString(value, pTADEvent->IfaceName );
@@ -1891,20 +1898,55 @@ void *WanMgr_Configure_WCC_Thread(void *arg)
     rbusObject_SetValue(inParams, "IPv4_DNS_Servers", value);
     rbusValue_Release(value);
 
+    // set IPv4 Gateway
+    CcspTraceInfo(("%s %d:  IPv4_Gateway %s  \n", __FUNCTION__, __LINE__, pTADEvent->IPv4_Gateway));
+    rbusValue_Init(&value);
+    rbusValue_SetString(value, pTADEvent->IPv4_Gateway);
+    rbusObject_SetValue(inParams, "IPv4_Gateway", value);
+    rbusValue_Release(value);
+
     //TODO: MeshWANInterface_UlaAddr is a workaround for remote interfaces, Should be removed after moving ULA ipv6 configurations to WanManager.
     if(strncmp(pTADEvent->Alias, "REMOTE", 6)==0)
     {
-        char nameServerList[512] = {0};
-        sysevent_get(sysevent_fd, sysevent_token, "MeshWANInterface_UlaAddr", nameServerList, sizeof(nameServerList));
-        strtok(nameServerList, "/");
-        snprintf(pTADEvent->IPv6_DNS_Servers, sizeof(pTADEvent->IPv6_DNS_Servers), "%s,", strtok(nameServerList, "/"));
+        char MeshWANInterfaceUla[512] = {0};
+        sysevent_get(sysevent_fd, sysevent_token, "MeshWANInterface_UlaAddr", MeshWANInterfaceUla, sizeof(MeshWANInterfaceUla));
+        strtok(MeshWANInterfaceUla, "/");
+        snprintf(pTADEvent->IPv6_DNS_Servers, sizeof(pTADEvent->IPv6_DNS_Servers), "%s,", strtok(MeshWANInterfaceUla, "/"));
+        snprintf(pTADEvent->IPv6_Gateway, sizeof(pTADEvent->IPv6_Gateway), "%s", strtok(MeshWANInterfaceUla, "/"));
     }
-    CcspTraceInfo(("%s %d:  IPv6_DNS_Servers %s  \n", __FUNCTION__, __LINE__, pTADEvent->IPv6_DNS_Servers));
+    else //TODO: Workaround to fetch Ipv6 gateway address from the routing table. This should be removed after integrating DHCPmanager
+    {
+        FILE *fp_route;
+        char command[BUFLEN_256] = {0};
+        char buffer[BUFLEN_256] ={0};
+        snprintf(command, sizeof(command), "ip -6 route show default | grep %s | awk '{print $3}'", pTADEvent->IfaceName);
+        fp_route = popen(command, "r");
+        if(fp_route != NULL) 
+        {
+            if (fgets(buffer, BUFLEN_256, fp_route) != NULL)
+            {
+                char *token = strtok(buffer, "\n"); // get string up until newline character
+                if (token)
+                {
+                    strncpy(pTADEvent->IPv6_Gateway, token, sizeof(pTADEvent->IPv6_Gateway)-1);
+                }
+            }
+            pclose(fp_route);
+        }
+    }
 
     // set IPv6 nameserver list
+    CcspTraceInfo(("%s %d:  IPv6_DNS_Servers %s  \n", __FUNCTION__, __LINE__, pTADEvent->IPv6_DNS_Servers));
     rbusValue_Init(&value);
     rbusValue_SetString(value,  pTADEvent->IPv6_DNS_Servers );
     rbusObject_SetValue(inParams, "IPv6_DNS_Servers", value);
+    rbusValue_Release(value);
+
+    // set IPv6 Gateway
+    CcspTraceInfo(("%s %d:  IPv6_Gateway %s  \n", __FUNCTION__, __LINE__, pTADEvent->IPv6_Gateway));
+    rbusValue_Init(&value);
+    rbusValue_SetString(value, pTADEvent->IPv6_Gateway);
+    rbusObject_SetValue(inParams, "IPv6_Gateway", value);
     rbusValue_Release(value);
 
     rbusError_t rc = RBUS_ERROR_SUCCESS;
@@ -1920,14 +1962,11 @@ void *WanMgr_Configure_WCC_Thread(void *arg)
         if(rc != RBUS_ERROR_SUCCESS)
         {
             CcspTraceError(("%s %d - Failed to Unsubscribe %s, Error=%s \n", __FUNCTION__, __LINE__, dml, rbusError_ToString(rc)));
-            free(pTADEvent);
-            return NULL;
-        }
-        CcspTraceInfo(("%s %d:  Unsubscribed to %s  \n", __FUNCTION__, __LINE__, dml));
+        }else 
+            CcspTraceInfo(("%s %d:  Unsubscribed to %s  \n", __FUNCTION__, __LINE__, dml));
 
         //Stop connectivity check 
         rc = rbusMethod_Invoke(rbusHandle, TANDD_STOP_CONNECTIVITY_CHECK, inParams, &outParams);
-        rbusObject_Release(inParams);
 
         //Currently, TandD doesn't send reply outParams Release if resource allocated resource.
         if(outParams)
@@ -1936,17 +1975,14 @@ void *WanMgr_Configure_WCC_Thread(void *arg)
         if(rc != RBUS_ERROR_SUCCESS)
         {
             CcspTraceError(("%s %d: ConnectivityCheck: rbusMethod_Invoke(%s) failed\n",__FUNCTION__, __LINE__, TANDD_STOP_CONNECTIVITY_CHECK));
-            free(pTADEvent);
-            return NULL;
-        }
-        CcspTraceInfo(("%s %d: ConnectivityCheck: rbusMethod_Invoke %s success\n",__FUNCTION__, __LINE__ , TANDD_STOP_CONNECTIVITY_CHECK ));
+        }else 
+            CcspTraceInfo(("%s %d: ConnectivityCheck: rbusMethod_Invoke %s success\n",__FUNCTION__, __LINE__ , TANDD_STOP_CONNECTIVITY_CHECK ));
     }
 
     if(pTADEvent->Event == WCC_START || pTADEvent->Event == WCC_RESTART )
     {
         //Start connectivity check 
         rc = rbusMethod_Invoke(rbusHandle, TANDD_START_CONNECTIVITY_CHECK, inParams, &outParams);
-        rbusObject_Release(inParams);
 
         //Currently, TandD doesn't send reply outParams Release if resource allocated resource.
         if(outParams)
@@ -1972,6 +2008,7 @@ void *WanMgr_Configure_WCC_Thread(void *arg)
         CcspTraceInfo(("%s %d: startConnectivityCheck() Subscribed to %s  n", __FUNCTION__, __LINE__, dml));
     }
 
+    rbusObject_Release(inParams);
     free(pTADEvent);
     pthread_exit(NULL);
     return NULL;
