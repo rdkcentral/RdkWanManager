@@ -1795,13 +1795,14 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
         WANMGR_IPV6_DATA Ipv6DataTemp;
         wanmgr_dchpv6_get_ipc_msg_info(&(Ipv6DataTemp), pNewIpcMsg);
 
-        if (strcmp(Ipv6DataTemp.address, pDhcp6cInfoCur->address) ||
 #if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE) || (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_))//Do not compare if pdIfAddress and sitePrefix is empty. pdIfAddress Will be calculated while configuring LAN prefix.  //TODO: V6 handled in PAM
+        if ((strlen(Ipv6DataTemp.address) > 0 && strcmp(Ipv6DataTemp.address, pDhcp6cInfoCur->address)) ||
             ((Ipv6DataTemp.pdIfAddress) && (strlen(Ipv6DataTemp.pdIfAddress) > 0)&&
             (strcmp(Ipv6DataTemp.pdIfAddress, pDhcp6cInfoCur->pdIfAddress))) ||
             ((Ipv6DataTemp.sitePrefix) && (strlen(Ipv6DataTemp.sitePrefix) > 0)&&
             (strcmp(Ipv6DataTemp.sitePrefix, pDhcp6cInfoCur->sitePrefix)))||
 #else
+        if (strcmp(Ipv6DataTemp.address, pDhcp6cInfoCur->address) ||
                 strcmp(Ipv6DataTemp.pdIfAddress, pDhcp6cInfoCur->pdIfAddress) ||
                 strcmp(Ipv6DataTemp.sitePrefix, pDhcp6cInfoCur->sitePrefix) ||
 #endif
