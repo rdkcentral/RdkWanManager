@@ -968,10 +968,10 @@ static void *WanManagerSyseventHandler(void *args)
             {
                 char output[32] = {0};
                 sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_IPV6_ADDRESS, output, sizeof(output));
-                CcspTraceInfo(("%s-%d: Primary v6 Ip Address=%s, Val=%s, current_v6ip_Address=%s, prev_v6ip_address=%s \n",
-                                __FUNCTION__, __LINE__, name, val, output, primary_v6ip_address));
                 if((strlen(output) > 0) && (strcmp(output, primary_v6ip_address) != 0))
                 {
+                    CcspTraceInfo(("%s-%d: Primary v6 Ip Address Changed to =%s, Val=%s, current_v6ip_Address=%s, prev_v6ip_address=%s \n",
+                                    __FUNCTION__, __LINE__, name, val, output, primary_v6ip_address));
                     if(WanMgr_TriggerPrimaryDnsConnectivityRestart() == -1)
                     {
                         CcspTraceError(("%s-%d: Failed to Trigger Primary DNS Connectivity Check Restart for v6 IP address change \n", __FUNCTION__, __LINE__));
@@ -987,10 +987,10 @@ static void *WanManagerSyseventHandler(void *args)
             {
                 char output[32] = {0};
                 sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_IPV4_GATEWAY, output, sizeof(output));
-                CcspTraceInfo(("%s-%d: Primary Gateway Name=%s, Val=%s, current_vgateway=%s, prev_v4gateway=%s \n", 
-                                __FUNCTION__, __LINE__, name, val, output, primary_v4gateway));
                 if((strlen(output) > 0) && (strcmp(output, primary_v4gateway) != 0))
                 {
+                    CcspTraceInfo(("%s-%d: Primary Gateway Name=%s, Val=%s, current_vgateway=%s, prev_v4gateway=%s \n",
+                                    __FUNCTION__, __LINE__, name, val, output, primary_v4gateway));
                     if(WanMgr_TriggerPrimaryDnsConnectivityRestart() == -1)
                     {
                         CcspTraceError(("%s-%d: Failed to Trigger Primary V4 DNS Connectivity Check Restart for v4 Gateway change \n", __FUNCTION__, __LINE__));
@@ -1007,10 +1007,10 @@ static void *WanManagerSyseventHandler(void *args)
             {
                 char output[32] = {0};
                 sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_IPV4_DNS, output, sizeof(output));
-                CcspTraceInfo(("%s-%d: Primary Name=%s, Val=%s, current_ipv4dns=%s, prev_ipv4dns=%s \n", 
-                                __FUNCTION__, __LINE__, name, val, output, primary_v4dns));
                 if((strlen(output) > 0) && (strcmp(output, primary_v4dns) != 0))
                 {
+                    CcspTraceInfo(("%s-%d: Primary Name=%s, Val=%s, current_ipv4dns=%s, prev_ipv4dns=%s \n", 
+                                    __FUNCTION__, __LINE__, name, val, output, primary_v4dns));
                     if(WanMgr_TriggerPrimaryDnsConnectivityRestart() == -1)
                     {
                         CcspTraceError(("%s-%d: Failed to Trigger Primary V4 DNS Connectivity Check Restart \n", __FUNCTION__, __LINE__));
@@ -1027,10 +1027,10 @@ static void *WanManagerSyseventHandler(void *args)
             {
                 char output[32] = {0};
                 sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_IPV6_DNS, output, sizeof(output));
-                CcspTraceInfo(("%s-%d: Primary Name=%s, Val=%s, current_ipv6dns=%s, prev_ipv6dns=%s \n", 
-                                __FUNCTION__, __LINE__, name, val, output, primary_v6dns));
                 if((strlen(output) > 0) && (strcmp(output, primary_v6dns) != 0))
                 {
+                    CcspTraceInfo(("%s-%d: Primary Name=%s, Val=%s, current_ipv6dns=%s, prev_ipv6dns=%s \n", 
+                                    __FUNCTION__, __LINE__, name, val, output, primary_v6dns));
                     if(WanMgr_TriggerPrimaryDnsConnectivityRestart() == -1)
                     {
                         CcspTraceError(("%s-%d: Failed to Trigger Primary V6 DNS Connectivity Check Restart \n", __FUNCTION__, __LINE__));
@@ -1047,10 +1047,10 @@ static void *WanManagerSyseventHandler(void *args)
             {
                 char output[32] = {0};
                 sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_BACKUP_IPv4_DNS, output, sizeof(output));
-                CcspTraceInfo(("%s-%d: Backup Name=%s, Val=%s, current_ipv4dns=%s, prev_ipv4dns=%s \n", 
-                                __FUNCTION__, __LINE__, name, val, output, backup_v4dns));
                 if((strlen(output) > 0) && (strcmp(output, backup_v4dns) != 0))
                 {
+                    CcspTraceInfo(("%s-%d: Backup Name=%s, Val=%s, current_ipv4dns=%s, prev_ipv4dns=%s \n", 
+                                    __FUNCTION__, __LINE__, name, val, output, backup_v4dns));
                     if(WanMgr_TriggerBackupDnsConnectivityRestart() == -1)
                     {
                         CcspTraceError(("%s-%d: Failed to Trigger Backup V6 DNS Connectivity Check Restart \n", __FUNCTION__, __LINE__));
@@ -1067,10 +1067,10 @@ static void *WanManagerSyseventHandler(void *args)
             {
                 char output[32] = {0};
                 sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_BACKUP_IPV6_DNS, output, sizeof(output));
-                CcspTraceInfo(("%s-%d: Backup: Name=%s, Val=%s, current_ipv6dns=%s, prev_ipv6dns=%s \n", 
-                                __FUNCTION__, __LINE__, name, val, output, backup_v6dns));
                 if((strlen(output) > 0) && (strcmp(output, backup_v6dns) != 0))
                 {
+                    CcspTraceInfo(("%s-%d: Backup: Name=%s, Val=%s, current_ipv6dns=%s, prev_ipv6dns=%s \n", 
+                                    __FUNCTION__, __LINE__, name, val, output, backup_v6dns));
                     if(WanMgr_TriggerBackupDnsConnectivityRestart() == -1)
                     {
                         CcspTraceError(("%s-%d: Failed to Trigger Backup V6 DNS Connectivity Check Restart \n", __FUNCTION__, __LINE__));

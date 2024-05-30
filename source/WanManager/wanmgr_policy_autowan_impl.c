@@ -288,7 +288,7 @@ static void WanMgr_enable_ra(char *IfaceName)
         return;
     }
 
-    if (sysctl_iface_set("/proc/sys/net/ipv6/conf/%s/accept_ra", IfaceName, "0") != 0)
+    if (sysctl_iface_set("/proc/sys/net/ipv6/conf/%s/accept_ra", IfaceName, "2") != 0)
     {
         CcspTraceWarning(("%s-%d : Failure writing to /proc file\n", __FUNCTION__, __LINE__));
     }
@@ -4591,7 +4591,7 @@ static WcBWanPolicyState_t State_BackupWanAvailable(WanMgr_Policy_Controller_t* 
     if ( (pWanController->WanEnable == TRUE) &&
          (pWanController->AllowRemoteInterfaces == TRUE) &&
 #if defined(FEATURE_TAD_HEALTH_CHECK)
-         ((pFixedInterface->VirtIfList->IP.ConnectivityCheckType == WAN_CONNECTIVITY_TYPE_TAD) &&
+         ((pFixedInterface->VirtIfList->IP.ConnectivityCheckType != WAN_CONNECTIVITY_TYPE_TAD)? 1:
            (pFixedInterface->VirtIfList->IP.Ipv4ConnectivityStatus == WAN_CONNECTIVITY_UP ||
             pFixedInterface->VirtIfList->IP.Ipv6ConnectivityStatus == WAN_CONNECTIVITY_UP)) &&
 #endif
@@ -4649,7 +4649,7 @@ static WcBWanPolicyState_t State_BackupWanInterfaceUp(WanMgr_Policy_Controller_t
         (TelemetryBackUpStatus != STATUS_SWITCHOVER_STOPED ) &&
         ( TRUE == WanMgr_Policy_BackupWan_CheckLocalWANsScannedOnce( pWanController ) ) &&
 #if defined(FEATURE_TAD_HEALTH_CHECK)
-        (pFixedInterface->VirtIfList->IP.ConnectivityCheckType == WAN_CONNECTIVITY_TYPE_TAD &&
+        ((pFixedInterface->VirtIfList->IP.ConnectivityCheckType != WAN_CONNECTIVITY_TYPE_TAD)? 1:
         (pFixedInterface->VirtIfList->IP.Ipv4ConnectivityStatus == WAN_CONNECTIVITY_UP ||
          pFixedInterface->VirtIfList->IP.Ipv6ConnectivityStatus == WAN_CONNECTIVITY_UP)) &&
         (WanMgr_Policy_PrimaryWan_IsConnectivityCheckGood() == false) &&
@@ -4810,9 +4810,9 @@ static WcBWanPolicyState_t State_BackupWanInterfaceInActive(WanMgr_Policy_Contro
         (TelemetryBackUpStatus == STATUS_SWITCHOVER_STARTED ||
          TelemetryBackUpStatus == STATUS_SWITCHOVER_FAILED) &&
 #if defined(FEATURE_TAD_HEALTH_CHECK)
-        (pFixedInterface->VirtIfList->IP.ConnectivityCheckType == WAN_CONNECTIVITY_TYPE_TAD &&
-        (pFixedInterface->VirtIfList->IP.Ipv4ConnectivityStatus == WAN_CONNECTIVITY_UP ||
-         pFixedInterface->VirtIfList->IP.Ipv6ConnectivityStatus == WAN_CONNECTIVITY_UP)) &&
+        ((pFixedInterface->VirtIfList->IP.ConnectivityCheckType != WAN_CONNECTIVITY_TYPE_TAD)? 1:
+         (pFixedInterface->VirtIfList->IP.Ipv4ConnectivityStatus == WAN_CONNECTIVITY_UP ||
+          pFixedInterface->VirtIfList->IP.Ipv6ConnectivityStatus == WAN_CONNECTIVITY_UP)) &&
         (WanMgr_Policy_PrimaryWan_IsConnectivityCheckGood() == false) &&
         (WanMgr_GetWanRoutedStatus() == 0)
 #else
@@ -4872,7 +4872,7 @@ static WcBWanPolicyState_t State_BackupWanInterfaceWaitingPrimaryUp(WanMgr_Polic
     if( (pFixedInterface->Selection.Enable == TRUE) &&
         (pFixedInterface->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_UP) && 
 #if defined(FEATURE_TAD_HEALTH_CHECK)
-        ((pFixedInterface->VirtIfList->IP.ConnectivityCheckType == WAN_CONNECTIVITY_TYPE_TAD) &&
+        ((pFixedInterface->VirtIfList->IP.ConnectivityCheckType != WAN_CONNECTIVITY_TYPE_TAD)? 1:
          (pFixedInterface->VirtIfList->IP.Ipv4ConnectivityStatus == WAN_CONNECTIVITY_UP ||
           pFixedInterface->VirtIfList->IP.Ipv6ConnectivityStatus == WAN_CONNECTIVITY_UP)) &&
 #endif
