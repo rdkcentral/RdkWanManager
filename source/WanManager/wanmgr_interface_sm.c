@@ -447,14 +447,6 @@ static void WanMgr_MonitorDhcpApps (WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
 #endif
     }
 
-    if(p_VirtIf->IP.ConnectivityCheckType == WAN_CONNECTIVITY_TYPE_TAD && 
-       p_VirtIf->IP.ConnectivityCheckRunning == TRUE &&
-       p_VirtIf->IP.RestartConnectivityCheck == TRUE)
-    { 
-        CcspTraceInfo(("%s %d - Triggering Restart ConnectivityCheck \n", __FUNCTION__, __LINE__));
-        WanMgr_Configure_TAD_WCC( p_VirtIf, WCC_RESTART);
-    }
-
 #ifdef FEATURE_IPOE_HEALTH_CHECK
     if(p_VirtIf->IP.ConnectivityCheckType == WAN_CONNECTIVITY_TYPE_IHC &&
        p_VirtIf->IP.ConnectivityCheckRunning == TRUE &&
@@ -657,6 +649,13 @@ int wan_updateDNS(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl, BOOL addIPv4, BOOL
     DML_WAN_IFACE * pInterface = pWanIfaceCtrl->pIfaceData;
     DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIfaceById(pInterface->VirtIfList, pWanIfaceCtrl->VirIfIdx);
 
+#if (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_)) //TODO:  XB devices use the DNS of primary for backup.
+    if(strstr(pInterface->AliasName, "REMOTE"))
+    {
+        CcspTraceError(("%s %d - Not updating DNS of the remote interface \n", __FUNCTION__, __LINE__));
+        return RETURN_OK;
+    }
+#endif
     bool valid_dns = FALSE;
     int ret = RETURN_OK;
     FILE *fp = NULL;
@@ -1047,14 +1046,14 @@ static void updateInterfaceToVoiceManager(WanMgr_IfaceSM_Controller_t* pWanIface
     {
 
         /* Set X_RDK_BoundIfName of TelcoVoiceManager */
-        retStatus = WanMgr_RdkBus_SetParamValues(VOICE_COMPONENT_NAME, VOICE_DBUS_PATH, VOICE_BOUND_IF_NAME, p_VirtIf->Name, ccsp_string, TRUE);
+        retStatus = WanMgr_RdkBus_SetParamValues(VOICE_COMPONENT_NAME, VOICE_DBUS_PATH, VOICE_BOUND_IF_NAME, voipIfName, ccsp_string, TRUE);
         if (ANSC_STATUS_SUCCESS == retStatus)
         {
-            CcspTraceInfo(("%s %d - Successfully set [%s] to VoiceManager \n", __FUNCTION__, __LINE__, p_VirtIf->Name));
+            CcspTraceInfo(("%s %d - Successfully set [%s] to VoiceManager \n", __FUNCTION__, __LINE__, voipIfName));
         }
         else
         {
-            CcspTraceInfo(("%s %d - Failed setting [%s] to VoiceManager \n", __FUNCTION__, __LINE__, p_VirtIf->Name));
+            CcspTraceInfo(("%s %d - Failed setting [%s] to VoiceManager \n", __FUNCTION__, __LINE__, voipIfName));
         }
     }
 }
@@ -1210,6 +1209,7 @@ static int wan_tearDownIPv4(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
     DML_WAN_IFACE * pInterface = pWanIfaceCtrl->pIfaceData;
     DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIfaceById(pInterface->VirtIfList, pWanIfaceCtrl->VirIfIdx);
 
+#if !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_)) //TODO:  XB devices use the DNS of primary for backup.
         /** Reset IPv4 DNS configuration. */
     if (RETURN_OK != wan_updateDNS(pWanIfaceCtrl, FALSE, (p_VirtIf->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_UP)))
     {
@@ -1220,6 +1220,7 @@ static int wan_tearDownIPv4(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
     {
         CcspTraceInfo(("%s %d -  IPv4 DNS servers unconfig successfully \n", __FUNCTION__, __LINE__));
     }
+#endif
 
     /*TODO:
      *Should be removed once MAPT Unified. After PandM Added V4 default route, it got deleted here.
@@ -1280,7 +1281,7 @@ static int wan_setUpIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
         CcspTraceError(("%s %d - Invalid memory \n", __FUNCTION__, __LINE__));
         return RETURN_ERR;
     }
-#if !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_)) //TODO: V6 handled in PAM
+
     /** Reset IPv6 DNS configuration. */
     if (wan_updateDNS(pWanIfaceCtrl, (p_VirtIf->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_UP), TRUE) != RETURN_OK)
     {
@@ -1292,7 +1293,6 @@ static int wan_setUpIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
         CcspTraceInfo(("%s %d -  IPv6 DNS servers configured successfully \n", __FUNCTION__, __LINE__));
     }
 
-#endif
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV6_CONNECTION_STATE, WAN_STATUS_UP, 0);
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_RADVD_RESTART, NULL, 0);
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_DHCP_SERVER_RESTART, NULL, 0);
@@ -1361,7 +1361,7 @@ static int wan_tearDownIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
     DML_WAN_IFACE * pInterface = pWanIfaceCtrl->pIfaceData;
     DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIfaceById(pInterface->VirtIfList, pWanIfaceCtrl->VirIfIdx);
 
-#if !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_)) //TODO: V6 handled in PAM
+#if !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_)) //TODO: XB devices use the DNS of primary for backup.
     /** Reset IPv6 DNS configuration. */
     if (RETURN_OK == wan_updateDNS(pWanIfaceCtrl, (p_VirtIf->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_UP), FALSE))
     {
@@ -1458,7 +1458,7 @@ static ANSC_STATUS WanMgr_StartConnectivityCheck(WanMgr_IfaceSM_Controller_t* pW
     DML_WAN_IFACE* pInterface = pWanIfaceCtrl->pIfaceData;
     DML_VIRTUAL_IFACE* pVirtIf = WanMgr_getVirtualIfaceById(pInterface->VirtIfList, pWanIfaceCtrl->VirIfIdx);
 
-    if(pVirtIf->IP.ConnectivityCheckRunning == TRUE)
+    if(pVirtIf->IP.ConnectivityCheckRunning == TRUE && pVirtIf->IP.RestartConnectivityCheck == FALSE )
     {
         CcspTraceInfo(("[%s:%d] ConnectivityCheck already running\n", __FUNCTION__, __LINE__));
         return ANSC_STATUS_SUCCESS;
@@ -1467,7 +1467,7 @@ static ANSC_STATUS WanMgr_StartConnectivityCheck(WanMgr_IfaceSM_Controller_t* pW
     if(pVirtIf->IP.ConnectivityCheckType == WAN_CONNECTIVITY_TYPE_TAD)
     {
         CcspTraceInfo(("%s %d ConnectivityCheck Type is TAD \n", __FUNCTION__, __LINE__));
-        WanMgr_Configure_TAD_WCC( pVirtIf,  WCC_START);
+        WanMgr_Configure_TAD_WCC( pVirtIf, (pVirtIf->IP.ConnectivityCheckRunning && pVirtIf->IP.RestartConnectivityCheck) ? WCC_RESTART : WCC_START);
     }
     else if(pVirtIf->IP.ConnectivityCheckType == WAN_CONNECTIVITY_TYPE_IHC)
     {
@@ -2852,6 +2852,9 @@ static eWanState_t wan_transition_standby_deconfig_ips(WanMgr_IfaceSM_Controller
             CcspTraceError(("%s %d - Failed to tear down IPv6 for %s Interface \n", __FUNCTION__, __LINE__, p_VirtIf->Name));
         }
     }
+
+    WanMgr_Configure_accept_ra(p_VirtIf, FALSE);
+
     p_VirtIf->Status = WAN_IFACE_STATUS_STANDBY;
     if (pWanIfaceCtrl->interfaceIdx != -1)
     {
