@@ -1027,3 +1027,27 @@ DML_VIRTUAL_IFACE* WanMgr_GetVirtIfDataByAlias_locked(char* Alias)
     return NULL;
 }
 
+/* WanMgr_GetVirtIfData ()
+ * This function checks all the Interfaces and retuns the active Virtual interface.
+ */
+DML_VIRTUAL_IFACE* WanMgr_GetActiveVirtIfData_locked(void)
+{
+    UINT idx = 0;
+
+    if(pthread_mutex_lock(&gWanMgrDataBase.gDataMutex) == 0)
+    {
+        WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl = &(gWanMgrDataBase.IfaceCtrl);
+        if(pWanIfaceCtrl->pIface != NULL)
+        {
+            for(idx = 0; idx < pWanIfaceCtrl->ulTotalNumbWanInterfaces; idx++)
+            {
+                DML_WAN_IFACE* pWanIfaceData = &(pWanIfaceCtrl->pIface[idx]);
+                if(pWanIfaceData->Selection.Status == WAN_IFACE_ACTIVE){
+                    return pWanIfaceData->VirtIfList;
+                }
+            }
+        }
+        WanMgrDml_GetIfaceData_release(NULL);
+    }
+    return NULL;
+}
