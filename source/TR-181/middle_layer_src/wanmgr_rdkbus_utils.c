@@ -427,9 +427,9 @@ ANSC_STATUS WanMgr_RdkBus_GetParamValues( char *pComponent, char *pBus, char *pP
 {
     CCSP_MESSAGE_BUS_INFO  *bus_info         = (CCSP_MESSAGE_BUS_INFO *)bus_handle;
     parameterValStruct_t   **retVal = NULL;
-    char                    *ParamName[ 1 ];
+    char                    *ParamName[ 1 ] = {0};
     int                    ret               = 0,
-                           nval;
+                           nval              = 0;
 
     //Assign address for get parameter name
     ParamName[0] = pParamName;
