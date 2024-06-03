@@ -454,8 +454,6 @@ void WanMgr_UpdateIpFromCellularMgr (WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
             close(sock);
         }
     }
-
-    return;
 }
 
 ANSC_STATUS IPCPStateChangeHandler (DML_VIRTUAL_IFACE* pVirtIf) 
@@ -890,10 +888,12 @@ WanMgr_DmlDhcpcGetCfg
     sprintf(pCfg->Alias,"eRouter");
     pCfg->bEnabled = TRUE;
     pCfg->InstanceNumber = 1;
-    if(dhcpv4c_get_ert_ifname(ifname))
-        pCfg->Interface[0] = 0;
-    else
-        snprintf(pCfg->Interface, sizeof(pCfg->Interface)-1, "%s", ifname);
+
+    DML_VIRTUAL_IFACE *p_VirtIf = WanMgr_GetActiveVirtIfData_locked();
+    if(p_VirtIf != NULL){
+        snprintf(pCfg->Interface, sizeof(pCfg->Interface), "%s", p_VirtIf->IP.Ipv4Data.ifname);
+        WanMgrDml_GetIfaceData_release(NULL);
+    }
     pCfg->PassthroughEnable = TRUE;
     pCfg->PassthroughDHCPPool[0] = 0;
 
@@ -909,34 +909,27 @@ WanMgr_DmlDhcpcGetInfo
     )
 {
     UNREFERENCED_PARAMETER(hContext);
-    ULONG                           index  = 0;
     ANSC_STATUS  rc;
-    dhcpv4c_ip_list_t address;
-    int i;
 
     if ( (!pInfo) || (ulInstanceNumber != 1) ){
         return ANSC_STATUS_FAILURE;
     }
 
     pInfo->Status = DML_DHCP_STATUS_Enabled;
-    dhcpv4c_get_ert_fsm_state((int*)&pInfo->DHCPStatus);
-    dhcpv4c_get_ert_ip_addr((unsigned int*)&pInfo->IPAddress.Value);
-    dhcpv4c_get_ert_mask((unsigned int*)&pInfo->SubnetMask.Value);
-    pInfo->NumIPRouters = 1;
-    dhcpv4c_get_ert_gw((unsigned int*)&pInfo->IPRouters[0].Value);
-    address.number = 0;
-    dhcpv4c_get_ert_dns_svrs(&address);
-    pInfo->NumDnsServers = address.number;
-    if (pInfo->NumDnsServers > DML_DHCP_MAX_ENTRIES)
-    {
-        CcspTraceError(("!!! Max DHCP Entry Overflow: %d",address.number));
-        pInfo->NumDnsServers = DML_DHCP_MAX_ENTRIES; // Fail safe
-    }
-    for(i=0; i< pInfo->NumDnsServers;i++)
-        pInfo->DNSServers[i].Value = address.addrs[i];
-    dhcpv4c_get_ert_remain_lease_time((unsigned int*)&pInfo->LeaseTimeRemaining);
-    dhcpv4c_get_ert_dhcp_svr((unsigned int*)&pInfo->DHCPServer);
 
+    DML_VIRTUAL_IFACE *p_VirtIf = WanMgr_GetActiveVirtIfData_locked();
+    if(p_VirtIf != NULL)
+    {
+        pInfo->IPAddress.Value     = inet_addr(p_VirtIf->IP.Ipv4Data.ip);
+        pInfo->SubnetMask.Value    = inet_addr(p_VirtIf->IP.Ipv4Data.mask);
+        pInfo->IPRouters[0].Value  = inet_addr(p_VirtIf->IP.Ipv4Data.gateway);
+        pInfo->DNSServers[0].Value = inet_addr(p_VirtIf->IP.Ipv4Data.dnsServer);
+        pInfo->DNSServers[1].Value = inet_addr(p_VirtIf->IP.Ipv4Data.dnsServer1);
+        pInfo->DHCPStatus          = (strcmp(p_VirtIf->IP.Ipv4Data.dhcpState, DHCP_STATE_UP) == 0) ? DML_DHCPC_STATUS_Bound : DML_DHCPC_STATUS_Init;
+        WanMgrDml_GetIfaceData_release(NULL);
+    }
+    pInfo->NumDnsServers = 2;
+    pInfo->NumIPRouters = 1;
     return ANSC_STATUS_SUCCESS;
 }
 

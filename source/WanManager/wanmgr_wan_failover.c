@@ -76,10 +76,10 @@ void WanMgr_TelemetryEventTrigger(WanMgr_FailOver_Controller_t* pFailOverControl
             if(pFailOverController->TelemetryEvent  == WAN_RESTORE_SUCCESS)
             {
                 elapsedTime -= pFailOverController->RestorationDelay;
-                snprintf(TelemetryLog, sizeof(TelemetryLog), "WFO_RESTORE_SUCCESS: Total Time Taken in %.3f",TelemetryEventStr[lastEvent],elapsedTime);
+                snprintf(TelemetryLog, sizeof(TelemetryLog), "WFO_RESTORE_SUCCESS: Total Time Taken in %.3f",elapsedTime);
             }else
             {
-                snprintf(TelemetryLog, sizeof(TelemetryLog), "WFO_FAILOVER_SUCCESS: Total Time Taken in %.3f",TelemetryEventStr[lastEvent],elapsedTime);
+                snprintf(TelemetryLog, sizeof(TelemetryLog), "WFO_FAILOVER_SUCCESS: Total Time Taken in %.3f",elapsedTime);
             }
             CcspTraceInfo(("%s-%d : %s \n", __FUNCTION__, __LINE__, TelemetryLog));
 #ifdef ENABLE_FEATURE_TELEMETRY2_0
