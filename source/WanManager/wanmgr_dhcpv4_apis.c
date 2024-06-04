@@ -925,7 +925,9 @@ WanMgr_DmlDhcpcGetInfo
         pInfo->IPRouters[0].Value  = inet_addr(p_VirtIf->IP.Ipv4Data.gateway);
         pInfo->DNSServers[0].Value = inet_addr(p_VirtIf->IP.Ipv4Data.dnsServer);
         pInfo->DNSServers[1].Value = inet_addr(p_VirtIf->IP.Ipv4Data.dnsServer1);
+#if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
         pInfo->DHCPStatus          = (strcmp(p_VirtIf->IP.Ipv4Data.dhcpState, DHCP_STATE_UP) == 0) ? DML_DHCPC_STATUS_Bound : DML_DHCPC_STATUS_Init;
+#endif
         WanMgrDml_GetIfaceData_release(NULL);
     }
     pInfo->NumDnsServers = 2;
