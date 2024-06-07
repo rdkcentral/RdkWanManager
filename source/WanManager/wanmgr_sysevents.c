@@ -1245,14 +1245,11 @@ void WanMgr_Configure_accept_ra(DML_VIRTUAL_IFACE * pVirtIf, BOOL EnableRa)
 
     CcspTraceInfo(("%s %d %s accept_ra for interface %s\n", __FUNCTION__, __LINE__,EnableRa?"Enabling":"Disabling", pVirtIf->Name));
    
-    int ret = 0;
-    ret = v_secure_system("sysctl -w net.ipv6.conf.%s.accept_ra=%d",pVirtIf->Name, (EnableRa?2:0));
-    if(ret != 0) {
-        CcspTraceWarning(("%s : Failure in executing command via v_secure_system. ret:[%d] \n",__FUNCTION__, ret));
-    }
-
     if(EnableRa)
     {
+        v_secure_system("sysctl -w net.ipv6.conf.%s.router_solicitations=3",pVirtIf->Name);
+        v_secure_system("sysctl -w net.ipv6.conf.%s.accept_ra=2",pVirtIf->Name);
+
         CcspTraceInfo(("%s %d Enabling forwarding for interface %s\n", __FUNCTION__, __LINE__,pVirtIf->Name));
         v_secure_system("sysctl -w net.ipv6.conf.%s.forwarding=1",pVirtIf->Name);
         v_secure_system("sysctl -w net.ipv6.conf.%s.accept_ra_pinfo=0",pVirtIf->Name);
@@ -1263,6 +1260,12 @@ void WanMgr_Configure_accept_ra(DML_VIRTUAL_IFACE * pVirtIf, BOOL EnableRa)
         Force_IPv6_toggle(pVirtIf->Name); // Do a IPv6 toggle to send Router Solicit
 #endif
     }
+    else
+    {
+        v_secure_system("sysctl -w net.ipv6.conf.%s.router_solicitations=0",pVirtIf->Name);
+        v_secure_system("sysctl -w net.ipv6.conf.%s.accept_ra=0",pVirtIf->Name); 
+    }
+    
 }
 
 static int getVendorClassInfo(char *buffer, int length)
