@@ -1811,6 +1811,13 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
             CcspTraceInfo(("IPv6 configuration has been changed \n"));
             pVirtIf->IP.Ipv6Changed = TRUE;
             CcspTraceInfo(("%s %d - RestartConnectivityCheck triggered. \n", __FUNCTION__, __LINE__));
+
+            char param_name[256] = {0};
+            snprintf(param_name, sizeof(param_name), "Device.X_RDK_WanManager.Interface.%d.VirtualInterface.%d.IP.IPv6Address",  pVirtIf->baseIfIdx+1, pVirtIf->VirIfIdx+1);
+            WanMgr_Rbus_EventPublishHandler(param_name, Ipv6DataTemp.address,RBUS_STRING);
+            snprintf(param_name, sizeof(param_name), "Device.X_RDK_WanManager.Interface.%d.VirtualInterface.%d.IP.IPv6Prefix",  pVirtIf->baseIfIdx+1, pVirtIf->VirIfIdx+1);
+            WanMgr_Rbus_EventPublishHandler(param_name, Ipv6DataTemp.sitePrefix,RBUS_STRING);
+
             pVirtIf->IP.RestartConnectivityCheck = TRUE;
         }
         else

@@ -250,6 +250,13 @@ ANSC_STATUS wanmgr_handle_dhcpv4_event_data(DML_VIRTUAL_IFACE* pVirtIf)
         WanManager_UpdateInterfaceStatus(pVirtIf, WANMGR_IFACE_CONNECTION_DOWN);
     }
 
+    if(IPv4ConfigChanged == TRUE)
+    {
+        char param_name[256] = {0};
+        snprintf(param_name, sizeof(param_name), "Device.X_RDK_WanManager.Interface.%d.VirtualInterface.%d.IP.IPv4Address",  pVirtIf->baseIfIdx+1, pVirtIf->VirIfIdx+1);
+        WanMgr_Rbus_EventPublishHandler(param_name, pVirtIf->IP.Ipv4Data.ip, RBUS_STRING);
+    }
+
     if (pVirtIf->IP.pIpcIpv4Data != NULL )
     {
         //free memory
