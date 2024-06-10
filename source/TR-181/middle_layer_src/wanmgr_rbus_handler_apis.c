@@ -40,7 +40,6 @@ UINT  uiTotalIfaces = 0;
 
 rbusError_t WanMgr_Rbus_SubscribeHandler(rbusHandle_t handle, rbusEventSubAction_t action, const char *eventName, rbusFilter_t filter, int32_t interval, bool *autoPublish);
 rbusError_t WanMgr_Rbus_getHandler(rbusHandle_t handle, rbusProperty_t property, rbusGetHandlerOptions_t *opts);
-ANSC_STATUS WanMgr_Rbus_EventPublishHandler(const char *dm_event, void *dm_value, rbusValueType_t valueType);
 
 rbusError_t wanMgrDmlPublishEventHandler(rbusHandle_t handle, rbusEventSubAction_t action, const char* name, rbusFilter_t filter, int32_t interval, bool* autoPublish);
 rbusError_t WanMgr_Interface_GetHandler(rbusHandle_t handle, rbusProperty_t property, rbusGetHandlerOptions_t* opts);
@@ -93,6 +92,9 @@ rbusDataElement_t wanMgrIfacePublishElements[] = {
 #endif /** WAN_MANAGER_UNIFICATION_ENABLED */
     {WANMGR_INFACE_WAN_STATUS, RBUS_ELEMENT_TYPE_PROPERTY, {WanMgr_Interface_GetHandler, WanMgr_Interface_SetHandler, NULL, NULL, wanMgrDmlPublishEventHandler, NULL}},
     {WANMGR_INFACE_WAN_LINKSTATUS, RBUS_ELEMENT_TYPE_PROPERTY, {WanMgr_Interface_GetHandler, WanMgr_Interface_SetHandler, NULL, NULL, wanMgrDmlPublishEventHandler, NULL}},
+    {WANMGR_INFACE_IPv4_ADDRESS, RBUS_ELEMENT_TYPE_PROPERTY, {WanMgr_Interface_GetHandler, NULL, NULL, NULL, wanMgrDmlPublishEventHandler, NULL}},
+    {WANMGR_INFACE_IPv6_ADDRESS, RBUS_ELEMENT_TYPE_PROPERTY, {WanMgr_Interface_GetHandler, NULL, NULL, NULL, wanMgrDmlPublishEventHandler, NULL}},
+    {WANMGR_INFACE_IPv6_PREFIX, RBUS_ELEMENT_TYPE_PROPERTY, {WanMgr_Interface_GetHandler, NULL, NULL, NULL, wanMgrDmlPublishEventHandler, NULL}},
 };
 
 RemoteDM_list RemoteDMs[] = {
@@ -379,6 +381,18 @@ rbusError_t WanMgr_Interface_GetHandler(rbusHandle_t handle, rbusProperty_t prop
         else if(strstr(name, WANMGR_INFACE_ALIASNAME_SUFFIX))
         {
             rbusValue_SetString(value, pWanDmlIface->AliasName);
+        }
+        else if(strstr(name, "IP.IPv4Address"))
+        {
+            rbusValue_SetString(value, p_VirtIf->IP.Ipv4Data.ip);
+        }
+        else if(strstr(name, "IP.IPv6Address"))
+        {
+            rbusValue_SetString(value, p_VirtIf->IP.Ipv6Data.address);
+        }
+        else if(strstr(name, "IP.IPv6Prefix"))
+        {
+            rbusValue_SetString(value, p_VirtIf->IP.Ipv6Data.sitePrefix);
         }
         WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
     }
@@ -1265,8 +1279,10 @@ ANSC_STATUS WanMgr_Rbus_EventPublishHandler(const char *dm_event, void *dm_value
     event.name = dm_event;
     event.data = rdata;
     event.type = RBUS_EVENT_GENERAL;
-    if(rbusEvent_Publish(rbusHandle, &event) != RBUS_ERROR_SUCCESS) {
-        CcspTraceError(("%s %d - event pusblishing failed for type %d\n", __FUNCTION__, __LINE__, valueType));
+    rbusError_t rt = rbusEvent_Publish(rbusHandle, &event);
+    if( rt != RBUS_ERROR_SUCCESS && rt != RBUS_ERROR_NOSUBSCRIBERS) //Ignore No subscribers present Error
+    {
+        CcspTraceError(("%s %d - event pusblishing failed. Error : %d\n", __FUNCTION__, __LINE__, rt));
         return ANSC_STATUS_FAILURE;
     }
     CcspTraceInfo(("%s %d - Successfully Pusblished event for event %s \n", __FUNCTION__, __LINE__, dm_event));
