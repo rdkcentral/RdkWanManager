@@ -1079,7 +1079,9 @@ void WanMgr_Configure_accept_ra(DML_VIRTUAL_IFACE * pVirtIf, BOOL EnableRa)
         v_secure_system("sysctl -w net.ipv6.conf.%s.accept_ra_defrtr=1",pVirtIf->Name);
         v_secure_system("sysctl -w net.ipv6.conf.all.forwarding=1");
         CcspTraceInfo(("%s %d IPv6 toggle after ra accept \n", __FUNCTION__, __LINE__));
+#if !defined (_PLATFORM_RASPBERRYPI_) //REFPLTB-3054
         Force_IPv6_toggle(pVirtIf->Name); // Do a IPv6 toggle to send Router Solicit
+#endif
     }
 }
 
