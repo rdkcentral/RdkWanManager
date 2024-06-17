@@ -64,6 +64,10 @@
 #define SYSEVENT_IPV4_DS_CURRENT_RATE "ipv4_%s_ds_current_rate_0"
 #define SYSEVENT_FIELD_SERVICE_ROUTED_STATUS "routed-status"
 #define SYSEVENT_IPV4_MTU_SIZE "ipv4_%s_mtu"
+
+#define SYSEVENT_IPV6_WAN_ADDRESS "tr_erouter0_dhcpv6_client_v6addr"
+#define SYSEVENT_LAN_IPV6_ADDRESS "lan_ipaddr_v6"
+
 #define MESH_IFNAME        "br-home"
 #if defined (RDKB_EXTENDER_ENABLED)
 #define SYSEVENT_MESH_WAN_LINK_STATUS "mesh_wan_linkstatus"
