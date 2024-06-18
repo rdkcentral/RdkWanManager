@@ -777,7 +777,11 @@ static void *WanManagerSyseventHandler(void *args)
                         CcspTraceError(("%s %d - SetDataModelParameter failed on ipv6_enable request \n", __FUNCTION__, __LINE__ ));
                     }
                     free(datamodel_value);
+#ifdef LAN_MGR_SUPPORT
+                    v_secure_system("sysevent set dhcpv6_raserver-restart");
+#else
                     v_secure_system("sysevent set zebra-restart");
+#endif
                 }
             }
             else if ((strcmp(name, SYSEVENT_WAN_STATUS) == 0) && (strcmp(val, SYSEVENT_VALUE_STARTED) == 0))

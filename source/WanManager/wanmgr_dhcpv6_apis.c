@@ -1985,7 +1985,11 @@ int setUpLanPrefixIPv6(DML_VIRTUAL_IFACE* pVirtIf)
 #ifndef _HUB4_PRODUCT_REQ_
         snprintf(cmdLine, sizeof(cmdLine), "sysevent set ipv6_prefix %s ",v6pref);
 #else
+#ifdef LAN_MGR_SUPPORT
+        snprintf(cmdLine, sizeof(cmdLine), "sysevent set dhcpv6_raserver-restart ");
+#else
         snprintf(cmdLine, sizeof(cmdLine), "sysevent set zebra-restart ");
+#endif
 #endif
         if (WanManager_DoSystemActionWithStatus(__FUNCTION__, cmdLine) != 0)
             CcspTraceError(("failed to run cmd: %s", cmdLine));
