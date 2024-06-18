@@ -1058,8 +1058,11 @@ dhcpv6c_dbg_thrd(void * in)
                             CcspTraceWarning(("%s: Failure in executing command via v_secure_system. ret:[%d] \n",__FUNCTION__,ret));
                         }
 #else
-                       
+#ifdef LAN_MGR_SUPPORT
+                        v_secure_system("sysevent set dhcpv6_raserver-restart");
+#else
                         v_secure_system("sysevent set zebra-restart \n");
+#endif
 #endif
                         //CcspTraceWarning(("!run cmd1:%s", cmd));
 
@@ -1229,7 +1232,11 @@ dhcpv6c_dbg_thrd(void * in)
 #if defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) && (defined(_CBR_PRODUCT_REQ_) || defined(_BCI_FEATURE_REQ))
 
 #else
+#ifdef LAN_MGR_SUPPORT
+        v_secure_system("sysevent set dhcpv6_raserver-restart");
+#else
         v_secure_system("sysevent set zebra-restart");
+#endif
 #endif
             }
 
