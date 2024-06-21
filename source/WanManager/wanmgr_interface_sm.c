@@ -1400,6 +1400,15 @@ static int wan_tearDownIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, NULL, 0);
 #endif
 
+//RBUS_WAN_IP
+#if defined (RBUS_WAN_IP)
+#if defined (_HUB4_PRODUCT_REQ_) || defined (_SR213_PRODUCT_REQ_)
+    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_LAN_IPV6_ADDRESS, "::", 0);
+#else
+    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV6_WAN_ADDRESS, "::", 0);
+#endif
+#endif
+
     sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_WAN_STATUS, buf, sizeof(buf));
     if ((strcmp(buf, WAN_STATUS_STOPPED) != 0) && (p_VirtIf->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_DOWN))
     {
