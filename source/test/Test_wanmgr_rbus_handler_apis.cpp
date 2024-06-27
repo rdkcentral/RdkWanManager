@@ -24,7 +24,7 @@ extern "C" {
 #include "wanmgr_rbus_handler_apis.h"
 }
 
-class RbusHandler : public WanMgrWCCTest
+class RbusHandler : public WanMgrBase
 {
 protected:
 
@@ -33,12 +33,12 @@ protected:
 
     virtual void SetUp()
     {
-        WanMgrWCCTest::SetUp();
+        WanMgrBase::SetUp();
     }
 
     virtual void TearDown()
     {
 
-        WanMgrWCCTest::TearDown();
+        WanMgrBase::TearDown();
     }
 };
