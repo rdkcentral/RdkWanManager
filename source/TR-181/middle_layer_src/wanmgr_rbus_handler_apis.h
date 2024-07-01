@@ -20,9 +20,19 @@
 #ifndef _WANMGR_RBUS_H_
 #define _WANMGR_RBUS_H_
 #ifdef RBUS_BUILD_FLAG_ENABLE
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 #include "ansc_platform.h"
 #include <rbus/rbus.h>
 #include "ccsp_base_api.h"
+
+#ifdef __cplusplus
+}
+#endif
 
 #define WANMGR_CONFIG_WAN_CURRENTACTIVEINTERFACE     "Device.X_RDK_WanManager.CurrentActiveInterface"
 #define WANMGR_CONFIG_WAN_CURRENT_STATUS             "Device.X_RDK_WanManager.CurrentStatus"
@@ -45,6 +55,9 @@
 #define WANMGR_INFACE_PHY_STATUS                      "Device.X_RDK_WanManager.Interface.{i}.BaseInterfaceStatus"
 #define WANMGR_INFACE_WAN_STATUS                      "Device.X_RDK_WanManager.Interface.{i}.VirtualInterface.{i}.Status"
 #define WANMGR_INFACE_WAN_LINKSTATUS                  "Device.X_RDK_WanManager.Interface.{i}.VirtualInterface.{i}.VlanStatus"
+#define WANMGR_INFACE_IPv4_ADDRESS                    "Device.X_RDK_WanManager.Interface.{i}.VirtualInterface.{i}.IP.IPv4Address"
+#define WANMGR_INFACE_IPv6_ADDRESS                    "Device.X_RDK_WanManager.Interface.{i}.VirtualInterface.{i}.IP.IPv6Address"
+#define WANMGR_INFACE_IPv6_PREFIX                     "Device.X_RDK_WanManager.Interface.{i}.VirtualInterface.{i}.IP.IPv6Prefix"
 #define WANMGR_INFACE_WAN_ENABLE                      "Device.X_RDK_WanManager.Interface.{i}.Selection.Enable"
 #define WANMGR_INFACE_ALIASNAME                       "Device.X_RDK_WanManager.Interface.{i}.Alias"
 
@@ -175,9 +188,13 @@ ANSC_STATUS WanMgr_IDM_Invoke(idm_invoke_method_Params_t *IDM_request);
 
 ANSC_STATUS WanMgr_Rbus_Init();
 ANSC_STATUS WanMgr_Rbus_Exit();
+ANSC_STATUS WanMgr_Rbus_EventPublishHandler(const char *dm_event, void *dm_value, rbusValueType_t valueType);
 ANSC_STATUS WanMgr_Rbus_String_EventPublish(char *dm_event, void *dm_value);
 ANSC_STATUS WanMgr_Rbus_String_EventPublish_OnValueChange(char *dm_event, void *prev_dm_value, void *dm_value);
 ANSC_STATUS WanMgr_Rbus_getUintParamValue(char * param, UINT * value);
+
+rbusError_t WanMgr_Interface_GetHandler(rbusHandle_t handle, rbusProperty_t property, rbusGetHandlerOptions_t* opts);
+
 void WanMgr_Rbus_UpdateLocalWanDb(void);
 void WanMgr_Rbus_SubscribeDML(void);
 void WanMgr_Rbus_UnSubscribeDML(void);

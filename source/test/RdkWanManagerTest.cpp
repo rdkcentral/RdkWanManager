@@ -20,123 +20,94 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
+#include "RdkWanManagerTest.h"
+
 extern "C" {
 #include "wanmgr_data.h"
 #include "wanmgr_wan_failover.h"
 }
-using namespace std;
-using ::testing::_;
-using ::testing::Return;
-using ::testing::UnitTest;
-using ::testing::Eq;
-using ::testing::StrEq;
-using ::testing::IsNull;
-using ::testing::NotNull;
 
 extern WANMGR_DATA_ST gWanMgrDataBase;
 char    g_Subsystem[32]         = {0};
 
-string ifaceName[4][2] = 
+string ifaceName[4][2] =
 {   "vdsl0", "VDSL",
     "erouter0", "DOCSIS",
     "ethwan0","WANOE",
     "brRWAN","REMOTE_LTE"
 };
 
-class MockWanMgr 
-{
-public:
-    MOCK_METHOD(void, WanMgrDml_GetIfaceData_release, (WanMgr_Iface_Data_t* pWanIfaceData), ());
-    MOCK_METHOD(int, pthread_mutex_lock, (pthread_mutex_t *mutex), ());
-    MOCK_METHOD(void, t2_event_d, (char *Telemtrylog, int a));
-
-};
-
-MATCHER_P2(StrCmpLen, expected_str, n, "") {
-    return strncmp(arg, expected_str, n) == 0;
-}
-
 MockWanMgr *mockWanMgr = nullptr;
 
-class WanMgrWCCTest : public ::testing::Test 
+
+void WanMgrBase::SetUp()
 {
-protected:
-    MockWanMgr mock;
+    cout << "SetUp() : Test Suite Name: " << UnitTest::GetInstance()->current_test_info()->test_suite_name()
+        << " Test Case Name: " << UnitTest::GetInstance()->current_test_info()->name() << endl;
 
-    WanMgrWCCTest() {}
+    mockWanMgr = &mock;
+    //Initialise mutex attributes
+    pthread_mutexattr_t     muttex_attr;
+    pthread_mutexattr_init(&muttex_attr);
+    pthread_mutexattr_settype(&muttex_attr, PTHREAD_MUTEX_RECURSIVE);
+    pthread_mutex_init(&(gWanMgrDataBase.gDataMutex), &(muttex_attr));
 
-    virtual ~WanMgrWCCTest() {}
-
-    //Initializing WanManager mutex and Interface objects for the test
-    virtual void SetUp() 
+    //init mock interfaces
+    WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl = &(gWanMgrDataBase.IfaceCtrl);
+    pWanIfaceCtrl->pIface = (WanMgr_Iface_Data_t*) AnscAllocateMemory( sizeof(WanMgr_Iface_Data_t) * MAX_WAN_INTERFACE_ENTRY);
+    memset( pWanIfaceCtrl->pIface, 0, ( sizeof(WanMgr_Iface_Data_t) * MAX_WAN_INTERFACE_ENTRY ) );
+    pWanIfaceCtrl->ulTotalNumbWanInterfaces = 4;
+    for(int idx = 0 ; idx <  pWanIfaceCtrl->ulTotalNumbWanInterfaces; idx++ )
     {
-        cout << "SetUp() : Test Suite Name: " << UnitTest::GetInstance()->current_test_info()->test_suite_name() 
-            << " Test Case Name: " << UnitTest::GetInstance()->current_test_info()->name() << endl;
+        WanMgr_Iface_Data_t*  pIfaceData  = &(pWanIfaceCtrl->pIface[idx]);
 
-        mockWanMgr = &mock;
-        //Initialise mutex attributes
-        pthread_mutexattr_t     muttex_attr;
-        pthread_mutexattr_init(&muttex_attr);
-        pthread_mutexattr_settype(&muttex_attr, PTHREAD_MUTEX_RECURSIVE);
-        pthread_mutex_init(&(gWanMgrDataBase.gDataMutex), &(muttex_attr));
-
-        //init mock interfaces
-        WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl = &(gWanMgrDataBase.IfaceCtrl);
-        pWanIfaceCtrl->pIface = (WanMgr_Iface_Data_t*) AnscAllocateMemory( sizeof(WanMgr_Iface_Data_t) * MAX_WAN_INTERFACE_ENTRY);
-        memset( pWanIfaceCtrl->pIface, 0, ( sizeof(WanMgr_Iface_Data_t) * MAX_WAN_INTERFACE_ENTRY ) );
-        pWanIfaceCtrl->ulTotalNumbWanInterfaces = 4;
-        for(int idx = 0 ; idx <  pWanIfaceCtrl->ulTotalNumbWanInterfaces; idx++ )
+        WanMgr_IfaceData_Init(pIfaceData, idx);
+        for(int i=0; i< pIfaceData->data.NoOfVirtIfs; i++)
         {
-            WanMgr_Iface_Data_t*  pIfaceData  = &(pWanIfaceCtrl->pIface[idx]);
-
-            WanMgr_IfaceData_Init(pIfaceData, idx);
-            for(int i=0; i< pIfaceData->data.NoOfVirtIfs; i++)
-            {
-                DML_VIRTUAL_IFACE* p_VirtIf = (DML_VIRTUAL_IFACE *) AnscAllocateMemory( sizeof(DML_VIRTUAL_IFACE) );
-                WanMgr_VirtIface_Init(p_VirtIf, i);
-                WanMgr_AddVirtualToList(&(pIfaceData->data.VirtIfList), p_VirtIf);
-            }
-            strncpy(pIfaceData->data.AliasName, ifaceName[idx][1].c_str(),sizeof(pIfaceData->data.AliasName));
-            strncpy(pIfaceData->data.DisplayName, ifaceName[idx][1].c_str(),sizeof(pIfaceData->data.DisplayName));
-            strncpy(pIfaceData->data.VirtIfList->Name, ifaceName[idx][0].c_str(),sizeof(pIfaceData->data.VirtIfList->Name));
-            strncpy(pIfaceData->data.VirtIfList->Alias, ifaceName[idx][1].c_str(),sizeof(pIfaceData->data.VirtIfList->Alias));
-            //cout << " VirtIfList->Alias : " << pIfaceData->data.VirtIfList->Alias << endl;
+            DML_VIRTUAL_IFACE* p_VirtIf = (DML_VIRTUAL_IFACE *) AnscAllocateMemory( sizeof(DML_VIRTUAL_IFACE) );
+            WanMgr_VirtIface_Init(p_VirtIf, i);
+            WanMgr_AddVirtualToList(&(pIfaceData->data.VirtIfList), p_VirtIf);
         }
+        strncpy(pIfaceData->data.AliasName, ifaceName[idx][1].c_str(),sizeof(pIfaceData->data.AliasName));
+        strncpy(pIfaceData->data.DisplayName, ifaceName[idx][1].c_str(),sizeof(pIfaceData->data.DisplayName));
+        strncpy(pIfaceData->data.VirtIfList->Name, ifaceName[idx][0].c_str(),sizeof(pIfaceData->data.VirtIfList->Name));
+        strncpy(pIfaceData->data.VirtIfList->Alias, ifaceName[idx][1].c_str(),sizeof(pIfaceData->data.VirtIfList->Alias));
+        //cout << " VirtIfList->Alias : " << pIfaceData->data.VirtIfList->Alias << endl;
     }
+}
 
-    //Clearing Interface objects created for the test
-    virtual void TearDown() 
+//Clearing Interface objects created for the test
+void WanMgrBase::TearDown()
+{
+    cout << " TearDown() : Test Suite Name: " << UnitTest::GetInstance()->current_test_info()->test_suite_name()
+        << " Test Case Name: " << UnitTest::GetInstance()->current_test_info()->name() << endl;
+
+    WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl = &(gWanMgrDataBase.IfaceCtrl);
+    for(int idx = 0 ; idx <  pWanIfaceCtrl->ulTotalNumbWanInterfaces; idx++ )
     {
-        cout << " TearDown() : Test Suite Name: " << UnitTest::GetInstance()->current_test_info()->test_suite_name() 
-            << " Test Case Name: " << UnitTest::GetInstance()->current_test_info()->name() << endl;
+        WanMgr_Iface_Data_t*  pIfaceData  = &(pWanIfaceCtrl->pIface[idx]);
 
-        WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl = &(gWanMgrDataBase.IfaceCtrl);
-        for(int idx = 0 ; idx <  pWanIfaceCtrl->ulTotalNumbWanInterfaces; idx++ )
+        for(int i=0; i< pIfaceData->data.NoOfVirtIfs; i++)
         {
-            WanMgr_Iface_Data_t*  pIfaceData  = &(pWanIfaceCtrl->pIface[idx]);
-
-            for(int i=0; i< pIfaceData->data.NoOfVirtIfs; i++)
+            DML_VIRTUAL_IFACE* virIface = pIfaceData->data.VirtIfList;
+            while(virIface != NULL)
             {
-                DML_VIRTUAL_IFACE* virIface = pIfaceData->data.VirtIfList;
-                while(virIface != NULL)
-                {
-                    DML_VIRTUAL_IFACE* temp = virIface;
-                    virIface = virIface->next;
-                    free(temp);
-                }
+                DML_VIRTUAL_IFACE* temp = virIface;
+                virIface = virIface->next;
+                free(temp);
             }
         }
-        free(pWanIfaceCtrl->pIface);
-        pWanIfaceCtrl->pIface = NULL;
-        pthread_mutex_destroy(&(gWanMgrDataBase.gDataMutex));
-        mockWanMgr = nullptr;
     }
-};
+    free(pWanIfaceCtrl->pIface);
+    pWanIfaceCtrl->pIface = NULL;
+    pthread_mutex_destroy(&(gWanMgrDataBase.gDataMutex));
+    mockWanMgr = nullptr;
+}
 
 /* Test for WanMgr_GetVirtIfDataByAlias_locked() function.
  * WanMgr_GetVirtIfDataByAlias_locked expected to return a NULL pointer when Alias name is not matched with the interface list.
  */
-TEST_F(WanMgrWCCTest, TestGetVirtualIfWrongAlias) 
+TEST_F(WanMgrBase, TestGetVirtualIfWrongAlias) 
 {
     char* alias = "WrongName";
 
@@ -148,7 +119,7 @@ TEST_F(WanMgrWCCTest, TestGetVirtualIfWrongAlias)
 /* Test for WanMgr_GetVirtIfDataByAlias_locked() function.
  * WanMgr_GetVirtIfDataByAlias_locked expected to return a NULL pointer when Alias parameter passed is NULL.
  */
-TEST_F(WanMgrWCCTest, TestGetVirtualIfNullAlias) 
+TEST_F(WanMgrBase, TestGetVirtualIfNullAlias) 
 {
     char* alias = NULL;
 
@@ -160,7 +131,7 @@ TEST_F(WanMgrWCCTest, TestGetVirtualIfNullAlias)
 /* Test for WanMgr_GetVirtIfDataByAlias_locked() function.
  * WanMgr_GetVirtIfDataByAlias_locked expected to return correct Interface.
  */
-TEST_F(WanMgrWCCTest, TestGetVirtualIfVirtulName) 
+TEST_F(WanMgrBase, TestGetVirtualIfVirtulName) 
 {
 
     DML_VIRTUAL_IFACE* result = WanMgr_GetVirtIfDataByAlias_locked("WANOE");
@@ -189,7 +160,7 @@ TEST_F(WanMgrWCCTest, TestGetVirtualIfVirtulName)
  * Get interface object with WanMgr_GetVirtIfDataByAlias_locked.
  * WanMgr_Configure_TAD_WCC expected to return ANSC_STATUS_SUCCESS for WCC_START, WCC_RESTART  and WCC_STOP operations when the interface has valid IPv4 DNS
  */
-TEST_F(WanMgrWCCTest, TestConfigureTADWithDnsIpv4) 
+TEST_F(WanMgrBase, TestConfigureTADWithDnsIpv4) 
 {
 
     DML_VIRTUAL_IFACE* result = WanMgr_GetVirtIfDataByAlias_locked("DOCSIS");
@@ -207,7 +178,7 @@ TEST_F(WanMgrWCCTest, TestConfigureTADWithDnsIpv4)
  * Get interface object with WanMgr_GetVirtIfDataByAlias_locked.
  * WanMgr_Configure_TAD_WCC expected to return ANSC_STATUS_SUCCESS for WCC_START, WCC_RESTART  and WCC_STOP operations when the interface has valid IPv6 DNS
  */
-TEST_F(WanMgrWCCTest, TestConfigureTADWithDnsIpv6) 
+TEST_F(WanMgrBase, TestConfigureTADWithDnsIpv6) 
 {
 
     DML_VIRTUAL_IFACE* result = WanMgr_GetVirtIfDataByAlias_locked("DOCSIS");
@@ -224,7 +195,7 @@ TEST_F(WanMgrWCCTest, TestConfigureTADWithDnsIpv6)
  * Get interface object with WanMgr_GetVirtIfDataByAlias_locked.
  * WanMgr_Configure_TAD_WCC expected to return ANSC_STATUS_FAILURE when the interface doesn't have valid dns.
  */
-TEST_F(WanMgrWCCTest, TestConfigureTADWithoutDns) 
+TEST_F(WanMgrBase, TestConfigureTADWithoutDns) 
 {
 
     DML_VIRTUAL_IFACE* result = WanMgr_GetVirtIfDataByAlias_locked("DOCSIS");
@@ -241,7 +212,7 @@ TEST_F(WanMgrWCCTest, TestConfigureTADWithoutDns)
 /**********************************************************************************
  *Class for WanfailOver tetsing, Note: Currently only Telemetry event is tested.*
  **********************************************************************************/
-class WanfailOver : public WanMgrWCCTest
+class WanfailOver : public WanMgrBase
 {
 protected:
 
@@ -252,14 +223,14 @@ protected:
 
     virtual void SetUp()
     {
-        WanMgrWCCTest::SetUp();
+        WanMgrBase::SetUp();
         memset(&FWController, 0, sizeof(FWController));
     }
 
     virtual void TearDown() 
     {
 
-        WanMgrWCCTest::TearDown();
+        WanMgrBase::TearDown();
     }
 };
 

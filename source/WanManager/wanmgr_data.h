@@ -20,6 +20,10 @@
 #ifndef  _WANMGR_DATA_H_
 #define  _WANMGR_DATA_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdbool.h>
 #include "ansc_platform.h"
 #include "ansc_string_util.h"
@@ -28,6 +32,10 @@
 #include "wanmgr_rdkbus_utils.h"
 #include "wanmgr_utils.h"
 #include "wanmgr_sysevents.h"
+
+#ifdef __cplusplus
+}
+#endif
 
 //Minimum SelectionTimeOut Value
 #define SELECTION_TIMEOUT_DEFAULT_MIN 20
