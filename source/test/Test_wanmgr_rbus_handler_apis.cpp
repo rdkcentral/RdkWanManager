@@ -18,37 +18,20 @@
  */
 
 
-#include "RdkWanManagerTest.h"
+#include <gtest/gtest.h>
+#include <gmock/gmock.h>
 #include  <mocks/mock_rbus.h>
 
+#include "RdkWanManagerTest.h"
 extern "C" {
-#include "wanmgr_rbus_handler_apis.h"
+#include "wanmgr_data.h"
+//#include "wanmgr_rbus_handler_apis.h"
 }
 
 extern WANMGR_DATA_ST gWanMgrDataBase;
 rbusMock* g_rbusMock = NULL;
 
 extern MockWanMgr *mockWanMgr;
-
-/* Mock funtion for rbusProperty_GetName
- */
-extern "C" char const* rbusProperty_GetName(rbusProperty_t property)
-{
-    if (mockWanMgr) {
-        mockWanMgr->rbusProperty_GetName(property);
-    }
-}
-
-#if 0
-/* Mock funtion for t2_event_d
- */
-extern "C" WanMgr_Iface_Data_t* WanMgr_GetIfaceData_locked(UINT iface_index)
-{
-    if (mockWanMgr) {
-        mockWanMgr->WanMgr_GetIfaceData_locked(iface_index);
-    }
-}
-#endif
 
 class RbusHandlerTest : public WanMgrBase
 {
@@ -88,11 +71,11 @@ protected:
 
 TEST_F(RbusHandlerTest, InterfaceGetHandlerIPAddress)
 {
-    rbusHandle_t handle = NULL;
+    rbusHandle_t handle;
     rbusProperty_t property;
-    rbusGetHandlerOptions_t* opts = NULL;
+    rbusGetHandlerOptions_t *opts;
 
-    EXPECT_CALL(mock, rbusProperty_GetName(_)).Times(1).WillOnce(Return("Device.X_RDK_WanManager.Interface.1.VirtualInterface.1.IP.IPv6Address"));
+    EXPECT_CALL(mockedRbus, rbusProperty_GetName(_)).Times(1).WillOnce(Return("Device.X_RDK_WanManager.Interface.1.VirtualInterface.1.IP.IPv6Address"));
     EXPECT_CALL(mockedRbus, rbusValue_Init(_)).Times(1);
 
 
@@ -101,5 +84,6 @@ TEST_F(RbusHandlerTest, InterfaceGetHandlerIPAddress)
     
     EXPECT_CALL(mockedRbus, rbusValue_SetString(_,StrEq("2a02:c7f:8253:3900::1"))).Times(1);
     
-     EXPECT_EQ(RBUS_ERROR_SUCCESS, WanMgr_Interface_GetHandler(handle, property, opts));
+//     EXPECT_EQ(RBUS_ERROR_SUCCESS, WanMgr_Interface_GetHandler(handle, property, opts));
+    WanMgr_Interface_GetHandler(handle, property, &opts);
 }

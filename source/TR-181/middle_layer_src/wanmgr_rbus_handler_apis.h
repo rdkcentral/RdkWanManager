@@ -20,9 +20,19 @@
 #ifndef _WANMGR_RBUS_H_
 #define _WANMGR_RBUS_H_
 #ifdef RBUS_BUILD_FLAG_ENABLE
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 #include "ansc_platform.h"
 #include <rbus/rbus.h>
 #include "ccsp_base_api.h"
+
+#ifdef __cplusplus
+}
+#endif
 
 #define WANMGR_CONFIG_WAN_CURRENTACTIVEINTERFACE     "Device.X_RDK_WanManager.CurrentActiveInterface"
 #define WANMGR_CONFIG_WAN_CURRENT_STATUS             "Device.X_RDK_WanManager.CurrentStatus"

@@ -23,6 +23,7 @@
 #include "RdkWanManagerTest.h"
 
 extern "C" {
+#include "wanmgr_data.h"
 #include "wanmgr_wan_failover.h"
 }
 
