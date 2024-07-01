@@ -182,6 +182,9 @@ ANSC_STATUS WanMgr_Rbus_EventPublishHandler(const char *dm_event, void *dm_value
 ANSC_STATUS WanMgr_Rbus_String_EventPublish(char *dm_event, void *dm_value);
 ANSC_STATUS WanMgr_Rbus_String_EventPublish_OnValueChange(char *dm_event, void *prev_dm_value, void *dm_value);
 ANSC_STATUS WanMgr_Rbus_getUintParamValue(char * param, UINT * value);
+
+rbusError_t WanMgr_Interface_GetHandler(rbusHandle_t handle, rbusProperty_t property, rbusGetHandlerOptions_t* opts);
+
 void WanMgr_Rbus_UpdateLocalWanDb(void);
 void WanMgr_Rbus_SubscribeDML(void);
 void WanMgr_Rbus_UnSubscribeDML(void);

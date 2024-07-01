@@ -42,6 +42,8 @@ public:
     MOCK_METHOD(void, WanMgrDml_GetIfaceData_release, (WanMgr_Iface_Data_t* pWanIfaceData), ());
     MOCK_METHOD(int, pthread_mutex_lock, (pthread_mutex_t *mutex), ());
     MOCK_METHOD(void, t2_event_d, (char *Telemtrylog, int a));
+    MOCK_METHOD(char const*, rbusProperty_GetName, (rbusProperty_t property));
+    //MOCK_METHOD(WanMgr_Iface_Data_t*, WanMgr_GetIfaceData_locked, (UINT iface_index));
 
 };
 MATCHER_P2(StrCmpLen, expected_str, n, "") {

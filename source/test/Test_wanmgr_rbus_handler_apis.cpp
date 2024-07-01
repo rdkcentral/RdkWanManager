@@ -19,21 +19,63 @@
 
 
 #include "RdkWanManagerTest.h"
+#include  <mocks/mock_rbus.h>
 
 extern "C" {
 #include "wanmgr_rbus_handler_apis.h"
 }
 
-class RbusHandler : public WanMgrBase
+extern WANMGR_DATA_ST gWanMgrDataBase;
+rbusMock* g_rbusMock = NULL;
+
+extern MockWanMgr *mockWanMgr;
+
+/* Mock funtion for rbusProperty_GetName
+ */
+extern "C" char const* rbusProperty_GetName(rbusProperty_t property)
+{
+    if (mockWanMgr) {
+        mockWanMgr->rbusProperty_GetName(property);
+    }
+}
+
+#if 0
+/* Mock funtion for t2_event_d
+ */
+extern "C" WanMgr_Iface_Data_t* WanMgr_GetIfaceData_locked(UINT iface_index)
+{
+    if (mockWanMgr) {
+        mockWanMgr->WanMgr_GetIfaceData_locked(iface_index);
+    }
+}
+#endif
+
+class RbusHandlerTest : public WanMgrBase
 {
 protected:
+   rbusMock mockedRbus;
+   rbusHandle_t handle;
 
-    RbusHandler() {}
-    virtual ~RbusHandler(){}
+    RbusHandlerTest() 
+    {
+        g_rbusMock = &mockedRbus;
+    }
+    virtual ~RbusHandlerTest(){}
 
     virtual void SetUp()
     {
         WanMgrBase::SetUp();
+    WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl = &(gWanMgrDataBase.IfaceCtrl);
+    pWanIfaceCtrl->ulTotalNumbWanInterfaces = 4;
+    for(int idx = 0 ; idx <  pWanIfaceCtrl->ulTotalNumbWanInterfaces; idx++ )
+    {
+        WanMgr_Iface_Data_t*  pIfaceData  = &(pWanIfaceCtrl->pIface[idx]);
+
+        strncpy(pIfaceData->data.VirtIfList->IP.Ipv4Data.ip, "9.9.9.9",sizeof(pIfaceData->data.VirtIfList->IP.Ipv4Data.ip));
+        strncpy(pIfaceData->data.VirtIfList->IP.Ipv6Data.address, "2a02:c7f:8253:3900::1",sizeof(pIfaceData->data.VirtIfList->IP.Ipv6Data.address));
+        strncpy(pIfaceData->data.VirtIfList->IP.Ipv6Data.sitePrefix, "2a02:c7f:8253:3900::1",sizeof(pIfaceData->data.VirtIfList->IP.Ipv6Data.sitePrefix));
+        //cout << " VirtIfList->Alias : " << pIfaceData->data.VirtIfList->Alias << endl;
+    }
     }
 
     virtual void TearDown()
@@ -42,3 +84,22 @@ protected:
         WanMgrBase::TearDown();
     }
 };
+
+
+TEST_F(RbusHandlerTest, InterfaceGetHandlerIPAddress)
+{
+    rbusHandle_t handle = NULL;
+    rbusProperty_t property;
+    rbusGetHandlerOptions_t* opts = NULL;
+
+    EXPECT_CALL(mock, rbusProperty_GetName(_)).Times(1).WillOnce(Return("Device.X_RDK_WanManager.Interface.1.VirtualInterface.1.IP.IPv6Address"));
+    EXPECT_CALL(mockedRbus, rbusValue_Init(_)).Times(1);
+
+
+    //EXPECT_CALL(mock, WanMgr_GetIfaceData_locked(Eq(0))).Times(1).WillOnce(Return(&(gWanMgrDataBase.IfaceCtrl.pIface[0])));
+
+    
+    EXPECT_CALL(mockedRbus, rbusValue_SetString(_,StrEq("2a02:c7f:8253:3900::1"))).Times(1);
+    
+     EXPECT_EQ(RBUS_ERROR_SUCCESS, WanMgr_Interface_GetHandler(handle, property, opts));
+}
