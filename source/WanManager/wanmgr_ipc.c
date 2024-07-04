@@ -376,6 +376,25 @@ static void* IpcServerThread( void *arg )
 
 
 #ifdef FEATURE_IPOE_HEALTH_CHECK
+static void WanMgr_RemoveSingleQuote(char *buf)
+{
+    unsigned int i = 0;
+    unsigned int j = 0;
+    unsigned int data_len = strlen(buf);
+
+    if(data_len > 0)
+    {
+        while (buf[i] != '\0' && i < data_len) {
+            if (buf[i] != '\'') {
+                buf[j++] = buf[i];
+            }
+            i++;
+        }
+    }
+    buf[j] = '\0';
+    return 0;
+}
+
 ANSC_STATUS WanMgr_SendMsgToIHC (ipoe_msg_type_t msgType, char *ifName)
 {
     int sock = -1;
@@ -410,6 +429,7 @@ ANSC_STATUS WanMgr_SendMsgToIHC (ipoe_msg_type_t msgType, char *ifName)
 
         if( 0 == syscfg_get( NULL, "ntp_server1", domainName, sizeof(domainName)) )
         {
+            WanMgr_RemoveSingleQuote(domainName);
             snprintf(msgBody.domainName, sizeof(msgBody.domainName), "%s", domainName);
         }
         else
@@ -434,6 +454,7 @@ ANSC_STATUS WanMgr_SendMsgToIHC (ipoe_msg_type_t msgType, char *ifName)
 
         if( 0 == syscfg_get( NULL, "ntp_server1", domainName, sizeof(domainName)) )
         {
+            WanMgr_RemoveSingleQuote(domainName);
             snprintf(msgBody.domainName, sizeof(msgBody.domainName), "%s", domainName);
         }
         else
