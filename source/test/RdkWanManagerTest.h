@@ -22,6 +22,12 @@
 
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
+#include <mocks/mock_rbus.h>
+#include <mocks/mock_platform_hal.h>
+#include <mocks/mock_messagebus.h>
+#include <mocks/mock_securewrapper.h>
+#include <mocks/mock_ansc_memory.h>
+#include <mocks/mock_cap.h>
 
 
 using namespace std;
@@ -48,10 +54,21 @@ MATCHER_P2(StrCmpLen, expected_str, n, "") {
 
 class WanMgrBase : public ::testing::Test
 {
-protected:
-    MockWanMgr mock;
+public:
+   rbusHandle_t handle;
 
-    WanMgrBase() {}
+protected:
+
+    MockWanMgr mockWanUtils;
+    rbusMock mockedRbus;
+
+    SecureWrapperMock mockSecurewrapperMock;
+    CapMock  mockCap;
+    AnscMemoryMock  mockAnscMemory;
+    MessageBusMock mockMessagebus;
+    PlatformHalMock mockPlatformHAL;
+
+    WanMgrBase();
 
     virtual ~WanMgrBase() {}
 

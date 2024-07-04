@@ -48,7 +48,8 @@ RdkWanManager_gtest_bin_LDFLAGS = -lgtest -lgmock -lgcov
 RdkWanManager_gtest_bin_SOURCES =  ../WanManager/wanmgr_webconfig_apis.c ../WanManager/wanmgr_webconfig.c  ../WanManager/wanmgr_ssp_action.c  ../WanManager/wanmgr_core.c ../WanManager/wanmgr_controller.c ../WanManager/wanmgr_data.c ../WanManager/wanmgr_sysevents.c ../WanManager/wanmgr_interface_sm.c ../WanManager/wanmgr_utils.c ../WanManager/wanmgr_net_utils.c ../WanManager/wanmgr_dhcpv4_apis.c ../WanManager/wanmgr_dhcpv6_apis.c ../WanManager/wanmgr_ipc.c ../WanManager/wanmgr_dhcpv4_internal.c ../WanManager/wanmgr_dhcpv6_internal.c ../WanManager/wanmgr_policy_autowan_impl.c ../WanManager/wanmgr_policy_auto_impl.c ../WanManager/dm_pack_datamodel.c ../WanManager/wanmgr_wan_failover.c ../WanManager/wanmgr_policy_parallel_scan_impl.c ../WanManager/wanmgr_dhcp_legacy_apis.c gtest_main.cpp \
  RdkWanManagerTest.cpp  Test_wanmgr_rbus_handler_apis.cpp
 
-RdkWanManager_gtest_bin_LDADD = $(wanmanager_DEPENDENCIES) -lmock_ccsp_common -lrdkloggers  -lmock_platform_hal -lapi_dhcpv4c -lnanomsg -lwebconfig_framework -lmsgpackc -ldhcp_client_utils -lmock_privilege -lmock_rbus -lmock_secure_wrapper
+RdkWanManager_gtest_bin_LDADD = $(wanmanager_DEPENDENCIES) -lrdkloggers  -lapi_dhcpv4c -lnanomsg -lwebconfig_framework -lmsgpackc -ldhcp_client_utils \
+ -lmock_privilege -lmock_rbus -lmock_secure_wrapper -lmock_ccsp_common -lmock_platform_hal
 
 
 

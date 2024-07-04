@@ -38,14 +38,30 @@ string ifaceName[4][2] =
 };
 
 MockWanMgr *mockWanMgr = nullptr;
+rbusMock* g_rbusMock = nullptr;
+SecureWrapperMock * g_securewrapperMock = nullptr;
+CapMock * g_capMock = nullptr;
+AnscMemoryMock * g_anscMemoryMock = nullptr;
+MessageBusMock * g_messagebusMock = nullptr;
+PlatformHalMock *g_platformHALMock =nullptr;
 
+WanMgrBase::WanMgrBase()
+{
+    mockWanMgr = &mockWanUtils;
+    g_rbusMock = &mockedRbus;
+    g_securewrapperMock = &mockSecurewrapperMock;
+    g_capMock = &mockCap;
+    g_anscMemoryMock = &mockAnscMemory;
+    g_messagebusMock = &mockMessagebus;
+    g_platformHALMock = &mockPlatformHAL;
+
+}
 
 void WanMgrBase::SetUp()
 {
     cout << "SetUp() : Test Suite Name: " << UnitTest::GetInstance()->current_test_info()->test_suite_name()
         << " Test Case Name: " << UnitTest::GetInstance()->current_test_info()->name() << endl;
 
-    mockWanMgr = &mock;
     //Initialise mutex attributes
     pthread_mutexattr_t     muttex_attr;
     pthread_mutexattr_init(&muttex_attr);
@@ -260,9 +276,9 @@ TEST_F(WanfailOver, TelemetryFailOverOSuccess)
     //Start the FailOver Timer for telemetry
     memset(&(FWController.FailOverTimer), 0, sizeof(struct timespec));
     clock_gettime(CLOCK_MONOTONIC_RAW, &(FWController.FailOverTimer));
-    auto& exp1 =EXPECT_CALL(mock,t2_event_d(StrCmpLen("WFO_FAILOVER_SUCCESS: Total Time Taken", strlen("WFO_FAILOVER_SUCCESS: Total Time Taken")), Eq(1)))
+    auto& exp1 =EXPECT_CALL(mockWanUtils,t2_event_d(StrCmpLen("WFO_FAILOVER_SUCCESS: Total Time Taken", strlen("WFO_FAILOVER_SUCCESS: Total Time Taken")), Eq(1)))
         .Times(1);
-    EXPECT_CALL(mock,t2_event_d(StrCmpLen("WAN_FAILOVER_SUCCESS_COUNT", strlen("WAN_FAILOVER_SUCCESS_COUNT")), Eq(1)))
+    EXPECT_CALL(mockWanUtils,t2_event_d(StrCmpLen("WAN_FAILOVER_SUCCESS_COUNT", strlen("WAN_FAILOVER_SUCCESS_COUNT")), Eq(1)))
         .Times(1)
         .After(exp1);
     FWController.TelemetryEvent = WAN_FAILOVER_SUCCESS;
@@ -285,9 +301,9 @@ TEST_F(WanfailOver, TelemetryRestoreSuccess)
     //Start the FailOver Timer for telemetry
     memset(&(FWController.FailOverTimer), 0, sizeof(struct timespec));
     clock_gettime(CLOCK_MONOTONIC_RAW, &(FWController.FailOverTimer));
-    auto& exp1 =EXPECT_CALL(mock,t2_event_d(StrCmpLen("WFO_RESTORE_SUCCESS: Total Time Taken", strlen("WFO_RESTORE_SUCCESS: Total Time Taken")), Eq(1)))
+    auto& exp1 =EXPECT_CALL(mockWanUtils,t2_event_d(StrCmpLen("WFO_RESTORE_SUCCESS: Total Time Taken", strlen("WFO_RESTORE_SUCCESS: Total Time Taken")), Eq(1)))
         .Times(1);
-    EXPECT_CALL(mock,t2_event_d(StrCmpLen("WAN_RESTORE_SUCCESS_COUNT", strlen("WAN_RESTORE_SUCCESS_COUNT")), Eq(1)))
+    EXPECT_CALL(mockWanUtils,t2_event_d(StrCmpLen("WAN_RESTORE_SUCCESS_COUNT", strlen("WAN_RESTORE_SUCCESS_COUNT")), Eq(1)))
         .Times(1)
         .After(exp1);
     FWController.TelemetryEvent = WAN_RESTORE_SUCCESS;
@@ -306,7 +322,7 @@ TEST_F(WanfailOver, TelemetryRestoreSuccess)
  */
 TEST_F(WanfailOver, TelemetryRestoreFail)
 {
-    EXPECT_CALL(mock,t2_event_d(StrCmpLen("WAN_RESTORE_FAIL_COUNT", strlen("WAN_RESTORE_FAIL_COUNT")), Eq(1)))
+    EXPECT_CALL(mockWanUtils,t2_event_d(StrCmpLen("WAN_RESTORE_FAIL_COUNT", strlen("WAN_RESTORE_FAIL_COUNT")), Eq(1)))
         .Times(1);
     FWController.TelemetryEvent = WAN_RESTORE_FAIL;
     WanMgr_TelemetryEventTrigger(&FWController);
@@ -324,7 +340,7 @@ TEST_F(WanfailOver, TelemetryRestoreFail)
  */
 TEST_F(WanfailOver, TelemetryFailOverFail)
 {
-    EXPECT_CALL(mock,t2_event_d(StrCmpLen("WAN_FAILOVER_FAIL_COUNT", strlen("WAN_FAILOVER_FAIL_COUNT")), Eq(1)))
+    EXPECT_CALL(mockWanUtils,t2_event_d(StrCmpLen("WAN_FAILOVER_FAIL_COUNT", strlen("WAN_FAILOVER_FAIL_COUNT")), Eq(1)))
         .Times(1);
     FWController.TelemetryEvent = WAN_FAILOVER_FAIL;
     WanMgr_TelemetryEventTrigger(&FWController);
