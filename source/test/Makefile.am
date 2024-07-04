@@ -39,6 +39,7 @@ RdkWanManager_gtest_bin_CPPFLAGS = -I$(PKG_CONFIG_SYSROOT_DIR)$(includedir)/gtes
 -I$(top_srcdir)/source/TR-181/include \
 -I$(top_srcdir)/source/TR-181/middle_layer_src \
 -I${PKG_CONFIG_SYSROOT_DIR}$(includedir)/dbus-1.0 \
+-I${PKG_CONFIG_SYSROOT_DIR}$(includedir)/rbus \
 -I${PKG_CONFIG_SYSROOT_DIR}$(libdir)/dbus-1.0/include \
 -I${PKG_CONFIG_SYSROOT_DIR}$(includedir)/ccsp 
 RdkWanManager_gtest_bin_LDFLAGS = -lgtest -lgmock -lgcov

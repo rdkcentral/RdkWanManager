@@ -20,10 +20,6 @@
 #ifndef  _WANMGR_DATA_H_
 #define  _WANMGR_DATA_H_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <stdbool.h>
 #include "ansc_platform.h"
 #include "ansc_string_util.h"
@@ -32,10 +28,6 @@ extern "C" {
 #include "wanmgr_rdkbus_utils.h"
 #include "wanmgr_utils.h"
 #include "wanmgr_sysevents.h"
-
-#ifdef __cplusplus
-}
-#endif
 
 //Minimum SelectionTimeOut Value
 #define SELECTION_TIMEOUT_DEFAULT_MIN 20
@@ -92,4 +84,5 @@ WANMGR_IFACE_GROUP* WanMgr_GetIfaceGroup_locked(UINT iface_index);
 void WanMgrDml_GetIfaceGroup_release(void);
 ANSC_STATUS WanMgr_UpdatePrevData(void);
 void WanMgr_VirtIface_Init(DML_VIRTUAL_IFACE * pVirtIf, UINT iface_index);
+
 #endif  //_WANMGR_DATA_H_

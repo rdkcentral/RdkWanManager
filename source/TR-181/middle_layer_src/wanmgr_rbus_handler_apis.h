@@ -21,18 +21,11 @@
 #define _WANMGR_RBUS_H_
 #ifdef RBUS_BUILD_FLAG_ENABLE
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 
 #include "ansc_platform.h"
 #include <rbus/rbus.h>
 #include "ccsp_base_api.h"
-
-#ifdef __cplusplus
-}
-#endif
 
 #define WANMGR_CONFIG_WAN_CURRENTACTIVEINTERFACE     "Device.X_RDK_WanManager.CurrentActiveInterface"
 #define WANMGR_CONFIG_WAN_CURRENT_STATUS             "Device.X_RDK_WanManager.CurrentStatus"
@@ -193,7 +186,6 @@ ANSC_STATUS WanMgr_Rbus_String_EventPublish(char *dm_event, void *dm_value);
 ANSC_STATUS WanMgr_Rbus_String_EventPublish_OnValueChange(char *dm_event, void *prev_dm_value, void *dm_value);
 ANSC_STATUS WanMgr_Rbus_getUintParamValue(char * param, UINT * value);
 
-rbusError_t WanMgr_Interface_GetHandler(rbusHandle_t handle, rbusProperty_t property, rbusGetHandlerOptions_t* opts);
 
 void WanMgr_Rbus_UpdateLocalWanDb(void);
 void WanMgr_Rbus_SubscribeDML(void);

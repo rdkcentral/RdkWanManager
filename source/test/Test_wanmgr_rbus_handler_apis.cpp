@@ -26,6 +26,7 @@
 extern "C" {
 #include "wanmgr_data.h"
 //#include "wanmgr_rbus_handler_apis.h"
+rbusError_t WanMgr_Interface_GetHandler(rbusHandle_t handle, rbusProperty_t property, rbusGetHandlerOptions_t* opts);
 }
 
 extern WANMGR_DATA_ST gWanMgrDataBase;
@@ -48,17 +49,17 @@ protected:
     virtual void SetUp()
     {
         WanMgrBase::SetUp();
-    WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl = &(gWanMgrDataBase.IfaceCtrl);
-    pWanIfaceCtrl->ulTotalNumbWanInterfaces = 4;
-    for(int idx = 0 ; idx <  pWanIfaceCtrl->ulTotalNumbWanInterfaces; idx++ )
-    {
-        WanMgr_Iface_Data_t*  pIfaceData  = &(pWanIfaceCtrl->pIface[idx]);
+        WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl = &(gWanMgrDataBase.IfaceCtrl);
+        pWanIfaceCtrl->ulTotalNumbWanInterfaces = 4;
+        for(int idx = 0 ; idx <  pWanIfaceCtrl->ulTotalNumbWanInterfaces; idx++ )
+        {
+            WanMgr_Iface_Data_t*  pIfaceData  = &(pWanIfaceCtrl->pIface[idx]);
 
-        strncpy(pIfaceData->data.VirtIfList->IP.Ipv4Data.ip, "9.9.9.9",sizeof(pIfaceData->data.VirtIfList->IP.Ipv4Data.ip));
-        strncpy(pIfaceData->data.VirtIfList->IP.Ipv6Data.address, "2a02:c7f:8253:3900::1",sizeof(pIfaceData->data.VirtIfList->IP.Ipv6Data.address));
-        strncpy(pIfaceData->data.VirtIfList->IP.Ipv6Data.sitePrefix, "2a02:c7f:8253:3900::1",sizeof(pIfaceData->data.VirtIfList->IP.Ipv6Data.sitePrefix));
-        //cout << " VirtIfList->Alias : " << pIfaceData->data.VirtIfList->Alias << endl;
-    }
+            strncpy(pIfaceData->data.VirtIfList->IP.Ipv4Data.ip, "9.9.9.9",sizeof(pIfaceData->data.VirtIfList->IP.Ipv4Data.ip));
+            strncpy(pIfaceData->data.VirtIfList->IP.Ipv6Data.address, "2a02:c7f:8253:3900::1",sizeof(pIfaceData->data.VirtIfList->IP.Ipv6Data.address));
+            strncpy(pIfaceData->data.VirtIfList->IP.Ipv6Data.sitePrefix, "2a02:c7f:8253:3900::1",sizeof(pIfaceData->data.VirtIfList->IP.Ipv6Data.sitePrefix));
+            //cout << " VirtIfList->Alias : " << pIfaceData->data.VirtIfList->Alias << endl;
+        }
     }
 
     virtual void TearDown()
@@ -85,5 +86,5 @@ TEST_F(RbusHandlerTest, InterfaceGetHandlerIPAddress)
     EXPECT_CALL(mockedRbus, rbusValue_SetString(_,StrEq("2a02:c7f:8253:3900::1"))).Times(1);
     
 //     EXPECT_EQ(RBUS_ERROR_SUCCESS, WanMgr_Interface_GetHandler(handle, property, opts));
-    WanMgr_Interface_GetHandler(handle, property, &opts);
+    WanMgr_Interface_GetHandler(handle, property, opts);
 }
