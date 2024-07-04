@@ -2782,17 +2782,8 @@ static eWanState_t wan_transition_standby(WanMgr_IfaceSM_Controller_t* pWanIface
     DML_WAN_IFACE* pInterface = pWanIfaceCtrl->pIfaceData;
     DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIfaceById(pInterface->VirtIfList, pWanIfaceCtrl->VirIfIdx);
 
-    if (p_VirtIf->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_UP)
-    {
-        p_VirtIf->Status = WAN_IFACE_STATUS_STANDBY;
-        p_VirtIf->IP.Ipv4Changed = FALSE;
+    p_VirtIf->Status = WAN_IFACE_STATUS_STANDBY;
 
-    }
-    if (p_VirtIf->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_UP)
-    {
-        p_VirtIf->Status = WAN_IFACE_STATUS_STANDBY;
-        p_VirtIf->IP.Ipv6Changed = FALSE;
-    }
     if (pWanIfaceCtrl->interfaceIdx != -1)
     {
         WanMgr_Publish_WanStatus(pWanIfaceCtrl->interfaceIdx, pWanIfaceCtrl->VirIfIdx);
@@ -3213,8 +3204,8 @@ static eWanState_t wan_state_obtaining_ip_addresses(WanMgr_IfaceSM_Controller_t*
 
 static eWanState_t wan_state_standby(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
 {
-    eWanState_t ret;
-    static BOOL BridgeWait = FALSE;
+    eWanState_t ret = WAN_STATE_STANDBY;
+
     if((pWanIfaceCtrl == NULL) || (pWanIfaceCtrl->pIfaceData == NULL))
     {
         return ANSC_STATUS_FAILURE;
@@ -3271,19 +3262,17 @@ static eWanState_t wan_state_standby(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
 #endif
         if (p_VirtIf->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_UP)
         {
-            if (!BridgeWait)
+            if (p_VirtIf->IP.Ipv6Changed == TRUE)
             {
                 if (setUpLanPrefixIPv6(p_VirtIf) == RETURN_OK)
                 {
-                    BridgeWait = TRUE;
                     CcspTraceInfo((" %s %d - configure IPv6 prefix \n", __FUNCTION__, __LINE__));
                 }
+                p_VirtIf->IP.Ipv6Changed == FALSE;
             }
             if (checkIpv6AddressAssignedToBridge(p_VirtIf->Name) == RETURN_OK)
             {
-                BridgeWait = FALSE;
                 ret = wan_transition_ipv6_up(pWanIfaceCtrl);
-                p_VirtIf->IP.Ipv6Changed = FALSE;
                 CcspTraceInfo((" %s %d - IPv6 Address Assigned to Bridge Yet.\n", __FUNCTION__, __LINE__));
             }
             else
@@ -3291,27 +3280,11 @@ static eWanState_t wan_state_standby(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
                 wanmgr_Ipv6Toggle();
             }
         }
-        if (p_VirtIf->IP.Ipv6Status != WAN_IFACE_IPV6_STATE_UP || !BridgeWait)
-        {
-            if (p_VirtIf->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_UP)
-            {
-                ret = wan_transition_ipv4_up(pWanIfaceCtrl);
-            }
-            return ret;
-        }
-    }
-    else
-    {
-        BridgeWait = FALSE;
         if (p_VirtIf->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_UP)
         {
-            p_VirtIf->IP.Ipv4Changed = FALSE;
+            ret = wan_transition_ipv4_up(pWanIfaceCtrl);
         }
-        if (p_VirtIf->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_UP)
-        {
-            p_VirtIf->IP.Ipv6Changed = FALSE;
-        }
-
+        return ret;
     }
     return WAN_STATE_STANDBY;
 }
