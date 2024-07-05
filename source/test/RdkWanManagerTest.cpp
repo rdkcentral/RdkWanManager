@@ -20,13 +20,13 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
-#include "RdkWanManagerTest.h"
 
 extern "C" {
 #include "wanmgr_data.h"
 #include "wanmgr_wan_failover.h"
 }
 
+#include "RdkWanManagerTest.h"
 extern WANMGR_DATA_ST gWanMgrDataBase;
 char    g_Subsystem[32]         = {0};
 

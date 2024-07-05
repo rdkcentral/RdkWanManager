@@ -21,12 +21,12 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
-#include "RdkWanManagerTest.h"
 extern "C" {
 #include "wanmgr_data.h"
 rbusError_t WanMgr_Interface_GetHandler(rbusHandle_t handle, rbusProperty_t property, rbusGetHandlerOptions_t* opts);
 }
 
+#include "RdkWanManagerTest.h"
 extern WANMGR_DATA_ST gWanMgrDataBase;
 
 extern MockWanMgr *mockWanMgr;
