@@ -1208,7 +1208,7 @@ int Force_IPv6_toggle (char* wanInterface)
 void wanmgr_Ipv6Toggle (void)
 {
     char v6Toggle[BUFLEN_128] = {0};
-#if (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_)) &&  !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)//TODO: V6 handled in PAM
+#if (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined (RDKB_EXTENDER_ENABLED)) &&  !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)//TODO: V6 handled in PAM
     /*Ipv6 handled in PAM.  No Toggle Needed. */
     return;
 #endif

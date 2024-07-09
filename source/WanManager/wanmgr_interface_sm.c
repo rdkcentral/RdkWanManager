@@ -971,7 +971,7 @@ static int checkIpv6AddressAssignedToBridge(char *IfaceName)
     char lanPrefix[BUFLEN_128] = {0};
     int ret = RETURN_ERR;
 
-#if (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_)) &&  !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)//TODO: V6 handled in PAM
+#if (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined (RDKB_EXTENDER_ENABLED)) &&  !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)//TODO: V6 handled in PAM
     CcspTraceWarning(("%s %d Ipv6 handled in PAM. No need to check here.  \n",__FUNCTION__, __LINE__));
     return RETURN_OK;
 #endif
@@ -1333,7 +1333,7 @@ static int wan_setUpIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
         }
         wanmgr_services_restart();
 
-#if !defined (_XB6_PRODUCT_REQ_) && !defined (_CBR2_PRODUCT_REQ_) //parodus uses cmac for xb platforms
+#if !defined (_XB6_PRODUCT_REQ_) && !defined (_CBR2_PRODUCT_REQ_)  //parodus uses cmac for xb platforms
         // set wan mac because parodus depends on it to start.
         if(ANSC_STATUS_SUCCESS == WanManager_get_interface_mac(p_VirtIf->IP.Ipv6Data.ifname, ifaceMacAddress, sizeof(ifaceMacAddress)))
         {
@@ -1361,7 +1361,7 @@ static int wan_tearDownIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
     DML_WAN_IFACE * pInterface = pWanIfaceCtrl->pIfaceData;
     DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIfaceById(pInterface->VirtIfList, pWanIfaceCtrl->VirIfIdx);
 
-#if !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_)) //TODO: XB devices use the DNS of primary for backup.
+#if !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined (RDKB_EXTENDER_ENABLED)) //TODO: XB devices use the DNS of primary for backup.
     /** Reset IPv6 DNS configuration. */
     if (RETURN_OK == wan_updateDNS(pWanIfaceCtrl, (p_VirtIf->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_UP), FALSE))
     {
