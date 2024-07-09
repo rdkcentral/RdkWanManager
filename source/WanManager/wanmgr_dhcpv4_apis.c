@@ -900,6 +900,7 @@ WanMgr_DmlDhcpcGetCfg
     return ANSC_STATUS_SUCCESS;
 }
 
+#if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
 ANSC_STATUS
 WanMgr_DmlDhcpcGetInfo
     (
@@ -925,9 +926,7 @@ WanMgr_DmlDhcpcGetInfo
         pInfo->IPRouters[0].Value  = inet_addr(p_VirtIf->IP.Ipv4Data.gateway);
         pInfo->DNSServers[0].Value = inet_addr(p_VirtIf->IP.Ipv4Data.dnsServer);
         pInfo->DNSServers[1].Value = inet_addr(p_VirtIf->IP.Ipv4Data.dnsServer1);
-#if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
         pInfo->DHCPStatus          = (strcmp(p_VirtIf->IP.Ipv4Data.dhcpState, DHCP_STATE_UP) == 0) ? DML_DHCPC_STATUS_Bound : DML_DHCPC_STATUS_Init;
-#endif
         WanMgrDml_GetIfaceData_release(NULL);
     }
     pInfo->NumDnsServers = 2;
@@ -935,6 +934,46 @@ WanMgr_DmlDhcpcGetInfo
     return ANSC_STATUS_SUCCESS;
 }
 
+#else
+/*TODO: Should be removed once Unified DhcpManager  */
+ANSC_STATUS
+WanMgr_DmlDhcpcGetInfo
+    (
+        ANSC_HANDLE                 hContext,
+        ULONG                       ulInstanceNumber,
+        PDML_DHCPC_INFO        pInfo
+    )
+{
+    UNREFERENCED_PARAMETER(hContext);
+        ULONG i;
+        dhcpv4c_ip_list_t ad;
+
+    if ( (!pInfo) || (ulInstanceNumber != 1) ){
+        return ANSC_STATUS_FAILURE;
+    }
+
+        pInfo->Status = DML_DHCP_STATUS_Enabled;
+        dhcpv4c_get_ert_fsm_state((int*)&pInfo->DHCPStatus);
+        dhcpv4c_get_ert_ip_addr((unsigned int*)&pInfo->IPAddress.Value);
+        dhcpv4c_get_ert_mask((unsigned int*)&pInfo->SubnetMask.Value);
+        pInfo->NumIPRouters = 1;
+        dhcpv4c_get_ert_gw((unsigned int*)&pInfo->IPRouters[0].Value);
+        ad.number = 0;
+        dhcpv4c_get_ert_dns_svrs(&ad);
+        pInfo->NumDnsServers = ad.number;
+    if (pInfo->NumDnsServers > DML_DHCP_MAX_ENTRIES)
+    {
+        CcspTraceError(("!!! Max DHCP Entry Overflow: %d",ad.number));
+            pInfo->NumDnsServers = DML_DHCP_MAX_ENTRIES; // Fail safe
+    }
+        for(i=0; i< pInfo->NumDnsServers;i++)
+                pInfo->DNSServers[i].Value = ad.addrs[i];
+        dhcpv4c_get_ert_remain_lease_time((unsigned int*)&pInfo->LeaseTimeRemaining);
+        dhcpv4c_get_ert_dhcp_svr((unsigned int*)&pInfo->DHCPServer);
+
+    return ANSC_STATUS_SUCCESS;
+}
+#endif
 /*
     Description:
         The API initiates a DHCP client renewal. 
