@@ -371,6 +371,15 @@ int get_Virtual_Interface_FromPSM(ULONG instancenum, ULONG virtInsNum ,DML_VIRTU
     {
         pVirtIf->IP.ModeForceEnable = TRUE;
     }
+
+    _ansc_memset(param_name, 0, sizeof(param_name));
+    _ansc_memset(param_value, 0, sizeof(param_value));
+    _ansc_sprintf(param_name, PSM_WANMANAGER_CONNECTIVITY_CHECK_TYPE, instancenum, (virtInsNum + 1));
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
+    if(retPsmGet == CCSP_SUCCESS)
+    {
+        _ansc_sscanf(param_value, "%d", &(pVirtIf->IP.ConnectivityCheckType));
+    }
 }
 
 void WanMgr_getRemoteWanIfName(char *IfaceName,int Size)

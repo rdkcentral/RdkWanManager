@@ -209,4 +209,6 @@ int WanMgr_SetMAPTEnableToPSM(DML_VIRTUAL_IFACE* pVirtIf, BOOL Enable);
  **************************************************************************************/
 ANSC_STATUS WanMgr_GetSelectedIPMode(DML_VIRTUAL_IFACE * pVirtIf);
 
+ANSC_STATUS  WanMgr_SetDnsConnectivityCheck(BOOL Enable);
+BOOL WanMgr_GetDnsConnectivityCheck(void);
 #endif /* _WANMGR_RDKBUS_UTILS_H_ */

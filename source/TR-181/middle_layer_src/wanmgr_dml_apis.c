@@ -470,3 +470,92 @@ ULONG WanManagerGroup_Commit(ANSC_HANDLE hInsContext)
     return ret;
 }
 #endif /* WAN_MANAGER_UNIFICATION_ENABLED */
+
+
+/***********************************************************************
+
+ APIs for Object:
+
+    X_RDK_WanManager.DnsConnectivityCheck.
+
+    *  WanMgr_DnsConnectivityCheck_GetParamBoolValue
+    *  WanMgr_DnsConnectivityCheck_SetParamBoolValue
+
+***********************************************************************/
+
+/**********************************************************************
+
+    caller:     owner of this object
+
+    prototype:
+
+        BOOL WanMgr_DnsConnectivityCheck_GetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL* pBool);
+
+    description:
+
+        This function is called to retrieve Boolean parameter value;
+
+    argument:   ANSC_HANDLE                 hInsContext,
+                The instance handle;
+
+                char*                       ParamName,
+                The parameter name;
+
+                BOOL*                       pBool
+                The buffer of returned boolean value;
+
+    return:     TRUE if succeeded.
+
+**********************************************************************/
+BOOL
+WanMgr_DnsConnectivityCheck_GetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL* pBool)
+{
+    BOOL ret = FALSE;
+
+    if (strcmp(ParamName, "Enable") == 0)
+    {
+       *pBool= WanMgr_GetDnsConnectivityCheck();
+        ret = TRUE;
+    }
+    return ret;
+}
+
+/**********************************************************************
+
+    caller:     owner of this object
+
+    prototype:
+
+        BOOL WanMgr_DnsConnectivityCheck_GetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL bValue);
+
+    description:
+
+        This function is called to set BOOL parameter value;
+
+    argument:   ANSC_HANDLE                 hInsContext,
+                The instance handle;
+
+                char*                       ParamName,
+                The parameter name;
+
+                BOOL                        bValue
+                The updated BOOL value;
+
+    return:     TRUE if succeeded.
+
+**********************************************************************/
+
+BOOL WanMgr_DnsConnectivityCheck_SetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL bValue)
+{
+    BOOL ret = FALSE;
+
+    if (strcmp(ParamName, "Enable") == 0)
+    {
+        if ( WanMgr_SetDnsConnectivityCheck(bValue) == ANSC_STATUS_SUCCESS)
+        {
+            ret = TRUE;
+        }
+    }
+    return ret;
+}
+

@@ -66,6 +66,97 @@
 extern char g_Subsystem[32];
 extern ANSC_HANDLE bus_handle;
 
+static ANSC_STATUS WanMgr_SetConnectivityCheckTypeToPSM(DML_VIRTUAL_IFACE* pVirtIf, CONNECTIVITY_CHECK_TYPE type)
+{
+    int result = ANSC_STATUS_SUCCESS;
+    int retPsmSet = CCSP_SUCCESS;
+    char param_name[BUFLEN_256] = {0};
+    char param_value[BUFLEN_256] = {0};
+
+    /* Update the wan policy information in PSM */
+    memset(param_value, 0, sizeof(param_value));
+    memset(param_name, 0, sizeof(param_name));
+
+    snprintf(param_value, sizeof(param_value), "%d", type);
+    _ansc_sprintf(param_name, PSM_WANMANAGER_CONNECTIVITY_CHECK_TYPE, pVirtIf->baseIfIdx +1, pVirtIf->VirIfIdx+1);
+
+    retPsmSet = WanMgr_RdkBus_SetParamValuesToDB(param_name, param_value);
+    if (retPsmSet != CCSP_SUCCESS) {
+        AnscTraceError(("%s Error %d writing %s %s\n", __FUNCTION__, retPsmSet, param_name, param_value));
+        result = ANSC_STATUS_FAILURE;
+    }
+    return result;
+}
+
+BOOL WanMgr_GetDnsConnectivityCheck(void)
+{
+    BOOL ctl = false;
+    int uiLoopCount;
+
+    int TotalIfaces = WanMgr_IfaceData_GetTotalWanIface();
+    for (uiLoopCount = 0; uiLoopCount < TotalIfaces; uiLoopCount++)
+    {
+        WanMgr_Iface_Data_t*   pWanDmlIfaceData = WanMgr_GetIfaceData_locked(uiLoopCount);
+        if(pWanDmlIfaceData != NULL)
+        {
+            DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
+            for(int virIf_id=0; virIf_id< pWanIfaceData->NoOfVirtIfs; virIf_id++)
+            {
+                DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIfaceById(pWanIfaceData->VirtIfList, virIf_id);
+                if(p_VirtIf != NULL)
+                {
+                    ctl = (p_VirtIf->IP.ConnectivityCheckType == WAN_CONNECTIVITY_TYPE_TAD)? true:false;
+                    break;
+                }
+            }
+            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+        }
+    }
+    return ctl;
+}
+
+ANSC_STATUS  WanMgr_SetDnsConnectivityCheck(BOOL Enable)
+{
+    ANSC_STATUS retStatus = ANSC_STATUS_FAILURE;
+    int uiLoopCount;
+
+    int TotalIfaces = WanMgr_IfaceData_GetTotalWanIface();
+
+    CONNECTIVITY_CHECK_TYPE type = Enable? WAN_CONNECTIVITY_TYPE_TAD:WAN_CONNECTIVITY_TYPE_NO_CHECK;
+
+    for (uiLoopCount = 0; uiLoopCount < TotalIfaces; uiLoopCount++)
+    {
+        WanMgr_Iface_Data_t*   pWanDmlIfaceData = WanMgr_GetIfaceData_locked(uiLoopCount);
+        if(pWanDmlIfaceData != NULL)
+        {
+            DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
+            for(int virIf_id=0; virIf_id< pWanIfaceData->NoOfVirtIfs; virIf_id++)
+            {
+                DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIfaceById(pWanIfaceData->VirtIfList, virIf_id);
+                if(p_VirtIf->IP.ConnectivityCheckType != WAN_CONNECTIVITY_TYPE_IHC)
+                {
+                    if (WanMgr_SetConnectivityCheckTypeToPSM(p_VirtIf, type) == ANSC_STATUS_SUCCESS)
+                    {
+                        p_VirtIf->IP.ConnectivityCheckType = type;
+                        retStatus = ANSC_STATUS_SUCCESS;
+                    }
+                }
+                else
+                {
+                    CcspTraceError(("%s-%d: Failed to %s RFC DNS Connectivity Check , IPoE Enabled", 
+                                            __FUNCTION__, __LINE__, (Enable? "Enabled":"Disabled")));
+                    retStatus = ANSC_STATUS_FAILURE;
+                    break;
+                }
+            }
+            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+        }
+    }
+    CcspTraceInfo(("%s-%d: RFC- DNS Connectivity Check %s, Type=%s", __FUNCTION__, __LINE__, 
+                          (Enable? "Enabled":"Disabled"), (Enable? "TAD":"None")));
+    return retStatus;
+}
+
 /*TODO:
  *Should be Reviewed while Implementing MAPT Unification.
  */

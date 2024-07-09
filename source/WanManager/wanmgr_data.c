@@ -777,12 +777,7 @@ void WanMgr_VirtIface_Init(DML_VIRTUAL_IFACE * pVirtIf, UINT iface_index)
     pVirtIf->IP.Ipv6Status = WAN_IFACE_IPV6_STATE_DOWN;
     pVirtIf->IP.IPv4Source= DML_WAN_IP_SOURCE_DHCP;
     pVirtIf->IP.IPv6Source = DML_WAN_IP_SOURCE_DHCP;
-#ifdef FEATURE_TAD_HEALTH_CHECK //FEATURE_IPOE_HEALTH_CHECK feature is enabled 
-    CcspTraceInfo(("%s %d IP.ConnectivityCheckType set to WAN_CONNECTIVITY_TYPE_TAD \n", __FUNCTION__, __LINE__));
-    pVirtIf->IP.ConnectivityCheckType = WAN_CONNECTIVITY_TYPE_TAD;
-#else /* FEATURE_TAD_HEALTH_CHECK */
     pVirtIf->IP.ConnectivityCheckType = WAN_CONNECTIVITY_TYPE_NO_CHECK;
-#endif /* FEATURE_TAD_HEALTH_CHECK */
     pVirtIf->IP.Ipv4ConnectivityStatus = WAN_CONNECTIVITY_DOWN; 
     pVirtIf->IP.Ipv6ConnectivityStatus = WAN_CONNECTIVITY_DOWN;
     pVirtIf->IP.Mode = DML_WAN_IP_MODE_DUAL_STACK;
