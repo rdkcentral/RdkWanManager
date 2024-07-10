@@ -1561,7 +1561,7 @@ void wanmgr_setSharedCGNAddress(char *IpAddress)
 }
 #endif//_DT_WAN_Manager_Enable_
 
-#if defined(WAN_MANAGER_UNIFICATION_ENABLED) && (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_))
+#if defined(WAN_MANAGER_UNIFICATION_ENABLED) && (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_))
 #define DEFAULT_PSM_FILE          "/usr/ccsp/config/bbhm_def_cfg.xml"
 /* TODO : This is a function to recover v2 PSM entries if it is written with wrong values in older builds. 
  * This should be removed after successful migration to unification builds 
