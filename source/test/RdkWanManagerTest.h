@@ -28,7 +28,7 @@
 #include <mocks/mock_securewrapper.h>
 #include <mocks/mock_ansc_memory.h>
 #include <mocks/mock_cap.h>
-
+#include "wanmgr_interface_sm.h"
 
 using namespace std;
 using ::testing::_;
@@ -45,6 +45,9 @@ public:
     MOCK_METHOD(void, t2_event_d, (char *Telemtrylog, int a));
     //MOCK_METHOD(const char* , rbusProperty_GetName, (rbusProperty_t property));
     //MOCK_METHOD(WanMgr_Iface_Data_t*, WanMgr_GetIfaceData_locked, (UINT iface_index));
+    MOCK_METHOD(void, WanMgr_UpdateIpFromCellularMgr, (WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl));
+    MOCK_METHOD(ANSC_STATUS, IPCPStateChangeHandler ,(DML_VIRTUAL_IFACE* pVirtIf));
+    MOCK_METHOD(ANSC_STATUS, wanmgr_handle_dhcpv4_event_data, (DML_VIRTUAL_IFACE* pVirtIf));
 
 };
 MATCHER_P2(StrCmpLen, expected_str, n, "") {

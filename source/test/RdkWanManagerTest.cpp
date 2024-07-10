@@ -27,8 +27,11 @@ extern "C" {
 }
 
 #include "RdkWanManagerTest.h"
+ANSC_HANDLE                 bus_handle               = NULL;
 extern WANMGR_DATA_ST gWanMgrDataBase;
 char    g_Subsystem[32]         = {0};
+//WANMGR_BACKEND_OBJ* g_pWanMgrBE;
+
 
 string ifaceName[4][2] =
 {   "vdsl0", "VDSL",
@@ -38,7 +41,7 @@ string ifaceName[4][2] =
 };
 
 MockWanMgr *mockWanMgr = nullptr;
-rbusMock* g_rbusMock = nullptr;
+rbusMock *g_rbusMock = nullptr;
 SecureWrapperMock * g_securewrapperMock = nullptr;
 CapMock * g_capMock = nullptr;
 AnscMemoryMock * g_anscMemoryMock = nullptr;
@@ -259,6 +262,26 @@ extern "C" void t2_event_d(char *Telemtrylog, int a)
     }
 }
 
+extern "C" void WanMgr_UpdateIpFromCellularMgr (WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
+{
+    if (mockWanMgr) {
+        mockWanMgr->WanMgr_UpdateIpFromCellularMgr(pWanIfaceCtrl);
+    }
+}
+
+extern "C" ANSC_STATUS IPCPStateChangeHandler (DML_VIRTUAL_IFACE* pVirtIf)
+{
+    if (mockWanMgr) {
+        mockWanMgr->IPCPStateChangeHandler(pVirtIf);
+    }
+}
+
+extern "C" ANSC_STATUS wanmgr_handle_dhcpv4_event_data(DML_VIRTUAL_IFACE* pVirtIf)
+{
+    if (mockWanMgr) {
+        mockWanMgr->wanmgr_handle_dhcpv4_event_data(pVirtIf);
+    }
+}
 /* 
  * Unit test for the WanMgr_TelemetryEventTrigger() function.
  * 

@@ -20,13 +20,14 @@
 
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
+#include <mocks/mock_rbus.h>
 
 extern "C" {
 #include "wanmgr_data.h"
 rbusError_t WanMgr_Interface_GetHandler(rbusHandle_t handle, rbusProperty_t property, rbusGetHandlerOptions_t* opts);
 }
-
 #include "RdkWanManagerTest.h"
+
 extern WANMGR_DATA_ST gWanMgrDataBase;
 
 extern MockWanMgr *mockWanMgr;
@@ -43,7 +44,6 @@ protected:
     {
         WanMgrBase::SetUp();
         WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl = &(gWanMgrDataBase.IfaceCtrl);
-        pWanIfaceCtrl->ulTotalNumbWanInterfaces = 4;
         for(int idx = 0 ; idx <  pWanIfaceCtrl->ulTotalNumbWanInterfaces; idx++ )
         {
             WanMgr_Iface_Data_t*  pIfaceData  = &(pWanIfaceCtrl->pIface[idx]);
