@@ -179,6 +179,7 @@ TEST_F(WanMgrBase, TestGetVirtualIfVirtulName)
 TEST_F(WanMgrBase, TestConfigureTADWithDnsIpv4) 
 {
 
+    //TODO : Set correct expecttations
     EXPECT_CALL(mockedRbus, rbusObject_Init(testing::_, testing::_)).Times(testing::AnyNumber());
     EXPECT_CALL(mockedRbus, rbusValue_Init(testing::_)).Times(testing::AnyNumber());
     EXPECT_CALL(mockedRbus, rbusValue_SetString(testing::_, testing::_)).Times(testing::AnyNumber());
@@ -191,7 +192,6 @@ TEST_F(WanMgrBase, TestConfigureTADWithDnsIpv4)
         .Times(testing::AnyNumber()).WillRepeatedly(testing::Return(RBUS_ERROR_SUCCESS));
     EXPECT_CALL(mockedRbus, rbusEvent_Unsubscribe(testing::_, testing::_))
         .Times(testing::AnyNumber()).WillRepeatedly(testing::Return(RBUS_ERROR_SUCCESS));
-//    EXPECT_CALL(mockedRbus, rbusError_ToString(testing::_)).WillRepeatedly(testing::Return("Mocked Error"));
 
     DML_VIRTUAL_IFACE* result = WanMgr_GetVirtIfDataByAlias_locked("DOCSIS");
     ASSERT_THAT(result, NotNull());
@@ -201,7 +201,7 @@ TEST_F(WanMgrBase, TestConfigureTADWithDnsIpv4)
 
     EXPECT_EQ(ANSC_STATUS_SUCCESS, WanMgr_Configure_TAD_WCC( result,  WCC_RESTART));
     EXPECT_EQ(ANSC_STATUS_SUCCESS, WanMgr_Configure_TAD_WCC( result,  WCC_STOP));
-    sleep(3) ; //sleep for 3 seconds since Configure_TAD_WCC executed in threads
+    sleep(1) ; //sleep for 1 second since Configure_TAD_WCC executed in threads
     WanMgr_VirtualIfaceData_release(result);
 }
 
@@ -211,6 +211,7 @@ TEST_F(WanMgrBase, TestConfigureTADWithDnsIpv4)
  */
 TEST_F(WanMgrBase, TestConfigureTADWithDnsIpv6) 
 {
+    //TODO : Set correct expecttations
     EXPECT_CALL(mockedRbus, rbusValue_Init(testing::_)).Times(testing::AnyNumber());
     EXPECT_CALL(mockedRbus, rbusValue_SetString(testing::_, testing::_)).Times(testing::AnyNumber());
     EXPECT_CALL(mockedRbus, rbusObject_SetValue(testing::_, testing::_, testing::_)).Times(testing::AnyNumber());
@@ -230,7 +231,7 @@ TEST_F(WanMgrBase, TestConfigureTADWithDnsIpv6)
     EXPECT_EQ(ANSC_STATUS_SUCCESS, WanMgr_Configure_TAD_WCC( result,  WCC_START));
     EXPECT_EQ(ANSC_STATUS_SUCCESS, WanMgr_Configure_TAD_WCC( result,  WCC_RESTART));
     EXPECT_EQ(ANSC_STATUS_SUCCESS, WanMgr_Configure_TAD_WCC( result,  WCC_STOP));
-    sleep(3); //sleep for 3 seconds since Configure_TAD_WCC executed in threads
+    sleep(1); //sleep for 1 second since Configure_TAD_WCC executed in threads
     WanMgr_VirtualIfaceData_release(result);
 }
 
