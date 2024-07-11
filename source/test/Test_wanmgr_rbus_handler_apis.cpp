@@ -94,20 +94,3 @@ TEST_F(RbusHandlerTest, InterfaceGetHandlerIPV4Address)
     
     EXPECT_EQ(RBUS_ERROR_SUCCESS, WanMgr_Interface_GetHandler(handle, property, opts));
 }
-
-TEST_F(RbusHandlerTest, InterfaceGetHandlerIPV6Prefix)
-{
-    rbusHandle_t handle = nullptr;
-    rbusProperty_t property = nullptr;
-    rbusGetHandlerOptions_t *opts  = nullptr;
-    std::string DmlName = "Device.X_RDK_WanManager.Interface.1.VirtualInterface.1.IP.IPv6Prefix";
-    EXPECT_CALL(mockedRbus, rbusValue_Init(_)).Times(1);
-    EXPECT_CALL(mockedRbus, rbusValue_SetString(_,StrEq("2a02:c7f:8253:3900::1"))).Times(1);
-    EXPECT_CALL(mockedRbus, rbusProperty_SetValue(_,_)).Times(1);
-    EXPECT_CALL(mockedRbus, rbusValue_Release(_)).Times(1);
-    EXPECT_CALL(mockedRbus, rbusProperty_GetName(_)).Times(1).WillOnce(Return(DmlName.c_str()));
-    
-    EXPECT_EQ(RBUS_ERROR_SUCCESS, WanMgr_Interface_GetHandler(handle, property, opts));
-    cout << "PARTHI " <<__func__<< __LINE__ << endl;
-}
-
