@@ -64,6 +64,10 @@
 #define SYSEVENT_IPV4_DS_CURRENT_RATE "ipv4_%s_ds_current_rate_0"
 #define SYSEVENT_FIELD_SERVICE_ROUTED_STATUS "routed-status"
 #define SYSEVENT_IPV4_MTU_SIZE "ipv4_%s_mtu"
+
+#define SYSEVENT_IPV6_WAN_ADDRESS "tr_erouter0_dhcpv6_client_v6addr"
+#define SYSEVENT_LAN_IPV6_ADDRESS "lan_ipaddr_v6"
+
 #define MESH_IFNAME        "br-home"
 #if defined (RDKB_EXTENDER_ENABLED)
 #define SYSEVENT_MESH_WAN_LINK_STATUS "mesh_wan_linkstatus"
@@ -148,6 +152,15 @@
 #define SET "set"
 #define UNSET "unset"
 #define RESET "reset"
+
+#if defined(FEATURE_TAD_HEALTH_CHECK)
+#define SYSEVENT_IPV4_GATEWAY      "ipv4_router"
+#define SYSEVENT_IPV4_DNS          "ipv4_dns"
+#define SYSEVENT_IPV6_DNS          "wan6_ns"
+#define SYSEVENT_BACKUP_IPv4_DNS   "backupwan_router_addr"
+#define SYSEVENT_BACKUP_IPV6_DNS   "MeshWANInterface_UlaAddr"
+#define SYSEVENT_IPV6_ADDRESS      "wan6_ipaddr"
+#endif
 
 #if defined(FEATURE_MAPT) || defined(FEATURE_SUPPORT_MAPT_NAT46)
 #define SYSCFG_MAPT_FEATURE_ENABLE   "MAPT_Enable"
@@ -256,7 +269,7 @@ void wanmgr_sysevent_hw_reconfig_reboot(void);
 */
 int wanmanager_mapt_feature();
 #endif
-
+INT WanMgr_GetWanStatus(void);
 ANSC_STATUS wanmgr_setwanstart();
 ANSC_STATUS wanmgr_setwanstop();
 ANSC_STATUS wanmgr_sshd_restart();
@@ -265,6 +278,9 @@ ANSC_STATUS wanmgr_setwanrestart();
 INT wanmgr_isWanStarted();
 INT WanMgr_IsWanStopped(void);
 ANSC_STATUS wanmgr_firewall_restart(void);
+INT WanMgr_GetWanServiceStatus(void);
+INT WanMgr_GetWanRoutedStatus(void);
+INT wanmgr_isWanStandby();
 //#ifdef FEATURE_MAPT
 ///*
 // * @brief Utility function used to store MAPT specific values in sysevent/
