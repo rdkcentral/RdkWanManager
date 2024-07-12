@@ -2193,6 +2193,10 @@ static eWanState_t wan_transition_ipv4_down(WanMgr_IfaceSM_Controller_t* pWanIfa
 
     WanMgr_SendMsgTo_ConnectivityCheck(pWanIfaceCtrl, CONNECTION_MSG_IPV4 , FALSE);
 
+    char param_name[256] = {0};
+    snprintf(param_name, sizeof(param_name), "Device.X_RDK_WanManager.Interface.%d.VirtualInterface.%d.IP.IPv4Address",  p_VirtIf->baseIfIdx+1, p_VirtIf->VirIfIdx+1);
+    WanMgr_Rbus_EventPublishHandler(param_name, "",RBUS_STRING);
+
     Update_Interface_Status();
     sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_IPV6_CONNECTION_STATE, buf, sizeof(buf));
 
@@ -2442,6 +2446,11 @@ static eWanState_t wan_transition_ipv6_down(WanMgr_IfaceSM_Controller_t* pWanIfa
         }
     }
 
+    char param_name[256] = {0};
+    snprintf(param_name, sizeof(param_name), "Device.X_RDK_WanManager.Interface.%d.VirtualInterface.%d.IP.IPv6Address",  p_VirtIf->baseIfIdx+1, p_VirtIf->VirIfIdx+1);
+    WanMgr_Rbus_EventPublishHandler(param_name, "", RBUS_STRING);
+    snprintf(param_name, sizeof(param_name), "Device.X_RDK_WanManager.Interface.%d.VirtualInterface.%d.IP.IPv6Prefix",  p_VirtIf->baseIfIdx+1, p_VirtIf->VirIfIdx+1);
+    WanMgr_Rbus_EventPublishHandler(param_name, "", RBUS_STRING);
     WanManager_UpdateInterfaceStatus (p_VirtIf, WANMGR_IFACE_CONNECTION_IPV6_DOWN);
 
     if(p_VirtIf->Status == WAN_IFACE_STATUS_UP)
