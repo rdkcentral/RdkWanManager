@@ -89,12 +89,12 @@ rbusDataElement_t wanMgrIfacePublishElements[] = {
     {WANMGR_V1_INFACE_PHY_STATUS, RBUS_ELEMENT_TYPE_PROPERTY, {WanMgr_Interface_GetHandler, NULL, NULL, NULL, wanMgrDmlPublishEventHandler, NULL}},
     {WANMGR_V1_INFACE_WAN_STATUS, RBUS_ELEMENT_TYPE_PROPERTY, {WanMgr_Interface_GetHandler, NULL, NULL, NULL, wanMgrDmlPublishEventHandler, NULL}},
     {WANMGR_V1_INFACE_WAN_LINKSTATUS, RBUS_ELEMENT_TYPE_PROPERTY, {WanMgr_Interface_GetHandler, NULL, NULL, NULL, wanMgrDmlPublishEventHandler, NULL}},
-#endif /** WAN_MANAGER_UNIFICATION_ENABLED */
-    {WANMGR_INFACE_WAN_STATUS, RBUS_ELEMENT_TYPE_PROPERTY, {WanMgr_Interface_GetHandler, WanMgr_Interface_SetHandler, NULL, NULL, wanMgrDmlPublishEventHandler, NULL}},
-    {WANMGR_INFACE_WAN_LINKSTATUS, RBUS_ELEMENT_TYPE_PROPERTY, {WanMgr_Interface_GetHandler, WanMgr_Interface_SetHandler, NULL, NULL, wanMgrDmlPublishEventHandler, NULL}},
     {WANMGR_INFACE_IPv4_ADDRESS, RBUS_ELEMENT_TYPE_PROPERTY, {WanMgr_Interface_GetHandler, NULL, NULL, NULL, wanMgrDmlPublishEventHandler, NULL}},
     {WANMGR_INFACE_IPv6_ADDRESS, RBUS_ELEMENT_TYPE_PROPERTY, {WanMgr_Interface_GetHandler, NULL, NULL, NULL, wanMgrDmlPublishEventHandler, NULL}},
     {WANMGR_INFACE_IPv6_PREFIX, RBUS_ELEMENT_TYPE_PROPERTY, {WanMgr_Interface_GetHandler, NULL, NULL, NULL, wanMgrDmlPublishEventHandler, NULL}},
+#endif /** WAN_MANAGER_UNIFICATION_ENABLED */
+    {WANMGR_INFACE_WAN_STATUS, RBUS_ELEMENT_TYPE_PROPERTY, {WanMgr_Interface_GetHandler, WanMgr_Interface_SetHandler, NULL, NULL, wanMgrDmlPublishEventHandler, NULL}},
+    {WANMGR_INFACE_WAN_LINKSTATUS, RBUS_ELEMENT_TYPE_PROPERTY, {WanMgr_Interface_GetHandler, WanMgr_Interface_SetHandler, NULL, NULL, wanMgrDmlPublishEventHandler, NULL}},
 };
 
 RemoteDM_list RemoteDMs[] = {
