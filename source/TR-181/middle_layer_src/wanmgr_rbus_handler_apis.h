@@ -20,9 +20,6 @@
 #ifndef _WANMGR_RBUS_H_
 #define _WANMGR_RBUS_H_
 #ifdef RBUS_BUILD_FLAG_ENABLE
-
-
-
 #include "ansc_platform.h"
 #include <rbus/rbus.h>
 #include "ccsp_base_api.h"
@@ -185,8 +182,6 @@ ANSC_STATUS WanMgr_Rbus_EventPublishHandler(const char *dm_event, void *dm_value
 ANSC_STATUS WanMgr_Rbus_String_EventPublish(char *dm_event, void *dm_value);
 ANSC_STATUS WanMgr_Rbus_String_EventPublish_OnValueChange(char *dm_event, void *prev_dm_value, void *dm_value);
 ANSC_STATUS WanMgr_Rbus_getUintParamValue(char * param, UINT * value);
-
-
 void WanMgr_Rbus_UpdateLocalWanDb(void);
 void WanMgr_Rbus_SubscribeDML(void);
 void WanMgr_Rbus_UnSubscribeDML(void);
