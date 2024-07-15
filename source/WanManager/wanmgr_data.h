@@ -84,5 +84,4 @@ WANMGR_IFACE_GROUP* WanMgr_GetIfaceGroup_locked(UINT iface_index);
 void WanMgrDml_GetIfaceGroup_release(void);
 ANSC_STATUS WanMgr_UpdatePrevData(void);
 void WanMgr_VirtIface_Init(DML_VIRTUAL_IFACE * pVirtIf, UINT iface_index);
-
 #endif  //_WANMGR_DATA_H_

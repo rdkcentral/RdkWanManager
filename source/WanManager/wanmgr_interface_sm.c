@@ -971,7 +971,7 @@ static int checkIpv6AddressAssignedToBridge(char *IfaceName)
     char lanPrefix[BUFLEN_128] = {0};
     int ret = RETURN_ERR;
 
-#if (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_)) &&  !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)//TODO: V6 handled in PAM
+#if 1//(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_)) &&  !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)//TODO: V6 handled in PAM
     CcspTraceWarning(("%s %d Ipv6 handled in PAM. No need to check here.  \n",__FUNCTION__, __LINE__));
     return RETURN_OK;
 #endif
@@ -1373,6 +1373,7 @@ static int wan_tearDownIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
         ret = RETURN_ERR;
     }
 
+#endif
     /** Unconfig IPv6. */
     if ( WanManager_Ipv6AddrUtil(p_VirtIf->Name, DEL_ADDR,0,0) < 0)
     {
@@ -1398,7 +1399,6 @@ static int wan_tearDownIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV6_CONNECTION_STATE, WAN_STATUS_DOWN, 0);
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_GLOBAL_IPV6_PREFIX_SET, "", 0);
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, NULL, 0);
-#endif
 
 //RBUS_WAN_IP
 #if defined (RBUS_WAN_IP)
@@ -1702,7 +1702,8 @@ static eWanState_t wan_transition_start(WanMgr_IfaceSM_Controller_t* pWanIfaceCt
         CcspTraceInfo(("%s %d - Already WAN interface %s created\n", __FUNCTION__, __LINE__, p_VirtIf->Name));
     }
 
-#if !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE) 
+//#if !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE) 
+#if  (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_))
     if(pInterface->IfaceType != REMOTE_IFACE)
     {
         /* TODO: This is a workaround for the platforms using same Wan Name.*/
@@ -2766,7 +2767,8 @@ static eWanState_t wan_transition_exit(WanMgr_IfaceSM_Controller_t* pWanIfaceCtr
     Update_Interface_Status();
     CcspTraceInfo(("%s %d - Interface '%s' - EXITING STATE MACHINE\n", __FUNCTION__, __LINE__, pInterface->Name));
 
-#if !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE) 
+//#if !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE) 
+#if  (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_))
     /* TODO:This is a workaround for the platforms using same Wan Name.*/
     if(pInterface->IfaceType != REMOTE_IFACE)
     {
