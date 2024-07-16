@@ -45,7 +45,9 @@ m4_ifdef([AM_SILENT_RULES],[AM_SILENT_RULES([yes])],
    AC_SUBST(AM_DEFAULT_VERBOSITY)])
 
 
-
+GIT_VERSION=$(git describe --tags --always --dirty 2>/dev/null || pwd)
+AC_SUBST([GIT_VERSION], [$GIT_VERSION])
+ [echo "$GIT_VERSION"]
 
 dnl **********************************
 dnl checks for dependencies
