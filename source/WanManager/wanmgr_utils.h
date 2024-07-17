@@ -43,6 +43,10 @@
 #define RETURN_ERROR   -1
 #endif
 
+#ifndef RETURN_ERR
+#define RETURN_ERR   -1
+#endif
+
 #define IS_EMPTY_STRING(s)    ((s == NULL) || (*s == '\0'))
 
 #define USECS_IN_MSEC 1000

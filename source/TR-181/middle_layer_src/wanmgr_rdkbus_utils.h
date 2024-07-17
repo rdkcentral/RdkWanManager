@@ -60,7 +60,6 @@
 #include "wanmgr_rdkbus_common.h"
 #include "wanmgr_data.h"
 #include "ansc_platform.h"
-#include "platform_hal.h"
 #include "wanmgr_sysevents.h"
 #include <sysevent/sysevent.h>
 extern int sysevent_fd;
