@@ -110,6 +110,9 @@ static eWanState_t wan_transition_exit(WanMgr_IfaceSM_Controller_t* pWanIfaceCtr
 static ANSC_STATUS WanMgr_StartConnectivityCheck(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
 static ANSC_STATUS WanMgr_StopConnectivityCheck(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
 static ANSC_STATUS WanMgr_SendMsgTo_ConnectivityCheck(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl , CONNECTION_TYPE type, BOOL ConnStatus);
+#ifdef FEATURE_IPOE_HEALTH_CHECK
+static ANSC_STATUS WanManager_StopIHC(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
+#endif
 
 /***************************************************************************
  * @brief API used to check the incoming nameserver is valid
@@ -1509,7 +1512,7 @@ static ANSC_STATUS WanMgr_StartConnectivityCheck(WanMgr_IfaceSM_Controller_t* pW
     {
         CcspTraceInfo(("%s %d ConnectivityCheck Type is IHC \n", __FUNCTION__, __LINE__));
 #ifdef FEATURE_IPOE_HEALTH_CHECK
-        if ( p_VirtIf->Status == WAN_IFACE_STATUS_UP && pWanIfaceCtrl->IhcPid <= 0 )
+        if ( pVirtIf->Status == WAN_IFACE_STATUS_UP && pWanIfaceCtrl->IhcPid <= 0 )
         {
             // IHC enabled but not running, So Starting IHC
             UINT IhcPid = 0;
