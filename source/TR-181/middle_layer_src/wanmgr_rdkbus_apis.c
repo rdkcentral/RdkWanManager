@@ -41,7 +41,8 @@
 #ifdef RBUS_BUILD_FLAG_ENABLE
 #include "wanmgr_rbus_handler_apis.h"
 #endif //RBUS_BUILD_FLAG_ENABLE
-//
+#include "wanmgr_webconfig_apis.h"
+
 #define PSM_ENABLE_STRING_TRUE  "TRUE"
 #define PSM_ENABLE_STRING_FALSE  "FALSE"
 #define PPP_LINKTYPE_PPPOA "PPPoA"
@@ -1739,6 +1740,8 @@ ANSC_STATUS Update_Interface_Status()
     bool    publishCurrentStandbyInf = FALSE;
 #endif
     int uiLoopCount;
+    /*should allow WebConfig Handler Registartion Once.*/
+    static bool RegisterWebConfigOnce = false;
 
     WanMgr_Config_Data_t*   pWanConfigData = WanMgr_GetConfigData_locked();
     if (pWanConfigData != NULL)
@@ -1806,6 +1809,22 @@ ANSC_STATUS Update_Interface_Status()
                     /*In Modem/Extender Mode, CurrentActiveInterface should be always Mesh Interface Name*/
                     strncpy(newIface->CurrentActive, MESH_IFNAME, sizeof(MESH_IFNAME));
                 }
+                /*should allow WebConfig API Handler Registartion Once */
+		if (RegisterWebConfigOnce == false)
+                {
+                    if(((pWanIfaceData->IfaceType == REMOTE_IFACE &&
+                         p_VirtIf->Status == WAN_IFACE_STATUS_UP &&
+                         p_VirtIf->RemoteStatus == WAN_IFACE_STATUS_UP) ||
+                        (pWanIfaceData->IfaceType == LOCAL_IFACE &&
+                        p_VirtIf->Status == WAN_IFACE_STATUS_UP)) )
+                    {
+                        if (WanMgrDmlWanWebConfigInit() == ANSC_STATUS_SUCCESS)
+                        {
+                            RegisterWebConfigOnce = true;
+                        }
+                    }
+                }
+
                 /* Sort the link list based on priority */
                 SortedInsert(&head, newIface);
             }
