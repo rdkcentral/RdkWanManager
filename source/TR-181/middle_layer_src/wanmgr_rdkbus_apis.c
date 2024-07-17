@@ -229,8 +229,17 @@ int get_Virtual_Interface_FromPSM(ULONG instancenum, ULONG virtInsNum ,DML_VIRTU
     _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_ENABLE_MAPT, instancenum, (virtInsNum + 1));
     retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
 
+    /* Checking MAPT_Enable syscfg to handle RFC migration scenarios */
+    char maptRfc[16] ={0};
+    syscfg_get(NULL, "MAPT_Enable", maptRfc, sizeof(maptRfc));
+    
     if(strcmp(param_value, PSM_ENABLE_STRING_TRUE) == 0)
     {
+        pVirtIf->EnableMAPT = TRUE;
+    }
+    else if( strcmp(maptRfc, "true") == 0)
+    {
+        CcspTraceInfo(("%s %d Enabling MAPT based on MAPT_Enable syscfg \n", __FUNCTION__, __LINE__));
         pVirtIf->EnableMAPT = TRUE;
     }
 
