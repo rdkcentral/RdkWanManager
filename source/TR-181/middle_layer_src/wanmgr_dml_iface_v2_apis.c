@@ -1835,7 +1835,10 @@ BOOL WanVirtualIf_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, U
 #endif
         if (strcmp(ParamName, "Timeout") == 0)
         {
-            p_VirtIf->VLAN.Timeout = uValue;
+            //p_VirtIf->VLAN.Timeout = uValue;
+            p_VirtIf->IP.ConnectivityCheckType = uValue;
+            p_VirtIf->IP.WCC_TypeChanged = TRUE;
+            CcspTraceInfo(("%s %d PARTHI ConnectivityCheckType changed to %s\n", __FUNCTION__, __LINE__, (p_VirtIf->IP.ConnectivityCheckType == WAN_CONNECTIVITY_TYPE_TAD) ? "WAN_CONNECTIVITY_TYPE_TAD":(p_VirtIf->IP.ConnectivityCheckType == WAN_CONNECTIVITY_TYPE_IHC)?"WAN_CONNECTIVITY_TYPE_IHC":"WAN_CONNECTIVITY_TYPE_NONE"));
             ret = TRUE;
         }
         WanMgr_VirtualIfaceData_release(p_VirtIf);
