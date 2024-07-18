@@ -44,7 +44,10 @@ m4_ifdef([AM_SILENT_RULES],[AM_SILENT_RULES([yes])],
   [AM_DEFAULT_VERBOSITY=1
    AC_SUBST(AM_DEFAULT_VERBOSITY)])
 
-
+m4_define([GIT_VERSION],
+  m4_esyscmd_s([git describe --tags --always --dirty 2>/dev/null || echo "undefined"])
+)
+AC_SUBST([GIT_VERSION], [GIT_VERSION])
 
 
 dnl **********************************
