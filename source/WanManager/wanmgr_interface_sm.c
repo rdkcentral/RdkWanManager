@@ -456,7 +456,7 @@ static void WanMgr_MonitorDhcpApps (WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
         if(p_VirtIf->IP.ConnectivityCheckRunning == TRUE)
         {
             /* If IP.WCC_TypeChanged is set, we have lost the previous configuration of  ConnectivityCheckType.
-             * Blindly try to stop the Connectivity check services if running.
+             * Try to stop the Connectivity check services if running.
              */
 #ifdef FEATURE_IPOE_HEALTH_CHECK
             if(pWanIfaceCtrl->IhcPid > 0)
@@ -469,9 +469,25 @@ static void WanMgr_MonitorDhcpApps (WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
                 WanMgr_Configure_TAD_WCC( p_VirtIf,  WCC_STOP);        
             }
             p_VirtIf->IP.ConnectivityCheckRunning = FALSE;
+            //Since we are stopping Connectivity Check, Reset ConnectivityStatus to UP.
+            p_VirtIf->IP.Ipv4ConnectivityStatus = WAN_CONNECTIVITY_UP;
+            p_VirtIf->IP.Ipv6ConnectivityStatus = WAN_CONNECTIVITY_UP;
         }
+
+        //Start the new connectivity check 
         WanMgr_StartConnectivityCheck(pWanIfaceCtrl); 
         p_VirtIf->IP.WCC_TypeChanged  = FALSE; //Reset the flag
+
+#ifdef FEATURE_IPOE_HEALTH_CHECK
+        if ( p_VirtIf->Status == WAN_IFACE_STATUS_UP && pWanIfaceCtrl->IhcPid > 0 )
+        { 
+            if(p_VirtIf->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_UP)
+                WanMgr_SendMsgTo_ConnectivityCheck(pWanIfaceCtrl, CONNECTION_MSG_IPV4 , TRUE);
+
+            if(p_VirtIf->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_UP)
+                WanMgr_SendMsgTo_ConnectivityCheck(pWanIfaceCtrl, CONNECTION_MSG_IPV6 , TRUE);
+        }
+#endif
     }
 
 #ifdef FEATURE_IPOE_HEALTH_CHECK
