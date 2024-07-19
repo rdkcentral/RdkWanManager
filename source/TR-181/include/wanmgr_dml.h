@@ -352,6 +352,7 @@ typedef struct _DML_WANIFACE_IP
     DML_WAN_IP_SOURCE           IPv6Source;
     BOOL                        ConnectivityCheckRunning;
     BOOL                        RestartConnectivityCheck;
+    BOOL                        WCC_TypeChanged; // Flag to notify change in ConnectivityCheckType
     BOOL                        RefreshDHCP;
     BOOL                        RestartV6Client; //This is a workaround to restart dhcpv6 client for the platform where PAM configures IPv6. !FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE
     DML_WAN_IP_MODE             Mode;
