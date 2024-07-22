@@ -228,6 +228,12 @@
                                     <writable>true</writable>
                                 </parameter>
                                 <parameter>
+                                    <name>EnableIPoEHealthCheck</name>
+                                    <type>boolean</type>
+                                    <syntax>bool</syntax>
+                                    <writable>true</writable>
+                                </parameter>
+                                <parameter>
                                     <name>EnableDHCP</name>
                                     <type>boolean</type>
                                     <syntax>bool</syntax>

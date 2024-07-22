@@ -313,6 +313,7 @@ int main(int argc, char* argv[])
     pComponentName          = COMPONENT_NAME_WANMANAGER;
 
     rdk_logger_init(DEBUG_INI_NAME);
+    CcspTraceInfo(("Version : %s \n",GIT_VERSION ));
 
     //DATA INIT
     WanMgr_Data_Init();
