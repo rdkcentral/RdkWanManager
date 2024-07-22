@@ -60,7 +60,6 @@
 #include "wanmgr_rdkbus_common.h"
 #include "wanmgr_data.h"
 #include "ansc_platform.h"
-#include "platform_hal.h"
 #include "wanmgr_sysevents.h"
 #include <sysevent/sysevent.h>
 extern int sysevent_fd;
@@ -211,4 +210,5 @@ ANSC_STATUS WanMgr_GetSelectedIPMode(DML_VIRTUAL_IFACE * pVirtIf);
 
 ANSC_STATUS  WanMgr_SetDnsConnectivityCheck(BOOL Enable);
 BOOL WanMgr_GetDnsConnectivityCheck(void);
+ANSC_STATUS WanMgr_SetConnectivityCheckTypeToPSM(DML_VIRTUAL_IFACE* pVirtIf, CONNECTIVITY_CHECK_TYPE type);
 #endif /* _WANMGR_RDKBUS_UTILS_H_ */

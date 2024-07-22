@@ -1508,6 +1508,15 @@ BOOL WanVirtualIf_GetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BO
             *pBool = p_VirtIf->EnableDSLite;
             ret = TRUE;
         }
+        if (strcmp(ParamName, "EnableIPoEHealthCheck") == 0)
+        {
+            *pBool = FALSE;
+            if (p_VirtIf->IP.ConnectivityCheckType == WAN_CONNECTIVITY_TYPE_IHC)
+            {
+                *pBool = TRUE;
+            }
+            ret = TRUE;
+        }
         if (strcmp(ParamName, "EnableMAPT") == 0)
         {
             *pBool = p_VirtIf->EnableMAPT;
@@ -1578,6 +1587,19 @@ BOOL WanVirtualIf_SetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BO
         {
             p_VirtIf->EnableDSLite = bValue;
             ret = TRUE;
+        }
+        if (strcmp(ParamName, "EnableIPoEHealthCheck") == 0)
+        {
+            CONNECTIVITY_CHECK_TYPE type = bValue? WAN_CONNECTIVITY_TYPE_IHC:WAN_CONNECTIVITY_TYPE_NO_CHECK;
+                if((type != p_VirtIf->IP.ConnectivityCheckType) &&
+                   ((type != WAN_CONNECTIVITY_TYPE_NO_CHECK) ||
+                    (p_VirtIf->IP.ConnectivityCheckType == WAN_CONNECTIVITY_TYPE_IHC)))
+            {
+                WanMgr_SetConnectivityCheckTypeToPSM(p_VirtIf, type);
+                p_VirtIf->IP.WCC_TypeChanged = TRUE;
+                p_VirtIf->IP.ConnectivityCheckType = type;
+                ret = TRUE;
+            }
         }
         if (strcmp(ParamName, "EnableMAPT") == 0)
         {

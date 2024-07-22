@@ -66,7 +66,7 @@
 extern char g_Subsystem[32];
 extern ANSC_HANDLE bus_handle;
 
-static ANSC_STATUS WanMgr_SetConnectivityCheckTypeToPSM(DML_VIRTUAL_IFACE* pVirtIf, CONNECTIVITY_CHECK_TYPE type)
+ANSC_STATUS WanMgr_SetConnectivityCheckTypeToPSM(DML_VIRTUAL_IFACE* pVirtIf, CONNECTIVITY_CHECK_TYPE type)
 {
     int result = ANSC_STATUS_SUCCESS;
     int retPsmSet = CCSP_SUCCESS;
@@ -106,7 +106,8 @@ BOOL WanMgr_GetDnsConnectivityCheck(void)
                 if(p_VirtIf != NULL)
                 {
                     ctl = (p_VirtIf->IP.ConnectivityCheckType == WAN_CONNECTIVITY_TYPE_TAD)? true:false;
-                    break;
+                    WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+                    return ctl;
                 }
             }
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
@@ -133,27 +134,23 @@ ANSC_STATUS  WanMgr_SetDnsConnectivityCheck(BOOL Enable)
             for(int virIf_id=0; virIf_id< pWanIfaceData->NoOfVirtIfs; virIf_id++)
             {
                 DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIfaceById(pWanIfaceData->VirtIfList, virIf_id);
-                if(p_VirtIf->IP.ConnectivityCheckType != WAN_CONNECTIVITY_TYPE_IHC)
+                if((type != p_VirtIf->IP.ConnectivityCheckType) &&
+                   ((type != WAN_CONNECTIVITY_TYPE_NO_CHECK) ||
+                    (p_VirtIf->IP.ConnectivityCheckType == WAN_CONNECTIVITY_TYPE_TAD)))
                 {
                     if (WanMgr_SetConnectivityCheckTypeToPSM(p_VirtIf, type) == ANSC_STATUS_SUCCESS)
                     {
                         p_VirtIf->IP.ConnectivityCheckType = type;
+                        p_VirtIf->IP.WCC_TypeChanged = TRUE;
                         retStatus = ANSC_STATUS_SUCCESS;
+                        CcspTraceInfo(("%s-%d: RFC- DNS Connectivity Check %s, Type=%s", __FUNCTION__, __LINE__,
+                                        (Enable? "Enabled":"Disabled"), (Enable? "TAD":"None")));
                     }
-                }
-                else
-                {
-                    CcspTraceError(("%s-%d: Failed to %s RFC DNS Connectivity Check , IPoE Enabled", 
-                                            __FUNCTION__, __LINE__, (Enable? "Enabled":"Disabled")));
-                    retStatus = ANSC_STATUS_FAILURE;
-                    break;
                 }
             }
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
         }
     }
-    CcspTraceInfo(("%s-%d: RFC- DNS Connectivity Check %s, Type=%s", __FUNCTION__, __LINE__, 
-                          (Enable? "Enabled":"Disabled"), (Enable? "TAD":"None")));
     return retStatus;
 }
 

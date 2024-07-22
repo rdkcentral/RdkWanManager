@@ -41,7 +41,8 @@
 #ifdef RBUS_BUILD_FLAG_ENABLE
 #include "wanmgr_rbus_handler_apis.h"
 #endif //RBUS_BUILD_FLAG_ENABLE
-//
+#include "wanmgr_webconfig_apis.h"
+
 #define PSM_ENABLE_STRING_TRUE  "TRUE"
 #define PSM_ENABLE_STRING_FALSE  "FALSE"
 #define PPP_LINKTYPE_PPPOA "PPPoA"
@@ -228,8 +229,17 @@ int get_Virtual_Interface_FromPSM(ULONG instancenum, ULONG virtInsNum ,DML_VIRTU
     _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_ENABLE_MAPT, instancenum, (virtInsNum + 1));
     retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
 
+    /* Checking MAPT_Enable syscfg to handle RFC migration scenarios */
+    char maptRfc[16] ={0};
+    syscfg_get(NULL, "MAPT_Enable", maptRfc, sizeof(maptRfc));
+    
     if(strcmp(param_value, PSM_ENABLE_STRING_TRUE) == 0)
     {
+        pVirtIf->EnableMAPT = TRUE;
+    }
+    else if( strcmp(maptRfc, "true") == 0)
+    {
+        CcspTraceInfo(("%s %d Enabling MAPT based on MAPT_Enable syscfg \n", __FUNCTION__, __LINE__));
         pVirtIf->EnableMAPT = TRUE;
     }
 
@@ -241,19 +251,6 @@ int get_Virtual_Interface_FromPSM(ULONG instancenum, ULONG virtInsNum ,DML_VIRTU
     if(strcmp(param_value, PSM_ENABLE_STRING_TRUE) == 0)
     {
         pVirtIf->EnableDSLite = TRUE;
-    }
-
-    _ansc_memset(param_name, 0, sizeof(param_name));
-    _ansc_memset(param_value, 0, sizeof(param_value));
-    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_ENABLE_IPOE, instancenum, (virtInsNum + 1));
-    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
-
-    if(strcmp(param_value, PSM_ENABLE_STRING_TRUE) == 0)
-    {
-        pVirtIf->EnableIPoE = TRUE;
-        CcspTraceInfo(("%s %d IP.ConnectivityCheckType set to WAN_CONNECTIVITY_TYPE_IHC \n", __FUNCTION__, __LINE__));
-        /* Set ConnectivityCheckType to IPOE Health Check if it is enabled. */
-        pVirtIf->IP.ConnectivityCheckType = WAN_CONNECTIVITY_TYPE_IHC;
     }
 
     _ansc_memset(param_name, 0, sizeof(param_name));
@@ -382,6 +379,25 @@ int get_Virtual_Interface_FromPSM(ULONG instancenum, ULONG virtInsNum ,DML_VIRTU
     }
 }
 
+int get_Remote_Virtual_Interface_FromPSM(ULONG instancenum, ULONG virtInsNum ,DML_VIRTUAL_IFACE * pVirtIf)
+{
+    int retPsmGet = CCSP_SUCCESS;
+    char param_value[256];
+    char param_name[512];
+    CcspTraceInfo(("%s %d Update Wan Virtual iface Conf from PSM \n", __FUNCTION__, __LINE__));
+
+    pVirtIf->VirIfIdx = virtInsNum;
+
+    _ansc_memset(param_name, 0, sizeof(param_name));
+    _ansc_memset(param_value, 0, sizeof(param_value));
+    _ansc_sprintf(param_name, PSM_WANMANAGER_CONNECTIVITY_CHECK_TYPE, instancenum, (virtInsNum + 1));
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
+    if(retPsmGet == CCSP_SUCCESS)
+    {
+        _ansc_sscanf(param_value, "%d", &(pVirtIf->IP.ConnectivityCheckType));
+    }
+}
+
 void WanMgr_getRemoteWanIfName(char *IfaceName,int Size)
 {
     char* val=NULL;
@@ -479,19 +495,6 @@ int write_Virtual_Interface_ToPSM(ULONG instancenum, ULONG virtInsNum ,DML_VIRTU
     char param_value[256] = {0};
 
     CcspTraceInfo(("%s %d Entered\n", __FUNCTION__, __LINE__));
-
-    memset(param_value, 0, sizeof(param_value));
-    memset(param_name, 0, sizeof(param_name));
-    if(pVirtIf->EnableIPoE == TRUE)
-    {
-        _ansc_sprintf(param_value, "TRUE");
-    }
-    else
-    {
-        _ansc_sprintf(param_value, "FALSE");
-    }
-    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_ENABLE_IPOE, instancenum, (virtInsNum + 1));
-    WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
 
     memset(param_value, 0, sizeof(param_value));
     memset(param_name, 0, sizeof(param_name));
@@ -1748,6 +1751,8 @@ ANSC_STATUS Update_Interface_Status()
     bool    publishCurrentStandbyInf = FALSE;
 #endif
     int uiLoopCount;
+    /*should allow WebConfig Handler Registartion Once.*/
+    static bool RegisterWebConfigOnce = false;
 
     WanMgr_Config_Data_t*   pWanConfigData = WanMgr_GetConfigData_locked();
     if (pWanConfigData != NULL)
@@ -1815,6 +1820,22 @@ ANSC_STATUS Update_Interface_Status()
                     /*In Modem/Extender Mode, CurrentActiveInterface should be always Mesh Interface Name*/
                     strncpy(newIface->CurrentActive, MESH_IFNAME, sizeof(MESH_IFNAME));
                 }
+                /*should allow WebConfig API Handler Registartion Once */
+		if (RegisterWebConfigOnce == false)
+                {
+                    if(((pWanIfaceData->IfaceType == REMOTE_IFACE &&
+                         p_VirtIf->Status == WAN_IFACE_STATUS_UP &&
+                         p_VirtIf->RemoteStatus == WAN_IFACE_STATUS_UP) ||
+                        (pWanIfaceData->IfaceType == LOCAL_IFACE &&
+                        p_VirtIf->Status == WAN_IFACE_STATUS_UP)) )
+                    {
+                        if (WanMgrDmlWanWebConfigInit() == ANSC_STATUS_SUCCESS)
+                        {
+                            RegisterWebConfigOnce = true;
+                        }
+                    }
+                }
+
                 /* Sort the link list based on priority */
                 SortedInsert(&head, newIface);
             }

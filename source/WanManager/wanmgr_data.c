@@ -759,7 +759,6 @@ void WanMgr_VirtIface_Init(DML_VIRTUAL_IFACE * pVirtIf, UINT iface_index)
     pVirtIf->OperationalStatus = WAN_OPERSTATUS_UNKNOWN;
     pVirtIf->EnableMAPT = FALSE;
     pVirtIf->EnableDSLite = FALSE;
-    pVirtIf->EnableIPoE = FALSE;
     pVirtIf->IP.RefreshDHCP = FALSE;        // RefreshDHCP is set when there is a change in IP source
     pVirtIf->IP.RestartV6Client = FALSE;
     pVirtIf->Status = WAN_IFACE_STATUS_DISABLED;
@@ -906,6 +905,9 @@ ANSC_STATUS WanMgr_Remote_IfaceData_configure(char *remoteCPEMac, int  *iface_in
                 p_VirtIf->Enable = TRUE;
                 p_VirtIf->IP.IPv6Source = DML_WAN_IP_SOURCE_STATIC;
                 strncpy(p_VirtIf->Name, REMOTE_INTERFACE_NAME, sizeof(p_VirtIf->Name));
+                //setting DNS Connectivity Check for Remote Interface from PSM Wan Interface 1.
+                get_Remote_Virtual_Interface_FromPSM(1, i, p_VirtIf);
+
                 CcspTraceInfo(("%s %d - Adding Remote Interface Index = [%d]\n", __FUNCTION__, __LINE__,p_VirtIf->baseIfIdx));
                 WanMgr_AddVirtualToList(&(pIfaceData->data.VirtIfList), p_VirtIf);
             }
