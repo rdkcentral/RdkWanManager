@@ -2024,6 +2024,13 @@ static eWanState_t wan_transition_wan_validated(WanMgr_IfaceSM_Controller_t* pWa
         }
     }
 
+    if(pInterface->IfaceType == REMOTE_IFACE)
+    {
+        /* Mesh ULA ipv6 address is statically assigned for remote interface. copying to WanManager struct for tr181 DML */
+        CcspTraceInfo(("%s %d - Interface '%s' - Assigning Static ULA Ipv6 Address\n", __FUNCTION__, __LINE__, pInterface->Name));
+        sysevent_get(sysevent_fd, sysevent_token, "MeshRemoteWANInterface_UlaAddr", p_VirtIf->IP.Ipv6Data.address, sizeof(p_VirtIf->IP.Ipv6Data.address));
+    }
+
     return WAN_STATE_OBTAINING_IP_ADDRESSES;
 }
 

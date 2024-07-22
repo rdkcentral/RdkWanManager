@@ -1839,7 +1839,7 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
         memcpy(&(pVirtIf->IP.Ipv6Data), &(Ipv6DataTemp), sizeof(WANMGR_IPV6_DATA));
         pVirtIf->IP.Ipv6Status = WAN_IFACE_IPV6_STATE_UP;
 #if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE) || (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_))  //TODO: V6 handled in PAM
-        //If only Ipv6 prefix is renewed, IPv6 address is not shared in the lease details. Use the detetcted Ipv6 address.
+        //If only Ipv6 prefix is renewed, IPv6 address is not shared in the lease details. Use the detected Ipv6 address.
         if(strlen(guAddrPrefix) > 0 && strlen(pVirtIf->IP.Ipv6Data.address) <= 0) 
         {
             strncpy(pVirtIf->IP.Ipv6Data.address,guAddrPrefix, sizeof(pVirtIf->IP.Ipv6Data.address));
