@@ -3053,7 +3053,22 @@ static WcFmobPolicyState_t State_WanInterfaceActive(WanMgr_AutoWan_SMInfo_t *pSm
 #if defined(FEATURE_TAD_HEALTH_CHECK)
     if (pFixedInterface->VirtIfList != NULL)
     {
-        if((pFixedInterface->VirtIfList->IP.ConnectivityCheckType == WAN_CONNECTIVITY_TYPE_TAD) &&
+        if(pFixedInterface->VirtIfList->IP.ConnectivityCheckType == WAN_CONNECTIVITY_TYPE_TAD)
+        {
+            if(pFixedInterface->VirtIfList->IP.Ipv4ConnectivityStatus == WAN_CONNECTIVITY_DOWN &&
+               pFixedInterface->VirtIfList->IP.Ipv6ConnectivityStatus == WAN_CONNECTIVITY_DOWN)
+            {
+                if(WanMgr_Sysevent_GetConnectivityCheckState() == NET_CONNNECTIVITY_CHECK_DISABLED)
+                {
+                    WanMgr_Sysevent_SetConnectivityCheckState(NET_CONNNECTIVITY_CHECK_STARTED);
+                    if (WanMgr_Trigger_TAD(pFixedInterface, WCC_START) == ANSC_STATUS_SUCCESS)
+                    {
+                        pFixedInterface->VirtIfList->IP.RestartConnectivityCheck = FALSE;
+                    }
+                }
+            }
+        }
+	else if((pFixedInterface->VirtIfList->IP.ConnectivityCheckType == WAN_CONNECTIVITY_TYPE_TAD) &&
            ((isAnyRemoteInterfaceActive() >= WAN_IFACE_SELECTED)) )
         {
             if(pFixedInterface->VirtIfList->IP.Ipv4ConnectivityStatus == WAN_CONNECTIVITY_DOWN &&
@@ -3068,6 +3083,20 @@ static WcFmobPolicyState_t State_WanInterfaceActive(WanMgr_AutoWan_SMInfo_t *pSm
                 TelemetryBackUpStatus = STATUS_SWITCHOVER_STARTED;
 #endif
                 retState = Transition_DnsConnectivityCheckUp(pSmInfo);
+            }
+        }
+	else if( pFixedInterface->VirtIfList->IP.ConnectivityCheckType != WAN_CONNECTIVITY_TYPE_TAD )
+        {
+            if(pFixedInterface->VirtIfList->IP.Ipv4ConnectivityStatus == WAN_CONNECTIVITY_UP ||
+               pFixedInterface->VirtIfList->IP.Ipv6ConnectivityStatus == WAN_CONNECTIVITY_UP)
+            {
+                pFixedInterface->VirtIfList->IP.Ipv4ConnectivityStatus = WAN_CONNECTIVITY_DOWN;
+                pFixedInterface->VirtIfList->IP.Ipv6ConnectivityStatus = WAN_CONNECTIVITY_DOWN;
+                WanMgr_Sysevent_SetConnectivityCheckState(NET_CONNNECTIVITY_CHECK_DISABLED);
+                if (WanMgr_Trigger_TAD(pFixedInterface, WCC_STOP) == ANSC_STATUS_SUCCESS)
+                {
+                    pFixedInterface->VirtIfList->IP.RestartConnectivityCheck = FALSE;
+                }
             }
         }
     }
@@ -3162,8 +3191,17 @@ static WcFmobPolicyState_t State_WanInterfaceUp(WanMgr_AutoWan_SMInfo_t *pSmInfo
     {
         char buf[8] = {0};
         int val = 0;
+        // disable tad
+	// enable tad
+	if()
         if(pFixedInterface->VirtIfList->IP.ConnectivityCheckType == WAN_CONNECTIVITY_TYPE_TAD)
         {
+            // TAD enabled , while down
+            if(pFixedInterface->VirtIfList->IP.Ipv4ConnectivityStatus == WAN_CONNECTIVITY_DOWN &&
+               pFixedInterface->VirtIfList->IP.Ipv6ConnectivityStatus == WAN_CONNECTIVITY_DOWN)
+            {
+	    }
+            //TAD Enabled, while up
             if(pFixedInterface->VirtIfList->IP.Ipv4ConnectivityStatus == WAN_CONNECTIVITY_UP ||
                pFixedInterface->VirtIfList->IP.Ipv6ConnectivityStatus == WAN_CONNECTIVITY_UP)
             {
@@ -3191,6 +3229,18 @@ static WcFmobPolicyState_t State_WanInterfaceUp(WanMgr_AutoWan_SMInfo_t *pSmInfo
                     }
                 }
             }
+        }
+        else if(pFixedInterface->VirtIfList->IP.ConnectivityCheckType != WAN_CONNECTIVITY_TYPE_TAD)
+        {   // TAD disabled , while it was up
+            if(pFixedInterface->VirtIfList->IP.Ipv4ConnectivityStatus == WAN_CONNECTIVITY_UP ||
+               pFixedInterface->VirtIfList->IP.Ipv6ConnectivityStatus == WAN_CONNECTIVITY_UP)
+            {
+	    }
+	    //TAD disable, wile it was down
+	    else if(pFixedInterface->VirtIfList->IP.Ipv4ConnectivityStatus == WAN_CONNECTIVITY_DOWN &&
+               pFixedInterface->VirtIfList->IP.Ipv6ConnectivityStatus == WAN_CONNECTIVITY_DOWN)
+            {
+	    }
         }
     }
 #endif
