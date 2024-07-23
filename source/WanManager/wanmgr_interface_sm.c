@@ -43,6 +43,8 @@
 #define DEFAULT_IFNAME    "erouter0"
 #define LOOP_TIMEOUT 50000 // timeout in microseconds. This is the state machine loop interval
 #define RESOLV_CONF_FILE "/etc/resolv.conf"
+#define XDNS_CONF_FILE "/nvram/dnsmasq_servers.conf"
+#define SYSCFG_XDNS_ENABLE "X_RDKCENTRAL-COM_XDNS"
 #define LOOPBACK "127.0.0.1"
 
 #ifdef FEATURE_IPOE_HEALTH_CHECK
@@ -879,10 +881,37 @@ int wan_updateDNS(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl, BOOL addIPv4, BOOL
     {
         CcspTraceInfo(("%s %d: No change not Setting %s\n", __FUNCTION__, __LINE__, SYSEVENT_DHCP_SERVER_RESTART));
     }
-
-    if (valid_dns == TRUE)
+    char XDSEnableString[16] = { 0 };
+    if (valid_dns == TRUE && \
+       (syscfg_get(NULL, SYSCFG_XDNS_ENABLE, XDSEnableString, sizeof(XDSEnableString)) == CMSRET_SUCCESS) && \
+       ( XDSEnableString[0] == '1' ) )
     {
-        CcspTraceInfo(("%s %d - Active domainname servers set!\n", __FUNCTION__,__LINE__));
+        FILE *fp1 = NULL;
+        /*ReadXDNSnameserverentriesfromorignalxdnsconfandwriteintoresolv.conffile*/
+        if((fp1=fopen(XDNS_CONF_FILE,"r"))==NULL)
+        {
+            CcspTraceError(("%s%d-Open%serror!\n",__FUNCTION__,__LINE__,XDNS_CONF_FILE));
+        }
+        else
+        {
+            charbuf[BUFLEN_256]={0};
+            //GetXDNSconffileentries
+            while(NULL!=fgets(buf,sizeof(buf),fp1))
+        {
+            buf[strcspn(buf,"\n")]=0;//removenewlinechar
+        if(!strlen(buf))
+        {
+            //Clearbuffer
+            memset(buf,0,sizeof(buf));
+            continue;
+        }
+        fprintf(fp,"%s\n",buf);
+        //Clearbuffer
+        memset(buf,0,sizeof(buf));
+        }
+        fclose(fp1);
+        fp1 = NULL;
+     }
     }
     else
     {
@@ -898,6 +927,7 @@ int wan_updateDNS(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl, BOOL addIPv4, BOOL
         fclose(fp);
     }
 
+    CcspTraceInfo(("%s %d - Active domainname servers set!\n", __FUNCTION__,__LINE__));
     return ret;
 }
 
