@@ -883,7 +883,7 @@ int wan_updateDNS(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl, BOOL addIPv4, BOOL
     }
     char XDSEnableString[16] = { 0 };
     if (valid_dns == TRUE && \
-       (syscfg_get(NULL, SYSCFG_XDNS_ENABLE, XDSEnableString, sizeof(XDSEnableString)) == CMSRET_SUCCESS) && \
+       (syscfg_get(NULL, SYSCFG_XDNS_ENABLE, XDSEnableString, sizeof(XDSEnableString)) == 0 ) && \
        ( XDSEnableString[0] == '1' ) )
     {
         FILE *fp1 = NULL;
@@ -894,24 +894,24 @@ int wan_updateDNS(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl, BOOL addIPv4, BOOL
         }
         else
         {
-            charbuf[BUFLEN_256]={0};
+            char buf[BUFLEN_256]={0};
             //GetXDNSconffileentries
             while(NULL!=fgets(buf,sizeof(buf),fp1))
-        {
-            buf[strcspn(buf,"\n")]=0;//removenewlinechar
-        if(!strlen(buf))
-        {
-            //Clearbuffer
-            memset(buf,0,sizeof(buf));
-            continue;
+            {
+                buf[strcspn(buf,"\n")]=0;//removenewlinechar
+                if(!strlen(buf))
+                {
+                    //Clearbuffer
+                    memset(buf,0,sizeof(buf));
+                    continue;
+                }
+                fprintf(fp,"%s\n",buf);
+                //Clearbuffer
+                memset(buf,0,sizeof(buf));
+            }  
+            fclose(fp1);
+            fp1 = NULL;
         }
-        fprintf(fp,"%s\n",buf);
-        //Clearbuffer
-        memset(buf,0,sizeof(buf));
-        }
-        fclose(fp1);
-        fp1 = NULL;
-     }
     }
     else
     {
