@@ -50,8 +50,6 @@ m4_define([GIT_VERSION],
 AC_SUBST([GIT_VERSION], [GIT_VERSION])
 
 
-
-
 dnl **********************************
 dnl checks for dependencies
 dnl **********************************

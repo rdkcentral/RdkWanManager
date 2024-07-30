@@ -1616,12 +1616,14 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
                    pNewIpcMsg->maptAssigned, pNewIpcMsg->mapeAssigned,
                    pNewIpcMsg->dnsAssigned, pNewIpcMsg->nameserver, pNewIpcMsg->nameserver1, pNewIpcMsg->aftrAssigned, pNewIpcMsg->aftr, pNewIpcMsg->isExpired));
 
+    WANMGR_IPV6_DATA Ipv6DataTemp; // Holds the new lease from the IPC message
+    wanmgr_dchpv6_get_ipc_msg_info(&(Ipv6DataTemp), pNewIpcMsg);
+
     /*Check lease expiry*/
     if (pNewIpcMsg->isExpired)
     {
         CcspTraceInfo(("DHCP6LeaseExpired\n"));
         // update current IPv6 data
-        wanmgr_dchpv6_get_ipc_msg_info(&(pVirtIf->IP.Ipv6Data), pNewIpcMsg);
         WanManager_UpdateInterfaceStatus(pVirtIf, WANMGR_IFACE_CONNECTION_IPV6_DOWN);
 
         //Free buffer
@@ -1661,6 +1663,14 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
         }
 #endif
     }
+#if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
+    else if(pDhcp6cInfoCur->addrAssigned && Ipv6DataTemp.prefixAssigned)
+    {
+        CcspTraceWarning(("%s %d IANA is not assigned in this IPC msg, but we have IANA configured from previous lease. Assuming only IAPD renewed. \n", __FUNCTION__, __LINE__));
+        strncpy(Ipv6DataTemp.address, pDhcp6cInfoCur->address, sizeof(Ipv6DataTemp.address)); 
+        pNewIpcMsg->addrAssigned = true;
+    }
+#endif
 
     /* dhcp6c receives prefix delegation for LAN */
     if (pNewIpcMsg->prefixAssigned && !IS_EMPTY_STRING(pNewIpcMsg->sitePrefix))
@@ -1736,6 +1746,15 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
             }
         }
     }
+#if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
+    else if(pDhcp6cInfoCur->prefixAssigned &&  Ipv6DataTemp.addrAssigned)
+    {
+        CcspTraceWarning(("%s %d IAPD is not assigned in this IPC msg, but we have IAPD configured from previous lease. Assuming only IANA renewed. \n", __FUNCTION__, __LINE__));
+        strncpy(Ipv6DataTemp.sitePrefix, pDhcp6cInfoCur->sitePrefix, sizeof(Ipv6DataTemp.sitePrefix)); 
+        strncpy(Ipv6DataTemp.pdIfAddress, pDhcp6cInfoCur->pdIfAddress, sizeof(Ipv6DataTemp.pdIfAddress));
+        pNewIpcMsg->prefixAssigned = true; 
+    }
+#endif
 
 #if !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)&& !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_))  //TODO: V6 handled in PAM
     /* dhcp6c receives domain name information */
@@ -1791,24 +1810,24 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
 
     if (connected)
     {
-        WANMGR_IPV6_DATA Ipv6DataTemp;
-        wanmgr_dchpv6_get_ipc_msg_info(&(Ipv6DataTemp), pNewIpcMsg);
-
 #if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE) || (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_))//Do not compare if pdIfAddress and sitePrefix is empty. pdIfAddress Will be calculated while configuring LAN prefix.  //TODO: V6 handled in PAM
         if ((strlen(Ipv6DataTemp.address) > 0 && strcmp(Ipv6DataTemp.address, pDhcp6cInfoCur->address)) ||
-            ((Ipv6DataTemp.pdIfAddress) && (strlen(Ipv6DataTemp.pdIfAddress) > 0)&&
-            (strcmp(Ipv6DataTemp.pdIfAddress, pDhcp6cInfoCur->pdIfAddress))) ||
-            ((Ipv6DataTemp.sitePrefix) && (strlen(Ipv6DataTemp.sitePrefix) > 0)&&
-            (strcmp(Ipv6DataTemp.sitePrefix, pDhcp6cInfoCur->sitePrefix)))||
+            ((strlen(Ipv6DataTemp.pdIfAddress) > 0) && (strcmp(Ipv6DataTemp.pdIfAddress, pDhcp6cInfoCur->pdIfAddress))) ||
+            ((strlen(Ipv6DataTemp.sitePrefix) > 0) && (strcmp(Ipv6DataTemp.sitePrefix, pDhcp6cInfoCur->sitePrefix)))||
 #else
         if (strcmp(Ipv6DataTemp.address, pDhcp6cInfoCur->address) ||
                 strcmp(Ipv6DataTemp.pdIfAddress, pDhcp6cInfoCur->pdIfAddress) ||
                 strcmp(Ipv6DataTemp.sitePrefix, pDhcp6cInfoCur->sitePrefix) ||
 #endif
                 strcmp(Ipv6DataTemp.nameserver, pDhcp6cInfoCur->nameserver) ||
-                strcmp(Ipv6DataTemp.nameserver1, pDhcp6cInfoCur->nameserver1))
+                 strcmp(Ipv6DataTemp.nameserver1, pDhcp6cInfoCur->nameserver1))
         {
             CcspTraceInfo(("IPv6 configuration has been changed \n"));
+            CcspTraceInfo(("IPv6 address new %s  : cur %s \n",Ipv6DataTemp.address , pDhcp6cInfoCur->address));
+            CcspTraceInfo(("IPv6 pdIfAddress new %s  : cur %s \n",Ipv6DataTemp.pdIfAddress , pDhcp6cInfoCur->pdIfAddress));
+            CcspTraceInfo(("IPv6 sitePrefix new %s  : cur %s \n",Ipv6DataTemp.sitePrefix , pDhcp6cInfoCur->sitePrefix));
+            CcspTraceInfo(("IPv6 nameserver new %s  : cur %s \n",Ipv6DataTemp.nameserver, pDhcp6cInfoCur->nameserver));
+            CcspTraceInfo(("IPv6 nameserver1 new %s  : cur %s \n",Ipv6DataTemp.nameserver1, pDhcp6cInfoCur->nameserver1));
             pVirtIf->IP.Ipv6Changed = TRUE;
             CcspTraceInfo(("%s %d - RestartConnectivityCheck triggered. \n", __FUNCTION__, __LINE__));
 

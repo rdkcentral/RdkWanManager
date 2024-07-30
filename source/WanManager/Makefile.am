@@ -19,8 +19,6 @@
 
 bin_PROGRAMS = wanmanager
 
-
-
 wanmanager_DEPENDENCIES = \
         $(EXTRA_DEPENDENCIES) \
         ${top_builddir}/source/TR-181/middle_layer_src/libCcspWanManager_middle_layer_src.la
