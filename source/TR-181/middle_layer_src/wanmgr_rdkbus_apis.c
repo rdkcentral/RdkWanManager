@@ -275,8 +275,7 @@ int get_Virtual_Interface_FromPSM(ULONG instancenum, ULONG virtInsNum ,DML_VIRTU
         pVirtIf->Enable = TRUE;
     }
 
-//#if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE) /* TODO: This is a workaround for the platforms using same Wan Name.*/
-#if  !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_))
+#if  !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_)) /* TODO: This is a workaround for the platforms using same Wan Name.*/
     _ansc_memset(param_name, 0, sizeof(param_name));
     _ansc_memset(param_value, 0, sizeof(param_value));
     _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_NAME, instancenum, (virtInsNum + 1));
@@ -534,7 +533,8 @@ int write_Virtual_Interface_ToPSM(ULONG instancenum, ULONG virtInsNum ,DML_VIRTU
     _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_ENABLE, instancenum, (virtInsNum + 1));
     WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
 
-#if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE) /* TODO: This is a workaround for the platforms using same Wan Name.*/
+#if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)  && !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_)) 
+    /* TODO: Build flag check is a workaround for the platforms using same Wan Name. */
     memset(param_value, 0, sizeof(param_value));
     memset(param_name, 0, sizeof(param_name));
     AnscCopyString(param_value, pVirtIf->Name);

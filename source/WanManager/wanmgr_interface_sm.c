@@ -1014,10 +1014,6 @@ static int checkIpv6AddressAssignedToBridge(char *IfaceName)
     char lanPrefix[BUFLEN_128] = {0};
     int ret = RETURN_ERR;
 
-#if 1//(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_)) &&  !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)//TODO: V6 handled in PAM
-    CcspTraceWarning(("%s %d Ipv6 handled in PAM. No need to check here.  \n",__FUNCTION__, __LINE__));
-    return RETURN_OK;
-#endif
     sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_GLOBAL_IPV6_PREFIX_SET, lanPrefix, sizeof(lanPrefix));
 
     if(strlen(lanPrefix) > 0)
@@ -1748,7 +1744,6 @@ static eWanState_t wan_transition_start(WanMgr_IfaceSM_Controller_t* pWanIfaceCt
         CcspTraceInfo(("%s %d - Already WAN interface %s created\n", __FUNCTION__, __LINE__, p_VirtIf->Name));
     }
 
-//#if !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE) 
 #if  (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_))
     if(pInterface->IfaceType != REMOTE_IFACE)
     {
@@ -2821,7 +2816,6 @@ static eWanState_t wan_transition_exit(WanMgr_IfaceSM_Controller_t* pWanIfaceCtr
     Update_Interface_Status();
     CcspTraceInfo(("%s %d - Interface '%s' - EXITING STATE MACHINE\n", __FUNCTION__, __LINE__, pInterface->Name));
 
-//#if !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE) 
 #if  (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_))
     /* TODO:This is a workaround for the platforms using same Wan Name.*/
     if(pInterface->IfaceType != REMOTE_IFACE)
