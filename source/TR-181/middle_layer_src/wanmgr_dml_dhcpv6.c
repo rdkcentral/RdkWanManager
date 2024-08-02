@@ -852,7 +852,13 @@ Client3_GetParamStringValue
     }
     else if (strcmp(ParamName, "Interface") == 0)
     {
+#if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
+        char client_ifname[10] = {0};
+        sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_CURRENT_WAN_IFNAME, client_ifname, sizeof(client_ifname));
+        DmlGetInstanceByKeywordFromPandM(client_ifname, &instanceNumber);
+#else	    
         DmlGetInstanceByKeywordFromPandM(pDhcpc->Cfg.Interface, &instanceNumber);
+#endif	
         snprintf(interface, DATAMODEL_PARAM_LENGTH, PAM_IF_TABLE_OBJECT, instanceNumber);
         if ( interface[0] != '\0' )
         {
