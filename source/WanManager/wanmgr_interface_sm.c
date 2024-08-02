@@ -391,7 +391,7 @@ static BOOL WanMgr_RestartFindExistingLink (WanMgr_IfaceSM_Controller_t* pWanIfa
             p_VirtIf->VLAN.Status = WAN_IFACE_LINKSTATUS_UP;
             ret = TRUE;
             /* If we are here. WanManager is restarted. Do a IPv6 toggle to avoid DAD. */
-            Force_IPv6_toggle(p_VirtIf->Name); 
+            WanManager_send_and_receive_rs(p_VirtIf->Name);
         }
 
     }

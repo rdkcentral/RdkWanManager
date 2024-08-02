@@ -2656,174 +2656,20 @@ ANSC_STATUS WanManager_get_interface_mac(char *interfaceName, char* macAddress, 
 }
 
 //Send and receive RS
-#define MAX_BUFFER_SIZE 1500
-#define RETRIES 3
 #define TIMEOUT 2
-
-unsigned short checksum(void *b, int len) 
-{
-    unsigned short *buf = b;
-    unsigned int sum = 0;
-    unsigned short result;
-
-    for (sum = 0; len > 1; len -= 2)
-        sum += *buf++;
-    if (len == 1)
-        sum += *(unsigned char*)buf;
-    sum = (sum >> 16) + (sum & 0xFFFF);
-    sum += (sum >> 16);
-    result = ~sum;
-    return result;
-}
-
-void parse_router_advertisement(unsigned char *buffer, ssize_t len) 
-{
-    struct icmp6_hdr *hdr = (struct icmp6_hdr *)buffer;
-
-    if (hdr->icmp6_type == ND_ROUTER_ADVERT) 
-    {
-        struct nd_router_advert *ra = (struct nd_router_advert *)buffer;
-        unsigned char *opt_ptr = buffer + sizeof(struct nd_router_advert);
-        ssize_t opt_len = len - sizeof(struct nd_router_advert);
-
-        CcspTraceError(("%s %d: Received Router Advertisement\n", __FUNCTION__, __LINE__));
-        CcspTraceError(("%s %d:Router Lifetime: %d\n",__FUNCTION__, __LINE__,ntohs(ra->nd_ra_router_lifetime)));
-        while (opt_len > 0) 
-        {
-            struct nd_opt_hdr *opt_hdr = (struct nd_opt_hdr *)opt_ptr;
-
-            if (opt_hdr->nd_opt_type == ND_OPT_PREFIX_INFORMATION) 
-            {
-                struct nd_opt_prefix_info *prefix_info = (struct nd_opt_prefix_info *)opt_ptr;
-                char addr_str[INET6_ADDRSTRLEN];
-
-                inet_ntop(AF_INET6, &prefix_info->nd_opt_pi_prefix, addr_str, sizeof(addr_str));
-                CcspTraceError(("%s %d: Default Route Prefix: %s/%d\n", __FUNCTION__, __LINE__, addr_str, prefix_info->nd_opt_pi_prefix_len));
-            }
-            opt_len -= opt_hdr->nd_opt_len * 8;
-            opt_ptr += opt_hdr->nd_opt_len * 8;
-        }
-    }
-}
-
-void WanManager_send_and_receive_rs(const char *interface) 
-{
-    int sock;
-    struct timeval tv;
-    unsigned char buffer[MAX_BUFFER_SIZE];
-    ssize_t len;
-    int retries = 0;
-
-    CcspTraceInfo(("%s %d PARTHI %s ****************************\n", __FUNCTION__, __LINE__, interface));
-
-    struct sockaddr_ll addr = {0};
-    struct icmp6_hdr rs_hdr = {0};
-
-    // Create raw socket for ICMPv6
-    //sock = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_IPV6));
-    sock = socket(AF_PACKET, SOCK_RAW, IPPROTO_ICMPV6);
-    //sock = socket(AF_PACKET, SOCK_DGRAM, IPPROTO_ICMPV6);
-    if (sock < 0) 
-    {
-        CcspTraceError(("%s %d: socket creation failed\n", __FUNCTION__, __LINE__));
-        perror("socket");
-        return;
-    }
-
-    // Set receive timeout
-    tv.tv_sec = TIMEOUT;
-    tv.tv_usec = 0;
-    setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
-  //  setsockopt (sock, SOL_SOCKET, SO_DONTROUTE, &(int){1}, sizeof (int));
-//	setsockopt (sock, IPPROTO_IPV6, IPV6_RECVHOPLIMIT, &(int){ 1 }, sizeof (int));
-    //setsockopt (sock, IPPROTO_IPV6, IPV6_HDRINCL , &optval, sizeof(int));
-
-         
-    // Set the interface index
-    addr.sll_ifindex = if_nametoindex(interface);
-    if (addr.sll_ifindex == 0) 
-    {
-        perror("if_nametoindex");
-        CcspTraceError(("%s %d: get interface index of %s failed\n", __FUNCTION__, __LINE__, interface));
-        close(sock);
-        return;
-    }
-    CcspTraceError(("%s %d: get interface index of %s addr.sll_ifindex %d\n", __FUNCTION__, __LINE__, interface, addr.sll_ifindex));
-
-    // Set the destination to the all-routers multicast address
-    addr.sll_family = AF_PACKET;
-    addr.sll_protocol = htons(ETH_P_IPV6);
-    addr.sll_halen = 6;
-    addr.sll_addr[0] = 0x33;
-    addr.sll_addr[1] = 0x33;
-    addr.sll_addr[2] = 0x00;
-    addr.sll_addr[3] = 0x00;
-    addr.sll_addr[4] = 0x00;
-    addr.sll_addr[5] = 0x02;
-
-    // Create the Router Solicitation ICMPv6 header
-    rs_hdr.icmp6_type = ND_ROUTER_SOLICIT;
-    rs_hdr.icmp6_code = 0;
-    rs_hdr.icmp6_cksum = 0;
-//    rs_hdr.icmp6_cksum = checksum(&rs_hdr, sizeof(rs_hdr));
-    
-    while (retries < RETRIES) 
-    {
-        // Send Router Solicitation
-        if (sendto(sock, &rs_hdr, sizeof(rs_hdr), 0, (struct sockaddr*)&addr, sizeof(addr)) < 0) 
-        {
-            perror("sendto");
-            CcspTraceError(("%s %d: Router Solicitation send failed %s \n", __FUNCTION__, __LINE__, strerror(errno)));
-            close(sock);
-            return;
-        }
-
-        // Receive Router Advertisement
-        len = recv(sock, buffer, MAX_BUFFER_SIZE, 0);
-        if (len < 0) 
-        {
-            if (errno == EAGAIN || errno == EWOULDBLOCK) 
-            {
-                printf("No response, retrying...\n");
-                CcspTraceWarning(("%s %d: No response, retrying... %s\n", __FUNCTION__, __LINE__,  strerror(errno)));
-                retries++;
-                continue;
-            } else {
-                perror("recv");
-                CcspTraceError(("%s %d: Router Solicitation recv failed %s\n", __FUNCTION__, __LINE__, strerror(errno)));
-                close(sock);
-                return;
-            }
-        }
-
-        // Parse the Router Advertisement
-        parse_router_advertisement(buffer, len);
-    }
-
-    if (retries == RETRIES) 
-    {
-        CcspTraceError(("%s %d: No Router Advertisement received after %d retries\n", __FUNCTION__, __LINE__, RETRIES));
-    }
-
-    close(sock);
-}
-
-//########################
 #define RS_MSG_SIZE 8
 #define RA_MSG_SIZE 1024
-#if !__USE_KERNEL_IPV6_DEFS
 struct in6_pktinfo {
     struct in6_addr ipi6_addr;
     unsigned int ipi6_ifindex;
 };
-#endif
 
 int send_router_solicit(int sockfd, struct sockaddr_in6 *dest_addr, const char *if_name) {
     struct icmp6_hdr rs_hdr;
     memset(&rs_hdr, 0, sizeof(rs_hdr));
     rs_hdr.icmp6_type = ND_ROUTER_SOLICIT;
 
-    CcspTraceError(("%s %d: PARTHI \n", __FUNCTION__, __LINE__));
+    CcspTraceInfo(("%s %d:  \n", __FUNCTION__, __LINE__));
     struct msghdr msg;
     struct iovec iov;
     struct sockaddr_in6 src_addr;
@@ -2856,47 +2702,30 @@ int send_router_solicit(int sockfd, struct sockaddr_in6 *dest_addr, const char *
     memset(pktinfo, 0, sizeof(struct in6_pktinfo));
 
     pktinfo->ipi6_ifindex = if_nametoindex(if_name);
-/*
-    int if_index = if_nametoindex(if_name);
-    if (setsockopt(sockfd, IPPROTO_IPV6, IPV6_MULTICAST_IF, &if_index, sizeof(if_index)) < 0) {
-        perror("setsockopt");
-    CcspTraceError(("%s %d: PARTHI %s\n", __FUNCTION__, __LINE__,  strerror(errno)));
-        return -1;
-    }
-*/
     if (sendmsg(sockfd, &msg, 0) < 0) {
-        perror("sendmsg");
-        CcspTraceError(("%s %d: PARTHI sendmsg failed %s\n", __FUNCTION__, __LINE__, strerror(errno)));
+        CcspTraceError(("%s %d: sendmsg failed %s\n", __FUNCTION__, __LINE__, strerror(errno)));
         return -1;
     }
-    CcspTraceError(("%s %d: PARTHI %d \n", __FUNCTION__, __LINE__, pktinfo->ipi6_ifindex));
+    CcspTraceInfo(("%s %d: RS sent from interface %s and index %d \n", __FUNCTION__, __LINE__, if_name, pktinfo->ipi6_ifindex));
 
     return 0;
 }
 
-void receive_router_advert(int sockfd) {
+int  receive_router_advert(int sockfd) 
+{
+    int ret = -1;
     char buffer[RA_MSG_SIZE];
     struct sockaddr_in6 src_addr;
     socklen_t addrlen = sizeof(src_addr);
     ssize_t len;
 
     len = recvfrom(sockfd, buffer, sizeof(buffer), 0, (struct sockaddr *)&src_addr, &addrlen);
-    if (len < 0) {
+    if (len < 0) 
+    {
         perror("recvfrom");
-    CcspTraceError(("%s %d: PARTHI \n", __FUNCTION__, __LINE__));
+        CcspTraceError(("%s %d: recvfrom Failed %s \n", __FUNCTION__, __LINE__, strerror(errno)));
+        return -1;
     }
-
-    CcspTraceError(("%s %d: PARTHI \n", __FUNCTION__, __LINE__));
-/*    struct icmp6_hdr *ra_hdr = (struct icmp6_hdr *)buf;
-    if (ra_hdr->icmp6_type == ND_ROUTER_ADVERT) {
-        printf("Received Router Advertisement\n");
-        CcspTraceError(("%s %d: PARTHI iReceived Router Advertisement\n", __FUNCTION__, __LINE__));
-        // Parse the RA message to extract the default route
-        // This is a simplified example, real parsing would be more complex
-        struct nd_router_advert *ra = (struct nd_router_advert *)buf;
-        printf("Router Lifetime: %d\n", ntohs(ra->nd_ra_router_lifetime));
-        CcspTraceError(("Router Lifetime: %d\n", ntohs(ra->nd_ra_router_lifetime)));
-    }*/
 
     struct icmp6_hdr *hdr = (struct icmp6_hdr *)buffer;
 
@@ -2906,8 +2735,7 @@ void receive_router_advert(int sockfd) {
         unsigned char *opt_ptr = buffer + sizeof(struct nd_router_advert);
         ssize_t opt_len = len - sizeof(struct nd_router_advert);
 
-        CcspTraceError(("%s %d: Received Router Advertisement\n", __FUNCTION__, __LINE__));
-        CcspTraceError(("%s %d:Router Lifetime: %d\n",__FUNCTION__, __LINE__,ntohs(ra->nd_ra_router_lifetime)));
+        CcspTraceInfo(("%s %d: Received Router Advertisement with LifeTime %s \n", __FUNCTION__, __LINE__, ntohs(ra->nd_ra_router_lifetime)));
         while (opt_len > 0)
         {
             struct nd_opt_hdr *opt_hdr = (struct nd_opt_hdr *)opt_ptr;
@@ -2920,30 +2748,33 @@ void receive_router_advert(int sockfd) {
                 char addr_str[INET6_ADDRSTRLEN];
 
                 inet_ntop(AF_INET6, &prefix_info->nd_opt_pi_prefix, addr_str, sizeof(addr_str));
-                CcspTraceError(("%s %d: Default Route Prefix: %s/%d\n", __FUNCTION__, __LINE__, addr_str, prefix_info->nd_opt_pi_prefix_len));
+                CcspTraceInfo(("%s %d: Default Route Prefix: %s/%d\n", __FUNCTION__, __LINE__, addr_str, prefix_info->nd_opt_pi_prefix_len));
             }
             opt_len -= opt_hdr->nd_opt_len * 8;
             opt_ptr += opt_hdr->nd_opt_len * 8;
         }
+        ret = 0;
     }
-
+    return ret;
 }
 
-void WanManager_send_and_receive_rs_2() {
+int  WanManager_send_and_receive_rs(const char *if_name) 
+{
+    int ret = -1;
     int sockfd;
     struct sockaddr_in6 dest_addr;
-    const char *if_name = "erouter0"; // Change this to your network interface
 
-    CcspTraceError(("%s %d: PARTHI \n", __FUNCTION__, __LINE__));
+    CcspTraceInfo(("%s %d: Requesting Router solicit for %s \n", __FUNCTION__, __LINE__, if_name));
     sockfd = socket(AF_INET6, SOCK_RAW, IPPROTO_ICMPV6);
     if (sockfd < 0) {
         perror("socket");
-        exit(EXIT_FAILURE);
+        CcspTraceError(("%s %d: sock creation failed %s\n", __FUNCTION__, __LINE__, strerror(errno)));
+        return -1;
     }
 
     memset(&dest_addr, 0, sizeof(dest_addr));
     dest_addr.sin6_family = AF_INET6;
-    inet_pton(AF_INET6, "ff02::2", &dest_addr.sin6_addr);
+    inet_pton(AF_INET6, "ff02::2", &dest_addr.sin6_addr); // Set destination address to all routers
 
     struct timeval tv;
     tv.tv_sec = TIMEOUT;
@@ -2954,42 +2785,13 @@ void WanManager_send_and_receive_rs_2() {
     setsockopt (sockfd, IPPROTO_IPV6, IPV6_MULTICAST_HOPS, &(int){ 255 }, sizeof (int));
     setsockopt (sockfd, IPPROTO_IPV6, IPV6_UNICAST_HOPS, &(int){ 255 }, sizeof (int));
 
-    CcspTraceError(("%s %d: PARTHI \n", __FUNCTION__, __LINE__));
-   if( send_router_solicit(sockfd, &dest_addr, if_name) == 0)
+    ret = send_router_solicit(sockfd, &dest_addr, if_name);
+    if (ret ==0)
     {
-    receive_router_advert(sockfd);
-    CcspTraceError(("%s %d: PARTHI \n", __FUNCTION__, __LINE__));
+        ret = receive_router_advert(sockfd);
     }
 
     close(sockfd);
-    return 0;
+    return ret;
 }
 
-#if 0
-void WanManager_send_and_receive_rs_3() 
-{
-    int fd = socket (PF_INET6, SOCK_RAW, IPPROTO_ICMPV6);
-    
-    struct sockaddr_in6 tgt;
-    fcntl (fd, F_SETFD, FD_CLOEXEC);
-
-        /* set ICMPv6 filter */
-    {
-        struct icmp6_filter f;
-
-        ICMP6_FILTER_SETBLOCKALL (&f);
-        ICMP6_FILTER_SETPASS (nd_type_advert, &f);
-        setsockopt (fd, IPPROTO_ICMPV6, ICMP6_FILTER, &f, sizeof (f));
-    }
-
-        setsockopt (fd, SOL_SOCKET, SO_DONTROUTE, &(int){ 1 }, sizeof (int));
-
-    /* sets Hop-by-hop limit to 255 */
-    setsockopt (fd, IPPROTO_IPV6, IPV6_RECVHOPLIMIT,  &(int){ 1 }, sizeof (int));
-
-    setsockopt (fd, IPPROTO_IPV6, IPV6_MULTICAST_HOPS, &(int){ 255 }, sizeof (int));
-    setsockopt (fd, IPPROTO_IPV6, IPV6_UNICAST_HOPS, &(int){ 255 }, sizeof (int));
-
-    
-}
-#endif
