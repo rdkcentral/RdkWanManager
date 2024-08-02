@@ -1191,6 +1191,9 @@ int Force_IPv6_toggle (char* wanInterface)
     int ret = 0;
     CcspTraceInfo(("%s %d force toggle initiated\n", __FUNCTION__, __LINE__));
 
+    //WanManager_send_and_receive_rs(wanInterface);
+    WanManager_send_and_receive_rs_2();
+/*
     if (sysctl_iface_set("/proc/sys/net/ipv6/conf/%s/disable_ipv6", wanInterface, "1") != 0)
     {
         CcspTraceWarning(("%s-%d : Failure writing to /proc file\n", __FUNCTION__, __LINE__));
@@ -1200,6 +1203,7 @@ int Force_IPv6_toggle (char* wanInterface)
     {
         CcspTraceWarning(("%s-%d : Failure writing to /proc file\n", __FUNCTION__, __LINE__));
     }
+*/
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV6_TOGGLE, "FALSE", 0); //Reset toggle flag to false.
 
     return ret;
@@ -1208,10 +1212,11 @@ int Force_IPv6_toggle (char* wanInterface)
 void wanmgr_Ipv6Toggle (void)
 {
     char v6Toggle[BUFLEN_128] = {0};
-#if (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_)) &&  !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)//TODO: V6 handled in PAM
+#if 1//(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_)) &&  !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)//TODO: V6 handled in PAM
     /*Ipv6 handled in PAM.  No Toggle Needed. */
+    WanManager_send_and_receive_rs_2();
     return;
-#endif
+#else
 
     sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_IPV6_TOGGLE, v6Toggle, sizeof(v6Toggle));
 
@@ -1224,6 +1229,7 @@ void wanmgr_Ipv6Toggle (void)
             sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV6_TOGGLE, "FALSE", 0);
         }
     }
+#endif
 }
 
 /*

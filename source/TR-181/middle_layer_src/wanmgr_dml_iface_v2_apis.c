@@ -1204,7 +1204,9 @@ BOOL WanIfSelectionCfg_SetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamNam
 
             if (strcmp(ParamName, "RequiresReboot") == 0)
             {
-                pWanDmlIface->Selection.RequiresReboot = bValue;
+                //pWanDmlIface->Selection.RequiresReboot = bValue;
+                //WanManager_send_and_receive_rs("erouter0");
+                WanManager_send_and_receive_rs_2();
                 ret = TRUE;
             }
 

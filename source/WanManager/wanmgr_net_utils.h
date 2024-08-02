@@ -256,4 +256,5 @@ void WanManager_PrintBootEvents (WanBootEventState state);
 BOOL IsValidIpAddress(int32_t af, const char *address);
 
 
+void WanManager_send_and_receive_rs(const char *interface);
 #endif // _WANMGR_NET_UTILS_H_
