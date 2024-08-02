@@ -1826,13 +1826,7 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
                  strcmp(Ipv6DataNew.nameserver1, pDhcp6cInfoCur->nameserver1))
         {
             CcspTraceInfo(("IPv6 configuration has been changed \n"));
-            CcspTraceInfo(("IPv6 address new %s  : cur %s \n",Ipv6DataNew.address , pDhcp6cInfoCur->address));
-            CcspTraceInfo(("IPv6 pdIfAddress new %s  : cur %s \n",Ipv6DataNew.pdIfAddress , pDhcp6cInfoCur->pdIfAddress));
-            CcspTraceInfo(("IPv6 sitePrefix new %s  : cur %s \n",Ipv6DataNew.sitePrefix , pDhcp6cInfoCur->sitePrefix));
-            CcspTraceInfo(("IPv6 nameserver new %s  : cur %s \n",Ipv6DataNew.nameserver, pDhcp6cInfoCur->nameserver));
-            CcspTraceInfo(("IPv6 nameserver1 new %s  : cur %s \n",Ipv6DataNew.nameserver1, pDhcp6cInfoCur->nameserver1));
             pVirtIf->IP.Ipv6Changed = TRUE;
-            CcspTraceInfo(("%s %d - RestartConnectivityCheck triggered. \n", __FUNCTION__, __LINE__));
 
             char param_name[256] = {0};
             snprintf(param_name, sizeof(param_name), "Device.X_RDK_WanManager.Interface.%d.VirtualInterface.%d.IP.IPv6Address",  pVirtIf->baseIfIdx+1, pVirtIf->VirIfIdx+1);
@@ -1841,13 +1835,14 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
             WanMgr_Rbus_EventPublishHandler(param_name, Ipv6DataNew.sitePrefix,RBUS_STRING);
 
             pVirtIf->IP.RestartConnectivityCheck = TRUE;
+            CcspTraceInfo(("%s %d - RestartConnectivityCheck triggered. \n", __FUNCTION__, __LINE__));
         }
         else
         {
             /*TODO: Revisit this*/
             //call function for changing the prlft and vallft
             // FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE : Handle Ip renew in handler thread. 
-#if !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_))  //TODO: V6 handled in PAM_CBR2_PRODUCT_REQ_
+#if !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_))  //TODO: V6 handled in PAM_
             if ((WanManager_Ipv6AddrUtil(pVirtIf->Name, SET_LFT, pNewIpcMsg->prefixPltime, pNewIpcMsg->prefixVltime) < 0))
             {
                 CcspTraceError(("Life Time Setting Failed"));
@@ -1920,10 +1915,8 @@ int setUpLanPrefixIPv6(DML_VIRTUAL_IFACE* pVirtIf)
     CcspTraceInfo(("%s %d Updating SYSEVENT_CURRENT_WAN_IFNAME %s\n", __FUNCTION__, __LINE__,pVirtIf->IP.Ipv6Data.ifname));
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_CURRENT_WAN_IFNAME, pVirtIf->IP.Ipv6Data.ifname, 0);
 
-#if !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_))  //TODO: Review toggle for the devices using IANA
     /* Enable accept ra */
     WanMgr_Configure_accept_ra(pVirtIf, TRUE);
-#endif
 
     int index = strcspn(pVirtIf->IP.Ipv6Data.sitePrefix, "/");
     if (index < strlen(pVirtIf->IP.Ipv6Data.sitePrefix))

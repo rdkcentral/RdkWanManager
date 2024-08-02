@@ -391,7 +391,7 @@ static BOOL WanMgr_RestartFindExistingLink (WanMgr_IfaceSM_Controller_t* pWanIfa
             p_VirtIf->VLAN.Status = WAN_IFACE_LINKSTATUS_UP;
             ret = TRUE;
             /* If we are here. WanManager is restarted. Do a IPv6 toggle to avoid DAD. */
-            WanManager_send_and_receive_rs(p_VirtIf->Name);
+            Force_IPv6_toggle(p_VirtIf->Name); 
         }
 
     }
@@ -999,6 +999,11 @@ static int checkIpv6LanAddressIsReadyToUse(char *ifname)
         else {
             break;
        }
+    }
+
+    if(route_flag == 0)
+    {
+        WanManager_send_and_receive_rs(ifname);
     }
 
     if(dad_flag == 0 || route_flag == 0) {
@@ -3230,10 +3235,6 @@ static eWanState_t wan_state_obtaining_ip_addresses(WanMgr_IfaceSM_Controller_t*
             {
                 return wan_transition_ipv6_up(pWanIfaceCtrl);
             }
-            else
-            {
-                wanmgr_Ipv6Toggle();
-            }
         }
         else
         {
@@ -3329,10 +3330,6 @@ static eWanState_t wan_state_standby(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
             {
                 ret = wan_transition_ipv6_up(pWanIfaceCtrl);
                 CcspTraceInfo((" %s %d - IPv6 Address Assigned to Bridge Yet.\n", __FUNCTION__, __LINE__));
-            }
-            else
-            {
-                wanmgr_Ipv6Toggle();
             }
         }
         if (p_VirtIf->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_UP)
@@ -3455,10 +3452,6 @@ static eWanState_t wan_state_ipv4_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
         {
             return wan_transition_ipv6_up(pWanIfaceCtrl);
         }
-        else
-        {
-            wanmgr_Ipv6Toggle();
-        }
     }
     else if (p_VirtIf->IP.Ipv4Renewed == TRUE)
     {
@@ -3569,7 +3562,7 @@ static eWanState_t wan_state_ipv6_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
         if (checkIpv6AddressAssignedToBridge(p_VirtIf->Name) == RETURN_OK) // Wait for default gateway before MAP-T configuration
         {
             return wan_transition_mapt_up(pWanIfaceCtrl);
-        } //wanmgr_Ipv6Toggle() is called below.
+        } 
     }
     else if (p_VirtIf->EnableMAPT == TRUE &&
              pInterface->Selection.Status == WAN_IFACE_ACTIVE &&
@@ -3588,7 +3581,9 @@ static eWanState_t wan_state_ipv6_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
         WanMgr_SendMsgTo_ConnectivityCheck(pWanIfaceCtrl, CONNECTION_MSG_IPV6 , TRUE);
         p_VirtIf->IP.Ipv6Renewed = FALSE;
     }
-    wanmgr_Ipv6Toggle();
+
+    WanMgr_CheckDefaultRA(p_VirtIf->Name);
+
 #if defined(FEATURE_IPOE_HEALTH_CHECK) && defined(IPOE_HEALTH_CHECK_LAN_SYNC_SUPPORT)
     if(lanState == LAN_STATE_STOPPED)
     {
@@ -3705,7 +3700,7 @@ static eWanState_t wan_state_dual_stack_active(WanMgr_IfaceSM_Controller_t* pWan
         if (checkIpv6AddressAssignedToBridge(p_VirtIf->Name) == RETURN_OK) // Wait for default gateway before MAP-T configuration
         {
             return wan_transition_mapt_up(pWanIfaceCtrl);
-        }//wanmgr_Ipv6Toggle() is called below.
+        }
     }
     else if (p_VirtIf->EnableMAPT == TRUE &&
             pInterface->Selection.Status == WAN_IFACE_ACTIVE &&
@@ -3732,8 +3727,8 @@ static eWanState_t wan_state_dual_stack_active(WanMgr_IfaceSM_Controller_t* pWan
 
     // Start DHCP apps if not started
     WanMgr_MonitorDhcpApps(pWanIfaceCtrl);
+    WanMgr_CheckDefaultRA(p_VirtIf->Name);
 
-    wanmgr_Ipv6Toggle();
 #if defined(FEATURE_IPOE_HEALTH_CHECK) && defined(IPOE_HEALTH_CHECK_LAN_SYNC_SUPPORT)
     if(lanState == LAN_STATE_STOPPED)
     {
@@ -3878,7 +3873,7 @@ static eWanState_t wan_state_mapt_active(WanMgr_IfaceSM_Controller_t* pWanIfaceC
     // Start DHCP apps if not started
     WanMgr_MonitorDhcpApps(pWanIfaceCtrl);
 
-    wanmgr_Ipv6Toggle();
+    WanMgr_CheckDefaultRA(p_VirtIf->Name);
 #if defined(FEATURE_IPOE_HEALTH_CHECK) && defined(IPOE_HEALTH_CHECK_LAN_SYNC_SUPPORT)
     if(lanState == LAN_STATE_STOPPED)
     {

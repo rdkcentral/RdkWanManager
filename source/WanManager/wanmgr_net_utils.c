@@ -560,11 +560,6 @@ uint32_t WanManager_StartDhcpv6Client(DML_VIRTUAL_IFACE* pVirtIf, IFACE_TYPE Ifa
 
     CcspTraceInfo(("Enter WanManager_StartDhcpv6Client for  %s \n", pVirtIf->Name));
 
-#if (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_)) //TODO: ipv6 handled in PAM
-    //Enable accept_ra while starting dhcpv6 for comcast devices.
-    WanMgr_Configure_accept_ra(pVirtIf, TRUE);
-    usleep(500000); //sleep for 500 milli seconds
-#endif
     pid = start_dhcpv6_client(&params);
     pVirtIf->IP.Dhcp6cPid = pid;
 
@@ -2664,7 +2659,8 @@ struct in6_pktinfo {
     unsigned int ipi6_ifindex;
 };
 
-int send_router_solicit(int sockfd, struct sockaddr_in6 *dest_addr, const char *if_name) {
+int send_router_solicit(int sockfd, struct sockaddr_in6 *dest_addr, const char *if_name) 
+{
     struct icmp6_hdr rs_hdr;
     memset(&rs_hdr, 0, sizeof(rs_hdr));
     rs_hdr.icmp6_type = ND_ROUTER_SOLICIT;
@@ -2722,7 +2718,6 @@ int  receive_router_advert(int sockfd)
     len = recvfrom(sockfd, buffer, sizeof(buffer), 0, (struct sockaddr *)&src_addr, &addrlen);
     if (len < 0) 
     {
-        perror("recvfrom");
         CcspTraceError(("%s %d: recvfrom Failed %s \n", __FUNCTION__, __LINE__, strerror(errno)));
         return -1;
     }
@@ -2732,10 +2727,14 @@ int  receive_router_advert(int sockfd)
     if (hdr->icmp6_type == ND_ROUTER_ADVERT)
     {
         struct nd_router_advert *ra = (struct nd_router_advert *)buffer;
+        CcspTraceInfo(("%s %d: Received Router Advertisement with LifeTime %d \n", __FUNCTION__, __LINE__, ntohs(ra->nd_ra_router_lifetime)));
+
+        /* TODO: Does default route parsing required ? to have complete control and Ipv6 RS and RA. 
+         * Currently, WanManager sends and the RS and waits for RA, However, assigning default route is still handled by kernel.
+         * FIXME: Fix default route parsing.
+
         unsigned char *opt_ptr = buffer + sizeof(struct nd_router_advert);
         ssize_t opt_len = len - sizeof(struct nd_router_advert);
-
-        CcspTraceInfo(("%s %d: Received Router Advertisement with LifeTime %s \n", __FUNCTION__, __LINE__, ntohs(ra->nd_ra_router_lifetime)));
         while (opt_len > 0)
         {
             struct nd_opt_hdr *opt_hdr = (struct nd_opt_hdr *)opt_ptr;
@@ -2753,7 +2752,14 @@ int  receive_router_advert(int sockfd)
             opt_len -= opt_hdr->nd_opt_len * 8;
             opt_ptr += opt_hdr->nd_opt_len * 8;
         }
+        */
+
         ret = 0;
+    }
+
+    if(ret != 0)
+    {
+        CcspTraceError(("%s %d: Router Advertisement isn't received. \n", __FUNCTION__, __LINE__)); 
     }
     return ret;
 }
@@ -2767,7 +2773,6 @@ int  WanManager_send_and_receive_rs(const char *if_name)
     CcspTraceInfo(("%s %d: Requesting Router solicit for %s \n", __FUNCTION__, __LINE__, if_name));
     sockfd = socket(AF_INET6, SOCK_RAW, IPPROTO_ICMPV6);
     if (sockfd < 0) {
-        perror("socket");
         CcspTraceError(("%s %d: sock creation failed %s\n", __FUNCTION__, __LINE__, strerror(errno)));
         return -1;
     }
@@ -2786,7 +2791,7 @@ int  WanManager_send_and_receive_rs(const char *if_name)
     setsockopt (sockfd, IPPROTO_IPV6, IPV6_UNICAST_HOPS, &(int){ 255 }, sizeof (int));
 
     ret = send_router_solicit(sockfd, &dest_addr, if_name);
-    if (ret ==0)
+    if (ret == 0)
     {
         ret = receive_router_advert(sockfd);
     }

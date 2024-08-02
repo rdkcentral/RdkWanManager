@@ -1151,38 +1151,6 @@ static int CheckV6DefaultRule (char *wanInterface)
     return ret;
 }
 
-static int do_toggle_v6_status (void)
-{
-    int ret = 0;
-
-#ifdef FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE
-    char wanInterface[BUFLEN_64] = {'\0'};
-    wanmgr_get_wan_interface(wanInterface);
-#else
-    char *wanInterface = "erouter0";
-#endif
-
-    if (CheckV6DefaultRule(wanInterface) != TRUE)
-    {
-        ret = WanManager_send_and_receive_rs(wanInterface);
-#if 0
-        CcspTraceInfo(("%s %d toggle initiated\n", __FUNCTION__, __LINE__));
-
-        if (sysctl_iface_set("/proc/sys/net/ipv6/conf/%s/disable_ipv6", wanInterface, "1") != 0)
-        {
-            CcspTraceWarning(("%s-%d : Failure writing to /proc file\n", __FUNCTION__, __LINE__));
-        }
-
-        if (sysctl_iface_set("/proc/sys/net/ipv6/conf/%s/disable_ipv6", wanInterface, "0") != 0)
-        {
-            CcspTraceWarning(("%s-%d : Failure writing to /proc file\n", __FUNCTION__, __LINE__));
-        }
-#endif
-    }
-
-    return ret;
-}
-
 /*
  * @brief Utility function used to toggle ipv6 triggered from ISM.
  * This function will not check existing default route.
@@ -1194,7 +1162,6 @@ int Force_IPv6_toggle (char* wanInterface)
     int ret = 0;
     CcspTraceInfo(("%s %d force toggle initiated\n", __FUNCTION__, __LINE__));
 
-/*
     if (sysctl_iface_set("/proc/sys/net/ipv6/conf/%s/disable_ipv6", wanInterface, "1") != 0)
     {
         CcspTraceWarning(("%s-%d : Failure writing to /proc file\n", __FUNCTION__, __LINE__));
@@ -1204,33 +1171,27 @@ int Force_IPv6_toggle (char* wanInterface)
     {
         CcspTraceWarning(("%s-%d : Failure writing to /proc file\n", __FUNCTION__, __LINE__));
     }
-*/
+
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV6_TOGGLE, "FALSE", 0); //Reset toggle flag to false.
 
     return ret;
 }
 
-void wanmgr_Ipv6Toggle (void)
+void WanMgr_CheckDefaultRA (const char* wanInterface)
 {
     char v6Toggle[BUFLEN_128] = {0};
-#if 0//(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_)) &&  !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)//TODO: V6 handled in PAM
-    /*Ipv6 handled in PAM.  No Toggle Needed. */
-    WanManager_send_and_receive_rs_2();
-    return;
-#else
-
+    //TODO : Move router monitor to a WanManager thread ? to avoid continous sysevent get
     sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_IPV6_TOGGLE, v6Toggle, sizeof(v6Toggle));
 
     if((strlen(v6Toggle) == 0) || (!strcmp(v6Toggle,"TRUE")))
     {
         CcspTraceInfo(("%s %d SYSEVENT_IPV6_TOGGLE[TRUE] \n", __FUNCTION__, __LINE__));
 
-        if(do_toggle_v6_status() ==0)
+        if (CheckV6DefaultRule(wanInterface) == TRUE ||  WanManager_send_and_receive_rs(wanInterface) == 0)
         {
             sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV6_TOGGLE, "FALSE", 0);
         }
     }
-#endif
 }
 
 /*
@@ -1262,11 +1223,9 @@ void WanMgr_Configure_accept_ra(DML_VIRTUAL_IFACE * pVirtIf, BOOL EnableRa)
         v_secure_system("sysctl -w net.ipv6.conf.%s.accept_ra_pinfo=0",pVirtIf->Name);
         v_secure_system("sysctl -w net.ipv6.conf.%s.accept_ra_defrtr=1",pVirtIf->Name);
         v_secure_system("sysctl -w net.ipv6.conf.all.forwarding=1");
-        CcspTraceInfo(("%s %d IPv6 toggle after ra accept \n", __FUNCTION__, __LINE__));
+
+        CcspTraceInfo(("%s %d Send Router Solicit after enabling ra accept \n", __FUNCTION__, __LINE__));
         WanManager_send_and_receive_rs(pVirtIf->Name);
-#if 0//!defined (_PLATFORM_RASPBERRYPI_) //REFPLTB-3054
-        Force_IPv6_toggle(pVirtIf->Name); // Do a IPv6 toggle to send Router Solicit
-#endif
     }
     else
     {
