@@ -43,6 +43,8 @@
 #define DEFAULT_IFNAME    "erouter0"
 #define LOOP_TIMEOUT 50000 // timeout in microseconds. This is the state machine loop interval
 #define RESOLV_CONF_FILE "/etc/resolv.conf"
+#define XDNS_CONF_FILE "/nvram/dnsmasq_servers.conf"
+#define SYSCFG_XDNS_ENABLE "X_RDKCENTRAL-COM_XDNS"
 #define LOOPBACK "127.0.0.1"
 
 #ifdef FEATURE_IPOE_HEALTH_CHECK
@@ -879,10 +881,37 @@ int wan_updateDNS(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl, BOOL addIPv4, BOOL
     {
         CcspTraceInfo(("%s %d: No change not Setting %s\n", __FUNCTION__, __LINE__, SYSEVENT_DHCP_SERVER_RESTART));
     }
-
-    if (valid_dns == TRUE)
+    char XDSEnableString[16] = { 0 };
+    if (valid_dns == TRUE && \
+       (syscfg_get(NULL, SYSCFG_XDNS_ENABLE, XDSEnableString, sizeof(XDSEnableString)) == 0 ) && \
+       ( XDSEnableString[0] == '1' ) )
     {
-        CcspTraceInfo(("%s %d - Active domainname servers set!\n", __FUNCTION__,__LINE__));
+        FILE *fp1 = NULL;
+        /*ReadXDNSnameserverentriesfromorignalxdnsconfandwriteintoresolv.conffile*/
+        if((fp1=fopen(XDNS_CONF_FILE,"r"))==NULL)
+        {
+            CcspTraceError(("%s%d-Open%serror!\n",__FUNCTION__,__LINE__,XDNS_CONF_FILE));
+        }
+        else
+        {
+            char buf[BUFLEN_256]={0};
+            //GetXDNSconffileentries
+            while(NULL!=fgets(buf,sizeof(buf),fp1))
+            {
+                buf[strcspn(buf,"\n")]=0;//removenewlinechar
+                if(!strlen(buf))
+                {
+                    //Clearbuffer
+                    memset(buf,0,sizeof(buf));
+                    continue;
+                }
+                fprintf(fp,"%s\n",buf);
+                //Clearbuffer
+                memset(buf,0,sizeof(buf));
+            }  
+            fclose(fp1);
+            fp1 = NULL;
+        }
     }
     else
     {
@@ -898,6 +927,7 @@ int wan_updateDNS(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl, BOOL addIPv4, BOOL
         fclose(fp);
     }
 
+    CcspTraceInfo(("%s %d - Active domainname servers set!\n", __FUNCTION__,__LINE__));
     return ret;
 }
 
@@ -2022,6 +2052,16 @@ static eWanState_t wan_transition_wan_validated(WanMgr_IfaceSM_Controller_t* pWa
             p_VirtIf->PPP.IPCPStatus = WAN_IFACE_IPCP_STATUS_DOWN;
             p_VirtIf->PPP.IPV6CPStatus = WAN_IFACE_IPV6CP_STATUS_DOWN;
         }
+    }
+
+    if(pInterface->IfaceType == REMOTE_IFACE)
+    {
+        /* Mesh ULA ipv6 address is statically assigned for remote interface. copying to WanManager struct for tr181 DML */
+        CcspTraceInfo(("%s %d - Interface '%s' - Assigning Static ULA Ipv6 Address\n", __FUNCTION__, __LINE__, pInterface->Name));
+        sysevent_get(sysevent_fd, sysevent_token, "MeshRemoteWANInterface_UlaAddr", p_VirtIf->IP.Ipv6Data.address, sizeof(p_VirtIf->IP.Ipv6Data.address));
+        char *backslashPosition = strchr(p_VirtIf->IP.Ipv6Data.address, '/');  // Find the first occurrence of '/'. 
+        if (backslashPosition != NULL) 
+            *backslashPosition = '\0';  // Replace the backslash with a null character
     }
 
     return WAN_STATE_OBTAINING_IP_ADDRESSES;

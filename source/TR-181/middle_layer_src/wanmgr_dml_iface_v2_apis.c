@@ -1591,6 +1591,8 @@ BOOL WanVirtualIf_SetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BO
         if (strcmp(ParamName, "EnableIPoEHealthCheck") == 0)
         {
             CONNECTIVITY_CHECK_TYPE type = bValue? WAN_CONNECTIVITY_TYPE_IHC:WAN_CONNECTIVITY_TYPE_NO_CHECK;
+                /*the below condition is, to avoid multiple time same value set and
+                 * unsetting value of IPOE and DNS RFC DML from eachother */
                 if((type != p_VirtIf->IP.ConnectivityCheckType) &&
                    ((type != WAN_CONNECTIVITY_TYPE_NO_CHECK) ||
                     (p_VirtIf->IP.ConnectivityCheckType == WAN_CONNECTIVITY_TYPE_IHC)))

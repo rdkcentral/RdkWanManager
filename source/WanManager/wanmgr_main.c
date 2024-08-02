@@ -59,6 +59,7 @@
 #include "wanmgr_ssp_global.h"
 #include "wanmgr_core.h"
 #include "wanmgr_data.h"
+#include "wanmgr_webconfig_apis.h"
 #include "stdlib.h"
 #include "ccsp_dm_api.h"
 
@@ -387,6 +388,7 @@ int main(int argc, char* argv[])
 
     waitUntilSystemReady();
 
+    WanMgrDmlWanWebConfigInit();
 #ifdef ENABLE_FEATURE_TELEMETRY2_0
     t2_init(COMPONENT_NAME_WANMANAGER);
 #endif

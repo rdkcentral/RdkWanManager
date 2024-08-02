@@ -42,6 +42,7 @@
 #define WANMGR_INFACE_TABLE                           "Device.X_RDK_WanManager.Interface"
 #define WANMGR_VIRTUAL_INFACE                         "Device.X_RDK_WanManager.Interface.{i}.VirtualInterface.{i}."
 #define WANMGR_VIRTUAL_INFACE_TABLE                   "Device.X_RDK_WanManager.Interface.%d.VirtualInterface"
+#define WANMGR_VIRTUAL_INFACE_TABLE_ALIAS             "Device.X_RDK_WanManager.Interface.\[%s\].VirtualInterface"
 #define WANMGR_INFACE_PHY_STATUS                      "Device.X_RDK_WanManager.Interface.{i}.BaseInterfaceStatus"
 #define WANMGR_INFACE_WAN_STATUS                      "Device.X_RDK_WanManager.Interface.{i}.VirtualInterface.{i}.Status"
 #define WANMGR_INFACE_WAN_LINKSTATUS                  "Device.X_RDK_WanManager.Interface.{i}.VirtualInterface.{i}.VlanStatus"

@@ -73,10 +73,6 @@ ANSC_STATUS WanMgr_SetConnectivityCheckTypeToPSM(DML_VIRTUAL_IFACE* pVirtIf, CON
     char param_name[BUFLEN_256] = {0};
     char param_value[BUFLEN_256] = {0};
 
-    /* Update the wan policy information in PSM */
-    memset(param_value, 0, sizeof(param_value));
-    memset(param_name, 0, sizeof(param_name));
-
     snprintf(param_value, sizeof(param_value), "%d", type);
     _ansc_sprintf(param_name, PSM_WANMANAGER_CONNECTIVITY_CHECK_TYPE, pVirtIf->baseIfIdx +1, pVirtIf->VirIfIdx+1);
 
@@ -100,8 +96,9 @@ BOOL WanMgr_GetDnsConnectivityCheck(void)
         if(pWanDmlIfaceData != NULL)
         {
             DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
-            for(int virIf_id=0; virIf_id< pWanIfaceData->NoOfVirtIfs; virIf_id++)
+            if (pWanIfaceData->NoOfVirtIfs > 0)
             {
+                int virIf_id = 0; /* default first virtual interface index */
                 DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIfaceById(pWanIfaceData->VirtIfList, virIf_id);
                 if(p_VirtIf != NULL)
                 {
@@ -134,6 +131,8 @@ ANSC_STATUS  WanMgr_SetDnsConnectivityCheck(BOOL Enable)
             for(int virIf_id=0; virIf_id< pWanIfaceData->NoOfVirtIfs; virIf_id++)
             {
                 DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIfaceById(pWanIfaceData->VirtIfList, virIf_id);
+                /*the below condition is, to avoid multiple time same value set and 
+		 * unsetting value of IPOE and DNS RFC DML from eachother */
                 if((type != p_VirtIf->IP.ConnectivityCheckType) &&
                    ((type != WAN_CONNECTIVITY_TYPE_NO_CHECK) ||
                     (p_VirtIf->IP.ConnectivityCheckType == WAN_CONNECTIVITY_TYPE_TAD)))
