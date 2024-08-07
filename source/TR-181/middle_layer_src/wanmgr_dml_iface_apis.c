@@ -964,7 +964,11 @@ BOOL WanIfCfg_GetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL* 
             }
             if (strcmp(ParamName, "EnableIPoEHealthCheck") == 0)
             {
-                *pBool = pWanDmlIface->VirtIfList->EnableIPoE;
+                *pBool = FALSE;
+                if (pWanDmlIface->VirtIfList->IP.ConnectivityCheckType == WAN_CONNECTIVITY_TYPE_IHC)
+                {
+                    *pBool = TRUE;
+                }
                 ret = TRUE;
             }
             if (strcmp(ParamName, "EnableMAPT") == 0)
@@ -1046,8 +1050,18 @@ BOOL WanIfCfg_SetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL b
             }
             if (strcmp(ParamName, "EnableIPoEHealthCheck") == 0)
             {
-                pWanDmlIface->VirtIfList->EnableIPoE = bValue;
-                ret = TRUE;
+                CONNECTIVITY_CHECK_TYPE type = bValue? WAN_CONNECTIVITY_TYPE_IHC:WAN_CONNECTIVITY_TYPE_NO_CHECK;
+                /*the below condition is, to avoid multiple time same value set and
+                 * unsetting value of IPOE and DNS RFC DML from eachother */
+                if((type != pWanDmlIface->VirtIfList->IP.ConnectivityCheckType) &&
+                   ((type != WAN_CONNECTIVITY_TYPE_NO_CHECK) ||
+                    (pWanDmlIface->VirtIfList->IP.ConnectivityCheckType == WAN_CONNECTIVITY_TYPE_IHC)))
+                {
+                    WanMgr_SetConnectivityCheckTypeToPSM(pWanDmlIface->VirtIfList, type);
+                    pWanDmlIface->VirtIfList->IP.WCC_TypeChanged = TRUE;
+                    pWanDmlIface->VirtIfList->IP.ConnectivityCheckType = type;
+                    ret = TRUE;
+                }
             }
             if (strcmp(ParamName, "EnableMAPT") == 0)
             {

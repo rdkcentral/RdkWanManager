@@ -759,7 +759,6 @@ void WanMgr_VirtIface_Init(DML_VIRTUAL_IFACE * pVirtIf, UINT iface_index)
     pVirtIf->OperationalStatus = WAN_OPERSTATUS_UNKNOWN;
     pVirtIf->EnableMAPT = FALSE;
     pVirtIf->EnableDSLite = FALSE;
-    pVirtIf->EnableIPoE = FALSE;
     pVirtIf->IP.RefreshDHCP = FALSE;        // RefreshDHCP is set when there is a change in IP source
     pVirtIf->IP.RestartV6Client = FALSE;
     pVirtIf->Status = WAN_IFACE_STATUS_DISABLED;
@@ -777,12 +776,7 @@ void WanMgr_VirtIface_Init(DML_VIRTUAL_IFACE * pVirtIf, UINT iface_index)
     pVirtIf->IP.Ipv6Status = WAN_IFACE_IPV6_STATE_DOWN;
     pVirtIf->IP.IPv4Source= DML_WAN_IP_SOURCE_DHCP;
     pVirtIf->IP.IPv6Source = DML_WAN_IP_SOURCE_DHCP;
-#ifdef FEATURE_TAD_HEALTH_CHECK //FEATURE_IPOE_HEALTH_CHECK feature is enabled 
-    CcspTraceInfo(("%s %d IP.ConnectivityCheckType set to WAN_CONNECTIVITY_TYPE_TAD \n", __FUNCTION__, __LINE__));
-    pVirtIf->IP.ConnectivityCheckType = WAN_CONNECTIVITY_TYPE_TAD;
-#else /* FEATURE_TAD_HEALTH_CHECK */
     pVirtIf->IP.ConnectivityCheckType = WAN_CONNECTIVITY_TYPE_NO_CHECK;
-#endif /* FEATURE_TAD_HEALTH_CHECK */
     pVirtIf->IP.Ipv4ConnectivityStatus = WAN_CONNECTIVITY_DOWN; 
     pVirtIf->IP.Ipv6ConnectivityStatus = WAN_CONNECTIVITY_DOWN;
     pVirtIf->IP.Mode = DML_WAN_IP_MODE_DUAL_STACK;
@@ -911,6 +905,9 @@ ANSC_STATUS WanMgr_Remote_IfaceData_configure(char *remoteCPEMac, int  *iface_in
                 p_VirtIf->Enable = TRUE;
                 p_VirtIf->IP.IPv6Source = DML_WAN_IP_SOURCE_STATIC;
                 strncpy(p_VirtIf->Name, REMOTE_INTERFACE_NAME, sizeof(p_VirtIf->Name));
+                //setting DNS Connectivity Check for Remote Interface from PSM Wan Interface 1.
+                get_Remote_Virtual_Interface_FromPSM(1, i, p_VirtIf);
+
                 CcspTraceInfo(("%s %d - Adding Remote Interface Index = [%d]\n", __FUNCTION__, __LINE__,p_VirtIf->baseIfIdx));
                 WanMgr_AddVirtualToList(&(pIfaceData->data.VirtIfList), p_VirtIf);
             }

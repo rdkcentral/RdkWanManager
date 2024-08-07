@@ -53,6 +53,7 @@
 #define PSM_WANMANAGER_IF_VIRIF_IP_V6SOURCE                 "dmsb.wanmanager.if.%d.VirtualInterface.%d.IP.IPv6Source"
 #define PSM_WANMANAGER_IF_VIRIF_IP_PREFERREDMODE            "dmsb.wanmanager.if.%d.VirtualInterface.%d.IP.PreferredMode"
 #define PSM_WANMANAGER_IF_VIRIF_IP_MODE_FORCE_ENABLE        "dmsb.wanmanager.if.%d.VirtualInterface.%d.IP.ModeForceEnable"
+#define PSM_WANMANAGER_CONNECTIVITY_CHECK_TYPE              "dmsb.wanmanager.if.%d.VirtualInterface.%d.IP.ConnectivityCheckType"
 
 #if defined(WAN_MANAGER_UNIFICATION_ENABLED)
 #define PSM_WANMANAGER_IF_SELECTION_ENABLE                  "dmsb.wanmanager.if.%d.Selection.Enable"
@@ -64,7 +65,6 @@
 
 #define PSM_WANMANAGER_IF_VIRIF_ENABLE_MAPT                 "dmsb.wanmanager.if.%d.VirtualInterface.%d.EnableMAPT"
 #define PSM_WANMANAGER_IF_VIRIF_ENABLE_DSLITE               "dmsb.wanmanager.if.%d.VirtualInterface.%d.EnableDSLite"
-#define PSM_WANMANAGER_IF_VIRIF_ENABLE_IPOE                 "dmsb.wanmanager.if.%d.VirtualInterface.%d.EnableIPoE"
 
 #define PSM_WANMANAGER_GROUP_POLICY                         "dmsb.wanmanager.group.%d.policy"
 #define PSM_WANMANAGER_WANIFCOUNT                           "dmsb.wanmanager.wan.interfacecount"
@@ -83,7 +83,6 @@
 
 #define PSM_WANMANAGER_IF_VIRIF_ENABLE_MAPT                   "dmsb.wanmanager.if.%d.EnableMAPT"
 #define PSM_WANMANAGER_IF_VIRIF_ENABLE_DSLITE                 "dmsb.wanmanager.if.%d.EnableDSLite"
-#define PSM_WANMANAGER_IF_VIRIF_ENABLE_IPOE                   "dmsb.wanmanager.if.%d.EnableIPoE"
 #define PSM_WANMANAGER_IF_VIRIF_PPP_ENABLE                    "dmsb.wanmanager.if.%d.PPPEnable"
 #define PSM_WANMANAGER_IF_WAN_PPP_LINKTYPE                  "dmsb.wanmanager.if.%d.PPPLinkType"
 #define PSM_WANMANAGER_IF_WAN_PPP_IPCP_ENABLE               "dmsb.wanmanager.if.%d.PPPIPCPEnable"

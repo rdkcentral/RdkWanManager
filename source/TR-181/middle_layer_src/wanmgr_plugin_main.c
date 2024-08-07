@@ -360,6 +360,9 @@ int ANSC_EXPORT_API WanManagerDmlInit(ULONG uMaxVersionSupported, void* hCosaPlu
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "WanManager_Validate", WanManager_Validate);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "WanManager_Commit",  WanManager_Commit);
 
+    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "WanMgr_DnsConnectivityCheck_GetParamBoolValue",  WanMgr_DnsConnectivityCheck_GetParamBoolValue);
+    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "WanMgr_DnsConnectivityCheck_SetParamBoolValue",  WanMgr_DnsConnectivityCheck_SetParamBoolValue);
+
 #if defined(WAN_MANAGER_UNIFICATION_ENABLED)
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "WanManagerGroup_IsUpdated",  WanManagerGroup_IsUpdated);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "WanManagerGroup_Synchronize",  WanManagerGroup_Synchronize);
