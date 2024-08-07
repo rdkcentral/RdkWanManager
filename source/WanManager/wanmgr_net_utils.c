@@ -2659,7 +2659,7 @@ struct in6_pktinfo {
     unsigned int ipi6_ifindex;
 };
 
-int send_router_solicit(int sockfd, struct sockaddr_in6 *dest_addr, const char *if_name) 
+static int send_router_solicit(int sockfd, struct sockaddr_in6 *dest_addr, const char *if_name) 
 {
     struct icmp6_hdr rs_hdr;
     memset(&rs_hdr, 0, sizeof(rs_hdr));
@@ -2707,7 +2707,7 @@ int send_router_solicit(int sockfd, struct sockaddr_in6 *dest_addr, const char *
     return 0;
 }
 
-int  receive_router_advert(int sockfd) 
+static int  receive_router_advert(int sockfd, DML_VIRTUAL_IFACE * p_VirtIf) 
 {
     int ret = -1;
     char buffer[RA_MSG_SIZE];
@@ -2727,33 +2727,9 @@ int  receive_router_advert(int sockfd)
     if (hdr->icmp6_type == ND_ROUTER_ADVERT)
     {
         struct nd_router_advert *ra = (struct nd_router_advert *)buffer;
-        CcspTraceInfo(("%s %d: Received Router Advertisement with LifeTime %d \n", __FUNCTION__, __LINE__, ntohs(ra->nd_ra_router_lifetime)));
-
-        /* TODO: Does default route parsing required ? to have complete control and Ipv6 RS and RA. 
-         * Currently, WanManager sends and the RS and waits for RA, However, assigning default route is still handled by kernel.
-         * FIXME: Fix default route parsing.
-
-        unsigned char *opt_ptr = buffer + sizeof(struct nd_router_advert);
-        ssize_t opt_len = len - sizeof(struct nd_router_advert);
-        while (opt_len > 0)
-        {
-            struct nd_opt_hdr *opt_hdr = (struct nd_opt_hdr *)opt_ptr;
-
-            CcspTraceError(("%s %d: Option %d\n", __FUNCTION__, __LINE__, opt_hdr->nd_opt_type));
-            CcspTraceError(("%s %d: Option len %d\n", __FUNCTION__, __LINE__, opt_hdr->nd_opt_len));
-            if (opt_hdr->nd_opt_type == ND_OPT_PREFIX_INFORMATION)
-            {
-                struct nd_opt_prefix_info *prefix_info = (struct nd_opt_prefix_info *)opt_ptr;
-                char addr_str[INET6_ADDRSTRLEN];
-
-                inet_ntop(AF_INET6, &prefix_info->nd_opt_pi_prefix, addr_str, sizeof(addr_str));
-                CcspTraceInfo(("%s %d: Default Route Prefix: %s/%d\n", __FUNCTION__, __LINE__, addr_str, prefix_info->nd_opt_pi_prefix_len));
-            }
-            opt_len -= opt_hdr->nd_opt_len * 8;
-            opt_ptr += opt_hdr->nd_opt_len * 8;
-        }
-        */
-
+        inet_ntop (AF_INET6, &src_addr.sin6_addr, p_VirtIf->IP.Ipv6Data.defaultRoute, sizeof (p_VirtIf->IP.Ipv6Data.defaultRoute));
+        p_VirtIf->IP.Ipv6Data.defRouteLifeTime = ntohs(ra->nd_ra_router_lifetime);
+        CcspTraceInfo(("%s %d: Received Router Advertisement with default route %s lifetime %s\n", __FUNCTION__, __LINE__, p_VirtIf->IP.Ipv6Data.defaultRoute, p_VirtIf->IP.Ipv6Data.defRouteLifeTime));
         ret = 0;
     }
 
@@ -2764,13 +2740,13 @@ int  receive_router_advert(int sockfd)
     return ret;
 }
 
-int  WanManager_send_and_receive_rs(const char *if_name) 
+int  WanManager_send_and_receive_rs(DML_VIRTUAL_IFACE * pVirtIf) 
 {
     int ret = -1;
     int sockfd;
     struct sockaddr_in6 dest_addr;
 
-    CcspTraceInfo(("%s %d: Requesting Router solicit for %s \n", __FUNCTION__, __LINE__, if_name));
+    CcspTraceInfo(("%s %d: Requesting Router solicit for %s \n", __FUNCTION__, __LINE__, pVirtIf->Name));
     sockfd = socket(AF_INET6, SOCK_RAW, IPPROTO_ICMPV6);
     if (sockfd < 0) {
         CcspTraceError(("%s %d: sock creation failed %s\n", __FUNCTION__, __LINE__, strerror(errno)));
@@ -2790,10 +2766,10 @@ int  WanManager_send_and_receive_rs(const char *if_name)
     setsockopt (sockfd, IPPROTO_IPV6, IPV6_MULTICAST_HOPS, &(int){ 255 }, sizeof (int));
     setsockopt (sockfd, IPPROTO_IPV6, IPV6_UNICAST_HOPS, &(int){ 255 }, sizeof (int));
 
-    ret = send_router_solicit(sockfd, &dest_addr, if_name);
+    ret = send_router_solicit(sockfd, &dest_addr, pVirtIf->Name);
     if (ret == 0)
     {
-        ret = receive_router_advert(sockfd);
+        ret = receive_router_advert(sockfd, pVirtIf);
     }
 
     close(sockfd);

@@ -295,7 +295,7 @@ INT wanmgr_isWanStandby();
  * @brief Utility function used to toggle ipv6 based on sysevent from netmonitor.
  * @return Returns NONE.
 */
-void WanMgr_CheckDefaultRA(const char* wanInterface);
+void WanMgr_CheckDefaultRA(DML_VIRTUAL_IFACE * pVirtIf);
 
 /*
  * @brief Utility function used to toggle ipv6 triggered from ISM.
