@@ -1659,6 +1659,30 @@ static void CPEInterface_AsyncMethodHandler(
                     strncpy( pWanIfaceData->AliasName, AliasName,sizeof(pWanIfaceData->AliasName)-1 );
                     //Set Alias name of Virtual interface
                     strncpy( pWanIfaceData->VirtIfList->Alias, AliasName,sizeof(pWanIfaceData->VirtIfList->Alias)-1 );
+                    //Register the interface again if Alias changed
+                    int rc = -1;
+                    rc = rbusTable_registerRow(rbusHandle, WANMGR_INFACE_TABLE, (cpeInterfaceIndex+1), AliasName);
+                    if(rc != RBUS_ERROR_SUCCESS)
+                    {
+                        CcspTraceError(("%s %d - Iterface(%d) Table (%s) Registartion failed \n", 
+                                    __FUNCTION__, __LINE__, (cpeInterfaceIndex+1), WANMGR_INFACE_TABLE));
+                    }
+#if defined(WAN_MANAGER_UNIFICATION_ENABLED)
+                    char tmpVIfTableName[256] = {0};
+                    for(int VirId=0; VirId< pWanDmlIfaceData->data.NoOfVirtIfs; VirId++)
+                    {
+                        snprintf(tmpVIfTableName, sizeof(tmpVIfTableName), WANMGR_VIRTUAL_INFACE_TABLE_ALIAS, AliasName);
+                        rc = rbusTable_registerRow(rbusHandle, tmpVIfTableName, (VirId+1), AliasName); //TODO: NEW_DESIGN get Alias name for virtual table
+                        if(rc != RBUS_ERROR_SUCCESS)
+                        {
+                            CcspTraceError(("%s %d - VirtualInterface(%d) Table (%s) Registartion failed, Error=%d \n", __FUNCTION__, __LINE__, (VirId+1), tmpVIfTableName, rc));
+                        }
+                        else
+                        {
+                            CcspTraceInfo(("%s %d - VirtualInterface(%d) Table (%s) Registartion Successfully, AliasName(%s)\n", __FUNCTION__, __LINE__, (VirId+1), tmpVIfTableName, AliasName));
+                        }
+                    }
+#endif
                 }
                 else if( WANMGR_PHY_STATUS_CHECK )
                 {
