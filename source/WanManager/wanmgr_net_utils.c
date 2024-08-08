@@ -44,8 +44,11 @@
 #include <sys/ioctl.h>
 #include <net/if.h>
 #include <sys/socket.h>
-
-#if defined(FEATURE_464XLAT)
+#include <linux/if_packet.h>
+#include <linux/if_ether.h>
+#include <linux/ipv6.h>
+#include <netinet/ip6.h>
+#include <netinet/in.h>
 #include <netinet/icmp6.h>
 #include <sys/socket.h>
 #include <net/if.h>
@@ -54,7 +57,6 @@
 #include <signal.h>
 #include <stdio.h>
 #include <netdb.h>
-#endif
 
 #define BROADCAST_IP "255.255.255.255"
 /* To ignore link local addresses configured as DNS servers,
@@ -557,12 +559,7 @@ uint32_t WanManager_StartDhcpv6Client(DML_VIRTUAL_IFACE* pVirtIf, IFACE_TYPE Ifa
     params.ifType = IfaceType;
 
     CcspTraceInfo(("Enter WanManager_StartDhcpv6Client for  %s \n", pVirtIf->Name));
-
-#if (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_)) //TODO: ipv6 handled in PAM
-    //Enable accept_ra while starting dhcpv6 for comcast devices.
-    WanMgr_Configure_accept_ra(pVirtIf, TRUE);
-    usleep(500000); //sleep for 500 milli seconds
-#endif
+    WanManager_send_and_receive_rs(pVirtIf);
     pid = start_dhcpv6_client(&params);
     pVirtIf->IP.Dhcp6cPid = pid;
 
@@ -2652,3 +2649,143 @@ ANSC_STATUS WanManager_get_interface_mac(char *interfaceName, char* macAddress, 
 
    return returnStatus;
 }
+
+//Send and receive RS
+#define RS_RA_TIMEOUT 2
+#define RS_MSG_SIZE 8
+#define RA_MSG_SIZE 1024
+struct in6_pktinfo {
+    struct in6_addr ipi6_addr;
+    unsigned int ipi6_ifindex;
+};
+
+static int send_router_solicit(int sockfd, struct sockaddr_in6 *dest_addr, const char *if_name) 
+{
+    struct icmp6_hdr rs_hdr;
+    memset(&rs_hdr, 0, sizeof(rs_hdr));
+    rs_hdr.icmp6_type = ND_ROUTER_SOLICIT;
+
+    CcspTraceInfo(("%s %d:  \n", __FUNCTION__, __LINE__));
+    struct msghdr msg;
+    struct iovec iov;
+    struct sockaddr_in6 src_addr;
+    struct cmsghdr *cmsg;
+    char cmsgbuf[CMSG_SPACE(sizeof(struct in6_pktinfo))];
+
+    memset(&msg, 0, sizeof(msg));
+    memset(&src_addr, 0, sizeof(src_addr));
+    memset(cmsgbuf, 0, sizeof(cmsgbuf));
+
+    src_addr.sin6_family = AF_INET6;
+    src_addr.sin6_addr = in6addr_any;
+
+    iov.iov_base = &rs_hdr;
+    iov.iov_len = sizeof(rs_hdr);
+
+    msg.msg_name = dest_addr;
+    msg.msg_namelen = sizeof(*dest_addr);
+    msg.msg_iov = &iov;
+    msg.msg_iovlen = 1;
+    msg.msg_control = cmsgbuf;
+    msg.msg_controllen = sizeof(cmsgbuf);
+
+    cmsg = CMSG_FIRSTHDR(&msg);
+    cmsg->cmsg_len = CMSG_LEN(sizeof(struct in6_pktinfo));
+    cmsg->cmsg_level = IPPROTO_IPV6;
+    cmsg->cmsg_type = IPV6_PKTINFO;
+
+   struct in6_pktinfo *pktinfo = (struct in6_pktinfo *)CMSG_DATA(cmsg);
+    memset(pktinfo, 0, sizeof(struct in6_pktinfo));
+
+    pktinfo->ipi6_ifindex = if_nametoindex(if_name);
+    if (sendmsg(sockfd, &msg, 0) < 0) {
+        CcspTraceError(("%s %d: sendmsg failed %s\n", __FUNCTION__, __LINE__, strerror(errno)));
+        return -1;
+    }
+    CcspTraceInfo(("%s %d: RS sent from interface %s and index %d \n", __FUNCTION__, __LINE__, if_name, pktinfo->ipi6_ifindex));
+
+    return 0;
+}
+
+static int  receive_router_advert(int sockfd, DML_VIRTUAL_IFACE * p_VirtIf) 
+{
+    int ret = -1;
+    char buffer[RA_MSG_SIZE];
+    struct sockaddr_in6 src_addr;
+    socklen_t addrlen = sizeof(src_addr);
+    ssize_t len;
+
+    len = recvfrom(sockfd, buffer, sizeof(buffer), 0, (struct sockaddr *)&src_addr, &addrlen);
+    if (len < 0) 
+    {
+        CcspTraceError(("%s %d: recvfrom Failed %s \n", __FUNCTION__, __LINE__, strerror(errno)));
+        return -1;
+    }
+
+    struct icmp6_hdr *hdr = (struct icmp6_hdr *)buffer;
+
+    if (hdr->icmp6_type == ND_ROUTER_ADVERT)
+    {
+        struct nd_router_advert *ra = (struct nd_router_advert *)buffer;
+        inet_ntop (AF_INET6, &src_addr.sin6_addr, p_VirtIf->IP.Ipv6Data.defaultRoute, sizeof (p_VirtIf->IP.Ipv6Data.defaultRoute));
+        p_VirtIf->IP.Ipv6Data.defRouteLifeTime = ntohs(ra->nd_ra_router_lifetime);
+        CcspTraceInfo(("%s %d: Received Router Advertisement with default route %s lifetime %d\n", __FUNCTION__, __LINE__, p_VirtIf->IP.Ipv6Data.defaultRoute, p_VirtIf->IP.Ipv6Data.defRouteLifeTime));
+        ret = 0;
+    }
+
+    if(ret != 0)
+    {
+        CcspTraceError(("%s %d: Router Advertisement isn't received. \n", __FUNCTION__, __LINE__)); 
+    }
+    return ret;
+}
+
+int  WanManager_send_and_receive_rs(DML_VIRTUAL_IFACE * pVirtIf) 
+{
+    int ret = -1;
+    int sockfd;
+    struct sockaddr_in6 dest_addr;
+    int retry = 3; //default retry
+
+    CcspTraceInfo(("%s %d: Requesting Router solicit for %s \n", __FUNCTION__, __LINE__, pVirtIf->Name));
+    sockfd = socket(AF_INET6, SOCK_RAW, IPPROTO_ICMPV6);
+    if (sockfd < 0) {
+        CcspTraceError(("%s %d: sock creation failed %s\n", __FUNCTION__, __LINE__, strerror(errno)));
+        return -1;
+    }
+
+    memset(&dest_addr, 0, sizeof(dest_addr));
+    dest_addr.sin6_family = AF_INET6;
+    inet_pton(AF_INET6, "ff02::2", &dest_addr.sin6_addr); // Set destination address to all routers
+
+    struct timeval tv;
+    tv.tv_sec = RS_RA_TIMEOUT;
+    tv.tv_usec = 0;
+    setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+    setsockopt (sockfd, SOL_SOCKET, SO_DONTROUTE, &(int){1}, sizeof (int));
+    setsockopt (sockfd, IPPROTO_IPV6, IPV6_RECVHOPLIMIT, &(int){ 1 }, sizeof (int));
+    setsockopt (sockfd, IPPROTO_IPV6, IPV6_MULTICAST_HOPS, &(int){ 255 }, sizeof (int));
+    setsockopt (sockfd, IPPROTO_IPV6, IPV6_UNICAST_HOPS, &(int){ 255 }, sizeof (int));
+
+    while(retry > 0)
+    {
+        retry--;
+        ret = send_router_solicit(sockfd, &dest_addr, pVirtIf->Name);
+        if (ret != 0)
+        {
+            CcspTraceError(("%s %d: Router Solicit send failed. Retry %d \n", __FUNCTION__, __LINE__, retry));
+            continue;
+        }
+
+        ret = receive_router_advert(sockfd, pVirtIf);
+        if(ret == 0)
+        {
+            break;
+        }
+        CcspTraceError(("%s %d: Router Advertisement Retry %d \n", __FUNCTION__, __LINE__, retry));
+    }
+
+    close(sockfd);
+    return ret;
+}
+
