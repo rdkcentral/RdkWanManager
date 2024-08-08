@@ -1195,7 +1195,7 @@ void WanMgr_CheckDefaultRA (DML_VIRTUAL_IFACE * pVirtIf)
 }
 
 /*
- * @brief Utility function used to Configure accept_ra from ISM.
+ * @brief Utility function used to Configure accept_ra_defrtr from ISM.
  * @param : Virtual Interface and Enable.
  * @return Returns NONE.
  */
@@ -1211,29 +1211,24 @@ void WanMgr_Configure_accept_ra(DML_VIRTUAL_IFACE * pVirtIf, BOOL EnableRa)
         return;
     }
 
-    v_secure_system("sysctl -w net.ipv6.conf.%s.accept_ra=2",pVirtIf->Name);
     CcspTraceInfo(("%s %d %s accept_ra for interface %s\n", __FUNCTION__, __LINE__,EnableRa?"Enabling":"Disabling", pVirtIf->Name));
-   
+    //Enable accept_ra to allow receiving RA all the time. This funtion  only blocks learning defult route from RA.
+    v_secure_system("sysctl -w net.ipv6.conf.%s.accept_ra=2",pVirtIf->Name);
     if(EnableRa)
     {
-//      v_secure_system("sysctl -w net.ipv6.conf.%s.router_solicitations=3",pVirtIf->Name);
-//      v_secure_system("sysctl -w net.ipv6.conf.%s.accept_ra=2",pVirtIf->Name);
-
-        CcspTraceInfo(("%s %d Enabling forwarding for interface %s\n", __FUNCTION__, __LINE__,pVirtIf->Name));
+        v_secure_system("sysctl -w net.ipv6.conf.%s.router_solicitations=3",pVirtIf->Name);
         v_secure_system("sysctl -w net.ipv6.conf.%s.forwarding=1",pVirtIf->Name);
         v_secure_system("sysctl -w net.ipv6.conf.%s.accept_ra_pinfo=0",pVirtIf->Name);
-        v_secure_system("sysctl -w net.ipv6.conf.%s.accept_ra_defrtr=1",pVirtIf->Name);
+        v_secure_system("sysctl -w net.ipv6.conf.%s.accept_ra_defrtr=1",pVirtIf->Name); //Learn defult route from the RA.
         v_secure_system("sysctl -w net.ipv6.conf.all.forwarding=1");
-
-        CcspTraceInfo(("%s %d Send Router Solicit after enabling ra accept \n", __FUNCTION__, __LINE__));
-        WanManager_send_and_receive_rs(pVirtIf);
+        CcspTraceInfo(("%s %d Enabling forwarding for interface %s\n", __FUNCTION__, __LINE__,pVirtIf->Name));
     }
     else
     {
+        //Only accept_ra_defrtr set to false to block setting default route.
         v_secure_system("sysctl -w net.ipv6.conf.%s.router_solicitations=0",pVirtIf->Name);
         v_secure_system("sysctl -w net.ipv6.conf.%s.accept_ra_defrtr=0",pVirtIf->Name); 
     }
-    
 }
 
 static int getVendorClassInfo(char *buffer, int length)

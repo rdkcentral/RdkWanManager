@@ -1883,7 +1883,7 @@ ANSC_STATUS WanMgr_Configure_TAD_WCC(DML_VIRTUAL_IFACE *p_VirtIf,  WCC_EVENT Eve
     snprintf(pTADEvent->IPv4_DNS_Servers, sizeof(pTADEvent->IPv4_DNS_Servers), "%s,%s",p_VirtIf->IP.Ipv4Data.dnsServer,p_VirtIf->IP.Ipv4Data.dnsServer1);
     snprintf(pTADEvent->IPv4_Gateway, sizeof(pTADEvent->IPv4_Gateway), "%s",p_VirtIf->IP.Ipv4Data.gateway);
     snprintf(pTADEvent->IPv6_DNS_Servers, sizeof(pTADEvent->IPv6_DNS_Servers), "%s,%s",p_VirtIf->IP.Ipv6Data.nameserver,p_VirtIf->IP.Ipv6Data.nameserver1);
-    //TODO: Add Ipv6 gateway address after integrating with DHCP manager. Currently, wanmanager doesn't have information of IPv6 gateway address
+    snprintf(pTADEvent->IPv6_Gateway, sizeof(pTADEvent->IPv6_Gateway), "%s",p_VirtIf->IP.Ipv6Data.defaultRoute,p_VirtIf->IP.Ipv6Data.defaultRoute);
     pTADEvent->Event = Event;
 
     //Run in thread to avoid mutex deadlock between WanManager and rbus handle
@@ -1953,26 +1953,6 @@ void *WanMgr_Configure_WCC_Thread(void *arg)
         strtok(MeshWANInterfaceUla, "/");
         snprintf(pTADEvent->IPv6_DNS_Servers, sizeof(pTADEvent->IPv6_DNS_Servers), "%s,", strtok(MeshWANInterfaceUla, "/"));
         snprintf(pTADEvent->IPv6_Gateway, sizeof(pTADEvent->IPv6_Gateway), "%s", strtok(MeshWANInterfaceUla, "/"));
-    }
-    else //TODO: Workaround to fetch Ipv6 gateway address from the routing table. This should be removed after integrating DHCPmanager
-    {
-        FILE *fp_route;
-        char command[BUFLEN_256] = {0};
-        char buffer[BUFLEN_256] ={0};
-        snprintf(command, sizeof(command), "ip -6 route show default | grep %s | awk '{print $3}'", pTADEvent->IfaceName);
-        fp_route = popen(command, "r");
-        if(fp_route != NULL) 
-        {
-            if (fgets(buffer, BUFLEN_256, fp_route) != NULL)
-            {
-                char *token = strtok(buffer, "\n"); // get string up until newline character
-                if (token)
-                {
-                    strncpy(pTADEvent->IPv6_Gateway, token, sizeof(pTADEvent->IPv6_Gateway)-1);
-                }
-            }
-            pclose(fp_route);
-        }
     }
 
     // set IPv6 nameserver list

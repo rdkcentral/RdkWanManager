@@ -559,7 +559,7 @@ uint32_t WanManager_StartDhcpv6Client(DML_VIRTUAL_IFACE* pVirtIf, IFACE_TYPE Ifa
     params.ifType = IfaceType;
 
     CcspTraceInfo(("Enter WanManager_StartDhcpv6Client for  %s \n", pVirtIf->Name));
-
+    WanManager_send_and_receive_rs(pVirtIf);
     pid = start_dhcpv6_client(&params);
     pVirtIf->IP.Dhcp6cPid = pid;
 
@@ -2651,7 +2651,7 @@ ANSC_STATUS WanManager_get_interface_mac(char *interfaceName, char* macAddress, 
 }
 
 //Send and receive RS
-#define TIMEOUT 2
+#define RS_RA_TIMEOUT 2
 #define RS_MSG_SIZE 8
 #define RA_MSG_SIZE 1024
 struct in6_pktinfo {
@@ -2729,7 +2729,7 @@ static int  receive_router_advert(int sockfd, DML_VIRTUAL_IFACE * p_VirtIf)
         struct nd_router_advert *ra = (struct nd_router_advert *)buffer;
         inet_ntop (AF_INET6, &src_addr.sin6_addr, p_VirtIf->IP.Ipv6Data.defaultRoute, sizeof (p_VirtIf->IP.Ipv6Data.defaultRoute));
         p_VirtIf->IP.Ipv6Data.defRouteLifeTime = ntohs(ra->nd_ra_router_lifetime);
-        CcspTraceInfo(("%s %d: Received Router Advertisement with default route %s lifetime %s\n", __FUNCTION__, __LINE__, p_VirtIf->IP.Ipv6Data.defaultRoute, p_VirtIf->IP.Ipv6Data.defRouteLifeTime));
+        CcspTraceInfo(("%s %d: Received Router Advertisement with default route %s lifetime %d\n", __FUNCTION__, __LINE__, p_VirtIf->IP.Ipv6Data.defaultRoute, p_VirtIf->IP.Ipv6Data.defRouteLifeTime));
         ret = 0;
     }
 
@@ -2745,6 +2745,7 @@ int  WanManager_send_and_receive_rs(DML_VIRTUAL_IFACE * pVirtIf)
     int ret = -1;
     int sockfd;
     struct sockaddr_in6 dest_addr;
+    int retry = 3; //default retry
 
     CcspTraceInfo(("%s %d: Requesting Router solicit for %s \n", __FUNCTION__, __LINE__, pVirtIf->Name));
     sockfd = socket(AF_INET6, SOCK_RAW, IPPROTO_ICMPV6);
@@ -2758,7 +2759,7 @@ int  WanManager_send_and_receive_rs(DML_VIRTUAL_IFACE * pVirtIf)
     inet_pton(AF_INET6, "ff02::2", &dest_addr.sin6_addr); // Set destination address to all routers
 
     struct timeval tv;
-    tv.tv_sec = TIMEOUT;
+    tv.tv_sec = RS_RA_TIMEOUT;
     tv.tv_usec = 0;
     setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
     setsockopt (sockfd, SOL_SOCKET, SO_DONTROUTE, &(int){1}, sizeof (int));
@@ -2766,10 +2767,22 @@ int  WanManager_send_and_receive_rs(DML_VIRTUAL_IFACE * pVirtIf)
     setsockopt (sockfd, IPPROTO_IPV6, IPV6_MULTICAST_HOPS, &(int){ 255 }, sizeof (int));
     setsockopt (sockfd, IPPROTO_IPV6, IPV6_UNICAST_HOPS, &(int){ 255 }, sizeof (int));
 
-    ret = send_router_solicit(sockfd, &dest_addr, pVirtIf->Name);
-    if (ret == 0)
+    while(retry > 0)
     {
+        retry--;
+        ret = send_router_solicit(sockfd, &dest_addr, pVirtIf->Name);
+        if (ret != 0)
+        {
+            CcspTraceError(("%s %d: Router Solicit send failed. Retry %d \n", __FUNCTION__, __LINE__, retry));
+            continue;
+        }
+
         ret = receive_router_advert(sockfd, pVirtIf);
+        if(ret == 0)
+        {
+            break;
+        }
+        CcspTraceError(("%s %d: Router Advertisement Retry %d \n", __FUNCTION__, __LINE__, retry));
     }
 
     close(sockfd);

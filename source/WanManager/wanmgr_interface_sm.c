@@ -993,17 +993,19 @@ static int checkIpv6LanAddressIsReadyToUse(DML_VIRTUAL_IFACE* p_VirtIf)
             }
         }
 
-        if(dad_flag == 0 || route_flag == 0) {
+        if(dad_flag == 0 || route_flag == 0) 
+        {
+            if(route_flag == 0)
+            {
+                //If the default route is not present, Send a router solicit.
+                WanManager_send_and_receive_rs(p_VirtIf);
+            }
             sleep(1);
         }
-        else {
+        else 
+        {
             break;
-       }
-    }
-
-    if(route_flag == 0)
-    {
-        WanManager_send_and_receive_rs(p_VirtIf->Name);
+        }
     }
 
     if(dad_flag == 0 || route_flag == 0) {
