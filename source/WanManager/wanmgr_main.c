@@ -81,6 +81,14 @@
 #include <telemetry_busmessage_sender.h>
 #endif
 
+#if defined (FEATURE_RDKB_LED_MANAGER_LEGACY_WAN)
+#include <sysevent/sysevent.h>
+#define SYSEVENT_LED_STATE    "led_event"
+#define WAN_LINK_UP	      "rdkb_wan_link_up"
+int sysevent_led_fd = -1;
+token_t sysevent_led_token;
+#endif
+
 cap_user appcaps;
 
 extern char*                                pComponentName;
@@ -92,6 +100,15 @@ static void waitUntilSystemReady()
     int wait_time = 0;
 
     CcspTraceInfo(("%s %d Entered \n", __FUNCTION__, __LINE__));
+#if defined(FEATURE_RDKB_LED_MANAGER_LEGACY_WAN)
+    sysevent_led_fd = sysevent_open("127.0.0.1", SE_SERVER_WELL_KNOWN_PORT, SE_VERSION, "RegistrationStateHandler", &sysevent_led_token);
+    if(sysevent_led_fd != -1)
+    {
+	    sysevent_set(sysevent_led_fd, sysevent_led_token, SYSEVENT_LED_STATE, WAN_LINK_UP, 0);
+	    CcspTraceInfo(("%s %d Sent WAN_LINK_UP event to RdkLedManager for registration \n", __FUNCTION__, __LINE__));
+	    sysevent_close(sysevent_led_fd, sysevent_led_token);
+    }
+#endif
 #ifdef RBUS_BUILD_FLAG_ENABLE
     WanMgr_Rbus_SubscribeWanReady();
 
