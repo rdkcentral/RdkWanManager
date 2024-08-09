@@ -2054,7 +2054,7 @@ void *WanMgr_Configure_WCC_Thread(void *arg)
     return NULL;
 }
 
-#if defined(_HUB4_PRODUCT_REQ_) ||  defined(_PLATFORM_RASPBERRYPI_)
+#if defined(_HUB4_PRODUCT_REQ_)
 BOOL WanMgr_Rbus_discover_components(char const *pModuleList)
 {
     rbusError_t rc = RBUS_ERROR_SUCCESS;
