@@ -913,38 +913,6 @@ static int checkIpv6LanAddressIsReadyToUse(DML_VIRTUAL_IFACE* p_VirtIf)
     char IfaceName[BUFLEN_16] = {0};
     int BridgeMode = 0;
 
-#if defined (_HUB4_PRODUCT_REQ_) //TODO: Need a generic way to check ipv6 prefix and Address. 
-    int address_flag   = 0;
-    struct ifaddrs *ifap = NULL;
-    struct ifaddrs *ifa  = NULL;
-    char addr[INET6_ADDRSTRLEN] = {0};
-
-    /* We need to check the interface has got an IPV6-prefix , beacuse P-and-M can send
-    the same event when interface is down, so we ensure send the UP event only
-    when interface has an IPV6-prefix.
-    */
-    if (!getifaddrs(&ifap)) {
-        for (ifa = ifap; ifa; ifa = ifa->ifa_next) {
-            if(strncmp(ifa->ifa_name,ETH_BRIDGE_NAME, strlen(ETH_BRIDGE_NAME)))
-                continue;
-            if (ifa->ifa_addr->sa_family != AF_INET6)
-                continue;
-            getnameinfo(ifa->ifa_addr, sizeof(struct sockaddr_in6), addr,
-                    sizeof(addr), NULL, 0, NI_NUMERICHOST);
-            if((strncmp(addr + (strlen(addr) - 3), "::1", 3) == 0)){
-                address_flag = 1;
-                break;
-            }
-        }//for loop
-        freeifaddrs(ifap);
-    }//getifaddr close
-
-    if(address_flag == 0) {
-        CcspTraceError(("%s %d address_flag Failed\n", __FUNCTION__, __LINE__));
-        return -1;
-    }
-#endif
-
     /* Check Duplicate Address Detection (DAD) status. The way it works is that
        after an address is added to an interface, the operating system uses the
        Neighbor Discovery Protocol to check if any other host on the network
@@ -1342,6 +1310,12 @@ static int wan_setUpIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
 
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV6_CONNECTION_STATE, WAN_STATUS_UP, 0);
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_RADVD_RESTART, NULL, 0);
+#ifdef LAN_MGR_SUPPORT
+    sysevent_set(sysevent_fd, sysevent_token, "dhcpv6_raserver-restart", NULL, 0);
+#else
+    //FIXME: does zebra-restart necessory after RADVD_RESTART
+    sysevent_set(sysevent_fd, sysevent_token, "zebra-restart", NULL, 0);
+#endif
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_DHCP_SERVER_RESTART, NULL, 0);
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, NULL, 0);
     sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_WAN_STATUS, buf, sizeof(buf));
@@ -1751,10 +1725,11 @@ static eWanState_t wan_transition_start(WanMgr_IfaceSM_Controller_t* pWanIfaceCt
         CcspTraceInfo(("%s %d - Already WAN interface %s created\n", __FUNCTION__, __LINE__, p_VirtIf->Name));
     }
 
-#if  (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_))
     if(pInterface->IfaceType != REMOTE_IFACE)
     {
-        /* TODO: This is a workaround for the platforms using same Wan Name.*/
+        /* TODO: This is not a right place to read the WanName from persistance memory. 
+         * Since many platforms still use same name for all Wan Interfaces, we are updating here to make sure only the interface which is running VISM has the interface name. 
+         */
         char param_value[256] ={0};
         char param_name[512] ={0};
         int retPsmGet = CCSP_SUCCESS;
@@ -1763,7 +1738,7 @@ static eWanState_t wan_transition_start(WanMgr_IfaceSM_Controller_t* pWanIfaceCt
         AnscCopyString(p_VirtIf->Name, (retPsmGet == CCSP_SUCCESS && (strlen(param_value) > 0 )) ? param_value: "erouter0");
         CcspTraceInfo(("%s %d VIRIF_NAME is copied from PSM. %s\n", __FUNCTION__, __LINE__, p_VirtIf->Name));
     }
-#endif
+
     /*TODO: VLAN should not be set for Remote Interface, for More info, refer RDKB-42676*/
     if(  p_VirtIf->VLAN.Enable == TRUE && p_VirtIf->VLAN.Status == WAN_IFACE_LINKSTATUS_DOWN && pInterface->IfaceType != REMOTE_IFACE)
     {
@@ -2823,14 +2798,14 @@ static eWanState_t wan_transition_exit(WanMgr_IfaceSM_Controller_t* pWanIfaceCtr
     Update_Interface_Status();
     CcspTraceInfo(("%s %d - Interface '%s' - EXITING STATE MACHINE\n", __FUNCTION__, __LINE__, pInterface->Name));
 
-#if  (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_))
-    /* TODO:This is a workaround for the platforms using same Wan Name.*/
+    /* TODO: This is not a right place to clear the WanName. 
+     * Since many platforms still use same name for all Wan Interfaces, we are clearing here to make sure only the interface which is running VISM has the interface name. 
+     */
     if(pInterface->IfaceType != REMOTE_IFACE)
     {
         memset(p_VirtIf->Name, 0, sizeof(p_VirtIf->Name));
         CcspTraceInfo(("%s %d clear VIRIF_NAME \n", __FUNCTION__, __LINE__));
     }
-#endif
 
     p_VirtIf->Interface_SM_Running = FALSE;
     

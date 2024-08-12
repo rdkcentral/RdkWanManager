@@ -1841,14 +1841,11 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
         {
             /*TODO: Revisit this*/
             //call function for changing the prlft and vallft
-            // FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE : Handle Ip renew in handler thread. 
-#if !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_))  //TODO: V6 handled in PAM_
             if ((WanManager_Ipv6AddrUtil(pVirtIf->Name, SET_LFT, pNewIpcMsg->prefixPltime, pNewIpcMsg->prefixVltime) < 0))
             {
                 CcspTraceError(("Life Time Setting Failed"));
             }
             sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_RADVD_RESTART, NULL, 0);
-#endif
             pVirtIf->IP.Ipv6Renewed = TRUE;
         }
         // update current IPv6 Data
@@ -2000,21 +1997,6 @@ int setUpLanPrefixIPv6(DML_VIRTUAL_IFACE* pVirtIf)
 #endif
         //Restart LAN if required.
         BOOL bRestartLan = FALSE;
-        /* we need save this for zebra to send RA
-           ipv6_prefix           // xx:xx::/yy
-         */
-        memset(cmdLine, 0, sizeof(cmdLine));
-#ifndef _HUB4_PRODUCT_REQ_
-        snprintf(cmdLine, sizeof(cmdLine), "sysevent set ipv6_prefix %s ", pVirtIf->IP.Ipv6Data.sitePrefix);
-#else
-#ifdef LAN_MGR_SUPPORT
-        snprintf(cmdLine, sizeof(cmdLine), "sysevent set dhcpv6_raserver-restart ");
-#else
-        snprintf(cmdLine, sizeof(cmdLine), "sysevent set zebra-restart ");
-#endif
-#endif
-        if (WanManager_DoSystemActionWithStatus(__FUNCTION__, cmdLine) != 0)
-            CcspTraceError(("failed to run cmd: %s", cmdLine));
 
         CcspTraceWarning(("%s: globalIP %s PreviousIPv6Address %s\n", __func__,
                     globalIP, PreviousIPv6Address));
@@ -2095,6 +2077,7 @@ int setUpLanPrefixIPv6(DML_VIRTUAL_IFACE* pVirtIf)
             sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_PREFIXPLTIME, set_value, 0);
             syscfg_set_string(SYSCFG_FIELD_PREVIOUS_IPV6_PREFIX, pVirtIf->IP.Ipv6Data.sitePrefixOld);
             syscfg_set_string(SYSCFG_FIELD_IPV6_PREFIX, pVirtIf->IP.Ipv6Data.sitePrefix);
+            syscfg_set_string("lan_prefix", pVirtIf->IP.Ipv6Data.sitePrefix);
             // create global IPv6 address (<prefix>::1)
             char prefix[BUFLEN_64] = {0};
             memset(prefix, 0, sizeof(prefix));
