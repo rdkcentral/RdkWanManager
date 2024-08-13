@@ -1310,12 +1310,6 @@ static int wan_setUpIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
 
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV6_CONNECTION_STATE, WAN_STATUS_UP, 0);
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_RADVD_RESTART, NULL, 0);
-#ifdef LAN_MGR_SUPPORT
-    sysevent_set(sysevent_fd, sysevent_token, "dhcpv6_raserver-restart", NULL, 0);
-#else
-    //FIXME: does zebra-restart necessory after RADVD_RESTART
-    sysevent_set(sysevent_fd, sysevent_token, "zebra-restart", NULL, 0);
-#endif
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_DHCP_SERVER_RESTART, NULL, 0);
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, NULL, 0);
     sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_WAN_STATUS, buf, sizeof(buf));

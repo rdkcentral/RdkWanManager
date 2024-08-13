@@ -1995,60 +1995,6 @@ int setUpLanPrefixIPv6(DML_VIRTUAL_IFACE* pVirtIf)
             CcspTraceError(("failed to run cmd: %s", cmdLine));
         }
 #endif
-        //Restart LAN if required.
-        BOOL bRestartLan = FALSE;
-
-        CcspTraceWarning(("%s: globalIP %s PreviousIPv6Address %s\n", __func__,
-                    globalIP, PreviousIPv6Address));
-        if ( _ansc_strcmp(globalIP, PreviousIPv6Address ) ){
-            bRestartLan = TRUE;
-
-            //PaM may restart. When this happen, we should not overwrite previous ipv6
-            if ( PreviousIPv6Address[0] )
-                sysevent_set(sysevent_fd, sysevent_token, "lan_ipaddr_v6_prev", PreviousIPv6Address, 0);
-
-            strncpy(PreviousIPv6Address, globalIP,sizeof(PreviousIPv6Address));
-        }else{
-            char lanrestart[8] = {0};
-            sysevent_get(sysevent_fd, sysevent_token, "lan_restarted", lanrestart, sizeof(lanrestart));
-            fprintf(stderr,"lan restart staus is %s \n",lanrestart);
-            if (strcmp("true",lanrestart) == 0)
-                bRestartLan = TRUE;
-            else
-                bRestartLan = FALSE;
-        }
-        CcspTraceWarning(("%s: bRestartLan %d\n", __func__, bRestartLan));
-        if ( ret != 0 )
-        {
-            CcspTraceError(("error, assign global ip error.\n"));
-        }else if ( bRestartLan == FALSE ){
-            CcspTraceError(("Same global IP, Need not restart.\n"));
-        }else{
-            char pref_len[10] ={0};
-
-            CcspTraceWarning(("Restart lan%s:%d\n", __func__,__LINE__));
-            /* This is for IP.Interface.1. use */
-            sysevent_set(sysevent_fd, sysevent_token, COSA_DML_DHCPV6S_ADDR_SYSEVENT_NAME, globalIP, 0);
-
-            /*This is for brlan0 interface */
-            sysevent_set(sysevent_fd, sysevent_token, "lan_ipaddr_v6", globalIP, 0);
-            sscanf (pVirtIf->IP.Ipv6Data.sitePrefix,"%*[^/]/%s" ,pref_len);
-            sysevent_set(sysevent_fd, sysevent_token, "lan_prefix_v6", pref_len, 0);
-            CcspTraceWarning(("%s: setting lan-restart\n", __FUNCTION__));
-            sysevent_set(sysevent_fd, sysevent_token, "lan-restart", "1", 0);
-
-            // Below code copied from CosaDmlDHCPv6sTriggerRestart(FALSE) PAm function.
-            int fd = 0;
-            char str[32] = "restart";
-            fd= open(DHCPS6V_SERVER_RESTART_FIFO, O_RDWR);
-            if (fd < 0)
-            {
-                fprintf(stderr, "open dhcpv6 server restart fifo when writing.\n");
-                return 1;
-            }
-            write( fd, str, sizeof(str) );
-            close(fd);
-        }
     }
 
     /* Sysevent set moved from wanmgr_handle_dhcpv6_event_data */
@@ -2077,7 +2023,6 @@ int setUpLanPrefixIPv6(DML_VIRTUAL_IFACE* pVirtIf)
             sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_PREFIXPLTIME, set_value, 0);
             syscfg_set_string(SYSCFG_FIELD_PREVIOUS_IPV6_PREFIX, pVirtIf->IP.Ipv6Data.sitePrefixOld);
             syscfg_set_string(SYSCFG_FIELD_IPV6_PREFIX, pVirtIf->IP.Ipv6Data.sitePrefix);
-            syscfg_set_string("lan_prefix", pVirtIf->IP.Ipv6Data.sitePrefix);
             // create global IPv6 address (<prefix>::1)
             char prefix[BUFLEN_64] = {0};
             memset(prefix, 0, sizeof(prefix));
@@ -2093,6 +2038,7 @@ int setUpLanPrefixIPv6(DML_VIRTUAL_IFACE* pVirtIf)
                 CcspTraceInfo(("%s %d new prefix = %s\n", __FUNCTION__, __LINE__, pVirtIf->IP.Ipv6Data.sitePrefix));
                 strncat(prefix, "/64",sizeof(prefix)-1);
                 sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_PREFIX, prefix, 0);
+                sysevent_set(sysevent_fd, sysevent_token, "lan_prefix", prefix, 0);
             }
         }else /* IFADDRCONF_REMOVE: prefix remove */
         {
@@ -2112,6 +2058,40 @@ int setUpLanPrefixIPv6(DML_VIRTUAL_IFACE* pVirtIf)
     }
     /* Sysevent set moved from wanmgr_handle_dhcpv6_event_data end */
 
+#ifdef LAN_MGR_SUPPORT
+    //Restart RA(stateless) server
+    sysevent_set(sysevent_fd, sysevent_token, "dhcpv6_raserver-restart", NULL, 0);
+    //recreate Stateful v6 conf
+    sysevent_set(sysevent_fd, sysevent_token, "redirect_URL", NULL, 0);
+    //Restart Stateful V6 server
+    sysevent_set(sysevent_fd, sysevent_token, "dhcpv6-restart", NULL, 0);
+
+#else
+    //FIXME: does zebra-restart necessory after RADVD_RESTART
+    sysevent_set(sysevent_fd, sysevent_token, "zebra-restart", NULL, 0);
+    CcspTraceWarning(("Restart lan%s:%d\n", __func__,__LINE__));
+    /* This is for IP.Interface.1. use */
+    sysevent_set(sysevent_fd, sysevent_token, COSA_DML_DHCPV6S_ADDR_SYSEVENT_NAME, globalIP, 0);
+
+    /*This is for brlan0 interface */
+    sysevent_set(sysevent_fd, sysevent_token, "lan_ipaddr_v6", globalIP, 0);
+    sscanf (pVirtIf->IP.Ipv6Data.sitePrefix,"%*[^/]/%s" ,pref_len);
+    sysevent_set(sysevent_fd, sysevent_token, "lan_prefix_v6", pref_len, 0);
+    CcspTraceWarning(("%s: setting lan-restart\n", __FUNCTION__));
+    sysevent_set(sysevent_fd, sysevent_token, "lan-restart", "1", 0);
+
+    // Below code copied from CosaDmlDHCPv6sTriggerRestart(FALSE) PAm function.
+    int fd = 0;
+    char str[32] = "restart";
+    fd= open(DHCPS6V_SERVER_RESTART_FIFO, O_RDWR);
+    if (fd < 0)
+    {
+        fprintf(stderr, "open dhcpv6 server restart fifo when writing.\n");
+        return 1;
+    }
+    write( fd, str, sizeof(str) );
+    close(fd);
+#endif
 #endif
     return RETURN_OK;
 }
