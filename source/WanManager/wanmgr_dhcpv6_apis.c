@@ -1636,6 +1636,7 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
 
         return ANSC_STATUS_SUCCESS;
     }
+#if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
 
     /* dhcp6c receives an IPv6 address for WAN interface */
     if (pNewIpcMsg->addrAssigned)
@@ -1644,13 +1645,57 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
         {
             CcspTraceInfo(("assigned IPv6 address \n"));
             connected = TRUE;
-#if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
-            /* TODO: Assign IPv6 address on Wan Interface when received, if dhcpv6 client didn't assign on the ineterface. 
-             * Currently dibbler client will assign IA_NA to the interface. 
-             * VISM will assign the prefix on LAN interface.  
+
+            /* TODO: Assign IPv6 address on Wan Interface when received, if dhcpv6 client didn't assign on the ineterface.
+             * Currently dibbler client will assign IA_NA to the interface.
+             * VISM will assign the prefix on LAN interface.
              */
         }
+    }
+    else if(pDhcp6cInfoCur->addrAssigned && Ipv6DataNew.prefixAssigned)
+    {
+        CcspTraceWarning(("%s %d IANA is not assigned in this IPC msg, but we have IANA configured from previous lease. Assuming only IAPD renewed. \n", __FUNCTION__, __LINE__));
+        strncpy(Ipv6DataNew.address, pDhcp6cInfoCur->address, sizeof(Ipv6DataNew.address));
+        pNewIpcMsg->addrAssigned = true;
+        Ipv6DataNew.addrAssigned = true;
+    }
+
+    /* dhcp6c receives prefix delegation for LAN */
+    if (pNewIpcMsg->prefixAssigned && !IS_EMPTY_STRING(pNewIpcMsg->sitePrefix))
+    {
+        if (pNewIpcMsg->prefixCmd == IFADDRCONF_ADD &&
+            pNewIpcMsg->prefixPltime != 0 && pNewIpcMsg->prefixVltime != 0)
+        {
+            CcspTraceInfo(("assigned prefix=%s \n", pNewIpcMsg->sitePrefix));
+            connected = TRUE;
+        }
+        else /* IFADDRCONF_REMOVE: prefix remove */
+        {
+            /* Validate if the prefix to be removed is the same as the stored prefix */
+            if (strcmp(pDhcp6cInfoCur->sitePrefix, pNewIpcMsg->sitePrefix) == 0)
+            {
+                CcspTraceInfo(("remove prefix \n"));
+                WanManager_UpdateInterfaceStatus(pVirtIf, WANMGR_IFACE_CONNECTION_IPV6_DOWN);
+            }
+        }
+    }
+    else if(pDhcp6cInfoCur->prefixAssigned &&  Ipv6DataNew.addrAssigned)
+    {
+        CcspTraceWarning(("%s %d IAPD is not assigned in this IPC msg, but we have IAPD configured from previous lease. Assuming only IANA renewed. \n", __FUNCTION__, __LINE__));
+        strncpy(Ipv6DataNew.sitePrefix, pDhcp6cInfoCur->sitePrefix, sizeof(Ipv6DataNew.sitePrefix));
+        strncpy(Ipv6DataNew.pdIfAddress, pDhcp6cInfoCur->pdIfAddress, sizeof(Ipv6DataNew.pdIfAddress));
+        pNewIpcMsg->prefixAssigned = true;
+        Ipv6DataNew.prefixAssigned = true;
+    }
+
 #else
+    /* dhcp6c receives an IPv6 address for WAN interface */
+    if (pNewIpcMsg->addrAssigned)
+    {
+        if (pNewIpcMsg->addrCmd == IFADDRCONF_ADD)
+        {
+            CcspTraceInfo(("assigned IPv6 address \n"));
+            connected = TRUE;
             if (strcmp(pDhcp6cInfoCur->address, pNewIpcMsg->address))
             {
                 syscfg_set_string(SYSCFG_FIELD_IPV6_ADDRESS, pNewIpcMsg->address);
@@ -1661,17 +1706,7 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
             CcspTraceInfo(("remove IPv6 address \n"));
             syscfg_set_string(SYSCFG_FIELD_IPV6_ADDRESS, "");
         }
-#endif
     }
-#if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
-    else if(pDhcp6cInfoCur->addrAssigned && Ipv6DataNew.prefixAssigned)
-    {
-        CcspTraceWarning(("%s %d IANA is not assigned in this IPC msg, but we have IANA configured from previous lease. Assuming only IAPD renewed. \n", __FUNCTION__, __LINE__));
-        strncpy(Ipv6DataNew.address, pDhcp6cInfoCur->address, sizeof(Ipv6DataNew.address)); 
-        pNewIpcMsg->addrAssigned = true;
-        Ipv6DataNew.addrAssigned = true;
-    }
-#endif
 
     /* dhcp6c receives prefix delegation for LAN */
     if (pNewIpcMsg->prefixAssigned && !IS_EMPTY_STRING(pNewIpcMsg->sitePrefix))
@@ -1683,7 +1718,6 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
             connected = TRUE;
 
             /* Update the WAN prefix validity time in the persistent storage */
-#if !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
             if (pDhcp6cInfoCur->prefixVltime != pNewIpcMsg->prefixVltime)
             {
                 snprintf(set_value, sizeof(set_value), "%d", pNewIpcMsg->prefixVltime);
@@ -1730,7 +1764,6 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
                     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_PREFIX, prefix, 0);
                 }
             }
-#endif
         }
         else /* IFADDRCONF_REMOVE: prefix remove */
         {
@@ -1738,27 +1771,14 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
             if (strcmp(pDhcp6cInfoCur->sitePrefix, pNewIpcMsg->sitePrefix) == 0)
             {
                 CcspTraceInfo(("remove prefix \n"));
-#if !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
                 syscfg_set(NULL, SYSCFG_FIELD_IPV6_PREFIX, "");
                 syscfg_set(NULL, SYSCFG_FIELD_PREVIOUS_IPV6_PREFIX, "");
                 syscfg_set_commit(NULL, SYSCFG_FIELD_IPV6_PREFIX_ADDRESS, "");
-#endif
                 WanManager_UpdateInterfaceStatus(pVirtIf, WANMGR_IFACE_CONNECTION_IPV6_DOWN);
             }
         }
     }
-#if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
-    else if(pDhcp6cInfoCur->prefixAssigned &&  Ipv6DataNew.addrAssigned)
-    {
-        CcspTraceWarning(("%s %d IAPD is not assigned in this IPC msg, but we have IAPD configured from previous lease. Assuming only IANA renewed. \n", __FUNCTION__, __LINE__));
-        strncpy(Ipv6DataNew.sitePrefix, pDhcp6cInfoCur->sitePrefix, sizeof(Ipv6DataNew.sitePrefix)); 
-        strncpy(Ipv6DataNew.pdIfAddress, pDhcp6cInfoCur->pdIfAddress, sizeof(Ipv6DataNew.pdIfAddress));
-        pNewIpcMsg->prefixAssigned = true; 
-        Ipv6DataNew.prefixAssigned = true; 
-    }
-#endif
 
-#if !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)  
     /* dhcp6c receives domain name information */
     if (pNewIpcMsg->domainNameAssigned && !IS_EMPTY_STRING(pNewIpcMsg->domainName))
     {
@@ -1792,10 +1812,9 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
 
             if (strcmp(pDhcp6cInfoCur->address, guAddrPrefix))
             {
-#if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
                 strncpy(Ipv6DataNew.address, guAddr, sizeof(Ipv6DataNew.address)-1);
                 pNewIpcMsg->addrAssigned = true;
-#else
+#if !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
                 syscfg_set_string(SYSCFG_FIELD_IPV6_ADDRESS, guAddrPrefix);
 #endif
             }
