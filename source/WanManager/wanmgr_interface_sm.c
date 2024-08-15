@@ -185,12 +185,6 @@ static ANSC_STATUS WanManager_ClearDHCPData(DML_VIRTUAL_IFACE * pVirtIf);
  * lan ipv6 address ready to use.
  * @return RETURN_OK on success else RETURN_ERR
  *************************************************************************************/
-static int checkIpv6AddressAssignedToBridge(DML_VIRTUAL_IFACE* p_VirtIf);
-
-/*************************************************************************************
- * @brief Check IPv6 address is ready to use or not
- * @return RETURN_OK on success else RETURN_ERR
- *************************************************************************************/
 static int checkIpv6LanAddressIsReadyToUse(DML_VIRTUAL_IFACE* p_VirtIf);
 
 #ifdef FEATURE_MAPT
@@ -901,6 +895,13 @@ int wan_updateDNS(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl, BOOL addIPv4, BOOL
     return ret;
 }
 
+/* Check Duplicate Address Detection (DAD) status. The way it works is that
+   after an address is added to an interface, the operating system uses the
+   Neighbor Discovery Protocol to check if any other host on the network
+   has the same address. The whole process will take around 3 to 4 seconds
+   to complete. Also we need to check and ensure that the gateway has
+   a valid default route entry.
+ */
 static int checkIpv6LanAddressIsReadyToUse(DML_VIRTUAL_IFACE* p_VirtIf)
 {
     char buffer[BUFLEN_256] = {0};
@@ -913,13 +914,6 @@ static int checkIpv6LanAddressIsReadyToUse(DML_VIRTUAL_IFACE* p_VirtIf)
     char IfaceName[BUFLEN_16] = {0};
     int BridgeMode = 0;
 
-    /* Check Duplicate Address Detection (DAD) status. The way it works is that
-       after an address is added to an interface, the operating system uses the
-       Neighbor Discovery Protocol to check if any other host on the network
-       has the same address. The whole process will take around 3 to 4 seconds
-       to complete. Also we need to check and ensure that the gateway has
-       a valid default route entry.
-    */
 
      /*TODO:
      *Below Code should be removed once V6 Prefix/IP is assigned on erouter0 Instead of brlan0 for sky Devices.
@@ -934,13 +928,24 @@ static int checkIpv6LanAddressIsReadyToUse(DML_VIRTUAL_IFACE* p_VirtIf)
     }
     CcspTraceInfo(("%s-%d: IfaceName=%s, BridgeMode=%d \n", __FUNCTION__, __LINE__, IfaceName, BridgeMode));
 
-    for(i=0; i<15; i++) {
+    /* TODO: the below code assumes if the LAN ipv6 address is tentaive for 15 seconds DAD has failed. Do we need additional check?
+     * IANA dad is handled in the DHCPv6 client for the Wan Interface.
+     * Should we remove the IP from LAN bridge and request a different Delegated prefix?
+     * Should we mendate EUI-64 based Interface identifiers for all platforms?
+     */
+
+    for(i=0; i<15; i++) 
+    {
         buffer[0] = '\0';
-        if(dad_flag == 0) {
-            if ((fp_dad = v_secure_popen("r","ip address show dev %s tentative", IfaceName))) {
-                if(fp_dad != NULL) {
+        if(dad_flag == 0) 
+        {
+            if ((fp_dad = v_secure_popen("r","ip address show dev %s tentative", IfaceName))) 
+            {
+                if(fp_dad != NULL) 
+                {
                     fgets(buffer, BUFLEN_256, fp_dad);
-                    if(strlen(buffer) == 0 ) {
+                    if(strlen(buffer) == 0 ) 
+                    {
                         dad_flag = 1;
                     }
                     v_secure_pclose(fp_dad);
@@ -983,27 +988,6 @@ static int checkIpv6LanAddressIsReadyToUse(DML_VIRTUAL_IFACE* p_VirtIf)
 
     return 0;
 }
-
-static int checkIpv6AddressAssignedToBridge(DML_VIRTUAL_IFACE* p_VirtIf)
-{
-    char lanPrefix[BUFLEN_128] = {0};
-    int ret = RETURN_ERR;
-
-    //TODO: sysevent_get required ?
-    sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_GLOBAL_IPV6_PREFIX_SET, lanPrefix, sizeof(lanPrefix));
-
-    if(strlen(lanPrefix) > 0)
-    {
-        CcspTraceInfo(("%s %d lanPrefix[%s] \n", __FUNCTION__, __LINE__,lanPrefix));
-        if (checkIpv6LanAddressIsReadyToUse(p_VirtIf) == 0)
-        {
-            ret = RETURN_OK;
-        }
-    }
-
-    return ret;
-}
-
 
 static void updateInterfaceToVoiceManager(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl, bool voip_started)
 {
@@ -3204,7 +3188,7 @@ static eWanState_t wan_state_obtaining_ip_addresses(WanMgr_IfaceSM_Controller_t*
                 p_VirtIf->IP.Ipv6Changed = FALSE;
                 return WAN_STATE_OBTAINING_IP_ADDRESSES;
             }
-            if (checkIpv6AddressAssignedToBridge(p_VirtIf) == RETURN_OK)
+            if (checkIpv6LanAddressIsReadyToUse(p_VirtIf) == RETURN_OK)
             {
                 return wan_transition_ipv6_up(pWanIfaceCtrl);
             }
@@ -3299,7 +3283,7 @@ static eWanState_t wan_state_standby(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
                 }
                 p_VirtIf->IP.Ipv6Changed == FALSE;
             }
-            if (checkIpv6AddressAssignedToBridge(p_VirtIf) == RETURN_OK)
+            if (checkIpv6LanAddressIsReadyToUse(p_VirtIf) == RETURN_OK)
             {
                 ret = wan_transition_ipv6_up(pWanIfaceCtrl);
                 CcspTraceInfo((" %s %d - IPv6 Address Assigned to Bridge Yet.\n", __FUNCTION__, __LINE__));
@@ -3421,7 +3405,7 @@ static eWanState_t wan_state_ipv4_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
             p_VirtIf->IP.Ipv6Changed = FALSE;
             return WAN_STATE_IPV4_LEASED;
         }
-        if (checkIpv6AddressAssignedToBridge(p_VirtIf) == RETURN_OK)
+        if (checkIpv6LanAddressIsReadyToUse(p_VirtIf) == RETURN_OK)
         {
             return wan_transition_ipv6_up(pWanIfaceCtrl);
         }
@@ -3532,7 +3516,7 @@ static eWanState_t wan_state_ipv6_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
             pInterface->Selection.Status == WAN_IFACE_ACTIVE &&
             p_VirtIf->MAP.MaptStatus == WAN_IFACE_MAPT_STATE_UP)
     {
-        if (checkIpv6AddressAssignedToBridge(p_VirtIf) == RETURN_OK) // Wait for default gateway before MAP-T configuration
+        if (checkIpv6LanAddressIsReadyToUse(p_VirtIf) == RETURN_OK) // Wait for default gateway before MAP-T configuration
         {
             return wan_transition_mapt_up(pWanIfaceCtrl);
         } 
@@ -3670,7 +3654,7 @@ static eWanState_t wan_state_dual_stack_active(WanMgr_IfaceSM_Controller_t* pWan
             pInterface->Selection.Status == WAN_IFACE_ACTIVE &&
             p_VirtIf->MAP.MaptStatus == WAN_IFACE_MAPT_STATE_UP)
     {
-        if (checkIpv6AddressAssignedToBridge(p_VirtIf) == RETURN_OK) // Wait for default gateway before MAP-T configuration
+        if (checkIpv6LanAddressIsReadyToUse(p_VirtIf) == RETURN_OK) // Wait for default gateway before MAP-T configuration
         {
             return wan_transition_mapt_up(pWanIfaceCtrl);
         }

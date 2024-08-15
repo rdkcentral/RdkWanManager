@@ -44,11 +44,8 @@
 #include <sys/ioctl.h>
 #include <net/if.h>
 #include <sys/socket.h>
-#include <linux/if_packet.h>
-#include <linux/if_ether.h>
-#include <linux/ipv6.h>
-#include <netinet/ip6.h>
-#include <netinet/in.h>
+
+#if defined(FEATURE_464XLAT)
 #include <netinet/icmp6.h>
 #include <sys/socket.h>
 #include <net/if.h>
@@ -57,6 +54,7 @@
 #include <signal.h>
 #include <stdio.h>
 #include <netdb.h>
+#endif
 
 #define BROADCAST_IP "255.255.255.255"
 /* To ignore link local addresses configured as DNS servers,
