@@ -2727,9 +2727,9 @@ static int  receive_router_advert(int sockfd, DML_VIRTUAL_IFACE * p_VirtIf)
     if (hdr->icmp6_type == ND_ROUTER_ADVERT)
     {
         struct nd_router_advert *ra = (struct nd_router_advert *)buffer;
-        inet_ntop (AF_INET6, &src_addr.sin6_addr, p_VirtIf->IP.Ipv6Data.defaultRoute, sizeof (p_VirtIf->IP.Ipv6Data.defaultRoute));
-        p_VirtIf->IP.Ipv6Data.defRouteLifeTime = ntohs(ra->nd_ra_router_lifetime);
-        CcspTraceInfo(("%s %d: Received Router Advertisement with default route %s lifetime %d\n", __FUNCTION__, __LINE__, p_VirtIf->IP.Ipv6Data.defaultRoute, p_VirtIf->IP.Ipv6Data.defRouteLifeTime));
+        inet_ntop (AF_INET6, &src_addr.sin6_addr, p_VirtIf->IP.Ipv6Route.defaultRoute, sizeof (p_VirtIf->IP.Ipv6Route.defaultRoute));
+        p_VirtIf->IP.Ipv6Route.defRouteLifeTime = ntohs(ra->nd_ra_router_lifetime);
+        CcspTraceInfo(("%s %d: Received Router Advertisement with default route %s lifetime %d\n", __FUNCTION__, __LINE__, p_VirtIf->IP.Ipv6Route.defaultRoute, p_VirtIf->IP.Ipv6Route.defRouteLifeTime));
         ret = 0;
     }
 

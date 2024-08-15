@@ -1674,6 +1674,7 @@ static ANSC_STATUS WanManager_ClearDHCPData(DML_VIRTUAL_IFACE * pVirtIf)
     pVirtIf->IP.Ipv6Changed = FALSE;
     pVirtIf->IP.Ipv6Renewed = FALSE;
     memset(&(pVirtIf->IP.Ipv6Data), 0, sizeof(WANMGR_IPV6_DATA));
+    memset(&(pVirtIf->IP.Ipv6Route), 0, sizeof(WANMGR_IPV6_RA_DATA));
     pVirtIf->IP.Dhcp6cPid = 0;
     if(pVirtIf->IP.pIpcIpv6Data != NULL)
     {

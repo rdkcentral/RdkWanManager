@@ -329,8 +329,6 @@ typedef struct _WANMGR_IPV6_DATA
    uint32_t prefixPltime;
    uint32_t prefixVltime;
    char sitePrefixOld[BUFLEN_48]; /**< add support for RFC7084 requirement L-13 */
-   char defaultRoute[INET6_ADDRSTRLEN]; /**< add support for RFC7084 requirement L-13 */
-   uint32_t defRouteLifeTime;
    #if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
    /* Params to store the IPv6 IPC message */
    bool addrAssigned;
@@ -341,6 +339,11 @@ typedef struct _WANMGR_IPV6_DATA
    #endif
 } WANMGR_IPV6_DATA;
 
+typedef struct _WANMGR_IPV6_RA_DATA
+{
+   char defaultRoute[INET6_ADDRSTRLEN]; /**< add support for RFC7084 requirement L-13 */
+   uint32_t defRouteLifeTime;
+} WANMGR_IPV6_RA_DATA;
 
 typedef struct _DML_WANIFACE_IP
 {
@@ -369,6 +372,7 @@ typedef struct _DML_WANIFACE_IP
     BOOL                        Ipv6Renewed;
     WANMGR_IPV4_DATA            Ipv4Data;
     WANMGR_IPV6_DATA            Ipv6Data;
+    WANMGR_IPV6_RA_DATA         Ipv6Route;
     ipc_dhcpv4_data_t*          pIpcIpv4Data;
     ipc_dhcpv6_data_t*          pIpcIpv6Data;
     UINT                        Dhcp4cPid;
