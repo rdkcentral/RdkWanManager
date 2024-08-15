@@ -882,6 +882,36 @@ int wan_updateDNS(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl, BOOL addIPv4, BOOL
 
     if (valid_dns == TRUE)
     {
+        if ((syscfg_get(NULL, SYSCFG_XDNS_ENABLE, XDSEnableString, sizeof(XDSEnableString)) == 0) && (XDSEnableString[0] == '1'))
+        {
+            CcspTraceInfo(("%s %d - Active domainname servers set!\n", __FUNCTION__,__LINE__));
+            FILE *fp1 = NULL;
+            /*ReadXDNSnameserverentriesfromorignalxdnsconfandwriteintoresolv.conffile*/
+            if((fp1=fopen(XDNS_CONF_FILE,"r"))==NULL)
+            {
+                CcspTraceError(("%s%d-Open%serror!\n",__FUNCTION__,__LINE__,XDNS_CONF_FILE));
+            }
+            else
+            {
+                char buf[BUFLEN_256]={0};
+                //GetXDNSconffileentries
+                while(NULL!=fgets(buf,sizeof(buf),fp1))
+                {
+                    buf[strcspn(buf,"\n")]=0;//removenewlinechar
+                    if(!strlen(buf))
+                    {
+                        //Clearbuffer
+                        memset(buf,0,sizeof(buf));
+                        continue;
+                    }
+                    fprintf(fp,"%s\n",buf);
+                    //Clearbuffer
+                    memset(buf,0,sizeof(buf));
+                }
+                fclose(fp1);
+                fp1 = NULL;
+            }
+	}
         CcspTraceInfo(("%s %d - Active domainname servers set!\n", __FUNCTION__,__LINE__));
     }
     else
