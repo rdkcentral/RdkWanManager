@@ -2651,141 +2651,53 @@ ANSC_STATUS WanManager_get_interface_mac(char *interfaceName, char* macAddress, 
 }
 
 //Send and receive RS
-#define RS_RA_TIMEOUT 2
-#define RS_MSG_SIZE 8
-#define RA_MSG_SIZE 1024
-struct in6_pktinfo {
-    struct in6_addr ipi6_addr;
-    unsigned int ipi6_ifindex;
-};
-
-static int send_router_solicit(int sockfd, struct sockaddr_in6 *dest_addr, const char *if_name) 
+int  WanManager_send_and_receive_rs(DML_VIRTUAL_IFACE * p_VirtIf) 
 {
-    struct icmp6_hdr rs_hdr;
-    memset(&rs_hdr, 0, sizeof(rs_hdr));
-    rs_hdr.icmp6_type = ND_ROUTER_SOLICIT;
-
-    CcspTraceInfo(("%s %d:  \n", __FUNCTION__, __LINE__));
-    struct msghdr msg;
-    struct iovec iov;
-    struct sockaddr_in6 src_addr;
-    struct cmsghdr *cmsg;
-    char cmsgbuf[CMSG_SPACE(sizeof(struct in6_pktinfo))];
-
-    memset(&msg, 0, sizeof(msg));
-    memset(&src_addr, 0, sizeof(src_addr));
-    memset(cmsgbuf, 0, sizeof(cmsgbuf));
-
-    src_addr.sin6_family = AF_INET6;
-    src_addr.sin6_addr = in6addr_any;
-
-    iov.iov_base = &rs_hdr;
-    iov.iov_len = sizeof(rs_hdr);
-
-    msg.msg_name = dest_addr;
-    msg.msg_namelen = sizeof(*dest_addr);
-    msg.msg_iov = &iov;
-    msg.msg_iovlen = 1;
-    msg.msg_control = cmsgbuf;
-    msg.msg_controllen = sizeof(cmsgbuf);
-
-    cmsg = CMSG_FIRSTHDR(&msg);
-    cmsg->cmsg_len = CMSG_LEN(sizeof(struct in6_pktinfo));
-    cmsg->cmsg_level = IPPROTO_IPV6;
-    cmsg->cmsg_type = IPV6_PKTINFO;
-
-   struct in6_pktinfo *pktinfo = (struct in6_pktinfo *)CMSG_DATA(cmsg);
-    memset(pktinfo, 0, sizeof(struct in6_pktinfo));
-
-    pktinfo->ipi6_ifindex = if_nametoindex(if_name);
-    if (sendmsg(sockfd, &msg, 0) < 0) {
-        CcspTraceError(("%s %d: sendmsg failed %s\n", __FUNCTION__, __LINE__, strerror(errno)));
-        return -1;
-    }
-    CcspTraceInfo(("%s %d: RS sent from interface %s and index %d \n", __FUNCTION__, __LINE__, if_name, pktinfo->ipi6_ifindex));
-
-    return 0;
-}
-
-static int  receive_router_advert(int sockfd, DML_VIRTUAL_IFACE * p_VirtIf) 
-{
+    struct in6_addr addr;
     int ret = -1;
-    char buffer[RA_MSG_SIZE];
-    struct sockaddr_in6 src_addr;
-    socklen_t addrlen = sizeof(src_addr);
-    ssize_t len;
+    char command[256];
+    char buffer[512];
+    FILE *fp;
 
-    len = recvfrom(sockfd, buffer, sizeof(buffer), 0, (struct sockaddr *)&src_addr, &addrlen);
-    if (len < 0) 
+    CcspTraceInfo(("%s %d: Requesting Router solicit for %s \n", __FUNCTION__, __LINE__, p_VirtIf->Name));
+    // Prepare the command to execute rdisc6 on the specified interface
+    snprintf(command, sizeof(command), "rdisc6 %s", p_VirtIf->Name );
+
+    // Execute the command and open a pipe to read its output
+    if ((fp = popen(command, "r")) == NULL) 
     {
-        CcspTraceError(("%s %d: recvfrom Failed %s \n", __FUNCTION__, __LINE__, strerror(errno)));
+        perror("popen");
         return -1;
     }
 
-    struct icmp6_hdr *hdr = (struct icmp6_hdr *)buffer;
-
-    if (hdr->icmp6_type == ND_ROUTER_ADVERT)
+    // Read the output line by line
+    while (fgets(buffer, sizeof(buffer), fp) != NULL) 
     {
-        struct nd_router_advert *ra = (struct nd_router_advert *)buffer;
-        inet_ntop (AF_INET6, &src_addr.sin6_addr, p_VirtIf->IP.Ipv6Route.defaultRoute, sizeof (p_VirtIf->IP.Ipv6Route.defaultRoute));
-        p_VirtIf->IP.Ipv6Route.defRouteLifeTime = ntohs(ra->nd_ra_router_lifetime);
+        if (strstr(buffer, "Route lifetime")) 
+        {
+            sscanf(buffer, " Route lifetime : %d", &p_VirtIf->IP.Ipv6Route.defRouteLifeTime);
+        }
+
+        // Look for the "from" line to identify the default route address
+        if (strstr(buffer, "from")) 
+        {
+            sscanf(buffer, " from %s",  p_VirtIf->IP.Ipv6Route.defaultRoute);
+            if (inet_pton(AF_INET6, p_VirtIf->IP.Ipv6Route.defaultRoute, &addr) == 1)  //check parsed value is a valid ipv6 address
+            {
+                ret = 0;
+                break;
+            }
+        }
+    }
+
+    // Close the pipe
+    pclose(fp);
+
+    if(ret == 0)
+    {
         CcspTraceInfo(("%s %d: Received Router Advertisement with default route %s lifetime %d\n", __FUNCTION__, __LINE__, p_VirtIf->IP.Ipv6Route.defaultRoute, p_VirtIf->IP.Ipv6Route.defRouteLifeTime));
-        ret = 0;
     }
 
-    if(ret != 0)
-    {
-        CcspTraceError(("%s %d: Router Advertisement isn't received. \n", __FUNCTION__, __LINE__)); 
-    }
-    return ret;
-}
-
-int  WanManager_send_and_receive_rs(DML_VIRTUAL_IFACE * pVirtIf) 
-{
-    int ret = -1;
-    int sockfd;
-    struct sockaddr_in6 dest_addr;
-    int retry = 3; //default retry
-
-    CcspTraceInfo(("%s %d: Requesting Router solicit for %s \n", __FUNCTION__, __LINE__, pVirtIf->Name));
-    sockfd = socket(AF_INET6, SOCK_RAW, IPPROTO_ICMPV6);
-    if (sockfd < 0) {
-        CcspTraceError(("%s %d: sock creation failed %s\n", __FUNCTION__, __LINE__, strerror(errno)));
-        return -1;
-    }
-
-    memset(&dest_addr, 0, sizeof(dest_addr));
-    dest_addr.sin6_family = AF_INET6;
-    inet_pton(AF_INET6, "ff02::2", &dest_addr.sin6_addr); // Set destination address to all routers
-
-    struct timeval tv;
-    tv.tv_sec = RS_RA_TIMEOUT;
-    tv.tv_usec = 0;
-    setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
-    setsockopt (sockfd, SOL_SOCKET, SO_DONTROUTE, &(int){1}, sizeof (int));
-    setsockopt (sockfd, IPPROTO_IPV6, IPV6_RECVHOPLIMIT, &(int){ 1 }, sizeof (int));
-    setsockopt (sockfd, IPPROTO_IPV6, IPV6_MULTICAST_HOPS, &(int){ 255 }, sizeof (int));
-    setsockopt (sockfd, IPPROTO_IPV6, IPV6_UNICAST_HOPS, &(int){ 255 }, sizeof (int));
-
-    while(retry > 0)
-    {
-        retry--;
-        ret = send_router_solicit(sockfd, &dest_addr, pVirtIf->Name);
-        if (ret != 0)
-        {
-            CcspTraceError(("%s %d: Router Solicit send failed. Retry %d \n", __FUNCTION__, __LINE__, retry));
-            continue;
-        }
-
-        ret = receive_router_advert(sockfd, pVirtIf);
-        if(ret == 0)
-        {
-            break;
-        }
-        CcspTraceError(("%s %d: Router Advertisement Retry %d \n", __FUNCTION__, __LINE__, retry));
-    }
-
-    close(sockfd);
     return ret;
 }
 

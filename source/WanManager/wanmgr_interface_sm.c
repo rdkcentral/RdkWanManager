@@ -948,26 +948,8 @@ static int checkIpv6LanAddressIsReadyToUse(DML_VIRTUAL_IFACE* p_VirtIf)
             }
         }
 
-        if(route_flag == 0) {
-            buffer[0] = '\0';
-            if ((fp_route = popen("ip -6 ro | grep default", "r"))) {
-                if(fp_route != NULL) {
-                    fgets(buffer, BUFLEN_256, fp_route);
-                    if(strlen(buffer) > 0 ) {
-                        route_flag = 1;
-                    }
-                    pclose(fp_route);
-                }
-            }
-        }
-
-        if(dad_flag == 0 || route_flag == 0) 
+        if(dad_flag == 0) 
         {
-            if(route_flag == 0)
-            {
-                //If the default route is not present, Send a router solicit.
-                WanManager_send_and_receive_rs(p_VirtIf);
-            }
             sleep(1);
         }
         else 
@@ -976,7 +958,25 @@ static int checkIpv6LanAddressIsReadyToUse(DML_VIRTUAL_IFACE* p_VirtIf)
         }
     }
 
-    if(dad_flag == 0 || route_flag == 0) {
+    buffer[0] = '\0';
+    if ((fp_route = popen("ip -6 ro | grep default", "r"))) {
+        if(fp_route != NULL) {
+            fgets(buffer, BUFLEN_256, fp_route);
+            if(strlen(buffer) > 0 ) {
+                route_flag = 1;
+            }
+            pclose(fp_route);
+        }
+    }
+
+    if(route_flag == 0)
+    {
+        //If the default route is not present, Send a router solicit.
+        WanManager_send_and_receive_rs(p_VirtIf);
+    }
+
+    if(dad_flag == 0 || route_flag == 0) 
+    {
         CcspTraceError(("%s %d dad_flag[%d] route_flag[%d] Failed \n", __FUNCTION__, __LINE__,dad_flag,route_flag));
         return -1;
     }
@@ -989,6 +989,7 @@ static int checkIpv6AddressAssignedToBridge(DML_VIRTUAL_IFACE* p_VirtIf)
     char lanPrefix[BUFLEN_128] = {0};
     int ret = RETURN_ERR;
 
+    //TODO: sysevent_get required ?
     sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_GLOBAL_IPV6_PREFIX_SET, lanPrefix, sizeof(lanPrefix));
 
     if(strlen(lanPrefix) > 0)
