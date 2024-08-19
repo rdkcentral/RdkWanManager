@@ -3263,8 +3263,8 @@ static eWanState_t wan_state_standby(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
         return ret;
     }
 
-    //FIXME : IPoE health check won't work if the interface is stanby
-    if(p_VirtIf->IP.RestartConnectivityCheck == TRUE && p_VirtIf->IP.ConnectivityCheckType != WAN_CONNECTIVITY_TYPE_IHC)
+    //FIXME : IPoE health check won't work if the interface is standby
+    if(p_VirtIf->IP.RestartConnectivityCheck == TRUE && p_VirtIf->IP.ConnectivityCheckType == WAN_CONNECTIVITY_TYPE_TAD)
     {
         WanMgr_StartConnectivityCheck(pWanIfaceCtrl);
     }
