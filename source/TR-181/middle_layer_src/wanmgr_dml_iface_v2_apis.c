@@ -40,7 +40,7 @@
 #include "wanmgr_dhcpv4_apis.h"
 #include "wanmgr_dhcpv6_apis.h"
 #include "wanmgr_data.h"
-#if defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_)
+#if defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_)
 #include "wanmgr_utils.h"
 #endif
 
@@ -417,7 +417,7 @@ BOOL WanIf_SetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, char* p
             if (strcmp(ParamName, "CustomConfigPath") == 0)
             {
                 AnscCopyString(pWanDmlIface->CustomConfigPath, pString);
-#if defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_)
+#if defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_)
                 WanMgr_SetRestartWanInfo(WAN_CUSTOM_CONFIG_PATH_PARAM_NAME, pWanDmlIface->uiIfaceIdx, pString);
 #endif
                 ret = TRUE;
@@ -573,7 +573,7 @@ BOOL WanIf_SetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL bVal
             if (strcmp(ParamName, "ConfigureWanEnable") == 0)
             {
                 pWanDmlIface->WanConfigEnabled  = bValue;
-#if defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_)
+#if defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_)
                 WanMgr_SetRestartWanInfo(WAN_CONFIGURE_WAN_ENABLE_PARAM_NAME, pWanDmlIface->uiIfaceIdx, pWanDmlIface->WanConfigEnabled?"true":"false");
 #endif
                 ret = TRUE;
@@ -582,7 +582,7 @@ BOOL WanIf_SetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL bVal
             if (strcmp(ParamName, "EnableCustomConfig") == 0)
             {
                 pWanDmlIface->CustomConfigEnable  = bValue;
-#if defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_)
+#if defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_)
                 WanMgr_SetRestartWanInfo(WAN_ENABLE_CUSTOM_CONFIG_PARAM_NAME, pWanDmlIface->uiIfaceIdx, pWanDmlIface->CustomConfigEnable?"true":"false");
 #endif
                 ret = TRUE;
@@ -590,7 +590,7 @@ BOOL WanIf_SetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL bVal
             if (strcmp(ParamName, "EnableOperStatusMonitor") == 0)
             {
                 pWanDmlIface->MonitorOperStatus = bValue;
-#if defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_)
+#if defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_)
                 WanMgr_SetRestartWanInfo(WAN_ENABLE_OPER_STATUS_MONITOR_PARAM_NAME, pWanDmlIface->uiIfaceIdx, pWanDmlIface->MonitorOperStatus?"true":"false");
 #endif
                 ret = TRUE;
@@ -1510,7 +1510,11 @@ BOOL WanVirtualIf_GetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BO
         }
         if (strcmp(ParamName, "EnableIPoEHealthCheck") == 0)
         {
-            *pBool = p_VirtIf->EnableIPoE;
+            *pBool = FALSE;
+            if (p_VirtIf->IP.ConnectivityCheckType == WAN_CONNECTIVITY_TYPE_IHC)
+            {
+                *pBool = TRUE;
+            }
             ret = TRUE;
         }
         if (strcmp(ParamName, "EnableMAPT") == 0)
@@ -1586,8 +1590,18 @@ BOOL WanVirtualIf_SetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BO
         }
         if (strcmp(ParamName, "EnableIPoEHealthCheck") == 0)
         {
-            p_VirtIf->EnableIPoE = bValue;
-            ret = TRUE;
+            CONNECTIVITY_CHECK_TYPE type = bValue? WAN_CONNECTIVITY_TYPE_IHC:WAN_CONNECTIVITY_TYPE_NO_CHECK;
+                /*the below condition is, to avoid multiple time same value set and
+                 * unsetting value of IPOE and DNS RFC DML from eachother */
+                if((type != p_VirtIf->IP.ConnectivityCheckType) &&
+                   ((type != WAN_CONNECTIVITY_TYPE_NO_CHECK) ||
+                    (p_VirtIf->IP.ConnectivityCheckType == WAN_CONNECTIVITY_TYPE_IHC)))
+            {
+                WanMgr_SetConnectivityCheckTypeToPSM(p_VirtIf, type);
+                p_VirtIf->IP.WCC_TypeChanged = TRUE;
+                p_VirtIf->IP.ConnectivityCheckType = type;
+                ret = TRUE;
+            }
         }
         if (strcmp(ParamName, "EnableMAPT") == 0)
         {
@@ -1723,7 +1737,7 @@ BOOL WanVirtualIf_SetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, 
         if (strcmp(ParamName, "Name") == 0)
         {
             AnscCopyString(p_VirtIf->Name, pString);
-#if defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_)
+#if defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_)
             WanMgr_SetRestartWanInfo(WAN_NAME_PARAM_NAME, p_VirtIf->VirIfIdx, pString);
 #endif
             ret = TRUE;

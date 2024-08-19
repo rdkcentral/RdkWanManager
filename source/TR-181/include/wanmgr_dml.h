@@ -267,7 +267,7 @@ typedef enum {
 } CONNECTIVITY_STATUS;
 
 typedef enum {
-    WAN_CONNECTIVITY_TYPE_NO_CHECK = 1,
+    WAN_CONNECTIVITY_TYPE_NO_CHECK,
     WAN_CONNECTIVITY_TYPE_IHC,
     WAN_CONNECTIVITY_TYPE_TAD,
 } CONNECTIVITY_CHECK_TYPE;
@@ -520,7 +520,6 @@ typedef struct _DML_VIRTUAL_IFACE
     BOOL                        Enable; 
     BOOL                        EnableMAPT;
     BOOL                        EnableDSLite;
-    BOOL                        EnableIPoE;
     DML_WAN_IFACE_STATUS        Status;
     DML_WAN_IFACE_STATUS        RemoteStatus;
     DML_VIRTUALIF_VLAN          VLAN;

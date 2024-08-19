@@ -221,8 +221,6 @@ int get_Virtual_Interface_FromPSM(ULONG instancenum, ULONG virtInsNum ,DML_VIRTU
     char param_name[512];
     CcspTraceInfo(("%s %d Update Wan Virtual iface Conf from PSM \n", __FUNCTION__, __LINE__));
 
-    pVirtIf->VirIfIdx = virtInsNum;
-
     _ansc_memset(param_name, 0, sizeof(param_name));
     _ansc_memset(param_value, 0, sizeof(param_value));
     _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_ENABLE_MAPT, instancenum, (virtInsNum + 1));
@@ -250,19 +248,6 @@ int get_Virtual_Interface_FromPSM(ULONG instancenum, ULONG virtInsNum ,DML_VIRTU
     if(strcmp(param_value, PSM_ENABLE_STRING_TRUE) == 0)
     {
         pVirtIf->EnableDSLite = TRUE;
-    }
-
-    _ansc_memset(param_name, 0, sizeof(param_name));
-    _ansc_memset(param_value, 0, sizeof(param_value));
-    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_ENABLE_IPOE, instancenum, (virtInsNum + 1));
-    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
-
-    if(strcmp(param_value, PSM_ENABLE_STRING_TRUE) == 0)
-    {
-        pVirtIf->EnableIPoE = TRUE;
-        CcspTraceInfo(("%s %d IP.ConnectivityCheckType set to WAN_CONNECTIVITY_TYPE_IHC \n", __FUNCTION__, __LINE__));
-        /* Set ConnectivityCheckType to IPOE Health Check if it is enabled. */
-        pVirtIf->IP.ConnectivityCheckType = WAN_CONNECTIVITY_TYPE_IHC;
     }
 
     _ansc_memset(param_name, 0, sizeof(param_name));
@@ -372,6 +357,30 @@ int get_Virtual_Interface_FromPSM(ULONG instancenum, ULONG virtInsNum ,DML_VIRTU
     {
         pVirtIf->IP.ModeForceEnable = TRUE;
     }
+
+    _ansc_memset(param_name, 0, sizeof(param_name));
+    _ansc_memset(param_value, 0, sizeof(param_value));
+    _ansc_sprintf(param_name, PSM_WANMANAGER_CONNECTIVITY_CHECK_TYPE, instancenum, (virtInsNum + 1));
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
+    if(retPsmGet == CCSP_SUCCESS)
+    {
+        _ansc_sscanf(param_value, "%d", &(pVirtIf->IP.ConnectivityCheckType));
+    }
+}
+
+int get_Remote_Virtual_Interface_FromPSM(ULONG instancenum, ULONG virtInsNum ,DML_VIRTUAL_IFACE * pVirtIf)
+{
+    int retPsmGet = CCSP_SUCCESS;
+    char param_value[256] = {0};
+    char param_name[512] = {0};
+    CcspTraceInfo(("%s %d Update Remote Wan Virtual iface Conf from PSM \n", __FUNCTION__, __LINE__));
+
+    _ansc_sprintf(param_name, PSM_WANMANAGER_CONNECTIVITY_CHECK_TYPE, instancenum, (virtInsNum + 1));
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
+    if(retPsmGet == CCSP_SUCCESS)
+    {
+        _ansc_sscanf(param_value, "%d", &(pVirtIf->IP.ConnectivityCheckType));
+    }
 }
 
 void WanMgr_getRemoteWanIfName(char *IfaceName,int Size)
@@ -471,19 +480,6 @@ int write_Virtual_Interface_ToPSM(ULONG instancenum, ULONG virtInsNum ,DML_VIRTU
     char param_value[256] = {0};
 
     CcspTraceInfo(("%s %d Entered\n", __FUNCTION__, __LINE__));
-
-    memset(param_value, 0, sizeof(param_value));
-    memset(param_name, 0, sizeof(param_name));
-    if(pVirtIf->EnableIPoE == TRUE)
-    {
-        _ansc_sprintf(param_value, "TRUE");
-    }
-    else
-    {
-        _ansc_sprintf(param_value, "FALSE");
-    }
-    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_ENABLE_IPOE, instancenum, (virtInsNum + 1));
-    WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
 
     memset(param_value, 0, sizeof(param_value));
     memset(param_name, 0, sizeof(param_name));
