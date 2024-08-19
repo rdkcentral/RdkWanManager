@@ -1362,7 +1362,8 @@ static int wan_tearDownIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
     DML_WAN_IFACE * pInterface = pWanIfaceCtrl->pIfaceData;
     DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIfaceById(pInterface->VirtIfList, pWanIfaceCtrl->VirIfIdx);
 
-#if !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_)) //TODO: XB devices use the DNS of primary for backup.
+    //TODO: FIXME: XB devices use the DNS of primary for backup and doesn't deconfigure the primary ipv6 prefix from the LAN interface. 
+#if !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_)) 
     /** Reset IPv6 DNS configuration. */
     if (RETURN_OK == wan_updateDNS(pWanIfaceCtrl, (p_VirtIf->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_UP), FALSE))
     {
@@ -1374,12 +1375,12 @@ static int wan_tearDownIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
         ret = RETURN_ERR;
     }
 
-#endif
     /** Unconfig IPv6. */
     if ( WanManager_Ipv6AddrUtil(p_VirtIf->Name, DEL_ADDR,0,0) < 0)
     {
         AnscTraceError(("%s %d -  Failed to remove inactive address \n", __FUNCTION__,__LINE__));
     }
+#endif
 
     // Reset sysvevents.
     char previousPrefix[BUFLEN_48] = {0};
@@ -1929,12 +1930,7 @@ static eWanState_t wan_transition_wan_validated(WanMgr_IfaceSM_Controller_t* pWa
         }
 
         if(p_VirtIf->IP.IPv6Source == DML_WAN_IP_SOURCE_DHCP && (p_VirtIf->IP.Dhcp6cPid == 0) &&
-            (p_VirtIf->IP.Mode == DML_WAN_IP_MODE_DUAL_STACK || p_VirtIf->IP.Mode == DML_WAN_IP_MODE_IPV6_ONLY)
-#if !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
-            //TODO: Don't start ipv6 while validating primary for Comcast
-            && p_VirtIf->IP.RestartV6Client ==FALSE
-#endif
-          )
+            (p_VirtIf->IP.Mode == DML_WAN_IP_MODE_DUAL_STACK || p_VirtIf->IP.Mode == DML_WAN_IP_MODE_IPV6_ONLY))
         {
             /* Start all interface with accept ra disbaled */
             WanMgr_Configure_accept_ra(p_VirtIf, FALSE);
@@ -3125,12 +3121,7 @@ static eWanState_t wan_state_obtaining_ip_addresses(WanMgr_IfaceSM_Controller_t*
         }
 
         if(p_VirtIf->IP.IPv6Source == DML_WAN_IP_SOURCE_DHCP && 
-           (p_VirtIf->IP.Mode == DML_WAN_IP_MODE_IPV6_ONLY || p_VirtIf->IP.Mode == DML_WAN_IP_MODE_DUAL_STACK)
-#if !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
-            //TODO: Don't start ipv6 while validating primary for Comcast
-            && p_VirtIf->IP.RestartV6Client ==FALSE
-#endif
-      )
+           (p_VirtIf->IP.Mode == DML_WAN_IP_MODE_IPV6_ONLY || p_VirtIf->IP.Mode == DML_WAN_IP_MODE_DUAL_STACK))
         {
             if(p_VirtIf->IP.Dhcp6cPid <= 0) 
             {
@@ -3249,30 +3240,6 @@ static eWanState_t wan_state_standby(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
     }
     else if (pInterface->Selection.Status == WAN_IFACE_ACTIVE)
     {
-#if !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
-        /* This check is a workaround to reconfigure IPv6 from PAM*/
-        if(p_VirtIf->IP.RestartV6Client ==TRUE)
-        {
-            CcspTraceInfo(("%s %d: Restart Ipv6 client triggered. \n", __FUNCTION__, __LINE__));
-            /* Stops DHCPv6 client */
-            if(p_VirtIf->IP.Dhcp6cPid > 0)
-            {
-                CcspTraceInfo(("%s %d: Stopping DHCP v6\n", __FUNCTION__, __LINE__));
-                WanManager_StopDhcpv6Client(p_VirtIf->Name, STOP_DHCP_WITH_RELEASE); // release dhcp lease
-                p_VirtIf->IP.Dhcp6cPid = 0;
-            }
-
-            if(p_VirtIf->IP.IPv6Source == DML_WAN_IP_SOURCE_DHCP &&
-                    (p_VirtIf->IP.Mode == DML_WAN_IP_MODE_DUAL_STACK || p_VirtIf->IP.Mode == DML_WAN_IP_MODE_IPV6_ONLY))
-            {
-                /* Start DHCPv6 Client */
-                p_VirtIf->IP.Dhcp6cPid = WanManager_StartDhcpv6Client(p_VirtIf, pInterface->IfaceType);
-                CcspTraceInfo(("%s %d - Started dhcpv6 client on interface %s, dhcpv6_pid %d \n", __FUNCTION__, __LINE__, p_VirtIf->Name, p_VirtIf->IP.Dhcp6cPid));
-            }
-            p_VirtIf->IP.RestartV6Client = FALSE;
-        }
-        else
-#endif
         if (p_VirtIf->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_UP)
         {
             if (p_VirtIf->IP.Ipv6Changed == TRUE)
@@ -3295,6 +3262,13 @@ static eWanState_t wan_state_standby(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
         }
         return ret;
     }
+
+    //FIXME : IPoE health check won't work if the interface is stanby
+    if(p_VirtIf->IP.RestartConnectivityCheck == TRUE && p_VirtIf->IP.ConnectivityCheckType != WAN_CONNECTIVITY_TYPE_IHC)
+    {
+        WanMgr_StartConnectivityCheck(pWanIfaceCtrl);
+    }
+
     return WAN_STATE_STANDBY;
 }
 
@@ -3318,9 +3292,6 @@ static eWanState_t wan_state_ipv4_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
         p_VirtIf->IP.Dhcp6cPid = WanManager_StartDhcpv6Client(p_VirtIf, pInterface->IfaceType);
         CcspTraceInfo(("%s %d - Started dhcpv6 client on interface %s, dhcpv6_pid %d \n", __FUNCTION__, __LINE__, p_VirtIf->Name, p_VirtIf->IP.Dhcp6cPid));
         CcspTraceInfo(("%s %d - Interface '%s' - Running in Dual Stack IP Mode\n", __FUNCTION__, __LINE__, pInterface->Name));
-#if !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
-        p_VirtIf->IP.RestartV6Client = FALSE;
-#endif
     }
 
     // Start DHCP apps if not started
@@ -3369,29 +3340,6 @@ static eWanState_t wan_state_ipv4_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
             CcspTraceError(("%s %d - Failed to tear down IPv4 for %s Interface \n", __FUNCTION__, __LINE__, p_VirtIf->Name));
         }
     }
-#if !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
-    /* This check is a workaround to reconfigure IPv6 from PAM*/
-    else if(p_VirtIf->IP.RestartV6Client ==TRUE)
-    {
-        CcspTraceInfo(("%s %d: Restart Ipv6 client triggered. \n", __FUNCTION__, __LINE__));
-        /* Stops DHCPv6 client */
-        if(p_VirtIf->IP.Dhcp6cPid > 0)
-        {
-            CcspTraceInfo(("%s %d: Stopping DHCP v6\n", __FUNCTION__, __LINE__));
-            WanManager_StopDhcpv6Client(p_VirtIf->Name, STOP_DHCP_WITH_RELEASE);
-            p_VirtIf->IP.Dhcp6cPid = 0;
-        }
-
-        if(p_VirtIf->IP.IPv6Source == DML_WAN_IP_SOURCE_DHCP &&
-                (p_VirtIf->IP.Mode == DML_WAN_IP_MODE_DUAL_STACK || p_VirtIf->IP.Mode == DML_WAN_IP_MODE_IPV6_ONLY))
-        {
-            /* Start DHCPv6 Client */
-            p_VirtIf->IP.Dhcp6cPid = WanManager_StartDhcpv6Client(p_VirtIf, pInterface->IfaceType);
-            CcspTraceInfo(("%s %d - Started dhcpv6 client on interface %s, dhcpv6_pid %d \n", __FUNCTION__, __LINE__, p_VirtIf->Name, p_VirtIf->IP.Dhcp6cPid));
-        }
-        p_VirtIf->IP.RestartV6Client = FALSE;
-    }
-#endif
     else if (p_VirtIf->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_UP)
     {
         if(p_VirtIf->IP.Ipv6Changed == TRUE)

@@ -760,7 +760,6 @@ void WanMgr_VirtIface_Init(DML_VIRTUAL_IFACE * pVirtIf, UINT iface_index)
     pVirtIf->EnableMAPT = FALSE;
     pVirtIf->EnableDSLite = FALSE;
     pVirtIf->IP.RefreshDHCP = FALSE;        // RefreshDHCP is set when there is a change in IP source
-    pVirtIf->IP.RestartV6Client = FALSE;
     pVirtIf->Status = WAN_IFACE_STATUS_DISABLED;
     pVirtIf->RemoteStatus = WAN_IFACE_STATUS_DISABLED;
     pVirtIf->VLAN.Status = WAN_IFACE_LINKSTATUS_DOWN;

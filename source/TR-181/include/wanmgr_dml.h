@@ -341,7 +341,7 @@ typedef struct _WANMGR_IPV6_DATA
 
 typedef struct _WANMGR_IPV6_RA_DATA
 {
-   char defaultRoute[INET6_ADDRSTRLEN]; /**< add support for RFC7084 requirement L-13 */
+   char defaultRoute[INET6_ADDRSTRLEN]; 
    uint32_t defRouteLifeTime;
 } WANMGR_IPV6_RA_DATA;
 
@@ -359,7 +359,6 @@ typedef struct _DML_WANIFACE_IP
     BOOL                        RestartConnectivityCheck;
     BOOL                        WCC_TypeChanged; // Flag to notify change in ConnectivityCheckType
     BOOL                        RefreshDHCP;
-    BOOL                        RestartV6Client; //This is a workaround to restart dhcpv6 client for the platform where PAM configures IPv6. !FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE
     DML_WAN_IP_MODE             Mode;
     DML_WAN_IP_PREFERRED_MODE   PreferredMode;
     DML_WAN_IP_PREFERRED_MODE   SelectedMode;
