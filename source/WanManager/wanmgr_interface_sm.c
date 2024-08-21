@@ -419,7 +419,6 @@ static void WanMgr_MonitorDhcpApps (WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
     {
         // let the caller state handle RefreshDHCP=TRUE scenario
         CcspTraceError(("%s %d: IP Mode change detected, handle RefreshDHCP & later monitor DHCP apps\n", __FUNCTION__, __LINE__));
-	p_VirtIf->IP.RefreshDHCP = FALSE ;
         return;
     }
 
