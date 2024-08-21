@@ -43,8 +43,6 @@
 #define DEFAULT_IFNAME    "erouter0"
 #define LOOP_TIMEOUT 50000 // timeout in microseconds. This is the state machine loop interval
 #define RESOLV_CONF_FILE "/etc/resolv.conf"
-#define XDNS_CONF_FILE "/nvram/dnsmasq_servers.conf"
-#define SYSCFG_XDNS_ENABLE "X_RDKCENTRAL-COM_XDNS"
 #define LOOPBACK "127.0.0.1"
 
 #ifdef FEATURE_IPOE_HEALTH_CHECK
@@ -881,37 +879,10 @@ int wan_updateDNS(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl, BOOL addIPv4, BOOL
     {
         CcspTraceInfo(("%s %d: No change not Setting %s\n", __FUNCTION__, __LINE__, SYSEVENT_DHCP_SERVER_RESTART));
     }
-    char XDSEnableString[16] = { 0 };
-    if (valid_dns == TRUE && \
-       (syscfg_get(NULL, SYSCFG_XDNS_ENABLE, XDSEnableString, sizeof(XDSEnableString)) == 0 ) && \
-       ( XDSEnableString[0] == '1' ) )
+
+    if (valid_dns == TRUE)
     {
-        FILE *fp1 = NULL;
-        /*ReadXDNSnameserverentriesfromorignalxdnsconfandwriteintoresolv.conffile*/
-        if((fp1=fopen(XDNS_CONF_FILE,"r"))==NULL)
-        {
-            CcspTraceError(("%s%d-Open%serror!\n",__FUNCTION__,__LINE__,XDNS_CONF_FILE));
-        }
-        else
-        {
-            char buf[BUFLEN_256]={0};
-            //GetXDNSconffileentries
-            while(NULL!=fgets(buf,sizeof(buf),fp1))
-            {
-                buf[strcspn(buf,"\n")]=0;//removenewlinechar
-                if(!strlen(buf))
-                {
-                    //Clearbuffer
-                    memset(buf,0,sizeof(buf));
-                    continue;
-                }
-                fprintf(fp,"%s\n",buf);
-                //Clearbuffer
-                memset(buf,0,sizeof(buf));
-            }  
-            fclose(fp1);
-            fp1 = NULL;
-        }
+        CcspTraceInfo(("%s %d - Active domainname servers set!\n", __FUNCTION__,__LINE__));
     }
     else
     {
@@ -927,7 +898,6 @@ int wan_updateDNS(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl, BOOL addIPv4, BOOL
         fclose(fp);
     }
 
-    CcspTraceInfo(("%s %d - Active domainname servers set!\n", __FUNCTION__,__LINE__));
     return ret;
 }
 
@@ -1044,7 +1014,7 @@ static int checkIpv6AddressAssignedToBridge(char *IfaceName)
     char lanPrefix[BUFLEN_128] = {0};
     int ret = RETURN_ERR;
 
-#if (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_)) &&  !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)//TODO: V6 handled in PAM
+#if (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_)) &&  !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)//TODO: V6 handled in PAM
     CcspTraceWarning(("%s %d Ipv6 handled in PAM. No need to check here.  \n",__FUNCTION__, __LINE__));
     return RETURN_OK;
 #endif
@@ -1283,7 +1253,7 @@ static int wan_tearDownIPv4(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
     DML_WAN_IFACE * pInterface = pWanIfaceCtrl->pIfaceData;
     DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIfaceById(pInterface->VirtIfList, pWanIfaceCtrl->VirIfIdx);
 
-#if !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_)) //TODO:  XB devices use the DNS of primary for backup.
+#if !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_)) //TODO:  XB devices use the DNS of primary for backup.
         /** Reset IPv4 DNS configuration. */
     if (RETURN_OK != wan_updateDNS(pWanIfaceCtrl, FALSE, (p_VirtIf->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_UP)))
     {
@@ -1407,7 +1377,7 @@ static int wan_setUpIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
         }
         wanmgr_services_restart();
 
-#if !defined (_XB6_PRODUCT_REQ_) && !defined (_CBR2_PRODUCT_REQ_) //parodus uses cmac for xb platforms
+#if !defined (_XB6_PRODUCT_REQ_) && !defined (_CBR2_PRODUCT_REQ_) && !defined(_PLATFORM_RASPBERRYPI_) //parodus uses cmac for xb platforms
         // set wan mac because parodus depends on it to start.
         if(ANSC_STATUS_SUCCESS == WanManager_get_interface_mac(p_VirtIf->IP.Ipv6Data.ifname, ifaceMacAddress, sizeof(ifaceMacAddress)))
         {
@@ -1436,7 +1406,7 @@ static int wan_tearDownIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
     DML_WAN_IFACE * pInterface = pWanIfaceCtrl->pIfaceData;
     DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIfaceById(pInterface->VirtIfList, pWanIfaceCtrl->VirIfIdx);
 
-#if !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_)) //TODO: XB devices use the DNS of primary for backup.
+#if !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_)) //TODO: XB devices use the DNS of primary for backup.
     /** Reset IPv6 DNS configuration. */
     if (RETURN_OK == wan_updateDNS(pWanIfaceCtrl, (p_VirtIf->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_UP), FALSE))
     {
