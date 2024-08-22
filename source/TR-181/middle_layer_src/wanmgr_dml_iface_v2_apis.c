@@ -2068,6 +2068,7 @@ BOOL WanIfIpCfg_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULO
             {
                 p_VirtIf->IP.Mode = uValue;
                 p_VirtIf->IP.RefreshDHCP = TRUE;
+		CcspTraceInfo(("[%s:%d]KAVYA..Setting RefreshDHCP = TRUE \n", __FUNCTION__, __LINE__));
                 p_VirtIf->IP.ModeForceEnable = TRUE;
                 CcspTraceInfo(("%s %d IP.%s changed for %s to %d. ModeForceEnable set and Refreshing DHCP \n", __FUNCTION__, __LINE__, ParamName, p_VirtIf->Name, p_VirtIf->IP.Mode));
             }
@@ -2079,6 +2080,7 @@ BOOL WanIfIpCfg_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULO
             {
                 p_VirtIf->IP.IPv4Source = uValue;
                 p_VirtIf->IP.RefreshDHCP = TRUE;
+		CcspTraceInfo(("[%s:%d]KAVYA..Setting RefreshDHCP = TRUE \n", __FUNCTION__, __LINE__));
                 CcspTraceInfo(("%s %d IP.%s changed for %s to %d. Refreshing DHCP \n", __FUNCTION__, __LINE__, ParamName, p_VirtIf->Name,p_VirtIf->IP.IPv4Source));
             }
             ret = TRUE;
@@ -2089,6 +2091,7 @@ BOOL WanIfIpCfg_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULO
             {
                 p_VirtIf->IP.IPv6Source = uValue;
                 p_VirtIf->IP.RefreshDHCP = TRUE;
+		CcspTraceInfo(("[%s:%d]KAVYA..Setting RefreshDHCP = TRUE \n", __FUNCTION__, __LINE__));
                 CcspTraceInfo(("%s %d IP.%s changed for %s to %d. Refreshing DHCP \n", __FUNCTION__, __LINE__, ParamName, p_VirtIf->Name,p_VirtIf->IP.IPv4Source));
             }
             ret = TRUE;
