@@ -3722,7 +3722,8 @@ static eWanState_t wan_state_dual_stack_active(WanMgr_IfaceSM_Controller_t* pWan
             (p_VirtIf->IP.RefreshDHCP == TRUE && ( p_VirtIf->IP.IPv4Source != DML_WAN_IP_SOURCE_DHCP ||
             (p_VirtIf->IP.Mode != DML_WAN_IP_MODE_DUAL_STACK && p_VirtIf->IP.Mode != DML_WAN_IP_MODE_IPV4_ONLY))))
     {
-CcspTraceInfo(("[%s %d]: KAVYA Should set RefreshDHCP = FALSE\n", __FUNCTION__, __LINE__));
+CcspTraceInfo(("[%s %d]: KAVYA Setting RefreshDHCP = FALSE\n", __FUNCTION__, __LINE__));
+        p_VirtIf->IP.RefreshDHCP = FALSE;
         /* TODO: Add IPoE Health Check failed for IPv4 here */
         return wan_transition_ipv4_down(pWanIfaceCtrl);
     }
@@ -3756,7 +3757,8 @@ CcspTraceInfo(("[%s %d]: KAVYA Should set RefreshDHCP = FALSE\n", __FUNCTION__, 
             (p_VirtIf->IP.RefreshDHCP == TRUE && ( p_VirtIf->IP.IPv6Source != DML_WAN_IP_SOURCE_DHCP ||
             (p_VirtIf->IP.Mode != DML_WAN_IP_MODE_DUAL_STACK && p_VirtIf->IP.Mode != DML_WAN_IP_MODE_IPV6_ONLY))))
     {
-CcspTraceInfo(("[%s %d]: KAVYA Should RefreshDHCP = FALSE\n", __FUNCTION__, __LINE__));
+CcspTraceInfo(("[%s %d]: KAVYA Setting RefreshDHCP = FALSE\n", __FUNCTION__, __LINE__));
+        p_VirtIf->IP.RefreshDHCP = FALSE;
         /* TODO: Add IPoE Health Check failed for IPv6 here */
         return wan_transition_ipv6_down(pWanIfaceCtrl);
     }
