@@ -2224,8 +2224,6 @@ CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
 CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
             p_VirtIf->IP.Dhcp4cPid = 0;
         }
-CcspTraceInfo(("[%s %d]: KAVYA Setting RefreshDHCP = FALSE here\n", __FUNCTION__, __LINE__));
-	p_VirtIf->IP.RefreshDHCP = FALSE;
     }
     else
     {
@@ -2507,8 +2505,6 @@ CcspTraceInfo(("[%s %d]: KAVYA Stop WITHOUT RELEASE\n", __FUNCTION__, __LINE__))
 CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
         WanManager_StopDhcpv6Client(p_VirtIf->Name, release_action);
         p_VirtIf->IP.Dhcp6cPid = 0;
-CcspTraceInfo(("[%s %d]: KAVYA Setting RefreshDHCP = FALSE\n", __FUNCTION__, __LINE__));
-	p_VirtIf->IP.RefreshDHCP = FALSE;
     }
     else
     {
@@ -3435,6 +3431,7 @@ CcspTraceInfo(("[%s %d]: KAVYA Should set RefreshDHCP = FALSE\n", __FUNCTION__, 
 #if !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
         p_VirtIf->IP.RestartV6Client = FALSE;
 #endif
+	p_VirtIf->IP.RefreshDHCP = FALSE;
     }
 
     // Start DHCP apps if not started
@@ -3582,9 +3579,9 @@ CcspTraceInfo(("[%s %d]: KAVYA Should set RefreshDHCP = FALSE\n", __FUNCTION__, 
         p_VirtIf->IP.Dhcp4cPid = WanManager_StartDhcpv4Client(p_VirtIf, pInterface->Name, pInterface->IfaceType);
         CcspTraceInfo(("%s %d - Started dhcpc on interface %s, dhcpv4_pid %d \n", __FUNCTION__, __LINE__, p_VirtIf->Name, p_VirtIf->IP.Dhcp4cPid));
         CcspTraceInfo(("%s %d - Interface '%s' - Running in Dual Stack IP Mode\n", __FUNCTION__, __LINE__, pInterface->Name));
+	p_VirtIf->IP.RefreshDHCP = FALSE;
     }
 
-CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
     // Start DHCP apps if not started
     WanMgr_MonitorDhcpApps(pWanIfaceCtrl); 
 
