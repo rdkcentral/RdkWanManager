@@ -3757,7 +3757,6 @@ CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
 
 static eWanState_t wan_state_dual_stack_active(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
 {
-    static eWanState_t ret;
     if((pWanIfaceCtrl == NULL) || (pWanIfaceCtrl->pIfaceData == NULL))
     {
         return ANSC_STATUS_FAILURE;
