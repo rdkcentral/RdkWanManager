@@ -400,12 +400,14 @@ static BOOL WanMgr_RestartFindExistingLink (WanMgr_IfaceSM_Controller_t* pWanIfa
 
 static void WanMgr_MonitorDhcpApps (WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
 {
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
     if (pWanIfaceCtrl == NULL || pWanIfaceCtrl->WanEnable == FALSE)
     {
         CcspTraceError(("%s %d: invalid args..\n", __FUNCTION__, __LINE__));
         return;
     }
 
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
     DML_WAN_IFACE* pInterface = pWanIfaceCtrl->pIfaceData;
     if (pInterface->Selection.Status == WAN_IFACE_NOT_SELECTED || 
         pInterface->Selection.Enable == FALSE )
@@ -1241,12 +1243,14 @@ static int wan_setUpIPv4(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
 
 static int wan_tearDownIPv4(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
 {
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
     if ((pWanIfaceCtrl == NULL) || (pWanIfaceCtrl->pIfaceData == NULL))
     {
         CcspTraceError(("%s %d - Invalid args \n", __FUNCTION__, __LINE__));
         return RETURN_ERR;
     }
 
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
     int ret = RETURN_OK;
     char cmdStr[BUFLEN_64] = {0};
     char buf[BUFLEN_32] = {0};
@@ -1268,6 +1272,7 @@ static int wan_tearDownIPv4(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
     }
 #endif
 
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
     /*TODO:
      *Should be removed once MAPT Unified. After PandM Added V4 default route, it got deleted here.
      */
@@ -1304,18 +1309,21 @@ static int wan_tearDownIPv4(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
         CcspTraceInfo(("%s %d - wan-status event set to stopped \n", __FUNCTION__, __LINE__));
     }
 
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
     return ret;
 }
 
 static int wan_setUpIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
 {
 
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
     if ((pWanIfaceCtrl == NULL) || (pWanIfaceCtrl->pIfaceData == NULL))
     {
         CcspTraceError(("%s %d - Invalid args \n", __FUNCTION__, __LINE__));
         return RETURN_ERR;
     }
 
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
     int ret = RETURN_OK;
     char buf[BUFLEN_32] = {0};
 
@@ -1338,6 +1346,7 @@ static int wan_setUpIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
     {
         CcspTraceInfo(("%s %d -  IPv6 DNS servers configured successfully \n", __FUNCTION__, __LINE__));
     }
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
 
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV6_CONNECTION_STATE, WAN_STATUS_UP, 0);
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_RADVD_RESTART, NULL, 0);
@@ -1389,18 +1398,21 @@ static int wan_setUpIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
 #endif
     }
   
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
     WanMgr_StartConnectivityCheck(pWanIfaceCtrl);
     return ret;
 }
 
 static int wan_tearDownIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
 {
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
 
     if ((pWanIfaceCtrl == NULL) || (pWanIfaceCtrl->pIfaceData == NULL))
     {
         CcspTraceError(("%s %d - Invalid args \n", __FUNCTION__, __LINE__));
         return RETURN_ERR;
     }
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
 
     int ret = RETURN_OK;
     char buf[BUFLEN_32] = {0};
@@ -1425,6 +1437,7 @@ static int wan_tearDownIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
     {
         AnscTraceError(("%s %d -  Failed to remove inactive address \n", __FUNCTION__,__LINE__));
     }
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
 
     // Reset sysvevents.
     char previousPrefix[BUFLEN_48] = {0};
@@ -1720,6 +1733,7 @@ static ANSC_STATUS WanManager_ClearDHCPData(DML_VIRTUAL_IFACE * pVirtIf)
 /*********************************************************************************/
 static eWanState_t wan_transition_start(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
 {
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
     CcspTraceInfo(("%s %d \n", __FUNCTION__, __LINE__));
     if((pWanIfaceCtrl == NULL) || (pWanIfaceCtrl->pIfaceData == NULL))
     {
@@ -1906,6 +1920,7 @@ static eWanState_t wan_transition_physical_interface_down(WanMgr_IfaceSM_Control
 
 static eWanState_t wan_transition_wan_up(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
 {
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
     CcspTraceInfo(("%s %d \n", __FUNCTION__, __LINE__));
     if((pWanIfaceCtrl == NULL) || (pWanIfaceCtrl->pIfaceData == NULL))
     {
@@ -1960,6 +1975,7 @@ static eWanState_t wan_transition_wan_validated(WanMgr_IfaceSM_Controller_t* pWa
         // clock start
         p_VirtIf->IP.SelectedModeTimerStatus = RUNNING;
         memset(&(p_VirtIf->IP.SelectedModeTimerStart), 0, sizeof(struct timespec));
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
         clock_gettime(CLOCK_MONOTONIC_RAW, &(p_VirtIf->IP.SelectedModeTimerStart));
     }
     else
@@ -2113,6 +2129,7 @@ CcspTraceInfo(("[%s %d]: KAVYA..\n", __FUNCTION__, __LINE__));
     {
         return ANSC_STATUS_FAILURE;
     }
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
 
     DML_WAN_IFACE* pInterface = pWanIfaceCtrl->pIfaceData;
     DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIfaceById(pInterface->VirtIfList, pWanIfaceCtrl->VirIfIdx);
@@ -2127,6 +2144,7 @@ CcspTraceInfo(("[%s %d]: KAVYA..\n", __FUNCTION__, __LINE__));
         updateInterfaceToVoiceManager(pWanIfaceCtrl, true);
     }
 
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
     if(strcmp(p_VirtIf->Alias, "DATA"))
     {
         return WAN_STATE_IPV4_LEASED;
@@ -2142,6 +2160,7 @@ CcspTraceInfo(("[%s %d]: KAVYA..\n", __FUNCTION__, __LINE__));
     }
 
     /* Configure IPv4. */
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
     ret = wan_setUpIPv4(pWanIfaceCtrl);
     if (ret != RETURN_OK)
     {
@@ -2168,6 +2187,7 @@ CcspTraceInfo(("[%s %d]: KAVYA..\n", __FUNCTION__, __LINE__));
 
     if(p_VirtIf->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_UP && !strcmp(buf, WAN_STATUS_UP))
     {
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
         CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION DUAL STACK ACTIVE\n", __FUNCTION__, __LINE__, pInterface->Name));
         return WAN_STATE_DUAL_STACK_ACTIVE;
     }
@@ -2190,6 +2210,7 @@ CcspTraceInfo(("[%s %d]: KAVYA..\n", __FUNCTION__, __LINE__));
         return ANSC_STATUS_FAILURE;
     }
 
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
     DML_WAN_IFACE* pInterface = pWanIfaceCtrl->pIfaceData;
     DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIfaceById(pInterface->VirtIfList, pWanIfaceCtrl->VirIfIdx);
 
@@ -2227,12 +2248,14 @@ CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
     }
     else
     {
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
         // start DHCPv4 client if it is not running, MAP-T not configured and PPP Disable scenario.
         if(p_VirtIf->IP.Dhcp4cPid > 0 && WanMgr_IsPIDRunning(p_VirtIf->IP.Dhcp4cPid) != TRUE &&
             (p_VirtIf->PPP.Enable == FALSE) &&
             (!(p_VirtIf->EnableMAPT == TRUE && (pInterface->Selection.Status == WAN_IFACE_ACTIVE) && 
             (p_VirtIf->MAP.MaptStatus == WAN_IFACE_MAPT_STATE_UP))))
         {
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
             p_VirtIf->IP.Dhcp4cPid = WanManager_StartDhcpv4Client(p_VirtIf, pInterface->Name, pInterface->IfaceType);
             CcspTraceInfo(("%s %d - SELFHEAL - Started dhcpc on interface %s, dhcpv4_pid %d \n", __FUNCTION__, __LINE__, p_VirtIf->Name, p_VirtIf->IP.Dhcp4cPid));
         }
@@ -2287,6 +2310,7 @@ CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
         WanMgr_Publish_WanStatus(pWanIfaceCtrl->interfaceIdx, pWanIfaceCtrl->VirIfIdx);
     }
 
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
     CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION OBTAINING IP ADDRESSES\n", __FUNCTION__, __LINE__, pInterface->Name));
     return WAN_STATE_OBTAINING_IP_ADDRESSES;
 }
@@ -2509,6 +2533,7 @@ CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
     else
     {
 
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
         if(p_VirtIf->IP.Dhcp6cPid > 0 && WanMgr_IsPIDRunning(p_VirtIf->IP.Dhcp6cPid) != TRUE)
         {
             /* Start DHCPv6 Client */
@@ -2587,6 +2612,7 @@ CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
         WanMgr_Publish_WanStatus(pWanIfaceCtrl->interfaceIdx, pWanIfaceCtrl->VirIfIdx);
     }
 
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
     wan_transition_ipv4_down(pWanIfaceCtrl);
     wan_transition_ipv6_down(pWanIfaceCtrl);
 
@@ -3104,11 +3130,13 @@ static eWanState_t wan_state_validating_wan(WanMgr_IfaceSM_Controller_t* pWanIfa
 
 static eWanState_t wan_state_obtaining_ip_addresses(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
 {
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));	
     if((pWanIfaceCtrl == NULL) || (pWanIfaceCtrl->pIfaceData == NULL))
     {
         return ANSC_STATUS_FAILURE;
     }
 
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));	
     DML_WAN_IFACE* pInterface = pWanIfaceCtrl->pIfaceData;
     DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIfaceById(pInterface->VirtIfList, pWanIfaceCtrl->VirIfIdx);
 
@@ -3123,9 +3151,11 @@ static eWanState_t wan_state_obtaining_ip_addresses(WanMgr_IfaceSM_Controller_t*
     {
         if ((0 == strcmp("DATA", p_VirtIf->Alias)) || (0 == strcmp("VOIP", p_VirtIf->Alias)))
         {
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));	
             /* Update voice interface name to TelcoVoiceManager */
             updateInterfaceToVoiceManager(pWanIfaceCtrl, false);
         }
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));	
 
         return wan_transition_physical_interface_down(pWanIfaceCtrl);
     }
@@ -3140,6 +3170,7 @@ static eWanState_t wan_state_obtaining_ip_addresses(WanMgr_IfaceSM_Controller_t*
        (p_VirtIf->VLAN.Enable == TRUE && p_VirtIf->VLAN.Status ==  WAN_IFACE_LINKSTATUS_DOWN ) ||
        (p_VirtIf->PPP.Enable == TRUE && p_VirtIf->PPP.LinkStatus ==  WAN_IFACE_PPP_LINK_STATUS_DOWN))
     {
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));	
         CcspTraceInfo(("%s %d VlanDiscovery timer expired Or VLAN/PPP status DOWN \n", __FUNCTION__, __LINE__));
         p_VirtIf->VLAN.Expired = TRUE;
 
@@ -3149,27 +3180,34 @@ static eWanState_t wan_state_obtaining_ip_addresses(WanMgr_IfaceSM_Controller_t*
             updateInterfaceToVoiceManager(pWanIfaceCtrl, false);
         }
 
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));	
         return wan_transition_physical_interface_down(pWanIfaceCtrl);
     }
 
     if(p_VirtIf->IP.SelectedMode == MAPT_MODE)
     {
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));	
         if(p_VirtIf->MAP.MaptStatus == WAN_IFACE_MAPT_STATE_UP)
         {
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));	
             p_VirtIf->IP.SelectedModeTimerStatus = COMPLETE;
             CcspTraceInfo(("%s %d MAPT option recieved in MAPT Preferred Mode - Timer complete \n", __FUNCTION__, __LINE__));
         }
         else
         {
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));	
             if(p_VirtIf->IP.SelectedModeTimerStatus == RUNNING)
             {
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));	
                 if (difftime(CurrentTime.tv_sec, p_VirtIf->IP.SelectedModeTimerStart.tv_sec) > SELECTED_MODE_TIMEOUT_SECONDS ||
                     p_VirtIf->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_UP)
                 {
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));	
                     p_VirtIf->IP.SelectedModeTimerStatus = EXPIRED;
                     CcspTraceInfo(("%s %d MAPT option not recieved in MAPT Preferred Mode - Timer Expired \n", __FUNCTION__, __LINE__));
                     return wan_transition_wan_validated(pWanIfaceCtrl);
                 }
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));	
                 return WAN_STATE_OBTAINING_IP_ADDRESSES;
             }
         }
@@ -3236,32 +3274,39 @@ CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
                 WanMgr_Publish_WanStatus(pWanIfaceCtrl->interfaceIdx, pWanIfaceCtrl->VirIfIdx);
             }
         }
-        p_VirtIf->IP.RefreshDHCP = FALSE;
-CcspTraceInfo(("[%s %d]: KAVYA RefreshDHCP = FALSE\n", __FUNCTION__, __LINE__));
+        //p_VirtIf->IP.RefreshDHCP = FALSE;
+CcspTraceInfo(("[%s %d]: KAVYA Commenting RefreshDHCP = FALSE\n", __FUNCTION__, __LINE__));
 
         return WAN_STATE_OBTAINING_IP_ADDRESSES;
     }
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));	
 
     // Start DHCP apps if not started
     WanMgr_MonitorDhcpApps(pWanIfaceCtrl);
 
     if (p_VirtIf->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_UP)
     {
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));	
         if (pInterface->Selection.Status == WAN_IFACE_ACTIVE)
         {
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));	
             return wan_transition_ipv4_up(pWanIfaceCtrl);
         }
         else
         {
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));	
             return wan_transition_standby(pWanIfaceCtrl);
         }
     }
     else if (p_VirtIf->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_UP)
     {
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));	
         if (pInterface->Selection.Status == WAN_IFACE_ACTIVE)
         {
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));	
             if(p_VirtIf->IP.Ipv6Changed == TRUE)
             {
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));	
                 /* Set sysevents to trigger P&M */
                 if (setUpLanPrefixIPv6(p_VirtIf) != RETURN_OK)
                 {
@@ -3269,10 +3314,12 @@ CcspTraceInfo(("[%s %d]: KAVYA RefreshDHCP = FALSE\n", __FUNCTION__, __LINE__));
                 }
                 /* Reset isIPv6ConfigChanged  */
                 p_VirtIf->IP.Ipv6Changed = FALSE;
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));	
                 return WAN_STATE_OBTAINING_IP_ADDRESSES;
             }
             if (checkIpv6AddressAssignedToBridge(p_VirtIf->Name) == RETURN_OK)
             {
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));	
                 return wan_transition_ipv6_up(pWanIfaceCtrl);
             }
             else
@@ -3282,6 +3329,7 @@ CcspTraceInfo(("[%s %d]: KAVYA RefreshDHCP = FALSE\n", __FUNCTION__, __LINE__));
         }
         else
         {
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));	
             return wan_transition_standby(pWanIfaceCtrl);
         }
     }
@@ -3291,14 +3339,17 @@ CcspTraceInfo(("[%s %d]: KAVYA RefreshDHCP = FALSE\n", __FUNCTION__, __LINE__));
             mapt_feature_enable_changed == TRUE &&
             p_VirtIf->MAP.MaptStatus == WAN_IFACE_MAPT_STATE_DOWN)
     {
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));	
         if (TRUE == wanmanager_mapt_feature())
         {
             mapt_feature_enable_changed = FALSE;
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));	
             return wan_transition_mapt_feature_refresh(pWanIfaceCtrl);
         }
     }
 #endif
 
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));	
     return WAN_STATE_OBTAINING_IP_ADDRESSES;
 }
 
@@ -3414,6 +3465,7 @@ static eWanState_t wan_state_ipv4_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
         return ANSC_STATUS_FAILURE;
     }
 
+CcspTraceInfo(("[%s %d]: KAVYA ..\n", __FUNCTION__, __LINE__));
     DML_WAN_IFACE* pInterface = pWanIfaceCtrl->pIfaceData;
     DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIfaceById(pInterface->VirtIfList, pWanIfaceCtrl->VirIfIdx);
 
@@ -3431,9 +3483,10 @@ CcspTraceInfo(("[%s %d]: KAVYA Should set RefreshDHCP = FALSE\n", __FUNCTION__, 
 #if !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
         p_VirtIf->IP.RestartV6Client = FALSE;
 #endif
-	p_VirtIf->IP.RefreshDHCP = FALSE;
+//	p_VirtIf->IP.RefreshDHCP = FALSE;
     }
 
+CcspTraceInfo(("[%s %d]: KAVYA ..\n", __FUNCTION__, __LINE__));
     // Start DHCP apps if not started
     WanMgr_MonitorDhcpApps(pWanIfaceCtrl);
 
@@ -3516,8 +3569,10 @@ CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
 #endif
     else if (p_VirtIf->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_UP)
     {
+CcspTraceInfo(("[%s %d]: KAVYA ..\n", __FUNCTION__, __LINE__));
         if(p_VirtIf->IP.Ipv6Changed == TRUE)
         {
+CcspTraceInfo(("[%s %d]: KAVYA ..\n", __FUNCTION__, __LINE__));
             /* Set sysevents to trigger P&M */
             if (setUpLanPrefixIPv6(p_VirtIf) != RETURN_OK)
             {
@@ -3529,6 +3584,7 @@ CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
         }
         if (checkIpv6AddressAssignedToBridge(p_VirtIf->Name) == RETURN_OK)
         {
+CcspTraceInfo(("[%s %d]: KAVYA ..\n", __FUNCTION__, __LINE__));
             return wan_transition_ipv6_up(pWanIfaceCtrl);
         }
         else
@@ -3538,6 +3594,7 @@ CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
     }
     else if (p_VirtIf->IP.Ipv4Renewed == TRUE)
     {
+CcspTraceInfo(("[%s %d]: KAVYA ..\n", __FUNCTION__, __LINE__));
         WanMgr_SendMsgTo_ConnectivityCheck(pWanIfaceCtrl, CONNECTION_MSG_IPV4 , TRUE);
         p_VirtIf->IP.Ipv4Renewed = FALSE;
     }
@@ -3547,8 +3604,10 @@ CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
             mapt_feature_enable_changed == TRUE &&
             p_VirtIf->MAP.MaptStatus == WAN_IFACE_MAPT_STATE_DOWN)
     {
+CcspTraceInfo(("[%s %d]: KAVYA ..\n", __FUNCTION__, __LINE__));
         if (TRUE == wanmanager_mapt_feature())
         {
+CcspTraceInfo(("[%s %d]: KAVYA ..\n", __FUNCTION__, __LINE__));
             mapt_feature_enable_changed = FALSE;
             return wan_transition_mapt_feature_refresh(pWanIfaceCtrl);
         }
@@ -3560,11 +3619,13 @@ CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
 
 static eWanState_t wan_state_ipv6_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
 {
+CcspTraceInfo(("[%s %d]: KAVYA ENTER\n", __FUNCTION__, __LINE__));	
     if((pWanIfaceCtrl == NULL) || (pWanIfaceCtrl->pIfaceData == NULL))
     {
         return ANSC_STATUS_FAILURE;
     }
 
+CcspTraceInfo(("[%s %d]: KAVYA ENTER\n", __FUNCTION__, __LINE__));	
     DML_WAN_IFACE* pInterface = pWanIfaceCtrl->pIfaceData;
     DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIfaceById(pInterface->VirtIfList, pWanIfaceCtrl->VirIfIdx);
 
@@ -3575,11 +3636,11 @@ static eWanState_t wan_state_ipv6_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
       p_VirtIf->IP.SelectedModeTimerStatus != COMPLETE &&
       p_VirtIf->IP.Dhcp4cPid <= 0)
     {
-CcspTraceInfo(("[%s %d]: KAVYA Should set RefreshDHCP = FALSE\n", __FUNCTION__, __LINE__));
+CcspTraceInfo(("[%s %d]: KAVYA setting RefreshDHCP = FALSE\n", __FUNCTION__, __LINE__));
         p_VirtIf->IP.Dhcp4cPid = WanManager_StartDhcpv4Client(p_VirtIf, pInterface->Name, pInterface->IfaceType);
         CcspTraceInfo(("%s %d - Started dhcpc on interface %s, dhcpv4_pid %d \n", __FUNCTION__, __LINE__, p_VirtIf->Name, p_VirtIf->IP.Dhcp4cPid));
         CcspTraceInfo(("%s %d - Interface '%s' - Running in Dual Stack IP Mode\n", __FUNCTION__, __LINE__, pInterface->Name));
-	p_VirtIf->IP.RefreshDHCP = FALSE;
+//	p_VirtIf->IP.RefreshDHCP = FALSE;
     }
 
     // Start DHCP apps if not started
@@ -3654,7 +3715,8 @@ CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
     else if (p_VirtIf->EnableMAPT == TRUE &&
             pInterface->Selection.Status == WAN_IFACE_ACTIVE &&
             p_VirtIf->MAP.MaptStatus == WAN_IFACE_MAPT_STATE_UP)
-    {
+    {  
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
         if (checkIpv6AddressAssignedToBridge(p_VirtIf->Name) == RETURN_OK) // Wait for default gateway before MAP-T configuration
         {
             return wan_transition_mapt_up(pWanIfaceCtrl);
@@ -3665,6 +3727,7 @@ CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
              mapt_feature_enable_changed == TRUE &&
              p_VirtIf->MAP.MaptStatus == WAN_IFACE_MAPT_STATE_DOWN)
     {
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
         if (TRUE == wanmanager_mapt_feature())
         {
             mapt_feature_enable_changed = FALSE;
@@ -3674,6 +3737,7 @@ CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
 #endif //FEATURE_MAPT
     else if (p_VirtIf->IP.Ipv6Renewed == TRUE)
     {
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
         WanMgr_SendMsgTo_ConnectivityCheck(pWanIfaceCtrl, CONNECTION_MSG_IPV6 , TRUE);
         p_VirtIf->IP.Ipv6Renewed = FALSE;
     }
@@ -3690,16 +3754,20 @@ CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
         lanState = LAN_STATE_RESET;
     }
 #endif
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
     return WAN_STATE_IPV6_LEASED;
 }
 
 static eWanState_t wan_state_dual_stack_active(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
 {
+    static eWanState_t ret;
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
     if((pWanIfaceCtrl == NULL) || (pWanIfaceCtrl->pIfaceData == NULL))
     {
         return ANSC_STATUS_FAILURE;
     }
 
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
     DML_WAN_IFACE* pInterface = pWanIfaceCtrl->pIfaceData;
     DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIfaceById(pInterface->VirtIfList, pWanIfaceCtrl->VirIfIdx);
 
@@ -3716,6 +3784,7 @@ static eWanState_t wan_state_dual_stack_active(WanMgr_IfaceSM_Controller_t* pWan
     else if ((p_VirtIf->VLAN.Enable == TRUE &&  p_VirtIf->VLAN.Status ==  WAN_IFACE_LINKSTATUS_DOWN)   // VLAN is Enabled but Down
             || (p_VirtIf->PPP.Enable == TRUE && p_VirtIf->PPP.LinkStatus != WAN_IFACE_PPP_LINK_STATUS_UP)) // PPP is Enabled but DOWN
     {
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
         return wan_transition_dual_stack_down(pWanIfaceCtrl);
     }
     else if (p_VirtIf->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_DOWN ||
@@ -3723,21 +3792,25 @@ static eWanState_t wan_state_dual_stack_active(WanMgr_IfaceSM_Controller_t* pWan
             (p_VirtIf->IP.Mode != DML_WAN_IP_MODE_DUAL_STACK && p_VirtIf->IP.Mode != DML_WAN_IP_MODE_IPV4_ONLY))))
     {
 CcspTraceInfo(("[%s %d]: KAVYA Setting RefreshDHCP = FALSE\n", __FUNCTION__, __LINE__));
-        p_VirtIf->IP.RefreshDHCP = FALSE;
+//        p_VirtIf->IP.RefreshDHCP = FALSE;
         /* TODO: Add IPoE Health Check failed for IPv4 here */
         return wan_transition_ipv4_down(pWanIfaceCtrl);
     }
     else if ((pInterface->Selection.Status != WAN_IFACE_ACTIVE) || (pWanIfaceCtrl->DeviceNwModeChanged == TRUE))
     {
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
         return wan_transition_standby_deconfig_ips(pWanIfaceCtrl);
     }
 
     else if (p_VirtIf->IP.Ipv4Changed == TRUE)
     {
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
         if (wan_tearDownIPv4(pWanIfaceCtrl) == RETURN_OK)
         {
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
             if (wan_setUpIPv4(pWanIfaceCtrl) == RETURN_OK)
             {
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
                 WanMgr_SendMsgTo_ConnectivityCheck(pWanIfaceCtrl, CONNECTION_MSG_IPV4 , TRUE);
                 p_VirtIf->IP.Ipv4Changed = FALSE;
                 CcspTraceInfo(("%s %d - Successfully updated IPv4 configure Changes for %s Interface \n",
@@ -3745,11 +3818,13 @@ CcspTraceInfo(("[%s %d]: KAVYA Setting RefreshDHCP = FALSE\n", __FUNCTION__, __L
             }
             else
             {
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
                 CcspTraceError(("%s %d - Failed to configure IPv4 for %s Interface \n", __FUNCTION__, __LINE__, p_VirtIf->Name));
             }
         }
         else
         {
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
             CcspTraceError(("%s %d - Failed to tear down IPv4 for %s Interface \n", __FUNCTION__, __LINE__, p_VirtIf->Name));
         }
     }
@@ -3758,18 +3833,22 @@ CcspTraceInfo(("[%s %d]: KAVYA Setting RefreshDHCP = FALSE\n", __FUNCTION__, __L
             (p_VirtIf->IP.Mode != DML_WAN_IP_MODE_DUAL_STACK && p_VirtIf->IP.Mode != DML_WAN_IP_MODE_IPV6_ONLY))))
     {
 CcspTraceInfo(("[%s %d]: KAVYA Setting RefreshDHCP = FALSE\n", __FUNCTION__, __LINE__));
-        p_VirtIf->IP.RefreshDHCP = FALSE;
+  //      p_VirtIf->IP.RefreshDHCP = FALSE;
         /* TODO: Add IPoE Health Check failed for IPv6 here */
         return wan_transition_ipv6_down(pWanIfaceCtrl);
     }
     else if (p_VirtIf->IP.Ipv6Changed == TRUE)
     {
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
         if (wan_tearDownIPv6(pWanIfaceCtrl) == RETURN_OK)
         {
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
             if (setUpLanPrefixIPv6(p_VirtIf) == RETURN_OK)
             {
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
                 if (wan_setUpIPv6(pWanIfaceCtrl) == RETURN_OK)
                 {
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
                     WanMgr_SendMsgTo_ConnectivityCheck(pWanIfaceCtrl, CONNECTION_MSG_IPV6 , TRUE);
                     p_VirtIf->IP.Ipv6Changed = FALSE;
                     CcspTraceInfo(("%s %d - Successfully updated IPv6 configure Changes for %s Interface \n",
@@ -3777,6 +3856,7 @@ CcspTraceInfo(("[%s %d]: KAVYA Setting RefreshDHCP = FALSE\n", __FUNCTION__, __L
                 }
                 else
                 {
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
                     CcspTraceError(("%s %d - Failed to configure IPv6 for %s Interface \n", __FUNCTION__, __LINE__, p_VirtIf->Name));
                 }
             }
@@ -3824,6 +3904,7 @@ CcspTraceInfo(("[%s %d]: KAVYA Setting RefreshDHCP = FALSE\n", __FUNCTION__, __L
     }
 
     // Start DHCP apps if not started
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
     WanMgr_MonitorDhcpApps(pWanIfaceCtrl);
 
     wanmgr_Ipv6Toggle();
@@ -3839,12 +3920,14 @@ CcspTraceInfo(("[%s %d]: KAVYA Setting RefreshDHCP = FALSE\n", __FUNCTION__, __L
         lanState = LAN_STATE_RESET;
     }
 #endif
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
     return WAN_STATE_DUAL_STACK_ACTIVE;
 }
 
 #if defined(FEATURE_MAPT) || defined(FEATURE_SUPPORT_MAPT_NAT46)
 static eWanState_t wan_state_mapt_active(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
 {
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
     if((pWanIfaceCtrl == NULL) || (pWanIfaceCtrl->pIfaceData == NULL))
     {
         return ANSC_STATUS_FAILURE;
@@ -3861,10 +3944,12 @@ static eWanState_t wan_state_mapt_active(WanMgr_IfaceSM_Controller_t* pWanIfaceC
         p_VirtIf->VLAN.Reset == TRUE ||
         pInterface->BaseInterfaceStatus !=  WAN_IFACE_PHY_STATUS_UP)
     {
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
         return wan_transition_physical_interface_down(pWanIfaceCtrl);
     }
     else if ((pInterface->Selection.Status != WAN_IFACE_ACTIVE) || (pWanIfaceCtrl->DeviceNwModeChanged == TRUE))
     {
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
         return wan_transition_standby_deconfig_ips(pWanIfaceCtrl);
     }
     else if (p_VirtIf->EnableMAPT == FALSE ||
@@ -3972,6 +4057,7 @@ CcspTraceInfo(("[%s %d]: KAVYA Should set RefreshDHCP = FALSE\n", __FUNCTION__, 
     // Start DHCP apps if not started
     WanMgr_MonitorDhcpApps(pWanIfaceCtrl);
 
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
     wanmgr_Ipv6Toggle();
 #if defined(FEATURE_IPOE_HEALTH_CHECK) && defined(IPOE_HEALTH_CHECK_LAN_SYNC_SUPPORT)
     if(lanState == LAN_STATE_STOPPED)
@@ -3985,6 +4071,7 @@ CcspTraceInfo(("[%s %d]: KAVYA Should set RefreshDHCP = FALSE\n", __FUNCTION__, 
         lanState = LAN_STATE_RESET;
     }
 #endif
+CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
     return WAN_STATE_MAPT_ACTIVE;
 }
 #endif //FEATURE_MAPT

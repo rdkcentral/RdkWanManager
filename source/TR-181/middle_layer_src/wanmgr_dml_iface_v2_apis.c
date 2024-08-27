@@ -2047,7 +2047,7 @@ BOOL WanIfIpCfg_GetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULO
 BOOL WanIfIpCfg_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG uValue)
 {
     BOOL ret = FALSE;
-
+CcspTraceInfo(("[%s:%d]KAVYA..ENTER \n", __FUNCTION__, __LINE__));
     DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIface_locked(((DML_VIRTUAL_IFACE*) hInsContext)->baseIfIdx, ((DML_VIRTUAL_IFACE*) hInsContext)->VirIfIdx);
     if(p_VirtIf != NULL)
     {
@@ -2064,11 +2064,12 @@ BOOL WanIfIpCfg_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULO
         }
         if (strcmp(ParamName, "Mode") == 0)
         {
+		CcspTraceInfo(("[%s:%d]KAVYA..Set IP.Mode =[%lu] \n", __FUNCTION__, __LINE__,uValue));
             if(p_VirtIf->IP.Mode != uValue)
             {
                 p_VirtIf->IP.Mode = uValue;
                 p_VirtIf->IP.RefreshDHCP = TRUE;
-		CcspTraceInfo(("[%s:%d]KAVYA..Setting RefreshDHCP = TRUE \n", __FUNCTION__, __LINE__));
+		CcspTraceInfo(("[%s:%d]KAVYA..Mode changed set RefreshDHCP = TRUE \n", __FUNCTION__, __LINE__));
                 p_VirtIf->IP.ModeForceEnable = TRUE;
                 CcspTraceInfo(("%s %d IP.%s changed for %s to %d. ModeForceEnable set and Refreshing DHCP \n", __FUNCTION__, __LINE__, ParamName, p_VirtIf->Name, p_VirtIf->IP.Mode));
             }
