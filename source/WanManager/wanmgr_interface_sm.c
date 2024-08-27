@@ -400,14 +400,12 @@ static BOOL WanMgr_RestartFindExistingLink (WanMgr_IfaceSM_Controller_t* pWanIfa
 
 static void WanMgr_MonitorDhcpApps (WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
 {
-CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
     if (pWanIfaceCtrl == NULL || pWanIfaceCtrl->WanEnable == FALSE)
     {
         CcspTraceError(("%s %d: invalid args..\n", __FUNCTION__, __LINE__));
         return;
     }
 
-CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
     DML_WAN_IFACE* pInterface = pWanIfaceCtrl->pIfaceData;
     if (pInterface->Selection.Status == WAN_IFACE_NOT_SELECTED || 
         pInterface->Selection.Enable == FALSE )
@@ -419,9 +417,9 @@ CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
     DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIfaceById(pInterface->VirtIfList, pWanIfaceCtrl->VirIfIdx);
     if (p_VirtIf->IP.RefreshDHCP == TRUE)
     {
-	CcspTraceInfo(("[%s:%d]KAVYA.. \n", __FUNCTION__, __LINE__));
+//	CcspTraceInfo(("[%s:%d]KAVYA Removing Logging.. \n", __FUNCTION__, __LINE__));
         // let the caller state handle RefreshDHCP=TRUE scenario
-        CcspTraceError(("%s %d: IP Mode change detected, handle RefreshDHCP & later monitor DHCP apps\n", __FUNCTION__, __LINE__));
+//        CcspTraceError(("%s %d: IP Mode change detected, handle RefreshDHCP & later monitor DHCP apps\n", __FUNCTION__, __LINE__));
 //	p_VirtIf->IP.RefreshDHCP = FALSE;
         return;
     }
@@ -3274,8 +3272,8 @@ CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
                 WanMgr_Publish_WanStatus(pWanIfaceCtrl->interfaceIdx, pWanIfaceCtrl->VirIfIdx);
             }
         }
-        //p_VirtIf->IP.RefreshDHCP = FALSE;
-CcspTraceInfo(("[%s %d]: KAVYA Commenting RefreshDHCP = FALSE\n", __FUNCTION__, __LINE__));
+        p_VirtIf->IP.RefreshDHCP = FALSE;
+CcspTraceInfo(("[%s %d]: KAVYA RefreshDHCP = FALSE\n", __FUNCTION__, __LINE__));
 
         return WAN_STATE_OBTAINING_IP_ADDRESSES;
     }
@@ -3483,10 +3481,9 @@ CcspTraceInfo(("[%s %d]: KAVYA Should set RefreshDHCP = FALSE\n", __FUNCTION__, 
 #if !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
         p_VirtIf->IP.RestartV6Client = FALSE;
 #endif
-//	p_VirtIf->IP.RefreshDHCP = FALSE;
+	//p_VirtIf->IP.RefreshDHCP = FALSE;
     }
 
-CcspTraceInfo(("[%s %d]: KAVYA ..\n", __FUNCTION__, __LINE__));
     // Start DHCP apps if not started
     WanMgr_MonitorDhcpApps(pWanIfaceCtrl);
 
@@ -3761,13 +3758,11 @@ CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
 static eWanState_t wan_state_dual_stack_active(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
 {
     static eWanState_t ret;
-CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
     if((pWanIfaceCtrl == NULL) || (pWanIfaceCtrl->pIfaceData == NULL))
     {
         return ANSC_STATUS_FAILURE;
     }
 
-CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
     DML_WAN_IFACE* pInterface = pWanIfaceCtrl->pIfaceData;
     DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIfaceById(pInterface->VirtIfList, pWanIfaceCtrl->VirIfIdx);
 
@@ -3904,7 +3899,6 @@ CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
     }
 
     // Start DHCP apps if not started
-CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
     WanMgr_MonitorDhcpApps(pWanIfaceCtrl);
 
     wanmgr_Ipv6Toggle();
@@ -3920,7 +3914,6 @@ CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
         lanState = LAN_STATE_RESET;
     }
 #endif
-CcspTraceInfo(("[%s %d]: KAVYA\n", __FUNCTION__, __LINE__));
     return WAN_STATE_DUAL_STACK_ACTIVE;
 }
 
