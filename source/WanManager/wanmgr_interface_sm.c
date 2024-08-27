@@ -1455,7 +1455,7 @@ static int wan_tearDownIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
 #endif
 
     sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_WAN_STATUS, buf, sizeof(buf));
-    if ((strcmp(buf, WAN_STATUS_STOPPED) != 0) && (p_VirtIf->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_DOWN))
+    if ((strcmp(buf, WAN_STATUS_STOPPED) != 0) && ((p_VirtIf->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_DOWN) && (p_VirtIf->MAP.MaptStatus == WAN_IFACE_MAPT_STATE_DOWN)))
     {
         sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_WAN_STATUS, WAN_STATUS_STOPPED, 0);
         sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_WAN_SERVICE_STATUS, WAN_STATUS_STOPPED, 0);
