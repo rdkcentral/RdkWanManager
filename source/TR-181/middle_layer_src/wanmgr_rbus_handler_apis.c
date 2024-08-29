@@ -1656,33 +1656,40 @@ static void CPEInterface_AsyncMethodHandler(
                 {
                     char AliasName[64] = {0};
                     snprintf(AliasName, sizeof(AliasName), "REMOTE_%s" , pValue);
-                    strncpy( pWanIfaceData->AliasName, AliasName,sizeof(pWanIfaceData->AliasName)-1 );
-                    //Set Alias name of Virtual interface
-                    strncpy( pWanIfaceData->VirtIfList->Alias, AliasName,sizeof(pWanIfaceData->VirtIfList->Alias)-1 );
-                    //Register the interface again if Alias changed
-                    int rc = -1;
-                    rc = rbusTable_registerRow(rbusHandle, WANMGR_INFACE_TABLE, (cpeInterfaceIndex+1), AliasName);
-                    if(rc != RBUS_ERROR_SUCCESS)
+                    if(strcmp(AliasName,pWanIfaceData->AliasName) !=0)
                     {
-                        CcspTraceError(("%s %d - Iterface(%d) Table (%s) Registartion failed \n", 
-                                    __FUNCTION__, __LINE__, (cpeInterfaceIndex+1), WANMGR_INFACE_TABLE));
-                    }
-#if defined(WAN_MANAGER_UNIFICATION_ENABLED)
-                    char tmpVIfTableName[256] = {0};
-                    for(int VirId=0; VirId< pWanDmlIfaceData->data.NoOfVirtIfs; VirId++)
-                    {
-                        snprintf(tmpVIfTableName, sizeof(tmpVIfTableName), WANMGR_VIRTUAL_INFACE_TABLE_ALIAS, AliasName);
-                        rc = rbusTable_registerRow(rbusHandle, tmpVIfTableName, (VirId+1), AliasName); //TODO: NEW_DESIGN get Alias name for virtual table
+                        strncpy( pWanIfaceData->AliasName, AliasName,sizeof(pWanIfaceData->AliasName)-1 );
+                        //Set Alias name of Virtual interface
+                        strncpy( pWanIfaceData->VirtIfList->Alias, AliasName,sizeof(pWanIfaceData->VirtIfList->Alias)-1 );
+                        //Register the interface again if Alias changed
+                        char param_name[256] = {0};
+                        snprintf(param_name,sizeof(param_name), "%s.%d", WANMGR_INFACE_TABLE, (cpeInterfaceIndex+1));
+                        rbusTable_unregisterRow(rbusHandle, param_name);
+
+                        int rc = -1;
+                        rc = rbusTable_registerRow(rbusHandle, WANMGR_INFACE_TABLE, (cpeInterfaceIndex+1), AliasName);
                         if(rc != RBUS_ERROR_SUCCESS)
                         {
-                            CcspTraceError(("%s %d - VirtualInterface(%d) Table (%s) Registartion failed, Error=%d \n", __FUNCTION__, __LINE__, (VirId+1), tmpVIfTableName, rc));
+                            CcspTraceError(("%s %d - Iterface(%d) Table (%s) Registartion failed \n", 
+                                        __FUNCTION__, __LINE__, (cpeInterfaceIndex+1), WANMGR_INFACE_TABLE));
                         }
-                        else
+#if defined(WAN_MANAGER_UNIFICATION_ENABLED)
+                        char tmpVIfTableName[256] = {0};
+                        for(int VirId=0; VirId< pWanDmlIfaceData->data.NoOfVirtIfs; VirId++)
                         {
-                            CcspTraceInfo(("%s %d - VirtualInterface(%d) Table (%s) Registartion Successfully, AliasName(%s)\n", __FUNCTION__, __LINE__, (VirId+1), tmpVIfTableName, AliasName));
+                            snprintf(tmpVIfTableName, sizeof(tmpVIfTableName), WANMGR_VIRTUAL_INFACE_TABLE_ALIAS, AliasName);
+                            rc = rbusTable_registerRow(rbusHandle, tmpVIfTableName, (VirId+1), AliasName); //TODO: NEW_DESIGN get Alias name for virtual table
+                            if(rc != RBUS_ERROR_SUCCESS)
+                            {
+                                CcspTraceError(("%s %d - VirtualInterface(%d) Table (%s) Registartion failed, Error=%d \n", __FUNCTION__, __LINE__, (VirId+1), tmpVIfTableName, rc));
+                            }
+                            else
+                            {
+                                CcspTraceInfo(("%s %d - VirtualInterface(%d) Table (%s) Registartion Successfully, AliasName(%s)\n", __FUNCTION__, __LINE__, (VirId+1), tmpVIfTableName, AliasName));
+                            }
                         }
-                    }
 #endif
+                    }
                 }
                 else if( WANMGR_PHY_STATUS_CHECK )
                 {
