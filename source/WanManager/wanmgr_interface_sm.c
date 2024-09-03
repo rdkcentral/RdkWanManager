@@ -4255,6 +4255,12 @@ int WanMgr_StartInterfaceStateMachine(WanMgr_IfaceSM_Controller_t *wanIf)
     else
     {
         CcspTraceInfo(("%s %d - WanManager State Machine Thread Started Successfully\n", __FUNCTION__, __LINE__ ));
+        DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIface_locked(wanIfLocal->interfaceIdx, wanIfLocal->VirIfIdx);
+        if(p_VirtIf != NULL )
+        {
+            p_VirtIf->Interface_SM_Running = TRUE;
+            WanMgr_VirtualIfaceData_release(p_VirtIf);
+        }
     }
     return iErrorCode ;
 }

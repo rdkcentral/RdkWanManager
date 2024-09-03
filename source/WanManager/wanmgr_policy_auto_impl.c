@@ -1149,14 +1149,37 @@ static WcAwPolicyState_t State_ScanningInterface (WanMgr_Policy_Controller_t * p
         return Transition_InterfaceValidated(pWanController);
     }
 
-    // If Phy is not UP or Interace is WAN disabled, move to interface deselect transition
-    if ((pActiveInterface->BaseInterfaceStatus != WAN_IFACE_PHY_STATUS_UP) || (pActiveInterface->Selection.Enable == FALSE))
+    // If Interace is WAN disabled, move to interface deselect transition
+    if (pActiveInterface->Selection.Enable == FALSE)
     { 
         CcspTraceInfo(("%s %d: selected interface index:%d is BaseInetrfaceStatus = %s, Selection.Enable = %d\n", __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx, 
                     (pActiveInterface->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_UP)?"UP":"DOWN", pActiveInterface->Selection.Enable));
         return Transition_InterfaceDeselect(pWanController);
     }
 
+
+    //If PHY is up and Virtual interface state machine is not running, Restart it.
+    if(pActiveInterface->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_UP)
+    {
+        for(int VirtId=0; VirtId < pActiveInterface->NoOfVirtIfs; VirtId++)
+        {
+            DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIfaceById(pActiveInterface->VirtIfList, VirtId);
+            if(p_VirtIf != NULL )
+            {
+                if(p_VirtIf->Enable == TRUE && p_VirtIf->Interface_SM_Running == FALSE)
+                {
+                    CcspTraceInfo(("%s %d Starting virtual InterfaceStateMachine for %d \n", __FUNCTION__, __LINE__, VirtId));
+                    WanMgr_IfaceSM_Controller_t wanIfCtrl;
+                    WanMgr_IfaceSM_Init(&wanIfCtrl, pWanController->activeInterfaceIdx, VirtId);
+                    if (WanMgr_StartInterfaceStateMachine(&wanIfCtrl) != 0)
+                    {
+                        CcspTraceError(("%s %d: Unable to start interface state machine \n", __FUNCTION__, __LINE__));
+                    }
+                }
+            }
+        }
+    }
+    
     // checked if iface is validated or only interface enabled
     if ((pActiveInterface->VirtIfList->Status == WAN_IFACE_STATUS_UP) || 
         (pActiveInterface->VirtIfList->Status == WAN_IFACE_STATUS_STANDBY) ||
