@@ -425,7 +425,7 @@ static void WanMgr_MonitorDhcpApps (WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
             (p_VirtIf->IP.Mode == DML_WAN_IP_MODE_IPV4_ONLY && p_VirtIf->IP.Dhcp4cPid > 0 && p_VirtIf->IP.Dhcp6cPid == 0) ||
             (p_VirtIf->IP.Mode == DML_WAN_IP_MODE_DUAL_STACK && p_VirtIf->IP.Dhcp4cPid > 0 && p_VirtIf->IP.Dhcp6cPid > 0))
         {
-            CcspTraceInfo(("%s %d: IP Mode change processed. Resetting \n", __FUNCTION__, __LINE__));
+            CcspTraceInfo(("%s %d: IP Mode change processed. Resetting flag. \n", __FUNCTION__, __LINE__));
             p_VirtIf->IP.RefreshDHCP = FALSE;
 	}	
         return;
