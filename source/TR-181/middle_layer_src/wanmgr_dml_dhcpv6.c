@@ -852,8 +852,12 @@ Client3_GetParamStringValue
     }
     else if (strcmp(ParamName, "Interface") == 0)
     {
-        DmlGetInstanceByKeywordFromPandM(pDhcpc->Cfg.Interface, &instanceNumber);
-        snprintf(interface, DATAMODEL_PARAM_LENGTH, PAM_IF_TABLE_OBJECT, instanceNumber);
+        DML_VIRTUAL_IFACE *p_VirtIf = WanMgr_GetActiveVirtIfData_locked();
+        if(p_VirtIf != NULL)
+	{
+            snprintf(interface, sizeof(interface), "%s", p_VirtIf->IP.Interface);
+            WanMgrDml_GetIfaceData_release(NULL);
+        }
         if ( interface[0] != '\0' )
         {
             if ( AnscSizeOfString(interface) < *pUlSize)
