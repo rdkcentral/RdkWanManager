@@ -631,6 +631,24 @@ static WcAwPolicyState_t Transition_InterfaceSelected (WanMgr_Policy_Controller_
 }
 
 /*
+ * Transition_ScanningInterfaceDown()
+ * - Interface is down while scanning. 
+ * - Do nothing.  Roll back to STATE_AUTO_WAN_INTERFACE_WAITING without restaring the timer.
+ */
+static WcAwPolicyState_t Transition_ScanningInterfaceDown (WanMgr_Policy_Controller_t * pWanController)
+{
+    if ((pWanController == NULL) || (pWanController->pWanActiveIfaceData == NULL))
+    {
+        CcspTraceError(("%s %d: Invalid args\n", __FUNCTION__, __LINE__));
+        return STATE_AUTO_WAN_ERROR;
+    }
+
+    CcspTraceInfo(("%s %d: State changed to STATE_AUTO_WAN_INTERFACE_WAITING \n", __FUNCTION__, __LINE__));
+
+    return STATE_AUTO_WAN_INTERFACE_WAITING;
+}
+
+/*
  * Transition_InterfaceInvalid()
  * - called when interface failed to be validated before its SelectionTimeout, or WAN disbaled for interface
  * - Mark the selected interface as Invalid (VirtIfList->Status = Invalid)
@@ -1158,26 +1176,11 @@ static WcAwPolicyState_t State_ScanningInterface (WanMgr_Policy_Controller_t * p
     }
 
 
-    //If PHY is up and Virtual interface state machine is not running, Restart it.
-    if(pActiveInterface->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_UP)
+    //If PHY is down ,rollback to waiting state after all VISM are terminated.
+    if(pActiveInterface->BaseInterfaceStatus != WAN_IFACE_PHY_STATUS_UP && WanMgr_Get_ISM_RunningStatus(pWanController->activeInterfaceIdx) == FALSE) 
     {
-        for(int VirtId=0; VirtId < pActiveInterface->NoOfVirtIfs; VirtId++)
-        {
-            DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIfaceById(pActiveInterface->VirtIfList, VirtId);
-            if(p_VirtIf != NULL )
-            {
-                if(p_VirtIf->Enable == TRUE && p_VirtIf->Interface_SM_Running == FALSE)
-                {
-                    CcspTraceInfo(("%s %d Starting virtual InterfaceStateMachine for %d \n", __FUNCTION__, __LINE__, VirtId));
-                    WanMgr_IfaceSM_Controller_t wanIfCtrl;
-                    WanMgr_IfaceSM_Init(&wanIfCtrl, pWanController->activeInterfaceIdx, VirtId);
-                    if (WanMgr_StartInterfaceStateMachine(&wanIfCtrl) != 0)
-                    {
-                        CcspTraceError(("%s %d: Unable to start interface state machine \n", __FUNCTION__, __LINE__));
-                    }
-                }
-            }
-        }
+        CcspTraceInfo(("%s %d: selected interface index:%d is BaseInetrfaceStatus DOWN. \n", __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx ));
+        return Transition_ScanningInterfaceDown(pWanController);
     }
     
     // checked if iface is validated or only interface enabled
