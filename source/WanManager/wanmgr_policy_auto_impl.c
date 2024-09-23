@@ -631,6 +631,24 @@ static WcAwPolicyState_t Transition_InterfaceSelected (WanMgr_Policy_Controller_
 }
 
 /*
+ * Transition_ScanningInterfaceDown()
+ * - Interface is down while scanning. 
+ * - Do nothing.  Roll back to STATE_AUTO_WAN_INTERFACE_WAITING without restaring the timer.
+ */
+static WcAwPolicyState_t Transition_ScanningInterfaceDown (WanMgr_Policy_Controller_t * pWanController)
+{
+    if ((pWanController == NULL) || (pWanController->pWanActiveIfaceData == NULL))
+    {
+        CcspTraceError(("%s %d: Invalid args\n", __FUNCTION__, __LINE__));
+        return STATE_AUTO_WAN_ERROR;
+    }
+
+    CcspTraceInfo(("%s %d: State changed to STATE_AUTO_WAN_INTERFACE_WAITING \n", __FUNCTION__, __LINE__));
+
+    return STATE_AUTO_WAN_INTERFACE_WAITING;
+}
+
+/*
  * Transition_InterfaceInvalid()
  * - called when interface failed to be validated before its SelectionTimeout, or WAN disbaled for interface
  * - Mark the selected interface as Invalid (VirtIfList->Status = Invalid)
@@ -1149,14 +1167,22 @@ static WcAwPolicyState_t State_ScanningInterface (WanMgr_Policy_Controller_t * p
         return Transition_InterfaceValidated(pWanController);
     }
 
-    // If Phy is not UP or Interace is WAN disabled, move to interface deselect transition
-    if ((pActiveInterface->BaseInterfaceStatus != WAN_IFACE_PHY_STATUS_UP) || (pActiveInterface->Selection.Enable == FALSE))
+    // If Interace is WAN disabled, move to interface deselect transition
+    if (pActiveInterface->Selection.Enable == FALSE)
     { 
         CcspTraceInfo(("%s %d: selected interface index:%d is BaseInetrfaceStatus = %s, Selection.Enable = %d\n", __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx, 
                     (pActiveInterface->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_UP)?"UP":"DOWN", pActiveInterface->Selection.Enable));
         return Transition_InterfaceDeselect(pWanController);
     }
 
+
+    //If PHY is down ,rollback to waiting state after all VISM are terminated.
+    if(pActiveInterface->BaseInterfaceStatus != WAN_IFACE_PHY_STATUS_UP && WanMgr_Get_ISM_RunningStatus(pWanController->activeInterfaceIdx) == FALSE) 
+    {
+        CcspTraceInfo(("%s %d: selected interface index:%d is BaseInetrfaceStatus DOWN. \n", __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx ));
+        return Transition_ScanningInterfaceDown(pWanController);
+    }
+    
     // checked if iface is validated or only interface enabled
     if ((pActiveInterface->VirtIfList->Status == WAN_IFACE_STATUS_UP) || 
         (pActiveInterface->VirtIfList->Status == WAN_IFACE_STATUS_STANDBY) ||
