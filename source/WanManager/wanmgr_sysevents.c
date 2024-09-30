@@ -978,7 +978,6 @@ static void *WanManagerSyseventHandler(void *args)
                                     __FUNCTION__, __LINE__, name, val, output, primary_v6ip_address));
                     if(WanMgr_TriggerPrimaryDnsConnectivityRestart() == -1)
                     {
-                        CcspTraceError(("%s-%d: Failed to Trigger Primary DNS Connectivity Check Restart for v6 IP address change \n", __FUNCTION__, __LINE__));
                     }
                     else
                     {
@@ -997,7 +996,6 @@ static void *WanManagerSyseventHandler(void *args)
                                     __FUNCTION__, __LINE__, name, val, output, primary_v4gateway));
                     if(WanMgr_TriggerPrimaryDnsConnectivityRestart() == -1)
                     {
-                        CcspTraceError(("%s-%d: Failed to Trigger Primary V4 DNS Connectivity Check Restart for v4 Gateway change \n", __FUNCTION__, __LINE__));
                     }
                     else
                     {
@@ -1017,7 +1015,6 @@ static void *WanManagerSyseventHandler(void *args)
                                     __FUNCTION__, __LINE__, name, val, output, primary_v4dns));
                     if(WanMgr_TriggerPrimaryDnsConnectivityRestart() == -1)
                     {
-                        CcspTraceError(("%s-%d: Failed to Trigger Primary V4 DNS Connectivity Check Restart \n", __FUNCTION__, __LINE__));
                     }
                     else
                     {
@@ -1037,7 +1034,6 @@ static void *WanManagerSyseventHandler(void *args)
                                     __FUNCTION__, __LINE__, name, val, output, primary_v6dns));
                     if(WanMgr_TriggerPrimaryDnsConnectivityRestart() == -1)
                     {
-                        CcspTraceError(("%s-%d: Failed to Trigger Primary V6 DNS Connectivity Check Restart \n", __FUNCTION__, __LINE__));
                     }
                     else
                     {
@@ -1057,7 +1053,6 @@ static void *WanManagerSyseventHandler(void *args)
                                     __FUNCTION__, __LINE__, name, val, output, backup_v4dns));
                     if(WanMgr_TriggerBackupDnsConnectivityRestart() == -1)
                     {
-                        CcspTraceError(("%s-%d: Failed to Trigger Backup V6 DNS Connectivity Check Restart \n", __FUNCTION__, __LINE__));
                     }
                     else
                     {
@@ -1077,7 +1072,6 @@ static void *WanManagerSyseventHandler(void *args)
                                     __FUNCTION__, __LINE__, name, val, output, backup_v6dns));
                     if(WanMgr_TriggerBackupDnsConnectivityRestart() == -1)
                     {
-                        CcspTraceError(("%s-%d: Failed to Trigger Backup V6 DNS Connectivity Check Restart \n", __FUNCTION__, __LINE__));
                     }
                     else
                     {
