@@ -3252,8 +3252,11 @@ BOOL Marking_SetParamIntValue(ANSC_HANDLE hInsContext, char* ParamName, int iVal
     /* check the parameter name and set the corresponding value */
     if (strcmp(ParamName, "EthernetPriorityMark") == 0)
     {
-        p_Marking->EthernetPriorityMark = iValue;
-        ret = TRUE;
+        if(iValue <= 7 && iValue >= 0 )
+	{
+            p_Marking->EthernetPriorityMark = iValue;
+            ret = TRUE;
+	}
     }
     if (strcmp(ParamName, "DSCPMark") == 0)
     {

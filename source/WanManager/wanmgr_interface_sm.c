@@ -413,6 +413,15 @@ static void WanMgr_MonitorDhcpApps (WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
     {
         // let the caller state handle RefreshDHCP=TRUE scenario
         CcspTraceError(("%s %d: IP Mode change detected, handle RefreshDHCP & later monitor DHCP apps\n", __FUNCTION__, __LINE__));
+        //reset flag here, if the IP mode and source changes are addressed.
+        if(((p_VirtIf->IP.IPv6Source != DML_WAN_IP_SOURCE_DHCP || p_VirtIf->IP.Mode == DML_WAN_IP_MODE_NO_IP) && p_VirtIf->IP.Dhcp4cPid == 0 && p_VirtIf->IP.Dhcp6cPid == 0)||
+            (p_VirtIf->IP.Mode == DML_WAN_IP_MODE_IPV6_ONLY && p_VirtIf->IP.Dhcp4cPid == 0 && p_VirtIf->IP.Dhcp6cPid > 0) ||
+            (p_VirtIf->IP.Mode == DML_WAN_IP_MODE_IPV4_ONLY && p_VirtIf->IP.Dhcp4cPid > 0 && p_VirtIf->IP.Dhcp6cPid == 0) ||
+            (p_VirtIf->IP.Mode == DML_WAN_IP_MODE_DUAL_STACK && p_VirtIf->IP.Dhcp4cPid > 0 && p_VirtIf->IP.Dhcp6cPid > 0))
+        {
+            CcspTraceInfo(("%s %d: IP Mode change processed. Resetting flag. \n", __FUNCTION__, __LINE__));
+            p_VirtIf->IP.RefreshDHCP = FALSE;
+	}	
         return;
     }
 
@@ -1412,7 +1421,7 @@ static int wan_tearDownIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
 #endif
 
     sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_WAN_STATUS, buf, sizeof(buf));
-    if ((strcmp(buf, WAN_STATUS_STOPPED) != 0) && (p_VirtIf->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_DOWN))
+    if ((strcmp(buf, WAN_STATUS_STOPPED) != 0) && ((p_VirtIf->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_DOWN) && (p_VirtIf->MAP.MaptStatus == WAN_IFACE_MAPT_STATE_DOWN)))
     {
         sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_WAN_STATUS, WAN_STATUS_STOPPED, 0);
         sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_WAN_SERVICE_STATUS, WAN_STATUS_STOPPED, 0);
