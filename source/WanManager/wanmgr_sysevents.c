@@ -216,7 +216,7 @@ ANSC_STATUS wanmgr_set_Ipv4Sysevent(const WANMGR_IPV4_DATA* dhcp4Info, DEVICE_NE
     }
     sysevent_set(sysevent_fd, sysevent_token,name, dhcp4Info->ip, 0);
 
-#if !defined (_XB6_PRODUCT_REQ_) && !defined (_CBR2_PRODUCT_REQ_) && !defined(_PLATFORM_RASPBERRYPI_) //parodus uses cmac for xb platforms
+#if !defined (_XB6_PRODUCT_REQ_) && !defined (_CBR2_PRODUCT_REQ_) && !defined(_PLATFORM_RASPBERRYPI_) && !defined(_PLATFORM_BANANAPI_R4_) //parodus uses cmac for xb platforms
     // set wan mac because parodus depends on it to start.
     if(ANSC_STATUS_SUCCESS == WanManager_get_interface_mac(dhcp4Info->ifname, ifaceMacAddress, sizeof(ifaceMacAddress)))
     {
@@ -1208,7 +1208,7 @@ int Force_IPv6_toggle (char* wanInterface)
 void wanmgr_Ipv6Toggle (void)
 {
     char v6Toggle[BUFLEN_128] = {0};
-#if (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_)) &&  !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)//TODO: V6 handled in PAM
+#if (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_) || defined(_PLATFORM_BANANAPI_R4_)) &&  !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)//TODO: V6 handled in PAM
     /*Ipv6 handled in PAM.  No Toggle Needed. */
     return;
 #endif

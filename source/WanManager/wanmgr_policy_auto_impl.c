@@ -120,7 +120,7 @@ static int WanMgr_RdkBus_AddAllIntfsToLanBridge (WanMgr_Policy_Controller_t * pW
     return ANSC_STATUS_SUCCESS;
 
 }
-#if (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_))
+#if (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_) || defined(_PLATFORM_BANANAPI_R4_)) 
 //TODO: this is a workaround to support upgarde from Comcast autowan policy to Unification build
 #define MAX_WanModeToIfaceMap 2
 static const int lastWanModeToIface_map[MAX_WanModeToIfaceMap] = {2, 1}; 
@@ -270,7 +270,7 @@ static void WanMgr_Policy_Auto_GetHighPriorityIface(WanMgr_Policy_Controller_t *
                     }
                     // pWanIfaceData - is Wan-Enabled & has valid Priority
                     if(pWanIfaceData->Selection.Priority < iSelPriority
-#if (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_))
+#if (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_) || defined(_PLATFORM_BANANAPI_R4_))
                         //TODO: this is a workaround to support upgarde from Comcast autowan policy to Unification build
                         || isLastActiveLinkFromSysCfg(pWanIfaceData)
 #endif    
@@ -1261,7 +1261,7 @@ static WcAwPolicyState_t State_InterfaceReconfiguration (WanMgr_Policy_Controlle
         return STATE_AUTO_WAN_ERROR;
     }
 
-#if (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_))
+#if (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_) || defined(_PLATFORM_BANANAPI_R4_)) 
     // HW configuration already done using SelectedOperationalMode for XB platforms. Skipping this state.
     CcspTraceInfo(("%s %d: HW configuration already done using SelectedOperationalMode.\n", __FUNCTION__, __LINE__));
     return Transition_ActivatingInterface (pWanController);
