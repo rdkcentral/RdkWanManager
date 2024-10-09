@@ -304,6 +304,7 @@ typedef struct _WANMGR_IPV4_DATA
     char dnsServer[BUFLEN_64];         /** New dns Server, if addressAssigned==TRUE */
     char dnsServer1[BUFLEN_64];        /** New dns Server, if addressAssigned==TRUE */
     uint32_t mtuSize;                  /** New MTU size, if mtuAssigned==TRUE */
+    uint32_t leaseReceivedTime;        /** Lease received time*/
 #if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
     int32_t timeOffset;                /** New time offset, if addressAssigned==TRUE */
     bool isTimeOffsetAssigned;         /** Is the time offset assigned ? */
