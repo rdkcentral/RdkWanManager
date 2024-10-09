@@ -1177,6 +1177,11 @@ int Force_IPv6_toggle (char* wanInterface)
     return ret;
 }
 
+/*
+ * @brief Utility function used to check the default route and send router solicit if not available.
+ * @param : Virtual Interface Interface .
+ * @return Returns NONE.
+ */
 void WanMgr_CheckDefaultRA (DML_VIRTUAL_IFACE * pVirtIf)
 {
     char v6Toggle[BUFLEN_128] = {0};
@@ -1186,7 +1191,7 @@ void WanMgr_CheckDefaultRA (DML_VIRTUAL_IFACE * pVirtIf)
     if((strlen(v6Toggle) == 0) || (!strcmp(v6Toggle,"TRUE")))
     {
         CcspTraceInfo(("%s %d SYSEVENT_IPV6_TOGGLE[TRUE] \n", __FUNCTION__, __LINE__));
-
+        //TODO: add check for remote device ( static ip )
         if (CheckV6DefaultRule(pVirtIf->Name) == TRUE ||  WanManager_send_and_receive_rs(pVirtIf) == 0)
         {
             sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV6_TOGGLE, "FALSE", 0);

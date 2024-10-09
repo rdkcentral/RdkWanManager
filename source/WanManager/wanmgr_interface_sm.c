@@ -1384,12 +1384,12 @@ static int wan_tearDownIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
         ret = RETURN_ERR;
     }
 
+#endif
     /** Unconfig IPv6. */
     if ( WanManager_Ipv6AddrUtil(p_VirtIf->Name, DEL_ADDR,0,0) < 0)
     {
         AnscTraceError(("%s %d -  Failed to remove inactive address \n", __FUNCTION__,__LINE__));
     }
-#endif
 
     // Reset sysvevents.
     char previousPrefix[BUFLEN_48] = {0};

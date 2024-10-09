@@ -156,8 +156,8 @@ static ANSC_STATUS setDibblerClientEnable(BOOL * enable);
  ****************************************************************************/
 #define SERIALIZATION_DATA "/tmp/serial.txt"
 static ANSC_STATUS GetAdslUsernameAndPassword(char *Username, char *Password);
-static int WanManager_CalculatePsidAndV4Index(char *pdIPv6Prefix, int v6PrefixLen, int iapdPrefixLen, int v4PrefixLen, int *psidValue, int *ipv4IndexValue, int *psidLen);
 #endif
+static int WanManager_CalculatePsidAndV4Index(char *pdIPv6Prefix, int v6PrefixLen, int iapdPrefixLen, int v4PrefixLen, int *psidValue, int *ipv4IndexValue, int *psidLen);
 
 #if defined(FEATURE_464XLAT)
 #define XLAT_INTERFACE "xlat"
@@ -488,11 +488,12 @@ int WanManager_Ipv6AddrUtil(char *ifname, Ipv6OperType opr, int preflft, int val
         {
             if (strlen(prefix) > 0)
             {
+#if !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_))  //Do not delete prefix from LAn bridge for the comcast platforms.
                 memset(cmdLine, 0, sizeof(cmdLine));
                 snprintf(cmdLine, sizeof(cmdLine), "ip -6 addr del %s/64 dev %s", prefixAddr, IfaceName);
                 if (WanManager_DoSystemActionWithStatus("ip -6 addr del ADDR dev xxxx", cmdLine) != 0)
                     CcspTraceError(("failed to run cmd: %s", cmdLine));
-
+#endif
                 memset(cmdLine, 0, sizeof(cmdLine));
 #if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
                 snprintf(cmdLine, sizeof(cmdLine), "ip -6 route flush match %s ", prefix);
