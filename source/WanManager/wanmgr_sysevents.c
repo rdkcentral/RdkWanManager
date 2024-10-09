@@ -1440,6 +1440,10 @@ ANSC_STATUS wanmgr_services_restart()
 #ifdef SNMPV3_ENABLED
     wanmgr_snmpv3_restart();
 #endif // SNMPV3_ENABLED
+
+#ifdef _CBR2_PRODUCT_REQ_
+    v_secure_system("sh /etc/network_response.sh &");
+#endif // _CBR2_PRODUCT_REQ_
     return ANSC_STATUS_SUCCESS;
 }
 
