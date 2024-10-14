@@ -2726,6 +2726,10 @@ static eWanState_t wan_transition_mapt_up(WanMgr_IfaceSM_Controller_t* pWanIface
         WanManager_ConfigurePPPSession(p_VirtIf, FALSE);
     }
 
+    //Enabling IP forwarding 
+    CcspTraceInfo(("%s %d - net.ipv4.ip_forward set to 1 \n", __FUNCTION__, __LINE__));
+    v_secure_system("sysctl -w net.ipv4.ip_forward=1");
+
 #if defined(FEATURE_MAPT)
     /* Configure MAPT. */
     if (WanManager_ProcessMAPTConfiguration(&(p_VirtIf->MAP.dhcp6cMAPTparameters), &(p_VirtIf->MAP.MaptConfig), pInterface->Name, p_VirtIf->IP.Ipv6Data.ifname) != RETURN_OK)
