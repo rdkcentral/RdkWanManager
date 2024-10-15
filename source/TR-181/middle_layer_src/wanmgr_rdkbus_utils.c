@@ -974,7 +974,7 @@ ANSC_STATUS WanMgr_RdkBus_setWanIpInterfaceData(DML_VIRTUAL_IFACE*  pVirtIf)
     {
         retStatus = WanMgr_RdkBus_SetParamValues( PAM_COMPONENT_NAME, PAM_DBUS_PATH, dmQuery, pVirtIf->PPP.Interface, ccsp_string, TRUE );
         CcspTraceInfo(("%s %d - Updating %s => %s\n", __FUNCTION__, __LINE__,dmQuery, pVirtIf->PPP.Interface));
-    }else
+    }else if(pVirtIf->VLAN.Enable == TRUE)
     {
         retStatus = WanMgr_RdkBus_SetParamValues( PAM_COMPONENT_NAME, PAM_DBUS_PATH, dmQuery, pVirtIf->VLAN.VLANInUse, ccsp_string, TRUE );
         CcspTraceInfo(("%s %d - Updating %s => %s\n", __FUNCTION__, __LINE__,dmQuery,pVirtIf->VLAN.VLANInUse));
