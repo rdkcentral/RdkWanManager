@@ -144,34 +144,6 @@ static ANSC_STATUS WanMgr_IpcNewIpv6Msg(ipc_dhcpv6_data_t* pNewIpv6Msg)
     return retStatus;
 }
 
-/*TODO:
- *the below code should be removed once Unified MAPT Implemented.
- */
-static ANSC_STATUS WanMgr_MaptStatusChanged(ipc_dhcpv6_data_t* pNewMaptMsg)
-{
-    ANSC_STATUS retStatus = ANSC_STATUS_FAILURE;
-
-    CcspTraceInfo(("%s %d - Received Ipc MAMPT-Msg for %s\n", __FUNCTION__, __LINE__, pNewMaptMsg->ifname));
-
-    DML_VIRTUAL_IFACE* pVirtIf = WanMgr_GetVIfByName_VISM_running_locked(pNewMaptMsg->ifname);
-    if(pVirtIf != NULL)
-    {
-        if (pNewMaptMsg->maptAssigned == TRUE)
-        {
-            WanManager_UpdateInterfaceStatus(pVirtIf, WANMGR_IFACE_MAPT_START);
-            retStatus = ANSC_STATUS_SUCCESS;
-        }
-        else if (pNewMaptMsg->maptAssigned == FALSE)
-        {
-            WanManager_UpdateInterfaceStatus(pVirtIf, WANMGR_IFACE_MAPT_STOP);
-            retStatus = ANSC_STATUS_SUCCESS;
-        }
-        WanMgr_VirtualIfaceData_release(pVirtIf);
-    }
-
-    return retStatus;
-}
-
 ANSC_STATUS WanMgr_SetInterfaceStatus(char *ifName, wanmgr_iface_status_t state)
 {
     DML_VIRTUAL_IFACE* pVirtIf = WanMgr_GetVirtualIfaceByName_locked(ifName);
@@ -351,16 +323,6 @@ static void* IpcServerThread( void *arg )
                     }
                     break;
 #endif
-                /*TODO:
-                 *The below code should be removed once Unified MAPT Implemented.
-                 */
-                case MAPT_STATE_CHANGED:
-                    if (WanMgr_MaptStatusChanged(&(ipc_msg.data.dhcpv6)) != ANSC_STATUS_SUCCESS)
-                    {
-                        CcspTraceError(("[%s-%d] Failed to proccess MAPT state change message for %s \n", __FUNCTION__, __LINE__,ipc_msg.data.dhcpv6.ifname));
-                    }
-                    break;
-
                 default:
                         CcspTraceError(("[%s-%d] Invalid  Message sent to Wan Manager\n", __FUNCTION__, __LINE__));
             }
