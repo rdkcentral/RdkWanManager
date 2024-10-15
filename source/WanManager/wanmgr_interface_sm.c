@@ -1715,20 +1715,6 @@ static eWanState_t wan_transition_start(WanMgr_IfaceSM_Controller_t* pWanIfaceCt
         CcspTraceInfo(("%s %d - Already WAN interface %s created\n", __FUNCTION__, __LINE__, p_VirtIf->Name));
     }
 
-    if(pInterface->IfaceType != REMOTE_IFACE)
-    {
-        /* TODO: This is not a right place to read the WanName from persistance memory. 
-         * Since many platforms still use same name for all Wan Interfaces, we are updating here to make sure only the interface which is running VISM has the interface name. 
-         */
-        char param_value[256] ={0};
-        char param_name[512] ={0};
-        int retPsmGet = CCSP_SUCCESS;
-        _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_NAME, (p_VirtIf->baseIfIdx + 1), (p_VirtIf->VirIfIdx + 1));
-        retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
-        AnscCopyString(p_VirtIf->Name, (retPsmGet == CCSP_SUCCESS && (strlen(param_value) > 0 )) ? param_value: "erouter0");
-        CcspTraceInfo(("%s %d VIRIF_NAME is copied from PSM. %s\n", __FUNCTION__, __LINE__, p_VirtIf->Name));
-    }
-
     /*TODO: VLAN should not be set for Remote Interface, for More info, refer RDKB-42676*/
     if(  p_VirtIf->VLAN.Enable == TRUE && p_VirtIf->VLAN.Status == WAN_IFACE_LINKSTATUS_DOWN && pInterface->IfaceType != REMOTE_IFACE)
     {
@@ -2782,15 +2768,6 @@ static eWanState_t wan_transition_exit(WanMgr_IfaceSM_Controller_t* pWanIfaceCtr
 
     Update_Interface_Status();
     CcspTraceInfo(("%s %d - Interface '%s' - EXITING STATE MACHINE\n", __FUNCTION__, __LINE__, pInterface->Name));
-
-    /* TODO: This is not a right place to clear the WanName. 
-     * Since many platforms still use same name for all Wan Interfaces, we are clearing here to make sure only the interface which is running VISM has the interface name. 
-     */
-    if(pInterface->IfaceType != REMOTE_IFACE)
-    {
-        memset(p_VirtIf->Name, 0, sizeof(p_VirtIf->Name));
-        CcspTraceInfo(("%s %d clear VIRIF_NAME \n", __FUNCTION__, __LINE__));
-    }
 
     p_VirtIf->Interface_SM_Running = FALSE;
     

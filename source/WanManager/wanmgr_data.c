@@ -454,7 +454,21 @@ WanMgr_Iface_Data_t* WanMgr_GetIfaceDataByName_locked(char* iface_name)
     return NULL;
 }
 
-DML_VIRTUAL_IFACE* WanMgr_GetVirtualIfaceByName_locked(char* iface_name)
+/**
+ * @brief Retrieve a virtual interface object by its name with mutex locked state.
+ *
+ * This function searches all Virtual Interfaces for and returns a pointer to a virtual interface object
+ * identified by its name (`iface_name`). 
+ *
+ * @param[in] iface_name The name of the virtual interface to retrieve.
+ *                       This should be a valid, null-terminated string.
+ * 
+ * @return DML_VIRTUAL_IFACE* 
+ *         Pointer to the corresponding virtual interface structure if found, 
+ *         or NULL if not found.
+ */
+
+DML_VIRTUAL_IFACE* WanMgr_GetVirtualIfaceByName_locked(const char* iface_name)
 {
     UINT idx;
     if(iface_name == NULL || strlen(iface_name) <=0)
@@ -474,6 +488,55 @@ DML_VIRTUAL_IFACE* WanMgr_GetVirtualIfaceByName_locked(char* iface_name)
                 while(virIface != NULL)
                 {
                     if(!strcmp(iface_name,virIface->Name))
+                    {
+                        return virIface;
+                    }
+                    virIface = virIface->next;
+                }
+            }
+        }
+        WanMgrDml_GetIfaceData_release(NULL);
+    }
+
+    return NULL;
+}
+
+/**
+ * @brief Get a virtual interface by its name, ensuring the state machine is running and mutex is locked.
+ *
+ * This function searches all virtual interfaces and returns a pointer to the one matching the given name (`iface_name`), 
+ * with the virtual interface state machine (VISM) is running. 
+ * 
+ * NOTE: This function is similar to WanMgr_GetVirtualIfaceByName_locked but includes an additional check to ensure 
+ * the VISM is running. Some products use the same default name for all interfaces, causing issues with lease updates. 
+ * This function serves as a workaround to retrieve the correct interface with an active VISM.
+ *
+ * @param[in] iface_name The name of the virtual interface to retrieve (a valid, null-terminated string).
+ *
+ * @return DML_VIRTUAL_IFACE*
+ *         Pointer to the corresponding virtual interface if found,
+ *         or NULL if no matching interface is found.
+ */
+DML_VIRTUAL_IFACE* WanMgr_GetVIfByName_VISM_running_locked(const char* iface_name)
+{
+    UINT idx;
+    if(iface_name == NULL || strlen(iface_name) <=0)
+    {
+        return NULL;
+    }
+
+    if(pthread_mutex_lock(&gWanMgrDataBase.gDataMutex) == 0)
+    {
+        WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl = &(gWanMgrDataBase.IfaceCtrl);
+        if(pWanIfaceCtrl->pIface != NULL)
+        {
+            for(idx = 0; idx < pWanIfaceCtrl->ulTotalNumbWanInterfaces; idx++)
+            {
+                WanMgr_Iface_Data_t* pWanIfaceData = &(pWanIfaceCtrl->pIface[idx]);
+                DML_VIRTUAL_IFACE* virIface = pWanIfaceData->data.VirtIfList;
+                while(virIface != NULL)
+                {
+                    if(!strcmp(iface_name,virIface->Name) && virIface->Interface_SM_Running == TRUE)
                     {
                         return virIface;
                     }
