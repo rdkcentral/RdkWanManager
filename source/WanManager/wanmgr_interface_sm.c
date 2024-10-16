@@ -3924,6 +3924,8 @@ static eWanState_t wan_state_refreshing_wan(WanMgr_IfaceSM_Controller_t* pWanIfa
         p_VirtIf->Enable == FALSE ||
         pInterface->BaseInterfaceStatus !=  WAN_IFACE_PHY_STATUS_UP)
     {
+         p_VirtIf->Reset = FALSE;
+         p_VirtIf->VLAN.Reset = FALSE;
          p_VirtIf->VLAN.Expired = FALSE; //Reset VLAN.Expired
         return wan_transition_physical_interface_down(pWanIfaceCtrl);
     }
