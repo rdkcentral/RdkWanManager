@@ -21,7 +21,7 @@
 #include "wanmgr_data.h"
 #include "wanmgr_rdkbus_apis.h"
 
-#if defined(WAN_MANAGER_UNIFICATION_ENABLED) && (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_))
+#if defined(WAN_MANAGER_UNIFICATION_ENABLED) && (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_) || defined(_PLATFORM_BANANAPI_R4_)) 
 extern ANSC_STATUS WanMgr_CheckAndResetV2PSMEntries(UINT IfaceCount);
 #endif
 
@@ -246,7 +246,7 @@ ANSC_STATUS WanMgr_WanIfaceConfInit(WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl)
         }
 
         pWanIfaceCtrl->ulTotalNumbWanInterfaces = uiTotalIfaces;
-#if defined(WAN_MANAGER_UNIFICATION_ENABLED) && (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_))
+#if defined(WAN_MANAGER_UNIFICATION_ENABLED) && (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_) || defined(_PLATFORM_BANANAPI_R4_))
         WanMgr_CheckAndResetV2PSMEntries(uiTotalIfaces);
 #endif
 
