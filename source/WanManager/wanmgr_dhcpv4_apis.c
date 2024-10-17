@@ -122,7 +122,8 @@ ANSC_STATUS wanmgr_handle_dhcpv4_event_data(DML_VIRTUAL_IFACE* pVirtIf)
     bool IPv4ConfigChanged = FALSE;
 
 
-    if( strcmp(pDhcpcInfo->gateway, "0.0.0.0") == 0){
+    if( strcmp(pDhcpcInfo->gateway, "0.0.0.0") == 0)
+    {
         CcspTraceInfo(("%s %d - gateway=[%s] Iface Status to VALID\n", __FUNCTION__, __LINE__, pDhcpcInfo->gateway));
         if (pVirtIf->IP.pIpcIpv4Data != NULL )
         {
@@ -130,7 +131,12 @@ ANSC_STATUS wanmgr_handle_dhcpv4_event_data(DML_VIRTUAL_IFACE* pVirtIf)
             free(pVirtIf->IP.pIpcIpv4Data);
             pVirtIf->IP.pIpcIpv4Data = NULL;
         }
-        pVirtIf->Status = WAN_IFACE_STATUS_VALID;
+
+        if(pVirtIf->Status != WAN_IFACE_STATUS_STANDBY && pVirtIf->Status != WAN_IFACE_STATUS_UP)
+        {
+            CcspTraceInfo(("%s %d - Setting Iface Status to VALID\n", __FUNCTION__, __LINE__, pDhcpcInfo->gateway));
+            pVirtIf->Status = WAN_IFACE_STATUS_VALID;
+        }
         return ANSC_STATUS_SUCCESS;
     }
 

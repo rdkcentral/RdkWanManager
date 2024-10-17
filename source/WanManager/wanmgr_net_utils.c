@@ -156,8 +156,8 @@ static ANSC_STATUS setDibblerClientEnable(BOOL * enable);
  ****************************************************************************/
 #define SERIALIZATION_DATA "/tmp/serial.txt"
 static ANSC_STATUS GetAdslUsernameAndPassword(char *Username, char *Password);
-static int WanManager_CalculatePsidAndV4Index(char *pdIPv6Prefix, int v6PrefixLen, int iapdPrefixLen, int v4PrefixLen, int *psidValue, int *ipv4IndexValue, int *psidLen);
 #endif
+static int WanManager_CalculatePsidAndV4Index(char *pdIPv6Prefix, int v6PrefixLen, int iapdPrefixLen, int v4PrefixLen, int *psidValue, int *ipv4IndexValue, int *psidLen);
 
 #if defined(FEATURE_464XLAT)
 #define XLAT_INTERFACE "xlat"
@@ -488,11 +488,12 @@ int WanManager_Ipv6AddrUtil(char *ifname, Ipv6OperType opr, int preflft, int val
         {
             if (strlen(prefix) > 0)
             {
+#if !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_))  //Do not delete prefix from LAn bridge for the comcast platforms.
                 memset(cmdLine, 0, sizeof(cmdLine));
                 snprintf(cmdLine, sizeof(cmdLine), "ip -6 addr del %s/64 dev %s", prefixAddr, IfaceName);
                 if (WanManager_DoSystemActionWithStatus("ip -6 addr del ADDR dev xxxx", cmdLine) != 0)
                     CcspTraceError(("failed to run cmd: %s", cmdLine));
-
+#endif
                 memset(cmdLine, 0, sizeof(cmdLine));
 #if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
                 snprintf(cmdLine, sizeof(cmdLine), "ip -6 route flush match %s ", prefix);
@@ -557,12 +558,7 @@ uint32_t WanManager_StartDhcpv6Client(DML_VIRTUAL_IFACE* pVirtIf, IFACE_TYPE Ifa
     params.ifType = IfaceType;
 
     CcspTraceInfo(("Enter WanManager_StartDhcpv6Client for  %s \n", pVirtIf->Name));
-
-#if (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_)) //TODO: ipv6 handled in PAM
-    //Enable accept_ra while starting dhcpv6 for comcast devices.
-    WanMgr_Configure_accept_ra(pVirtIf, TRUE);
-    usleep(500000); //sleep for 500 milli seconds
-#endif
+    WanManager_send_and_receive_rs(pVirtIf);
     pid = start_dhcpv6_client(&params);
     pVirtIf->IP.Dhcp6cPid = pid;
 
@@ -2652,3 +2648,55 @@ ANSC_STATUS WanManager_get_interface_mac(char *interfaceName, char* macAddress, 
 
    return returnStatus;
 }
+
+//Send and receive RS
+int  WanManager_send_and_receive_rs(DML_VIRTUAL_IFACE * p_VirtIf) 
+{
+    struct in6_addr addr;
+    int ret = -1;
+    char command[256];
+    char buffer[512];
+    FILE *fp;
+
+    CcspTraceInfo(("%s %d: Requesting Router solicit for %s \n", __FUNCTION__, __LINE__, p_VirtIf->Name));
+    // Prepare the command to execute rdisc6 on the specified interface
+    snprintf(command, sizeof(command), "rdisc6 %s", p_VirtIf->Name );
+
+    // Execute the command and open a pipe to read its output
+    if ((fp = popen(command, "r")) == NULL) 
+    {
+        perror("popen");
+        return -1;
+    }
+
+    // Read the output line by line
+    while (fgets(buffer, sizeof(buffer), fp) != NULL) 
+    {
+        if (strstr(buffer, "Route lifetime")) 
+        {
+            sscanf(buffer, " Route lifetime : %d", &p_VirtIf->IP.Ipv6Route.defRouteLifeTime);
+        }
+
+        // Look for the "from" line to identify the default route address
+        if (strstr(buffer, "from")) 
+        {
+            sscanf(buffer, " from %s",  p_VirtIf->IP.Ipv6Route.defaultRoute);
+            if (inet_pton(AF_INET6, p_VirtIf->IP.Ipv6Route.defaultRoute, &addr) == 1)  //check parsed value is a valid ipv6 address
+            {
+                ret = 0;
+                break;
+            }
+        }
+    }
+
+    // Close the pipe
+    pclose(fp);
+
+    if(ret == 0)
+    {
+        CcspTraceInfo(("%s %d: Received Router Advertisement with default route %s lifetime %d\n", __FUNCTION__, __LINE__, p_VirtIf->IP.Ipv6Route.defaultRoute, p_VirtIf->IP.Ipv6Route.defRouteLifeTime));
+    }
+
+    return ret;
+}
+
