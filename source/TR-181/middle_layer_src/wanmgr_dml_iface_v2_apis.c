@@ -1736,15 +1736,7 @@ BOOL WanVirtualIf_SetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, 
         /* check the parameter name and set the corresponding value */
         if (strcmp(ParamName, "Name") == 0)
         {
-            /*
-             * TODO: Directly write to PSM. The interface state machine will read this PSM entry when initiating the WAN process.
-             * This is a temporary solution for devices where all interfaces share the same name.
-             * If interface names were unique, we could store p_VirtIf->Name instead.
-             */
-            //AnscCopyString(p_VirtIf->Name, pString);
-            char param_name[512];
-            snprintf(param_name, sizeof(param_name), PSM_WANMANAGER_IF_VIRIF_NAME, (p_VirtIf->baseIfIdx+1), (p_VirtIf->VirIfIdx + 1));
-            WanMgr_RdkBus_SetParamValuesToDB(param_name, pString);
+            AnscCopyString(p_VirtIf->Name, pString);
 #if defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_)
             WanMgr_SetRestartWanInfo(WAN_NAME_PARAM_NAME, p_VirtIf->VirIfIdx, pString);
 #endif
