@@ -918,6 +918,10 @@ WanMgr_DmlDhcpcGetInfo
 {
     UNREFERENCED_PARAMETER(hContext);
     ANSC_STATUS  rc;
+    char name[BUFLEN_64] = {0};
+    char value[BUFLEN_64] = {0};
+    uint32_t up_time = 0;
+    uint32_t start_time = 0;
 
     if ( (!pInfo) || (ulInstanceNumber != 1) ){
         return ANSC_STATUS_FAILURE;
@@ -934,8 +938,16 @@ WanMgr_DmlDhcpcGetInfo
         pInfo->DNSServers[0].Value = inet_addr(p_VirtIf->IP.Ipv4Data.dnsServer);
         pInfo->DNSServers[1].Value = inet_addr(p_VirtIf->IP.Ipv4Data.dnsServer1);
         pInfo->DHCPStatus          = (strcmp(p_VirtIf->IP.Ipv4Data.dhcpState, DHCP_STATE_UP) == 0) ? DML_DHCPC_STATUS_Bound : DML_DHCPC_STATUS_Init;
+
+        snprintf(name,sizeof(name),SYSEVENT_IPV4_START_TIME,p_VirtIf->IP.Ipv4Data.ifname);
+        up_time = WanManager_getUpTime();
+        sysevent_get(sysevent_fd, sysevent_token, name, value, sizeof(value));
+        start_time = atoi(value);
+
+        pInfo->LeaseTimeRemaining = p_VirtIf->IP.Ipv4Data.leaseTime - (up_time - start_time);
         WanMgrDml_GetIfaceData_release(NULL);
     }
+
     pInfo->NumDnsServers = 2;
     pInfo->NumIPRouters = 1;
     return ANSC_STATUS_SUCCESS;
