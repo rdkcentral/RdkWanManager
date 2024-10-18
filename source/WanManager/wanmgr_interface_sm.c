@@ -1231,21 +1231,12 @@ static int wan_tearDownIPv4(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
     }
 #endif
 
-    /*TODO:
-     *Should be removed once MAPT Unified. After PandM Added V4 default route, it got deleted here.
-     */
-#if defined(FEATURE_SUPPORT_MAPT_NAT46)
-    if (p_VirtIf->EnableMAPT == FALSE)
-    {
-#endif
     if (WanManager_DelDefaultGatewayRoute(DeviceNwMode, pWanIfaceCtrl->DeviceNwModeChanged, &p_VirtIf->IP.Ipv4Data) != RETURN_OK)
     {
         CcspTraceError(("%s %d - Failed to Del default system gateway", __FUNCTION__, __LINE__));
         ret = RETURN_ERR;
     }
-#if defined(FEATURE_SUPPORT_MAPT_NAT46)
-    }
-#endif
+
     /* ReSet the required sysevents. */
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV4_CONNECTION_STATE, WAN_STATUS_DOWN, 0);
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_CURRENT_IPV4_LINK_STATE, WAN_STATUS_DOWN, 0);
@@ -2644,6 +2635,17 @@ static eWanState_t wan_transition_mapt_up(WanMgr_IfaceSM_Controller_t* pWanIface
     if((p_VirtIf->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_UP))
     {
         wan_transition_ipv4_down(pWanIfaceCtrl);
+
+        /** Reset IPv4 DNS configuration. This call is to make sure IPv4 DNS is removed. **/
+        if (wan_updateDNS(pWanIfaceCtrl, FALSE, TRUE) != RETURN_OK)
+        {
+            CcspTraceError(("%s %d - Failed to configure IPv6 DNS servers \n", __FUNCTION__, __LINE__));
+            ret = RETURN_ERR;
+        }
+        else
+        {
+            CcspTraceInfo(("%s %d -  IPv6 DNS servers configured successfully \n", __FUNCTION__, __LINE__));
+        }
 
 #if defined(FEATURE_MAPT)
 #if defined(IVI_KERNEL_SUPPORT)

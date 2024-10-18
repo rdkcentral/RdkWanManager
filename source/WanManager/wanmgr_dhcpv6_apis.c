@@ -1658,6 +1658,7 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
         strncpy(Ipv6DataNew.address, pDhcp6cInfoCur->address, sizeof(Ipv6DataNew.address));
         pNewIpcMsg->addrAssigned = true;
         Ipv6DataNew.addrAssigned = true;
+        pNewIpcMsg->addrCmd = pDhcp6cInfoCur->addrCmd;
     }
 
     /* dhcp6c receives prefix delegation for LAN */
@@ -1686,6 +1687,13 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
         strncpy(Ipv6DataNew.pdIfAddress, pDhcp6cInfoCur->pdIfAddress, sizeof(Ipv6DataNew.pdIfAddress));
         pNewIpcMsg->prefixAssigned = true;
         Ipv6DataNew.prefixAssigned = true;
+        pNewIpcMsg->prefixCmd = pDhcp6cInfoCur->prefixCmd;
+#ifdef FEATURE_MAPT
+        //get MAP-T previous data
+        CcspTraceWarning(("%s %d Using previous MAPT configuration\n", __FUNCTION__, __LINE__));
+        memcpy(&(pNewIpcMsg->mapt), &(pVirtIf->MAP.dhcp6cMAPTparameters), sizeof(ipc_mapt_data_t));
+        pNewIpcMsg->maptAssigned = (pVirtIf->MAP.MaptStatus == WAN_IFACE_MAPT_STATE_UP);
+#endif
     }
 
 #else
