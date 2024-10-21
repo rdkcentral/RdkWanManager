@@ -132,6 +132,7 @@ ANSC_STATUS wanmgr_handle_dhcpv4_event_data(DML_VIRTUAL_IFACE* pVirtIf)
             pVirtIf->IP.pIpcIpv4Data = NULL;
         }
 
+        //Don't set the status to  VALID if it is already UP or STANDBY
         if(pVirtIf->Status != WAN_IFACE_STATUS_STANDBY && pVirtIf->Status != WAN_IFACE_STATUS_UP)
         {
             CcspTraceInfo(("%s %d - Setting Iface Status to VALID\n", __FUNCTION__, __LINE__, pDhcpcInfo->gateway));

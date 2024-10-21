@@ -940,7 +940,7 @@ static int checkIpv6LanAddressIsReadyToUse(DML_VIRTUAL_IFACE* p_VirtIf)
     /* TODO: the below code assumes if the LAN ipv6 address is tentaive for 15 seconds DAD has failed. Do we need additional check?
      * IANA dad is handled in the DHCPv6 client for the Wan Interface.
      * Should we remove the IP from LAN bridge and request a different Delegated prefix?
-     * Should we mendate EUI-64 based Interface identifiers for all platforms?
+     * Should we use EUI-64 based Interface identifiers for all platforms?
      */
 
     for(i=0; i<15; i++) 
@@ -1218,8 +1218,11 @@ static int wan_tearDownIPv4(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
     DML_WAN_IFACE * pInterface = pWanIfaceCtrl->pIfaceData;
     DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIfaceById(pInterface->VirtIfList, pWanIfaceCtrl->VirIfIdx);
 
-#if !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_)) //TODO:  XB devices use the DNS of primary for backup.
-        /** Reset IPv4 DNS configuration. */
+    /** Reset IPv4 DNS configuration. */
+#if (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_)) 
+    //TODO:  XB devices use the DNS of primary for backup interfaces. Clear V4 DNS only if MAPT is up
+    if(p_VirtIf->MAP.MaptStatus == WAN_IFACE_MAPT_STATE_UP)
+#endif
     if (RETURN_OK != wan_updateDNS(pWanIfaceCtrl, FALSE, (p_VirtIf->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_UP)))
     {
         CcspTraceError(("%s %d - Failed to unconfig IPv4 DNS servers \n", __FUNCTION__, __LINE__));
@@ -1229,7 +1232,6 @@ static int wan_tearDownIPv4(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
     {
         CcspTraceInfo(("%s %d -  IPv4 DNS servers unconfig successfully \n", __FUNCTION__, __LINE__));
     }
-#endif
 
     if (WanManager_DelDefaultGatewayRoute(DeviceNwMode, pWanIfaceCtrl->DeviceNwModeChanged, &p_VirtIf->IP.Ipv4Data) != RETURN_OK)
     {
@@ -2590,7 +2592,6 @@ static eWanState_t wan_transition_mapt_up(WanMgr_IfaceSM_Controller_t* pWanIface
     DML_WAN_IFACE* pInterface = pWanIfaceCtrl->pIfaceData;
     DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIfaceById(pInterface->VirtIfList, pWanIfaceCtrl->VirIfIdx);
 
-#if defined(FEATURE_MAPT)
     // verify mapt configuration
     memset(&(p_VirtIf->MAP.MaptConfig), 0, sizeof(WANMGR_MAPT_CONFIG_DATA));
     if (WanManager_VerifyMAPTConfiguration(&(p_VirtIf->MAP.dhcp6cMAPTparameters), &(p_VirtIf->MAP.MaptConfig)) == ANSC_STATUS_FAILURE)
@@ -2604,7 +2605,6 @@ static eWanState_t wan_transition_mapt_up(WanMgr_IfaceSM_Controller_t* pWanIface
         CcspTraceInfo(("%s %d - MAPT Configuration verification success \n", __FUNCTION__, __LINE__));
     }
 
-#endif
 
     p_VirtIf->MAP.MaptChanged = FALSE;
 
@@ -2614,14 +2614,12 @@ static eWanState_t wan_transition_mapt_up(WanMgr_IfaceSM_Controller_t* pWanIface
         wan_transition_ipv4_up(pWanIfaceCtrl);
     }
 
-#if defined(FEATURE_MAPT)
     // configure mapt module
     ret = wan_setUpMapt();
     if (ret != RETURN_OK)
     {
         CcspTraceError(("%s %d - Failed to configure MAP-T \n", __FUNCTION__, __LINE__));
     }
-#endif
 
     if (p_VirtIf->IP.Dhcp4cPid > 0)
     {
@@ -2636,18 +2634,6 @@ static eWanState_t wan_transition_mapt_up(WanMgr_IfaceSM_Controller_t* pWanIface
     {
         wan_transition_ipv4_down(pWanIfaceCtrl);
 
-        /** Reset IPv4 DNS configuration. This call is to make sure IPv4 DNS is removed. **/
-        if (wan_updateDNS(pWanIfaceCtrl, FALSE, TRUE) != RETURN_OK)
-        {
-            CcspTraceError(("%s %d - Failed to configure IPv6 DNS servers \n", __FUNCTION__, __LINE__));
-            ret = RETURN_ERR;
-        }
-        else
-        {
-            CcspTraceInfo(("%s %d -  IPv6 DNS servers configured successfully \n", __FUNCTION__, __LINE__));
-        }
-
-#if defined(FEATURE_MAPT)
 #if defined(IVI_KERNEL_SUPPORT)
         snprintf(cmdEnableIpv4Traffic,sizeof(cmdEnableIpv4Traffic),"ip ro rep default dev %s", p_VirtIf->Name);
 #elif defined(NAT46_KERNEL_SUPPORT)
@@ -2660,7 +2646,6 @@ static eWanState_t wan_transition_mapt_up(WanMgr_IfaceSM_Controller_t* pWanIface
         {
             CcspTraceError(("%s %d - Failed to run: %s \n", __FUNCTION__, __LINE__, cmdEnableIpv4Traffic));
         }
-#endif
     }
 
     if( p_VirtIf->PPP.Enable == TRUE )
@@ -2672,7 +2657,6 @@ static eWanState_t wan_transition_mapt_up(WanMgr_IfaceSM_Controller_t* pWanIface
     CcspTraceInfo(("%s %d - net.ipv4.ip_forward set to 1 \n", __FUNCTION__, __LINE__));
     v_secure_system("sysctl -w net.ipv4.ip_forward=1");
 
-#if defined(FEATURE_MAPT)
     /* Configure MAPT. */
     if (WanManager_ProcessMAPTConfiguration(&(p_VirtIf->MAP.dhcp6cMAPTparameters), &(p_VirtIf->MAP.MaptConfig), pInterface->Name, p_VirtIf->IP.Ipv6Data.ifname) != RETURN_OK)
     {
@@ -2680,7 +2664,6 @@ static eWanState_t wan_transition_mapt_up(WanMgr_IfaceSM_Controller_t* pWanIface
         CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION to State=%d \n", __FUNCTION__, __LINE__, pInterface->Name, p_VirtIf->eCurrentState));
         return(p_VirtIf->eCurrentState);
     }
-#endif
 
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, NULL, 0);
 
@@ -2703,18 +2686,19 @@ static eWanState_t wan_transition_mapt_down(WanMgr_IfaceSM_Controller_t* pWanIfa
 
     WanManager_UpdateInterfaceStatus (p_VirtIf, WANMGR_IFACE_MAPT_STOP);
 
-#if defined(FEATURE_MAPT)
-    //TODO: check p_VirtIf->Status , WAN_IFACE_STATUS_UP before tearing down.
-    if (wan_tearDownMapt() != RETURN_OK)
+    if(p_VirtIf->Status == WAN_IFACE_STATUS_UP)
     {
-        CcspTraceError(("%s %d - Failed to tear down MAP-T for %s \n", __FUNCTION__, __LINE__, p_VirtIf->Name));
+        if (wan_tearDownMapt() != RETURN_OK)
+        {
+            CcspTraceError(("%s %d - Failed to tear down MAP-T for %s \n", __FUNCTION__, __LINE__, p_VirtIf->Name));
+        }
     }
 
     if (WanManager_ResetMAPTConfiguration(pInterface->Name, p_VirtIf->Name) != RETURN_OK)
     {
         CcspTraceError(("%s %d Error resetting MAP-T configuration", __FUNCTION__, __LINE__));
     }
-#endif
+
     /* Clear DHCPv4 client */
     WanManager_UpdateInterfaceStatus (p_VirtIf, WANMGR_IFACE_CONNECTION_DOWN);
     memset(&(p_VirtIf->IP.Ipv4Data), 0, sizeof(WANMGR_IPV4_DATA));

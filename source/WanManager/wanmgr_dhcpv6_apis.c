@@ -1586,6 +1586,34 @@ static ANSC_STATUS wanmgr_dchpv6_get_ipc_msg_info(WANMGR_IPV6_DATA* pDhcpv6Data,
     return ANSC_STATUS_SUCCESS;
 }
 
+#if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
+/**
+ * @brief Copies the previous prefix from the old IPv6 data to the new IPv6 data.
+ *
+ * This function handles the copying of IAPD details from the old data structure
+ * to the new one, ensuring that the previous IAPD details are used if only IANA is renewed.
+ *
+ * @param[in] pOld Pointer to the old WANMGR_IPV6_DATA structure.
+ * @param[in] pNew Pointer to the new WANMGR_IPV6_DATA structure.
+ * @return int Status code indicating success or failure.
+ */
+static int WanMgr_CopyPreviousPrefix(WANMGR_IPV6_DATA* pOld, WANMGR_IPV6_DATA* pNew)
+{
+    if((pOld == NULL) || (pNew == NULL))
+    {
+        return -1;
+    }
+    strncpy(pNew->sitePrefix, pOld->sitePrefix, sizeof(pNew->sitePrefix));
+    strncpy(pNew->pdIfAddress, pOld->pdIfAddress, sizeof(pNew->pdIfAddress));
+    memcpy(pNew->sitePrefixOld, pOld->sitePrefixOld, BUFLEN_48);
+    pNew->prefixAssigned = true;
+    pNew->prefixCmd = pOld->prefixCmd;
+    pNew->prefixPltime = pOld->prefixPltime;
+    pNew->prefixVltime = pOld->prefixVltime;
+    return 0;
+}
+#endif
+
 ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
 {
     if(NULL == pVirtIf)
@@ -1654,11 +1682,15 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
     }
     else if(pDhcp6cInfoCur->addrAssigned && Ipv6DataNew.prefixAssigned)
     {
+        /* In an IPv6 lease, both IANA and IAPD details are sent together in a struct. 
+         * If only one of them is renewed, the other field will be set to its default value.
+         * In this scenario, we should not consider IANA or IAPD as deleted. 
+         * If we reach this point, only IAPD has been renewed. Use the previous IANA details. */
+
         CcspTraceWarning(("%s %d IANA is not assigned in this IPC msg, but we have IANA configured from previous lease. Assuming only IAPD renewed. \n", __FUNCTION__, __LINE__));
         strncpy(Ipv6DataNew.address, pDhcp6cInfoCur->address, sizeof(Ipv6DataNew.address));
-        pNewIpcMsg->addrAssigned = true;
         Ipv6DataNew.addrAssigned = true;
-        pNewIpcMsg->addrCmd = pDhcp6cInfoCur->addrCmd;
+        Ipv6DataNew.addrCmd = pDhcp6cInfoCur->addrCmd;
     }
 
     /* dhcp6c receives prefix delegation for LAN */
@@ -1682,18 +1714,12 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
     }
     else if(pDhcp6cInfoCur->prefixAssigned &&  Ipv6DataNew.addrAssigned)
     {
+        /* In an IPv6 lease, both IANA and IAPD details are sent together in a struct. 
+         * If only one of them is renewed, the other field will be set to its default value.
+         * In this scenario, we should not consider IANA or IAPD as deleted. 
+         * If we reach this point, only IAPD has been renewed. Use the previous IAPD details. */
         CcspTraceWarning(("%s %d IAPD is not assigned in this IPC msg, but we have IAPD configured from previous lease. Assuming only IANA renewed. \n", __FUNCTION__, __LINE__));
-        strncpy(Ipv6DataNew.sitePrefix, pDhcp6cInfoCur->sitePrefix, sizeof(Ipv6DataNew.sitePrefix));
-        strncpy(Ipv6DataNew.pdIfAddress, pDhcp6cInfoCur->pdIfAddress, sizeof(Ipv6DataNew.pdIfAddress));
-        pNewIpcMsg->prefixAssigned = true;
-        Ipv6DataNew.prefixAssigned = true;
-        pNewIpcMsg->prefixCmd = pDhcp6cInfoCur->prefixCmd;
-#ifdef FEATURE_MAPT
-        //get MAP-T previous data
-        CcspTraceWarning(("%s %d Using previous MAPT configuration\n", __FUNCTION__, __LINE__));
-        memcpy(&(pNewIpcMsg->mapt), &(pVirtIf->MAP.dhcp6cMAPTparameters), sizeof(ipc_mapt_data_t));
-        pNewIpcMsg->maptAssigned = (pVirtIf->MAP.MaptStatus == WAN_IFACE_MAPT_STATE_UP);
-#endif
+        WanMgr_CopyPreviousPrefix(pDhcp6cInfoCur, &Ipv6DataNew);
     }
 
 #else
@@ -1803,7 +1829,7 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
      *  * use this message as a trigger to check the WAN interface IP.
      *   * Maybe we've been assigned an address by SLAAC.*/
 
-    if (!pNewIpcMsg->addrAssigned)
+    if (!Ipv6DataNew.addrAssigned)
     {
         char guAddrPrefix[IP_ADDR_LENGTH] = {0};
         char guAddr[IP_ADDR_LENGTH] = {0};
@@ -1901,7 +1927,7 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
     }
     else
     {
-        if(pNewIpcMsg->prefixPltime != 0 && pNewIpcMsg->prefixVltime != 0)
+        if (pNewIpcMsg->prefixAssigned && !IS_EMPTY_STRING(pNewIpcMsg->sitePrefix) && pNewIpcMsg->prefixPltime != 0 && pNewIpcMsg->prefixVltime != 0)
         {
 #ifdef FEATURE_MAPT_DEBUG
             MaptInfo("--------- Got an event in Wanmanager for MAPT_STOP ---------");
