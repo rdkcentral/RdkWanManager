@@ -89,6 +89,18 @@ AC_ARG_ENABLE([gtestapp],
              [echo "Gtestapp is disabled"])
 AM_CONDITIONAL([WITH_GTEST_SUPPORT], [test x$GTEST_SUPPORT_ENABLED = xtrue])
 
+AC_ARG_ENABLE([maptunificationsupport],
+             AS_HELP_STRING([--enable-maptunificationsupport],[enable mapt unification support (default is no)]),
+             [
+              case "${enableval}" in
+               yes) MAPT_UNIFICATION_SUPPORT_ENABLED=true;;
+               no)  MAPT_UNIFICATION_SUPPORT_ENABLED=false;;
+               *) AC_MSG_ERROR([bad value ${enableval} for --enable-maptunificationsupport ]);;
+              esac
+             ],
+             [echo "mapt unification is disabled"])
+AM_CONDITIONAL(MAPT_UNIFICATION_ENABLED, test "x$MAPT_UNIFICATION_SUPPORT_ENABLED" = xtrue)
+
 dnl Checks for header files.
 AC_CHECK_HEADERS([limits.h memory.h stdlib.h string.h sys/socket.h unistd.h])
 
