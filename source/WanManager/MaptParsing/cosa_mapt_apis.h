@@ -59,15 +59,11 @@
 
 
 **************************************************************************/
-#if defined(FEATURE_SUPPORT_MAPT_NAT46) || defined(MAPT_UNIFICATION_ENABLED)
 #ifndef  _COSA_MAPT_APIS_H
 #define  _COSA_MAPT_APIS_H
 
-#include "cosa_apis.h"
 
-#if defined(FEATURE_RDKB_WAN_MANAGER)
 #include "ipc_msg.h"
-#endif
 
 #define COSA_MAPT_SYSCFG_NAMESPACE      "CosaMAPT"
 #define COSA_MAPT_ID_SYSCFG_NAMESPACE   COSA_MAPT_SYSCFG_NAMESPACE"IDs"
@@ -272,35 +268,22 @@ _COSA_DML_MAPT_OPTION
    UINT16     OptLen;
 } __attribute__ ((__packed__)) COSA_DML_MAPT_OPTION, *PCOSA_DML_MAPT_OPTION;
 
-/*************************************
-    The actual function declaration
-**************************************/
-/*
- * Description:
- *   This routine parses the option-95 response and sets the configs required.
- * Arguments:
- *   pPdIPv6Prefix       Obtained IPv6 prefix through prefix delegation.
- *   uiPdIPv6PrefixLen   IPv6 prefix length.
- *   pOptionBuf          Buffer containing option-95 response.
- *   uiOptionBufLen      Response buffer length.
- * Return:
- *   Status of operation.
+/**
+ * @brief Parses the MAPT option 95 response.
+ *
+ * This function processes the MAPT option 95 response, extracts the relevant information and updates ipc_dhcpv6_data_t struct with mapt details
+ *
+ * @param[in] pPdIPv6Prefix Pointer to the IPv6 prefix.
+ * @param[in] pOptionBuf Pointer to the buffer containing the option 95 data.
+ * @param[out] dhcpv6_data Pointer to the structure where the parsed DHCPv6 data will be stored.
+ *
+ * @return ANSC_STATUS indicating the success or failure of the operation.
  */
-ANSC_STATUS
-CosaDmlMaptProcessOpt95Response
-    (
-        PCHAR              pPdIPv6Prefix,
-        PUCHAR             pOptionBuf
-    );
-	
-#if defined(MAPT_UNIFICATION_ENABLED)
-ANSC_STATUS
-CosaDmlMaptParseOpt95Response
+
+ANSC_STATUS WanMgr_MaptParseOpt95Response
     (
         PCHAR          pPdIPv6Prefix,
         PUCHAR         pOptionBuf,
         ipc_dhcpv6_data_t *dhcpv6_data
     );
-#endif /** MAPT_UNIFICATION_ENABLED */
-#endif
 #endif
