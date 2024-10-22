@@ -1690,6 +1690,7 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
         CcspTraceWarning(("%s %d IANA is not assigned in this IPC msg, but we have IANA configured from previous lease. Assuming only IAPD renewed. \n", __FUNCTION__, __LINE__));
         strncpy(Ipv6DataNew.address, pDhcp6cInfoCur->address, sizeof(Ipv6DataNew.address));
         Ipv6DataNew.addrAssigned = true;
+        pNewIpcMsg->addrAssigned = true;
         Ipv6DataNew.addrCmd = pDhcp6cInfoCur->addrCmd;
     }
 
@@ -1829,7 +1830,7 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
      *  * use this message as a trigger to check the WAN interface IP.
      *   * Maybe we've been assigned an address by SLAAC.*/
 
-    if (!Ipv6DataNew.addrAssigned)
+    if (!pNewIpcMsg->addrAssigned)
     {
         char guAddrPrefix[IP_ADDR_LENGTH] = {0};
         char guAddr[IP_ADDR_LENGTH] = {0};
