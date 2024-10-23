@@ -33,38 +33,6 @@
    limitations under the License.
 **********************************************************************/
 
-/**************************************************************************
-
-    module: cosa_mapt_apis.c
-
-        For COSA Data Model Library Development.
-
-    -------------------------------------------------------------------
-
-    description:
-
-        This file implementes back-end apis for the COSA Data Model Library
-
-    -------------------------------------------------------------------
-
-    environment:
-
-        platform independent
-
-    -------------------------------------------------------------------
-
-    author:
-
-        COSA XML TOOL CODE GENERATOR 1.0
-
-    -------------------------------------------------------------------
-
-    revision:
-
-        12/07/2021    initial revision.
-
-
-**************************************************************************/
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -83,8 +51,10 @@
 #include <syscfg/syscfg.h>
 #include "ccsp_psm_helper.h"
 #include "sys_definitions.h"
-#include "cosa_mapt_apis.h"
 #include "secure_wrapper.h"
+
+#include "wanmgr_dml.h"
+#include "dhcpv6c_msg_apis.h"
 /*
  * Macro definitions
  */
@@ -105,6 +75,8 @@
 #define STRING_TO_HEX(pStr) ( (pStr-'a'<0)? (pStr-'A'<0)? pStr-'0' : pStr-'A'+10 : pStr-'a'+10 )
 
 #define ERR_CHK(x) 
+#define CCSP_COMMON_FIFO                             "/tmp/ccsp_common_fifo"
+
 /*
  * Static function prototypes
  */
@@ -136,10 +108,10 @@ static PVOID CosaDmlMaptSetUPnPIGDService (PVOID arg);
  */
 static COSA_DML_MAPT_DATA   g_stMaptData;
 static volatile UINT8 g_bEnableUPnPIGD;
-static UINT8 g_bRollBackInProgress;
-static UINT s_Option95CheckSum = 0;
 extern ANSC_HANDLE bus_handle;
 
+extern int sysevent_fd;
+extern token_t sysevent_token;
 /*
  * Static function definitions
  */
@@ -703,7 +675,7 @@ CosaDmlMaptPrintConfig
   ERR_CHK(rc);
 
   MAPT_LOG_INFO("\r"
-     "+-------------------------------------------------------------+%15s\n"
+     "+-------------------------------------------------------------+\n"
      "|                      MAP-T Configuration                    |\n"
      "+-------------------+-----------------------------------------+","");
   MAPT_LOG_INFO("\r"
@@ -714,28 +686,28 @@ CosaDmlMaptPrintConfig
      , g_stMaptData.EaLen
      , g_stMaptData.Psid);
   MAPT_LOG_INFO("\r"
-     "| psidlen           | %-40u"                                 "|%15s\n"
+     "| psidlen           | %-40u"                                 "|\n"
      "| psid offset       | %-40u"                                 "|\n"
      "| ratio             | %-40u"                                 "|"
      , g_stMaptData.PsidLen, ""
      , g_stMaptData.PsidOffset
      , g_stMaptData.Ratio);
   MAPT_LOG_INFO("\r"
-     "| rule ipv4 prefix  | %-40s"                                 "|%15s\n"
+     "| rule ipv4 prefix  | %-40s"                                 "|\n"
      "| rule ipv6 prefix  | %-40s"                                 "|\n"
      "| ipv6 prefix       | %-40s"                                 "|"
      , ruleIPv4Prefix, ""
      , ruleIPv6Prefix
      , pdIPv6Prefix);
   MAPT_LOG_INFO("\r"
-     "| br ipv6 prefix    | %-40s"                                 "|%15s\n"
+     "| br ipv6 prefix    | %-40s"                                 "|\n"
      "| ipv4 suffix       | %-40u"                                 "|\n"
      "| map ipv4 address  | %-40s"                                 "|"
      , brIPv6Prefix, ""
      , g_stMaptData.IPv4Suffix
      , g_stMaptData.IPv4AddrString);
   MAPT_LOG_INFO("\r"
-     "| map ipv6 address  | %-40s"                                 "|%15s\n"
+     "| map ipv6 address  | %-40s"                                 "|\n"
      "+-------------------+-----------------------------------------+\n"
      , g_stMaptData.IPv6AddrString, "");
 
@@ -900,3 +872,292 @@ ANSC_STATUS WanMgr_MaptParseOpt95Response
 
   return ((ret) ? ANSC_STATUS_FAILURE : ANSC_STATUS_SUCCESS);
 }
+
+
+
+int remove_single_quote (char *buf)
+{
+  int i = 0;
+  int j = 0;
+
+  while (buf[i] != '\0' && i < 255) {
+    if (buf[i] != '\'') {
+      buf[j++] = buf[i];
+    }
+    i++;
+  }
+  buf[j] = '\0';
+  return 0;
+}
+
+typedef struct 
+{
+    char* value;       // Pointer to the IANA/IAPD value etc..
+    char* eventName;   // Corresponding event name
+} Ipv6SyseventMap;
+
+/* processIpv6LeaseSysevents()
+ * This funtion is used to set the IPv6 lease related sysevents
+ */
+void processIpv6LeaseSysevents(Ipv6SyseventMap* eventMaps, size_t size, const char* IfaceName) 
+{
+
+    // Loop through the eventMaps array
+    for (size_t i = 0; i < size; i++) 
+    {
+        if (eventMaps[i].value[0] != '\0' &&  strcmp(eventMaps[i].value, "\'\'") != 0)
+        {
+            char sysEventName[256] = {0};
+            remove_single_quote(eventMaps[i].value);
+            snprintf(sysEventName, sizeof(sysEventName), eventMaps[i].eventName, IfaceName);
+            CcspTraceInfo(("%s - %d: Setting sysevent %s to %s \n", __FUNCTION__, __LINE__, sysEventName, eventMaps[i].value));
+            sysevent_set(sysevent_fd, sysevent_token, sysEventName, eventMaps[i].value, 0);
+        }
+    }
+}
+
+/* This thread is used to parse the Ipv6 lease iformation sent by the DHCPv6 clients and sends the information to WanManager.
+ * 
+ */
+static void * WanMgr_DhcpV6MsgHandler()
+{
+    int fd=0 ;
+    char msg[1024];
+    char * p = NULL;
+
+    CcspTraceInfo(("%s - %d: created (WanManager Unified Version) ", __FUNCTION__, __LINE__));
+
+    fd_set rfds;
+    struct timeval tm;
+    fd= open(CCSP_COMMON_FIFO, O_RDWR);
+    if (fd< 0)
+    {
+        CcspTraceError(("%s - %d: open common fifo!!!!!!!!!!!! : %s . Exit thread", __FUNCTION__, __LINE__, strerror(errno)));
+        pthread_exit(NULL);
+    }
+    while (1)
+    {
+        int retCode = 0;
+        tm.tv_sec  = 60;
+        tm.tv_usec = 0;
+
+        FD_ZERO(&rfds);
+        FD_SET(fd, &rfds);
+        retCode = select(fd+1, &rfds, NULL, NULL, &tm);
+        /* When return -1, it's error.
+           When return 0, it's timeout
+           When return >0, it's the number of valid fds */
+        if (retCode < 0) {
+            fprintf(stderr, "dbg_thrd : select returns error \n" );
+            if (errno == EINTR)
+                continue;
+
+            CcspTraceWarning(("%s -- select(): %s. Exit thread", __FUNCTION__, strerror(errno)));
+            pthread_exit(NULL);
+        }
+        else if(retCode == 0 )
+            continue;
+
+        if ( FD_ISSET(fd, &rfds) )
+        {
+            ssize_t msg_len = 0;
+            msg[0] = 0;
+            msg_len = read(fd, msg, sizeof(msg)-1);
+            if(msg_len > 0)
+                msg[msg_len] = 0;
+        }
+        else
+            continue;
+
+        if (msg[0] != 0)
+        {
+            CcspTraceInfo(("%s: get message %s\n", __func__, msg));
+        } else {
+            //Message is empty. Wait 5 sec before trying the select again.
+            sleep(5);
+            continue;
+        }
+
+        if (!strncmp(msg, "dibbler-client", strlen("dibbler-client")))
+        {
+            //Interface name
+            char IfaceName[64] = {0};
+            //Action (add or delete)
+            char action[64] = {0}; 
+            //IANA related varibales
+            char v6addr[64] = {0}, iana_t1[32] = {0}, iana_t2[32] = {0}, iana_iaid[32] = {0}, iana_pretm[32] = {0}, iana_vldtm[32] = {0};
+            //IAPD related varibales
+            char v6pref[128] = {0}, preflen[12] = {0}, iapd_t1[32] = {0}, iapd_t2[32] = {0}, iapd_iaid[32] = {0}, iapd_pretm[32] = {0}, iapd_vldtm[32] = {0};
+            int pref_len = 0;
+
+            p = msg+strlen("dibbler-client");
+            while(isblank(*p)) p++;
+            fprintf(stderr, "%s -- %d !!! get event from v6 client: %s \n", __FUNCTION__, __LINE__,p);
+#if defined (MAPT_UNIFICATION_ENABLED)
+            unsigned char  opt95_dBuf[BUFLEN_256] = {0};
+            int dataLen = sscanf(p, "%63s %63s %63s %31s %31s %31s %31s %31s %63s %11s %31s %31s %31s %31s %31s %255s",
+                    action, IfaceName, v6addr,    iana_iaid, iana_t1, iana_t2, iana_pretm, iana_vldtm,
+                    v6pref, preflen, iapd_iaid, iapd_t1, iapd_t2, iapd_pretm, iapd_vldtm,
+                    opt95_dBuf);
+            CcspTraceDebug(("%s,%d: dataLen = %d\n", __FUNCTION__, __LINE__, dataLen));
+            if (dataLen == 16)
+#else // MAPT_UNIFICATION_ENABLED
+                int dataLen = sscanf(p, "%63s %63s %63s %31s %31s %31s %31s %31s %63s %11s %31s %31s %31s %31s %31s",
+                        action, IfaceName, v6addr,    iana_iaid, iana_t1, iana_t2, iana_pretm, iana_vldtm,
+                        v6pref, preflen, iapd_iaid, iapd_t1, iapd_t2, iapd_pretm, iapd_vldtm);
+            CcspTraceDebug(("%s,%d: dataLen = %d\n", __FUNCTION__, __LINE__, dataLen));
+            if (dataLen == 15)
+#endif
+            {
+                remove_single_quote(v6addr);
+                remove_single_quote(v6pref);
+                remove_single_quote(preflen);
+                remove_single_quote(IfaceName);
+                pref_len = atoi(preflen);
+                CcspTraceDebug(("%s,%d: v6addr=%s, v6pref=%s, pref_len=%d\n", __FUNCTION__, __LINE__, v6addr, v6pref, pref_len));
+
+                if (!strncmp(action, "add", 3))
+                {
+                    CcspTraceInfo(("%s: add\n", __func__));
+                    //TODO :  Waiting until private lan interface is ready ?
+                    // Waiting until private lan interface is ready , so that we can assign global ipv6 address and also start dhcp server.
+
+                    ipc_dhcpv6_data_t dhcpv6_data;
+                    memset(&dhcpv6_data, 0, sizeof(ipc_dhcpv6_data_t));
+                    strncpy(dhcpv6_data.ifname, IfaceName, sizeof(dhcpv6_data.ifname));
+                    if(strlen(v6pref) == 0 && strlen(v6addr) ==0) 
+                    {
+                        dhcpv6_data.isExpired = TRUE;
+                    } else 
+                    {
+                        dhcpv6_data.isExpired = FALSE;
+                        //Reset MAP flags
+                        dhcpv6_data.maptAssigned = FALSE;
+                        dhcpv6_data.mapeAssigned = FALSE;
+                        if(strlen(v6pref) > 0 && strncmp(v6pref, "\\0",2)!=0)
+                        {
+                            CcspTraceInfo(("%s %d Prefix Assigned\n", __FUNCTION__, __LINE__));
+                            snprintf(dhcpv6_data.sitePrefix, sizeof(dhcpv6_data.sitePrefix), "%s/%d", v6pref, pref_len);
+
+                            dhcpv6_data.prefixAssigned = TRUE;
+                            strncpy(dhcpv6_data.pdIfAddress, "", sizeof(dhcpv6_data.pdIfAddress));
+                            dhcpv6_data.prefixCmd = 0;
+                            remove_single_quote(iapd_pretm);
+                            remove_single_quote(iapd_vldtm);
+                            sscanf(iapd_pretm, "%d", &(dhcpv6_data.prefixPltime));
+                            sscanf(iapd_vldtm, "%d", &(dhcpv6_data.prefixVltime));
+
+                            //IPv6 prefix related sysevents
+                            // Define the eventMaps array as before
+                            Ipv6SyseventMap eventMaps[] = {
+                                {dhcpv6_data.sitePrefix, COSA_DML_WANIface_PREF_SYSEVENT_NAME},
+                                {iapd_iaid, COSA_DML_WANIface_PREF_IAID_SYSEVENT_NAME},
+                                {iapd_t1,   COSA_DML_WANIface_PREF_T1_SYSEVENT_NAME},
+                                {iapd_t2,   COSA_DML_WANIface_PREF_T2_SYSEVENT_NAME},
+                                {iapd_pretm,COSA_DML_WANIface_PREF_PRETM_SYSEVENT_NAME},
+                                {iapd_vldtm,COSA_DML_WANIface_PREF_VLDTM_SYSEVENT_NAME}
+                            };
+                            /* Set Interface specific sysevnts. This is used for Ip interface DM */
+                            processIpv6LeaseSysevents(eventMaps, sizeof(eventMaps) / sizeof(eventMaps[0]), IfaceName);
+
+#if defined (MAPT_UNIFICATION_ENABLED)
+                            if (opt95_dBuf[0] == '\0' || strlen((char*)opt95_dBuf) <=0 || strcmp((char*)opt95_dBuf, "\'\'") == 0)
+                            {
+                                CcspTraceInfo(("%s: MAP-T configuration not available.\n", __FUNCTION__));
+                            }
+                            else 
+                            {
+                                WanMgr_MaptParseOpt95Response(dhcpv6_data.sitePrefix, opt95_dBuf, &dhcpv6_data);
+                            }
+#endif // MAPT_UNIFICATION_ENABLED
+                        }
+
+                        if(strlen(v6addr) > 0 && strncmp(v6addr, "\\0",2)!=0)
+                        {
+                            CcspTraceInfo(("%s %d Addr Assigned\n", __FUNCTION__, __LINE__));
+                            dhcpv6_data.addrAssigned = TRUE;
+                            strncpy(dhcpv6_data.address, v6addr, sizeof(dhcpv6_data.address)-1);
+                            dhcpv6_data.addrCmd   = 0;
+
+                            //IPv6 IANA related sysevents
+                            // Define the eventMaps array as before
+                            Ipv6SyseventMap eventMaps[] = {
+                                {v6addr,    COSA_DML_WANIface_ADDR_SYSEVENT_NAME},
+                                {iana_iaid, COSA_DML_WANIface_ADDR_IAID_SYSEVENT_NAME},
+                                {iana_t1,   COSA_DML_WANIface_ADDR_T1_SYSEVENT_NAME},
+                                {iana_t2,   COSA_DML_WANIface_ADDR_T2_SYSEVENT_NAME},
+                                {iana_pretm,COSA_DML_WANIface_ADDR_PRETM_SYSEVENT_NAME},
+                                {iana_vldtm,COSA_DML_WANIface_ADDR_VLDTM_SYSEVENT_NAME},
+                            };
+
+                            /* Set Interface specific sysevnts. This is used for Ip interface DM */
+                            processIpv6LeaseSysevents(eventMaps, sizeof(eventMaps) / sizeof(eventMaps[0]), IfaceName);
+                        }
+
+                        /** DNS servers. **/
+                        char dns_server[256] = {'\0'};
+                        //DNS server details are shared using sysvent, it is not part of the dibbler fifo
+                        sysevent_get(sysevent_fd, sysevent_token, "ipv6_nameserver", dns_server, sizeof(dns_server));
+                        if (strlen(dns_server) != 0)
+                        {
+                            dhcpv6_data.dnsAssigned = TRUE;
+                            sscanf (dns_server, "%s %s", dhcpv6_data.nameserver, dhcpv6_data.nameserver1);
+                        }
+                    }
+
+                    //get iface data
+                    DML_VIRTUAL_IFACE* pVirtIf = WanMgr_GetVIfByName_VISM_running_locked(dhcpv6_data.ifname);
+                    if(pVirtIf != NULL)
+                    {
+                        //check if previously message was already handled
+                        if(pVirtIf->IP.pIpcIpv6Data == NULL)
+                        {
+                            //allocate
+                            pVirtIf->IP.pIpcIpv6Data = (ipc_dhcpv6_data_t*) malloc(sizeof(ipc_dhcpv6_data_t));
+                            if(pVirtIf->IP.pIpcIpv6Data != NULL)
+                            {
+                                // copy data
+                                memcpy(pVirtIf->IP.pIpcIpv6Data, &dhcpv6_data, sizeof(ipc_dhcpv6_data_t));
+                            }
+                        }
+                        //release lock
+                        WanMgr_VirtualIfaceData_release(pVirtIf);
+                    }
+
+
+                }
+                else if (!strncmp(action, "del", 3))
+                {
+                    /*todo*/
+                }
+            }
+        }
+    }
+    if(fd>=0) {
+        close(fd);
+    }
+    return NULL;
+}
+
+ANSC_STATUS WanMgr_DhcpV6MsgHandlerInit()
+{
+    ANSC_STATUS retStatus = ANSC_STATUS_FAILURE;
+    int ret = -1;
+
+    //create thread
+    pthread_t ipv6LeaseParser;
+    ret = pthread_create( &ipv6LeaseParser, NULL, &WanMgr_DhcpV6MsgHandler, NULL );
+
+    if( 0 != ret )
+    {
+        CcspTraceInfo(("%s %d - Failed to start WanMgr_DhcpV6MsgHandler Thread Error:%d\n", __FUNCTION__, __LINE__, ret));
+    }
+    else
+    {
+        CcspTraceInfo(("%s %d - WanMgr_DhcpV6MsgHandler Thread Started Successfully\n", __FUNCTION__, __LINE__));
+        retStatus = ANSC_STATUS_SUCCESS;
+    }
+    return retStatus ;
+}
+
+

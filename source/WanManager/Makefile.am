@@ -34,7 +34,7 @@ wanmanager_SOURCES = wanmgr_webconfig_apis.c wanmgr_webconfig.c wanmgr_main.c  w
 wanmanager_LDADD = $(wanmanager_DEPENDENCIES) -lccsp_common -lrdkloggers $(DBUS_LIBS) $(SYSTEMD_LDFLAGS) -lhal_platform -lapi_dhcpv4c -lnanomsg -lwebconfig_framework -lmsgpackc -ldhcp_client_utils -lprivilege -lrbus -lsecure_wrapper
 
 
-if MAPT_UNIFICATION_ENABLED
-wanmanager_SOURCES +=  MaptParsing/cosa_mapt_apis.c
+if WAN_UNIFICATION_ENABLED
+wanmanager_SOURCES +=  DHCPv6cMsgHandler/dhcpv6c_msg_apis.c
 endif
 

@@ -485,6 +485,12 @@ ANSC_STATUS WanMgr_StartIpcServer()
         CcspTraceInfo(("%s %d - IPC Thread Started Successfully\n", __FUNCTION__, __LINE__));
         retStatus = ANSC_STATUS_SUCCESS;
     }
+
+#if defined(WAN_MANAGER_UNIFICATION_ENABLED) && !defined( RDKB_EXTENDER_ENABLED)
+    //TODO: XLE is still using the OLD dhcpv6c_dbg_thrd thread
+    WanMgr_DhcpV6MsgHandlerInit();
+#endif 
+
     return retStatus ;
 }
 
