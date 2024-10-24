@@ -218,6 +218,19 @@ static int wan_setUpMapt()
 {
     int ret = RETURN_OK;
 
+    //Configure mapt packet acceleration for supported platforms
+    if ( !access("/proc/sys/net/flowmgr/disable_mapt_accel", F_OK) )
+    {
+        if (sysctl_iface_set("/proc/sys/net/flowmgr/disable_mapt_accel", NULL, "0") != 0)
+        {
+            CcspTraceError(("Failed to enable mapt packet acceleration!\n"));
+        }
+    }
+    else
+    {
+        CcspTraceWarning(("Mapt packet acceleration is not supported!\n"));
+    }
+
 #if defined(IVI_KERNEL_SUPPORT)
     if (WanManager_DoSystemActionWithStatus("wanmanager", "insmod /lib/modules/`uname -r`/extra/ivi.ko") != RETURN_OK)
     {
@@ -286,6 +299,19 @@ static int wan_tearDownMapt()
         CcspTraceInfo(("%s %d Clear nat46 configurations Success \n", __FUNCTION__, __LINE__));
     }
 #endif //IVI_KERNEL_SUPPORT
+
+    //Configure mapt packet acceleration for supported platforms
+    if ( !access("/proc/sys/net/flowmgr/disable_mapt_accel", F_OK) )
+    {
+        if (sysctl_iface_set("/proc/sys/net/flowmgr/disable_mapt_accel", NULL, "3") != 0)
+        {
+            CcspTraceError(("Failed to disable mapt packet acceleration!\n"));
+        }
+    }
+    else
+    {
+        CcspTraceWarning(("Mapt packet acceleration is not supported!\n"));
+    }
 
     return ret;
 }
@@ -1221,7 +1247,8 @@ static int wan_tearDownIPv4(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
     /** Reset IPv4 DNS configuration. */
 #if (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_)) 
     //TODO:  XB devices use the DNS of primary for backup interfaces. Clear V4 DNS only if MAPT is up
-    if(p_VirtIf->MAP.MaptStatus == WAN_IFACE_MAPT_STATE_UP)
+    /* FIXME: Issue in DNS ipv6 resolution when ethwan enabled *//* Workaround: We keep the ipv4 entries for name resolution */
+    if(p_VirtIf->MAP.MaptStatus == WAN_IFACE_MAPT_STATE_UP && strstr(pInterface->BaseInterface, "Ethernet") == NULL)
 #endif
     if (RETURN_OK != wan_updateDNS(pWanIfaceCtrl, FALSE, (p_VirtIf->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_UP)))
     {

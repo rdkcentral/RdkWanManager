@@ -39,9 +39,6 @@
 
 #include "ipc_msg.h"
 
-#define COSA_MAPT_SYSCFG_NAMESPACE      "CosaMAPT"
-#define COSA_MAPT_ID_SYSCFG_NAMESPACE   COSA_MAPT_SYSCFG_NAMESPACE"IDs"
-
 /*
  * DHCP MAPT options macro definitions
  */
@@ -50,29 +47,6 @@
 #define MAPT_OPTION_S46_DMR             91
 #define MAPT_OPTION_S46_PORT_PARAMS     93
 #define MAPT_OPTION_S46_CONT_MAPT       95
-
-/*
- * MAPT events macro definitions
- */
-#define EVENT_MAPT_TRANSPORT_MODE       "map_transport_mode"
-#define EVENT_MAPT_CONFIG_FLAG          "mapt_config_flag"
-#define EVENT_MAPT_EA_LENGTH            "map_ea_length"
-#define EVENT_MAPT_IS_FMR               "map_is_fmr"
-#define EVENT_MAPT_RATIO                "mapt_ratio"
-#define EVENT_MAPT_PSID_OFFSET          "mapt_psid_offset"
-#define EVENT_MAPT_PSID_VALUE           "mapt_psid_value"
-#define EVENT_MAPT_PSID_LENGTH          "mapt_psid_length"
-#define EVENT_MAPT_IPADDRESS            "mapt_ip_address"
-#define EVENT_MAPT_IPV6_ADDRESS         "mapt_ipv6_address"
-#define EVENT_MAPT_RULE_IPADDRESS       "map_rule_ip_address"
-#define EVENT_MAPT_RULE_IPV6_ADDRESS    "map_rule_ipv6_address"
-#define EVENT_MAPT_BR_IPV6_PREFIX       "map_br_ipv6_prefix"
-#define EVENT_FIREWALL_RESTART          "firewall-restart"
-#define EVENT_NTPD_RESTART          	"ntpd-restart"
-
-#define MAPT_INTERFACE                  "map0"
-#define MAPT_MTU_SIZE                   "1500"
-#define MAPT_V4_MTU_SIZE		"1472"
 
 #define BUFLEN_4                        4
 #define BUFLEN_8                        8
@@ -85,13 +59,6 @@
 #define BUFLEN_256                      256
 #define BUFLEN_512                      512
 #define BUFLEN_1024                     1024
-
-#define SYSCFG_UPNP_IGD_ENABLED         "upnp_igd_enabled"
-#define SYSCFG_DMZ_ENABLED              "dmz_enabled"
-#define SYSCFG_PORT_FORWARDING_ENABLED  "CosaNAT::port_forward_enabled"
-#define SYSCFG_PORT_TRIGGERING_ENABLED  "CosaNAT::port_trigger_enabled"
-#define SYSCFG_MGMT_HTTPS_ENABLED       "mgmt_wan_httpsaccess"
-#define SYSCFG_MGMT_HTTP_ENABLED        "mgmt_wan_httpaccess"
 
 /*
  * Data type Macro definitions
@@ -208,20 +175,6 @@ _RETURN_STATUS
    STATUS_SUCCESS = 0,
    STATUS_FAILURE = -1
 } RETURN_STATUS;
-
-
-typedef enum
-_RB_STATE
-{
-   RB_NONE        = 0x00,
-   RB_ALL         = 0x1F,
-   RB_UPNPIGD     = 0x10,
-   RB_EVENTS      = 0x08,
-   RB_FIREWALL    = 0x04,
-   RB_CONFIG      = 0x02,
-   RB_DHCPCLIENT  = 0x01
-} RB_STATE;
-
 
 typedef struct
 _COSA_DML_MAPT_DATA
