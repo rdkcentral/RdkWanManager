@@ -33,8 +33,8 @@
    limitations under the License.
 **********************************************************************/
 
-#ifndef  _COSA_MAPT_APIS_H
-#define  _COSA_MAPT_APIS_H
+#ifndef  _DHCPV6_MSG_APIS_H
+#define  _DHCPV6_MSG_APIS_H
 
 
 #include "ipc_msg.h"

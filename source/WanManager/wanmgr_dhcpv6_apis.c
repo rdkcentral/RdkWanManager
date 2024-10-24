@@ -1912,13 +1912,6 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
         MaptInfo("--------- Got a new event in Wanmanager for MAPT_CONFIG ---------");
 #endif
 
-#if defined (MAPT_UNIFICATION_ENABLED)
-        //In MAPT unified builds, MAPT option 95 is parsed within WanManager. To ensure consistent MAPT processing, populate the IPC message structure similarly to how MAPT data is shared in the IPC message.
-        //In the ipc_mapt_data_t structure, opt95_dBuf and mapt are union members. Copy to a temporary variable before parsing.
-        unsigned char  temp_opt95_dBuf[BUFLEN_256] = {0};
-        memcpy(temp_opt95_dBuf, pNewIpcMsg->opt95_dBuf, sizeof(temp_opt95_dBuf));
-        WanMgr_MaptParseOpt95Response(pNewIpcMsg->sitePrefix, temp_opt95_dBuf, pNewIpcMsg);
-#endif
         //get MAP-T previous data
         memcpy(&dhcp6cMAPTMsgBodyPrvs, &(pVirtIf->MAP.dhcp6cMAPTparameters), sizeof(ipc_mapt_data_t));
 
