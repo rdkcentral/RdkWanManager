@@ -754,6 +754,40 @@ static ANSC_STATUS WanManager_GetLANIPAddress(char *ipAddress, size_t length)
     return ANSC_STATUS_SUCCESS;
 }
 
+#define UPnPIGD_ENABLE_DML "Device.UPnP.Device.UPnPIGD"
+BOOL g_UPnPIGDServiceStopped = false;
+int WanMgr_RdkBus_ConfigureUPnPIGDService (BOOL configure_UPnPIGD)
+{
+    if( configure_UPnPIGD && g_UPnPIGDServiceStopped)
+    {
+        CcspTraceInfo(("%s %d: upnp_igd was stopped while configuring MAPT. Starting the service again\n", __FUNCTION__, __LINE__));
+        if (WanMgr_RdkBus_SetParamValues( PAM_COMPONENT_NAME, PAM_DBUS_PATH, UPnPIGD_ENABLE_DML, "true", ccsp_boolean, TRUE ) == ANSC_STATUS_SUCCESS)
+        {
+            CcspTraceInfo(("%s %d: Succesfully set %s to true\n", __FUNCTION__, __LINE__, UPnPIGD_ENABLE_DML));
+        }
+        g_UPnPIGDServiceStopped = false;
+    }
+    else if(!configure_UPnPIGD)
+    {
+        char syscfg_enabled[BUFLEN_8] = {0};
+        syscfg_get(NULL, "upnp_igd_enabled", syscfg_enabled, sizeof(syscfg_enabled));
+        if('1' == syscfg_enabled[0])
+        {
+            CcspTraceInfo(("%s %d: Stopping UPnPIGD service \n", __FUNCTION__, __LINE__));
+            if (WanMgr_RdkBus_SetParamValues( PAM_COMPONENT_NAME, PAM_DBUS_PATH, UPnPIGD_ENABLE_DML, "false", ccsp_boolean, TRUE ) == ANSC_STATUS_SUCCESS)
+            {
+                CcspTraceInfo(("%s %d: Succesfully set %s to false\n", __FUNCTION__, __LINE__, UPnPIGD_ENABLE_DML));
+            }
+            g_UPnPIGDServiceStopped = true;
+        }
+        else
+        {
+            CcspTraceInfo(("%s %d: UPnPIGD is not enabled in syscfg upnp_igd_enabled\n", __FUNCTION__, __LINE__));
+        }
+    }
+    return 0;
+}
+
 ANSC_STATUS WanManager_VerifyMAPTConfiguration(ipc_mapt_data_t *dhcp6cMAPTMsgBody, WANMGR_MAPT_CONFIG_DATA *MaptConfig)
 {
     int ret = RETURN_OK;
@@ -879,6 +913,13 @@ int WanManager_ProcessMAPTConfiguration(ipc_mapt_data_t *dhcp6cMAPTMsgBody, WANM
         mtu_size_mapt = MTU_SIZE; /* 1520. */
     }
     MaptInfo("mapt: MTU Size = %d \n", mtu_size_mapt);
+
+    /* Stopping UPnP, if mapt ratio is not 1:1 */
+    if(dhcp6cMAPTMsgBody->ratio > 1)
+    {
+        CcspTraceInfo(("%s %d: MAPT ratio is %d. Stopping UPnP IGD \n", __FUNCTION__, __LINE__, dhcp6cMAPTMsgBody->ratio));
+        WanMgr_RdkBus_ConfigureUPnPIGDService(false);
+    }
 
     /* RM16042: Since erouter0 is vlan interface on top of eth3 ptm, we need
        to first set the MTU size of eth3 to 1520 and then change MTU of erouter0.
@@ -1541,6 +1582,10 @@ int WanManager_ResetMAPTConfiguration(const char *baseIf, const char *vlanIf)
      * `mapt_configure_flag` and restart the firewall. */
     //Reset MAP sysevent parameters
     maptInfo_reset();
+
+    /* Starting UPnP, if we have stopped it  while configuring MAPT */
+    WanMgr_RdkBus_ConfigureUPnPIGDService(true);
+
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, NULL, 0);
     CcspTraceNotice(("FEATURE_MAPT: MAP-T configuration cleared\n"));
     return RETURN_OK;
