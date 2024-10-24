@@ -81,7 +81,7 @@
  * Static function prototypes
  */
 //PARTHIBAN : disable_mapt_accel
-static RETURN_STATUS CosaDmlMaptPrintConfig  (VOID);
+//static RETURN_STATUS CosaDmlMaptPrintConfig  (VOID);
 //static RETURN_STATUS CosaDmlMaptResetConfig  (VOID);
 //static RETURN_STATUS CosaDmlMaptResetClient  (VOID);
 //static RETURN_STATUS CosaDmlMaptResetEvents  (VOID);
@@ -89,20 +89,20 @@ static RETURN_STATUS CosaDmlMaptPrintConfig  (VOID);
 //static RETURN_STATUS CosaDmlMaptDisplayFeatureStatus (VOID); //PARTHIBAN : check other features
 //static RETURN_STATUS CosaDmlMaptFlushDNSv4Entries (VOID);
 //static RETURN_STATUS CosaDmlMaptRollback (RB_STATE eState); //PARTHIBAN : Check IGD
-static RETURN_STATUS CosaDmlMaptParseResponse (PUCHAR pOptionBuf, UINT16 uiOptionBufLen);
-static RETURN_STATUS CosaDmlMaptGetIPv6StringFromHex (PUCHAR pIPv6AddrH, PCHAR pIPv6AddrS);
-static RETURN_STATUS CosaDmlMaptFormulateIPv4Address (UINT32 ipv4Suffix, PCHAR pIPv4AddrString);
-static RETURN_STATUS CosaDmlMaptConvertStringToHexStream (PUCHAR pOptionBuf,
-                                                          PUINT16 uiOptionBufLen);
-static RETURN_STATUS CosaDmlMaptFormulateIPv6Address (PCHAR pPdIPv6Prefix, PCHAR pIPv4AddrSting,
+//static RETURN_STATUS CosaDmlMaptFormulateIPv4Address (UINT32 ipv4Suffix, PCHAR pIPv4AddrString);
+//static RETURN_STATUS CosaDmlMaptFormulateIPv6Address (PCHAR pPdIPv6Prefix, PCHAR pIPv4AddrSting,
                                                       UINT16 psid, PCHAR pIPv6AddrString);
-static RETURN_STATUS CosaDmlMaptComputePsidAndIPv4Suffix (PCHAR pPdIPv6Prefix,
-                         UINT16 ui16PdPrefixLen, UINT16 ui16v6PrefixLen, UINT16 ui16v4PrefixLen,
-                         PUINT16 pPsid, PUINT16 pPsidLen, PUINT32 pIPv4Suffix);
+//static RETURN_STATUS CosaDmlMaptComputePsidAndIPv4Suffix (PCHAR pPdIPv6Prefix,
+ //                        UINT16 ui16PdPrefixLen, UINT16 ui16v6PrefixLen, UINT16 ui16v4PrefixLen,
+   //                      PUINT16 pPsid, PUINT16 pPsidLen, PUINT32 pIPv4Suffix);
 
 //PARTHIBAN : Check IGD and Ipv4 DNS
 static PVOID CosaDmlMaptSetUPnPIGDService (PVOID arg);
 
+static RETURN_STATUS CosaDmlMaptParseResponse (PUCHAR pOptionBuf, UINT16 uiOptionBufLen);
+static RETURN_STATUS CosaDmlMaptGetIPv6StringFromHex (PUCHAR pIPv6AddrH, PCHAR pIPv6AddrS);
+static RETURN_STATUS CosaDmlMaptConvertStringToHexStream (PUCHAR pOptionBuf,
+                                                          PUINT16 uiOptionBufLen);
 /*
  * Global definitions
  */
@@ -126,91 +126,6 @@ CosaDmlMaptCalculateChecksum(unsigned char *buf)
     }
     return checksum;
 }
-
-static RETURN_STATUS
-CosaDmlMaptFormulateIPv4Address
-(
-    UINT32         ipv4Suffix,
-    PCHAR          pIPv4AddrString
-)
-{
-  UCHAR   ipv4AddrBytes[BUFLEN_4];
-  struct  in_addr ipv4Addr;
-  UINT32  ipv4Hex = 0;
-  int rc      = -1;
-
-  MAPT_LOG_INFO("Entry");
-
-  if ( inet_pton(AF_INET, g_stMaptData.RuleIPv4Prefix, &ipv4Addr) <= 0 )
-  {
-       MAPT_LOG_ERROR("Invalid IPv4 address = %s", g_stMaptData.RuleIPv4Prefix);
-       return STATUS_FAILURE;
-  }
-
-  ipv4Hex = htonl(ipv4Addr.s_addr);
-
-  *(PUINT32)ipv4AddrBytes = FIRST_BYTE((FIRST_BYTE(ipv4Hex) + FIRST_BYTE(ipv4Suffix)))
-                          | SECND_BYTE((SECND_BYTE(ipv4Hex) + SECND_BYTE(ipv4Suffix)))
-                          | THIRD_BYTE((THIRD_BYTE(ipv4Hex) + THIRD_BYTE(ipv4Suffix)))
-                          | FORTH_BYTE((FORTH_BYTE(ipv4Hex) + FORTH_BYTE(ipv4Suffix)));
-
-  rc = snprintf (pIPv4AddrString, BUFLEN_16, "%d.%d.%d.%d",
-             ipv4AddrBytes[3], ipv4AddrBytes[2], ipv4AddrBytes[1], ipv4AddrBytes[0]);
-  ERR_CHK(rc);
-
-  return STATUS_SUCCESS;
-}
-
-
-static RETURN_STATUS
-CosaDmlMaptFormulateIPv6Address
-(
-    PCHAR          pPdIPv6Prefix,
-    PCHAR          pIPv4AddrSting,
-    UINT16         psid,
-    PCHAR          pIPv6AddrString
-)
-{
-  UCHAR   ipv4AddrBytes[BUFLEN_4];
-  struct  in6_addr ipv6Addr;
-  struct  in_addr  ipv4Addr;
-  UINT32  ipv4Hex = 0;
-  int rc      = -1;
-
-  MAPT_LOG_INFO("Entry");
-
-  if ( inet_pton(AF_INET, pIPv4AddrSting, &ipv4Addr) <= 0)
-  {
-       MAPT_LOG_ERROR("Invalid IPv4 address = %s", pIPv4AddrSting);
-       return STATUS_FAILURE;
-  }
-
-  ipv4Hex = htonl(ipv4Addr.s_addr);
-
-  *(PUINT32)ipv4AddrBytes = FIRST_BYTE(ipv4Hex)
-                          | SECND_BYTE(ipv4Hex)
-                          | THIRD_BYTE(ipv4Hex)
-                          | FORTH_BYTE(ipv4Hex);
-
-  if ( inet_pton(AF_INET6, pPdIPv6Prefix, &ipv6Addr) <= 0)
-  {
-       MAPT_LOG_ERROR("Invalid IPv6 address = %s", pPdIPv6Prefix);
-       return STATUS_FAILURE;
-  }
-
-  rc = snprintf (pIPv6AddrString, BUFLEN_40,
-            "%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x",
-             ipv6Addr.s6_addr[0], ipv6Addr.s6_addr[1], ipv6Addr.s6_addr[2], ipv6Addr.s6_addr[3],
-             ipv6Addr.s6_addr[4], ipv6Addr.s6_addr[5], ipv6Addr.s6_addr[6], ipv6Addr.s6_addr[7],
-             0x0, 0x0, ipv4AddrBytes[3], ipv4AddrBytes[2], ipv4AddrBytes[1], ipv4AddrBytes[0],
-             SECND_BYTE(psid)>>8, FIRST_BYTE(psid));
-  ERR_CHK(rc);
-
-  MAPT_LOG_INFO("IPv6AddrString is : %s", pIPv6AddrString);
-
-  return STATUS_SUCCESS;
-}
-
 
 static RETURN_STATUS
 CosaDmlMaptGetIPv6StringFromHex
@@ -317,135 +232,6 @@ CosaDmlMaptSetUPnPIGDService
 
   return STATUS_NULL;
 }
-
-/*
-                :           :           ___/       :
-                |  p bits   |          /  q bits   :
-                +-----------+         +------------+
-                |IPv4 suffix|         |Port Set ID |
-                +-----------+         +------------+
-                 \          /    ____/    ________/
-                   \       :  __/   _____/
-                     \     : /     /
- |     n bits         |  o bits   | s bits  |   128-n-o-s bits      |
- +--------------------+-----------+---------+------------+----------+
- |  Rule IPv6 prefix  |  EA bits  |subnet ID|     interface ID      |
- +--------------------+-----------+---------+-----------------------+
- |<---  End-user IPv6 prefix  --->|
-
-EA-bits:
-+-------------------+---------+
-|IPV4 Address Suffix|   PSID  |
-+-------------------+---------+
-|--------p----------|----q----+
-|--------------o--------------|
-*/
-
-static RETURN_STATUS
-CosaDmlMaptComputePsidAndIPv4Suffix
-(
-    PCHAR          pPdIPv6Prefix,
-    UINT16         ui16PdPrefixLen,
-    UINT16         ui16v6PrefixLen,
-    UINT16         ui16v4PrefixLen,
-    PUINT16        pPsid,
-    PUINT16        pPsidLen,
-    PUINT32        pIPv4Suffix
-)
-{
-  UINT8 ui8v4BitIdxLen = 0, ui8PsidBitIdxLen = 0, ui8EaStartByteSetBits = 0;
-  UINT8 ui8EaLen       = 0, ui8EaStartByte   = 0, ui8EaLastByte        = 0;
-  ULONG ulEaBytes      = 0;
-  struct in6_addr ipv6Addr;
-
-  MAPT_LOG_INFO("Entry");
-
-  // V4 suffix bits length
-  ui8v4BitIdxLen = BUFLEN_32 - ui16v4PrefixLen;
-
-  // EA bits length
-  ui8EaLen = ui16PdPrefixLen - ui16v6PrefixLen;
-
-  // PSID length
-  ui8PsidBitIdxLen = ui8EaLen - ui8v4BitIdxLen;
-
-  MAPT_LOG_INFO("<<<Trace>>> ui8v4BitIdxLen(IPV4 Suffix Bits): %u", ui8v4BitIdxLen);
-  MAPT_LOG_INFO("<<<Trace>>> ui8EaLen (EA bits)                    : %u", ui8EaLen);
-  MAPT_LOG_INFO("<<<Trace>>> ui8PsidBitIdxLen(PSID length)         : %u", ui8PsidBitIdxLen);
-
-  if (ui8EaLen != g_stMaptData.EaLen)
-  {
-       MAPT_LOG_INFO("Calculated EA-bits and received MAP EA-bits does not match!");
-       return STATUS_FAILURE;
-  }
-
-  if ( ui16PdPrefixLen < ui16v6PrefixLen )
-  {
-       MAPT_LOG_ERROR("Invalid MAPT option, ui16PdPrefixLen(%d) < ui16v6PrefixLen(%d)",
-		       ui16PdPrefixLen, ui16v6PrefixLen);
-       return STATUS_FAILURE;
-  }
-
-  if ( inet_pton(AF_INET6, pPdIPv6Prefix, &ipv6Addr) <= 0 )
-  {
-       MAPT_LOG_ERROR("Invalid IPv6 address = %s", pPdIPv6Prefix);
-       return STATUS_FAILURE;
-  }
-
-  if ( ui8EaLen )
-  {
-       UINT8 idx = 0;
-       ui8EaStartByte        = ui16v6PrefixLen / 8;
-       ui8EaLastByte         = ui8EaStartByte + ui8EaLen/8 + ((ui8EaLen % 8)?1:0);
-       ui8EaStartByteSetBits = ui16v6PrefixLen % 8;
-
-       MAPT_LOG_INFO("<<<Trace>>> ui8EaStartByte       : %u", ui8EaStartByte);
-       MAPT_LOG_INFO("<<<Trace>>> ui8EaLastByte        : %u", ui8EaLastByte);
-       MAPT_LOG_INFO("<<<Trace>>> ui8EaStartByteSetBits : %u", ui8EaStartByteSetBits);
-
-       /* Extracting ui8EaLen/8 bytes of EA bits from Pd IPv6 prefix */
-       do
-       {
-            ulEaBytes = ulEaBytes << 8 | ipv6Addr.s6_addr[ui8EaStartByte + idx];
-       } while (idx++, (idx < (ui8EaLastByte - ui8EaStartByte)));
-
-       MAPT_LOG_INFO("<<<Trace>>> No.of bytes extracted: %d, ulEaBytes: 0x%lX", idx, ulEaBytes);
-
-       // If prefix is not aa multiple of 8, get the extra byte and extract the bits
-       if ( ui8EaStartByteSetBits )
-       {
-          MAPT_LOG_INFO("MAP V6 Prefix not in multiples of 8, Prefix = %d", ui16v6PrefixLen);
-          ulEaBytes <<= 8;
-          ulEaBytes  |= (ipv6Addr.s6_addr[ui8EaLastByte]);
-
-          // push the extra bits out from the last byte
-          ulEaBytes >>= (((ui8EaLastByte - ui8EaStartByte) * 8 - ui8EaLen) + (8-ui8EaStartByteSetBits));
-
-          // clear the extra bits from the first EA byte
-          ulEaBytes = (ulEaBytes & SET_RSHIFT_MASK(ui8EaLen));
-
-          MAPT_LOG_INFO("<<<Trace>>> ulEaBytes: 0x%lX", ulEaBytes);
-       }
-       else
-       {
-          // push the extra bits out from the last byte
-          ulEaBytes = (ulEaBytes >> (((ui8EaLastByte-ui8EaStartByte)*8) - ui8EaLen));
-          MAPT_LOG_INFO("<<<Trace>>> ulEaBytes: 0x%lX\n", ulEaBytes);
-       }
-
-       // p-bits
-       *pIPv4Suffix = (ulEaBytes >> ui8PsidBitIdxLen) & SET_RSHIFT_MASK(ui8v4BitIdxLen);
-
-       // q-bits
-       *pPsid = (ulEaBytes & (SET_RSHIFT_MASK(ui8PsidBitIdxLen)));
-       *pPsidLen = ui8PsidBitIdxLen;
-  }
-
-  MAPT_LOG_INFO("IPv4Suffix: %u | Psid: %u | Psidlen: %u",*pIPv4Suffix, *pPsid, *pPsidLen);
-
-  return STATUS_SUCCESS;
-}
-
 
 static RETURN_STATUS
 CosaDmlMaptParseResponse
@@ -650,71 +436,6 @@ MAPT_LOG_INFO("<<<TRACE>>> g_stMaptData.BrIPv6Prefix    : %s", g_stMaptData.BrIP
 
 
 static RETURN_STATUS
-CosaDmlMaptPrintConfig
-(
-    VOID
-)
-{
-  CHAR ruleIPv4Prefix[BUFLEN_40] = "\0";
-  CHAR ruleIPv6Prefix[BUFLEN_40] = "\0";
-  CHAR pdIPv6Prefix[BUFLEN_40]   = "\0";
-  CHAR brIPv6Prefix[BUFLEN_40]   = "\0";
-  int rc = -1;
-
-  rc = snprintf (ruleIPv4Prefix, BUFLEN_40, "%s/%u", g_stMaptData.RuleIPv4Prefix
-                                               , g_stMaptData.RuleIPv4PrefixLen);
-  ERR_CHK(rc);
-  rc = snprintf (ruleIPv6Prefix, BUFLEN_40, "%s/%u", g_stMaptData.RuleIPv6Prefix
-                                               , g_stMaptData.RuleIPv6PrefixLen);
-  ERR_CHK(rc);
-  rc = snprintf (pdIPv6Prefix,   BUFLEN_40, "%s/%u", g_stMaptData.PdIPv6Prefix
-                                               , g_stMaptData.PdIPv6PrefixLen);
-  ERR_CHK(rc);
-  rc = snprintf (brIPv6Prefix,   BUFLEN_40, "%s/%u", g_stMaptData.BrIPv6Prefix
-                                               , g_stMaptData.BrIPv6PrefixLen);
-  ERR_CHK(rc);
-
-  MAPT_LOG_INFO("\r"
-     "+-------------------------------------------------------------+\n"
-     "|                      MAP-T Configuration                    |\n"
-     "+-------------------+-----------------------------------------+","");
-  MAPT_LOG_INFO("\r"
-     "| fmr               | %-40s"                                 "|%15s\n"
-     "| ealen             | %-40u"                                 "|\n"
-     "| psid              | %-40u"                                 "|"
-     , g_stMaptData.bFMR?"true":"false", ""
-     , g_stMaptData.EaLen
-     , g_stMaptData.Psid);
-  MAPT_LOG_INFO("\r"
-     "| psidlen           | %-40u"                                 "|\n"
-     "| psid offset       | %-40u"                                 "|\n"
-     "| ratio             | %-40u"                                 "|"
-     , g_stMaptData.PsidLen, ""
-     , g_stMaptData.PsidOffset
-     , g_stMaptData.Ratio);
-  MAPT_LOG_INFO("\r"
-     "| rule ipv4 prefix  | %-40s"                                 "|\n"
-     "| rule ipv6 prefix  | %-40s"                                 "|\n"
-     "| ipv6 prefix       | %-40s"                                 "|"
-     , ruleIPv4Prefix, ""
-     , ruleIPv6Prefix
-     , pdIPv6Prefix);
-  MAPT_LOG_INFO("\r"
-     "| br ipv6 prefix    | %-40s"                                 "|\n"
-     "| ipv4 suffix       | %-40u"                                 "|\n"
-     "| map ipv4 address  | %-40s"                                 "|"
-     , brIPv6Prefix, ""
-     , g_stMaptData.IPv4Suffix
-     , g_stMaptData.IPv4AddrString);
-  MAPT_LOG_INFO("\r"
-     "| map ipv6 address  | %-40s"                                 "|\n"
-     "+-------------------+-----------------------------------------+\n"
-     , g_stMaptData.IPv6AddrString, "");
-
-  return STATUS_SUCCESS;
-}
-
-static RETURN_STATUS
 CosaDmlMaptConvertStringToHexStream
 (
     PUCHAR         pWriteBf,
@@ -809,37 +530,6 @@ ANSC_STATUS WanMgr_MaptParseOpt95Response
        ret = STATUS_FAILURE;
   }
 
-  /* Derive IPv4 suffix and PSID value */
-  if ( !ret && CosaDmlMaptComputePsidAndIPv4Suffix ( g_stMaptData.PdIPv6Prefix
-                                                   , g_stMaptData.PdIPv6PrefixLen
-                                                   , g_stMaptData.RuleIPv6PrefixLen
-                                                   , g_stMaptData.RuleIPv4PrefixLen
-                                                   , &g_stMaptData.IPv4Psid
-                                                   , &g_stMaptData.IPv4PsidLen
-                                                   , &g_stMaptData.IPv4Suffix) != STATUS_SUCCESS )
-  {
-       MAPT_LOG_ERROR("MAPT Psid and IPv4 Suffix Computaion Failed !!");
-       ret = STATUS_FAILURE;
-  }
-
-  /* Calculate CE IPv4 Address */
-  if ( !ret && CosaDmlMaptFormulateIPv4Address ( g_stMaptData.IPv4Suffix
-                                               , g_stMaptData.IPv4AddrString) != STATUS_SUCCESS)
-  {
-       MAPT_LOG_ERROR("MAPT Ipv4 Configuration Failed !!");
-       ret = STATUS_FAILURE;
-  }
-
-  /* Calculate CE IPv6 Address */
-  if ( !ret &&  CosaDmlMaptFormulateIPv6Address ( g_stMaptData.PdIPv6Prefix
-                                                , g_stMaptData.IPv4AddrString
-                                                , g_stMaptData.Psid
-                                                , g_stMaptData.IPv6AddrString) != STATUS_SUCCESS)
-  {
-       MAPT_LOG_ERROR("MAPT Ipv6 Configuration Failed !!");
-       ret = STATUS_FAILURE;
-  }
-
   if( ret == STATUS_SUCCESS )
   {
      //Fill Required MAP-T information
@@ -864,8 +554,6 @@ ANSC_STATUS WanMgr_MaptParseOpt95Response
      rc = snprintf (dhcpv6_data->mapt.brIPv6Prefix,   BUFLEN_40, "%s/%u", g_stMaptData.BrIPv6Prefix
                                                                       , g_stMaptData.BrIPv6PrefixLen);
      ERR_CHK(rc);
-
-     CosaDmlMaptPrintConfig();
 
      MAPT_LOG_INFO("MAPT configuration complete.\n");
   }
@@ -1005,7 +693,6 @@ static void * WanMgr_DhcpV6MsgHandler()
                 int dataLen = sscanf(p, "%63s %63s %63s %31s %31s %31s %31s %31s %63s %11s %31s %31s %31s %31s %31s",
                         action, IfaceName, v6addr,    iana_iaid, iana_t1, iana_t2, iana_pretm, iana_vldtm,
                         v6pref, preflen, iapd_iaid, iapd_t1, iapd_t2, iapd_pretm, iapd_vldtm);
-            CcspTraceDebug(("%s,%d: dataLen = %d\n", __FUNCTION__, __LINE__, dataLen));
             if (dataLen == 15)
 #endif
             {
@@ -1116,8 +803,9 @@ static void * WanMgr_DhcpV6MsgHandler()
                             pVirtIf->IP.pIpcIpv6Data = (ipc_dhcpv6_data_t*) malloc(sizeof(ipc_dhcpv6_data_t));
                             if(pVirtIf->IP.pIpcIpv6Data != NULL)
                             {
-                                // copy data
+                                // copy data 
                                 memcpy(pVirtIf->IP.pIpcIpv6Data, &dhcpv6_data, sizeof(ipc_dhcpv6_data_t));
+                                CcspTraceInfo(("%s %d IPv6 lease info add to Interface ID(%d), Virtual interface Name : %s , Alias %s \n", __FUNCTION__, __LINE__, pVirtIf->baseIfIdx+1, pVirtIf->Name, pVirtIf->Alias));
                             }
                         }
                         //release lock
@@ -1146,16 +834,23 @@ ANSC_STATUS WanMgr_DhcpV6MsgHandlerInit()
 
     //create thread
     pthread_t ipv6LeaseParser;
-    ret = pthread_create( &ipv6LeaseParser, NULL, &WanMgr_DhcpV6MsgHandler, NULL );
-
-    if( 0 != ret )
+    if ( ( !mkfifo(CCSP_COMMON_FIFO, 0666) || errno == EEXIST ) )
     {
-        CcspTraceInfo(("%s %d - Failed to start WanMgr_DhcpV6MsgHandler Thread Error:%d\n", __FUNCTION__, __LINE__, ret));
+        ret = pthread_create( &ipv6LeaseParser, NULL, &WanMgr_DhcpV6MsgHandler, NULL );
+
+        if( 0 != ret )
+        {
+            CcspTraceError(("%s %d - Failed to start WanMgr_DhcpV6MsgHandler Thread Error:%d\n", __FUNCTION__, __LINE__, ret));
+        }
+        else
+        {
+            CcspTraceInfo(("%s %d - WanMgr_DhcpV6MsgHandler Thread Started Successfully\n", __FUNCTION__, __LINE__));
+            retStatus = ANSC_STATUS_SUCCESS;
+        }
     }
     else
     {
-        CcspTraceInfo(("%s %d - WanMgr_DhcpV6MsgHandler Thread Started Successfully\n", __FUNCTION__, __LINE__));
-        retStatus = ANSC_STATUS_SUCCESS;
+        CcspTraceError(("%s %d - Failed to create %s \n", __FUNCTION__, __LINE__, CCSP_COMMON_FIFO));
     }
     return retStatus ;
 }
