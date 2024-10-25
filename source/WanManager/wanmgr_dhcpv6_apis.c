@@ -63,6 +63,7 @@ extern char g_Subsystem[32];
 #endif
 
 #if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
+#define COSA_DML_WANIface_ADDR_SYSEVENT_NAME           "tr_%s_dhcpv6_client_v6addr"
 char PreviousIPv6Address[128] = {0}; //Global varibale to store previous IPv6 address
 #endif
 
@@ -2042,6 +2043,9 @@ int setUpLanPrefixIPv6(DML_VIRTUAL_IFACE* pVirtIf)
         {
             CcspTraceInfo(("assigned IPv6 address \n"));
             syscfg_set_string(SYSCFG_FIELD_IPV6_ADDRESS, pVirtIf->IP.Ipv6Data.address);
+            memset(cmdLine, 0, sizeof(cmdLine));
+            snprintf(cmdLine, sizeof(cmdLine), COSA_DML_WANIface_ADDR_SYSEVENT_NAME ,pVirtIf->Name);
+            sysevent_set(sysevent_fd, sysevent_token, cmdLine, pVirtIf->IP.Ipv6Data.address, 0);
         }
         else /* IFADDRCONF_REMOVE */
         {

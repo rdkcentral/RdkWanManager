@@ -3251,7 +3251,7 @@ static eWanState_t wan_state_standby(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
                 {
                     CcspTraceInfo((" %s %d - configure IPv6 prefix \n", __FUNCTION__, __LINE__));
                 }
-                p_VirtIf->IP.Ipv6Changed == FALSE;
+                p_VirtIf->IP.Ipv6Changed = FALSE;
             }
             if (checkIpv6LanAddressIsReadyToUse(p_VirtIf) == RETURN_OK)
             {
