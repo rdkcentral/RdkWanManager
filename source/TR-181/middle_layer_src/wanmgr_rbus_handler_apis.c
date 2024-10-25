@@ -587,10 +587,11 @@ rbusError_t WanMgr_Rbus_getHandler(rbusHandle_t handle, rbusProperty_t property,
         {
             rbusValue_SetString(value, pWanDmlData->CurrentStatus);
         }
-        else if (strcmp(name, WANMGR_CONFIG_WAN_CURRENTACTIVEDNS) == 0)
+/*        else if (strcmp(name, WANMGR_CONFIG_WAN_CURRENTACTIVEDNS) == 0)
         {
             rbusValue_SetString(value, pWanDmlData->CurrentActiveDNS);
         }	
+	*/
         else
         {
             WanMgrDml_GetConfigData_release(pWanConfigData);

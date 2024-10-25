@@ -1738,7 +1738,7 @@ ANSC_STATUS Update_Interface_Status()
     CHAR    prevInterfaceActiveStatus[BUFLEN_64]     = {0};
     CHAR    prevCurrentActiveInterface[BUFLEN_64] = {0};
     CHAR    prevCurrentStandbyInterface[BUFLEN_64] = {0};
-    //CHAR    prevCurrentActiveDNS[BUFLEN_256] = {0};
+   // CHAR    prevCurrentActiveDNS[BUFLEN_256] = {0};
 
 #ifdef RBUS_BUILD_FLAG_ENABLE
     CHAR    CurrentWanStatus[BUFLEN_16] = "Down";
@@ -1746,7 +1746,7 @@ ANSC_STATUS Update_Interface_Status()
     bool    publishActiveStatus = FALSE;
     bool    publishCurrentActiveInf  = FALSE;
     bool    publishCurrentStandbyInf = FALSE;
-    //bool    publishCurrentActiveDNS = FALSE;
+//    bool    publishCurrentActiveDNS = FALSE;
 #endif
     int uiLoopCount;
 

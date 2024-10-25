@@ -54,10 +54,11 @@
 #define POSTD_START_FILE "/tmp/.postd_started"
 #define SELECTED_MODE_TIMEOUT_SECONDS 10
 #define WANMGR_CONFIG_WAN_CURRENTACTIVEDNS           "Device.X_RDK_WanManager.CurrentActiveDNS"
+/*
 #ifdef RBUS_BUILD_FLAG_ENABLE
 #include "wanmgr_rbus_handler_apis.h"
 #endif //RBUS_BUILD_FLAG_ENABLE
-
+*/
 #if defined(FEATURE_IPOE_HEALTH_CHECK) && defined(IPOE_HEALTH_CHECK_LAN_SYNC_SUPPORT)
 extern lanState_t lanState;
 #endif
@@ -891,15 +892,16 @@ int wan_updateDNS(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl, BOOL addIPv4, BOOL
        snprintf(CurrentActiveDNS,sizeof(CurrentActiveDNS),"%s,",p_VirtIf->IP.Ipv4Data.dnsServer);
     }    
 */
-    CcspTraceInfo(("%s %d: KAVYA Check if DNS changed%s\n", __FUNCTION__, __LINE__));
+    CcspTraceInfo(("%s %d: KAVYA Check if DNS changed\n", __FUNCTION__, __LINE__));
     if ( strcmp(p_VirtIf->IP.Ipv4Data.dnsServer, v4nameserver1) || strcmp(p_VirtIf->IP.Ipv4Data.dnsServer1, v4nameserver2)
         || strcmp(p_VirtIf->IP.Ipv6Data.nameserver, v6nameserver1) || strcmp (p_VirtIf->IP.Ipv6Data.nameserver1, v6nameserver2))
     {
         // new and curr nameservers are differen, so apply configuration
         CcspTraceInfo(("%s %d: Setting %s\n", __FUNCTION__, __LINE__, SYSEVENT_DHCP_SERVER_RESTART));
         sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_DHCP_SERVER_RESTART, NULL, 0);
-	CcspTraceInfo(("%s %d: KAVYA Publishevent %s\n", __FUNCTION__, __LINE__));
-	WanMgr_Rbus_String_EventPublish_OnValueChange(WANMGR_CONFIG_WAN_CURRENTACTIVEDNS,"1234:2345", "2000:3456");
+	CcspTraceInfo(("%s %d: KAVYA Publishevent %s\n", __FUNCTION__, __LINE__,WANMGR_CONFIG_WAN_CURRENTACTIVEDNS));
+	WanMgr_Rbus_EventPublishHandler(WANMGR_CONFIG_WAN_CURRENTACTIVEDNS,"2000:3456",RBUS_STRING);
+	//WanMgr_Rbus_String_EventPublish_OnValueChange(WANMGR_CONFIG_WAN_CURRENTACTIVEDNS,"1234:2345", "2000:3456");
     }
     else
     {
