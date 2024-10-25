@@ -63,7 +63,7 @@ void WanMgr_SetConfigData_Default(DML_WANMGR_CONFIG* pWanDmlConfig)
         memset(pWanDmlConfig->CurrentStatus, 0, sizeof(pWanDmlConfig->CurrentStatus));
         strncpy(pWanDmlConfig->CurrentStatus, "Down", sizeof(pWanDmlConfig->CurrentStatus) -1);
         memset(pWanDmlConfig->CurrentActiveInterface, 0, BUFLEN_64);
-        //memset(pWanDmlConfig->CurrentActiveDNS, 0, BUFLEN_256);
+        memset(pWanDmlConfig->CurrentActiveDNS, 0, BUFLEN_256);
 
         CcspTraceInfo(("%s %d: Setting GATEWAY Mode\n", __FUNCTION__, __LINE__));
         pWanDmlConfig->DeviceNwMode = GATEWAY_MODE;

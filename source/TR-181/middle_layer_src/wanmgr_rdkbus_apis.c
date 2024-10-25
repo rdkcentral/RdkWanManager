@@ -1732,13 +1732,13 @@ ANSC_STATUS Update_Interface_Status()
     CHAR    InterfaceActiveStatus[BUFLEN_64]     = {0};
     CHAR    CurrentActiveInterface[BUFLEN_64] = {0};
     CHAR    CurrentStandbyInterface[BUFLEN_64] = {0};
-    //CHAR    CurrentActiveDNS[BUFLEN_256] = {0};
+    CHAR    CurrentActiveDNS[BUFLEN_256] = {0};
 
     CHAR    prevInterfaceAvailableStatus[BUFLEN_64]  = {0};
     CHAR    prevInterfaceActiveStatus[BUFLEN_64]     = {0};
     CHAR    prevCurrentActiveInterface[BUFLEN_64] = {0};
     CHAR    prevCurrentStandbyInterface[BUFLEN_64] = {0};
-   // CHAR    prevCurrentActiveDNS[BUFLEN_256] = {0};
+    CHAR    prevCurrentActiveDNS[BUFLEN_256] = {0};
 
 #ifdef RBUS_BUILD_FLAG_ENABLE
     CHAR    CurrentWanStatus[BUFLEN_16] = "Down";
@@ -1746,7 +1746,7 @@ ANSC_STATUS Update_Interface_Status()
     bool    publishActiveStatus = FALSE;
     bool    publishCurrentActiveInf  = FALSE;
     bool    publishCurrentStandbyInf = FALSE;
-//    bool    publishCurrentActiveDNS = FALSE;
+    bool    publishCurrentActiveDNS = FALSE;
 #endif
     int uiLoopCount;
 
@@ -1798,6 +1798,8 @@ ANSC_STATUS Update_Interface_Status()
                     if(pWanIfaceData->Selection.Status == WAN_IFACE_ACTIVE)
                     {
                         snprintf(newIface->CurrentActive, sizeof(newIface->CurrentActive), "%s", p_VirtIf->Name);
+                        snprintf(newIface->CurrentActiveDNS, sizeof(newIface->CurrentActiveDNS), "%s,%s,%s,%s", p_VirtIf->IP.Ipv4Data.dnsServer,p_VirtIf->IP.Ipv4Data.dnsServer1,p_VirtIf->IP.Ipv6Data.nameserver,p_VirtIf->IP.Ipv6Data.nameserver1);
+                        CcspTraceInfo(("%s %d-KAVYA - CurrentActiveDNS -\nKAVYA [%s]\n",__FUNCTION__,__LINE__,newIface->CurrentActiveDNS));
 #ifdef RBUS_BUILD_FLAG_ENABLE
                         snprintf(CurrentWanStatus,sizeof(CurrentWanStatus), "%s", (p_VirtIf->Status == WAN_IFACE_STATUS_UP)?"Up":"Down");
 #endif
@@ -1852,12 +1854,12 @@ ANSC_STATUS Update_Interface_Status()
         }
         strcat(InterfaceActiveStatus,pHead->ActiveStatus);
 
-        /*if(strlen(CurrentActiveDNS)>0 && strlen(pHead->CurrentActiveDNS)>0)
+        if(strlen(CurrentActiveDNS)>0 && strlen(pHead->CurrentActiveDNS)>0)
         {
             strcat(CurrentActiveDNS,",");
         }
         strcat(CurrentActiveDNS,pHead->CurrentActiveDNS);
-	*/
+	
         tmp = pHead->next;
         free(pHead);
         pHead = tmp;
@@ -1885,7 +1887,7 @@ ANSC_STATUS Update_Interface_Status()
             publishActiveStatus = TRUE;
 #endif
         }
-        /*if(strcmp(pWanDmlData->CurrentActiveDNS,CurrentActiveDNS) != 0)
+        if(strcmp(pWanDmlData->CurrentActiveDNS,CurrentActiveDNS) != 0)
         {
             strncpy(prevCurrentActiveDNS,pWanDmlData->CurrentActiveDNS, sizeof(prevCurrentActiveDNS)-1);
             memset(pWanDmlData->CurrentActiveDNS,0, sizeof(pWanDmlData->CurrentActiveDNS));
@@ -1894,7 +1896,7 @@ ANSC_STATUS Update_Interface_Status()
             publishCurrentActiveDNS = TRUE;
 #endif
         }
-*/
+
         CcspTraceInfo(("%s %d -CurrentActiveInterface- [%s] [%s]\n",__FUNCTION__,__LINE__,pWanDmlData->CurrentActiveInterface,CurrentActiveInterface));
         if(strlen(CurrentActiveInterface) > 0)
         {
@@ -1953,10 +1955,10 @@ ANSC_STATUS Update_Interface_Status()
     {
         WanMgr_Rbus_String_EventPublish_OnValueChange(WANMGR_CONFIG_WAN_INTERFACEACTIVESTATUS, prevInterfaceActiveStatus, InterfaceActiveStatus);
     }
-    /*if(publishCurrentActiveDNS == TRUE)
+    if(publishCurrentActiveDNS == TRUE)
     {
         WanMgr_Rbus_String_EventPublish_OnValueChange(WANMGR_CONFIG_WAN_CURRENTACTIVEDNS, prevCurrentActiveDNS, CurrentActiveDNS);
-    }*/
+    }
     
 
 #endif //RBUS_BUILD_FLAG_ENABLE
