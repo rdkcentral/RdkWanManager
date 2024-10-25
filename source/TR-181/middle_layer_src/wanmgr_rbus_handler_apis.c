@@ -1331,8 +1331,9 @@ ANSC_STATUS WanMgr_Rbus_String_EventPublish_OnValueChange(char *dm_event, void *
     event.type = RBUS_EVENT_VALUE_CHANGED;
 
     CcspTraceInfo(("%s %d - dm_event[%s],prev_dm_value[%s],dm_value[%s]\n", __FUNCTION__, __LINE__, dm_event, prev_dm_value, dm_value));
+    rbusError_t rt = rbusEvent_Publish(rbusHandle, &event);
 
-    if(rbusEvent_Publish(rbusHandle, &event) != RBUS_ERROR_SUCCESS)
+    if( rt != RBUS_ERROR_SUCCESS && rt !=  RBUS_ERROR_NOSUBSCRIBERS)
     {
         CcspTraceWarning(("%s %d - Event [%s] published failed\n", __FUNCTION__, __LINE__,dm_event));
     }
