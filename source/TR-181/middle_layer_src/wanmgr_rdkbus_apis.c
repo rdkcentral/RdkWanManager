@@ -1825,7 +1825,7 @@ ANSC_STATUS Update_Interface_Status()
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
         }
     }
-
+CcspTraceInfo(("%s %d-KAVYA \n",__FUNCTION__,__LINE__));
     struct IFACE_INFO* pHead = head;
     struct IFACE_INFO* tmp = NULL;
     while(pHead!= NULL)
@@ -1854,6 +1854,7 @@ ANSC_STATUS Update_Interface_Status()
         }
         strcat(InterfaceActiveStatus,pHead->ActiveStatus);
 
+CcspTraceInfo(("%s %d-KAVYA \nKAVYA CurrentActiveDNS=[%s],\nKAVYA pHead->CurrentActiveDNS=[%s]\n",__FUNCTION__,__LINE__,CurrentActiveDNS,pHead->CurrentActiveDNS));
         if(strlen(CurrentActiveDNS)>0 && strlen(pHead->CurrentActiveDNS)>0)
         {
             strcat(CurrentActiveDNS,",");
@@ -1868,6 +1869,7 @@ ANSC_STATUS Update_Interface_Status()
     pWanConfigData = WanMgr_GetConfigData_locked();
     if (pWanConfigData != NULL)
     {
+CcspTraceInfo(("%s %d-KAVYA \n",__FUNCTION__,__LINE__));
         DML_WANMGR_CONFIG* pWanDmlData = &(pWanConfigData->data);
         if(strcmp(pWanDmlData->InterfaceAvailableStatus,InterfaceAvailableStatus) != 0)
         {
@@ -1887,12 +1889,15 @@ ANSC_STATUS Update_Interface_Status()
             publishActiveStatus = TRUE;
 #endif
         }
+CcspTraceInfo(("%s %d-KAVYA \n",__FUNCTION__,__LINE__));
         if(strcmp(pWanDmlData->CurrentActiveDNS,CurrentActiveDNS) != 0)
         {
+CcspTraceInfo(("%s %d-KAVYA \n",__FUNCTION__,__LINE__));
             strncpy(prevCurrentActiveDNS,pWanDmlData->CurrentActiveDNS, sizeof(prevCurrentActiveDNS)-1);
             memset(pWanDmlData->CurrentActiveDNS,0, sizeof(pWanDmlData->CurrentActiveDNS));
             strncpy(pWanDmlData->CurrentActiveDNS,CurrentActiveDNS, sizeof(pWanDmlData->CurrentActiveDNS) - 1);
 #ifdef RBUS_BUILD_FLAG_ENABLE
+CcspTraceInfo(("%s %d-KAVYA \n",__FUNCTION__,__LINE__));
             publishCurrentActiveDNS = TRUE;
 #endif
         }
@@ -1955,8 +1960,10 @@ ANSC_STATUS Update_Interface_Status()
     {
         WanMgr_Rbus_String_EventPublish_OnValueChange(WANMGR_CONFIG_WAN_INTERFACEACTIVESTATUS, prevInterfaceActiveStatus, InterfaceActiveStatus);
     }
+CcspTraceInfo(("%s %d-KAVYA \n",__FUNCTION__,__LINE__));
     if(publishCurrentActiveDNS == TRUE)
     {
+CcspTraceInfo(("%s %d-KAVYA\nKAVYA prevCurrentActiveDNS= [%s]\nKAVYA CurrentActiveDNS =[%s] \n",__FUNCTION__,__LINE__,prevCurrentActiveDNS,CurrentActiveDNS));
         WanMgr_Rbus_String_EventPublish_OnValueChange(WANMGR_CONFIG_WAN_CURRENTACTIVEDNS, prevCurrentActiveDNS, CurrentActiveDNS);
     }
     
