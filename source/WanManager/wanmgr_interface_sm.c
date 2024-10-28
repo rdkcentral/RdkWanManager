@@ -53,12 +53,12 @@
 
 #define POSTD_START_FILE "/tmp/.postd_started"
 #define SELECTED_MODE_TIMEOUT_SECONDS 10
-//#define WANMGR_CONFIG_WAN_CURRENTACTIVEDNS           "Device.X_RDK_WanManager.CurrentActiveDNS"
-/*
+#define WANMGR_CONFIG_WAN_CURRENTACTIVEDNS           "Device.X_RDK_WanManager.CurrentActiveDNS"
+
 #ifdef RBUS_BUILD_FLAG_ENABLE
 #include "wanmgr_rbus_handler_apis.h"
 #endif //RBUS_BUILD_FLAG_ENABLE
-*/
+
 #if defined(FEATURE_IPOE_HEALTH_CHECK) && defined(IPOE_HEALTH_CHECK_LAN_SYNC_SUPPORT)
 extern lanState_t lanState;
 #endif
