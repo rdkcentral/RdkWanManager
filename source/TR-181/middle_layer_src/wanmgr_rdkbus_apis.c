@@ -1798,8 +1798,39 @@ ANSC_STATUS Update_Interface_Status()
                     if(pWanIfaceData->Selection.Status == WAN_IFACE_ACTIVE)
                     {
                         snprintf(newIface->CurrentActive, sizeof(newIface->CurrentActive), "%s", p_VirtIf->Name);
-			
-                        snprintf(newIface->CurrentActiveDNS, sizeof(newIface->CurrentActiveDNS), "%s,%s,%s,%s", p_VirtIf->IP.Ipv4Data.dnsServer,p_VirtIf->IP.Ipv4Data.dnsServer1,p_VirtIf->IP.Ipv6Data.nameserver,p_VirtIf->IP.Ipv6Data.nameserver1);
+  			if(strlen(p_VirtIf->IP.Ipv4Data.dnsServer) > 0)
+			{
+			    if(strlen(newIface->CurrentActiveDNS) > 0)
+			    {
+			        strcat(newIface->CurrentActiveDNS,",");
+			    }
+			    strcat(newIface->CurrentActiveDNS,p_VirtIf->IP.Ipv4Data.dnsServer);
+			}
+			if(strlen(p_VirtIf->IP.Ipv4Data.dnsServer1)> 0)
+                        {
+			    if(strlen(newIface->CurrentActiveDNS) > 0)
+                            {
+                                strcat(newIface->CurrentActiveDNS,",");
+                            }
+                            strcat(newIface->CurrentActiveDNS,p_VirtIf->IP.Ipv4Data.dnsServer1);
+			}
+			if(strlen(p_VirtIf->IP.Ipv6Data.nameserver)> 0)
+                        {
+                            if(strlen(newIface->CurrentActiveDNS) > 0)
+                            {
+                                strcat(newIface->CurrentActiveDNS,",");
+                            }
+                            strcat(newIface->CurrentActiveDNS,p_VirtIf->IP.Ipv6Data.nameserver);
+                        }
+                        if(strlen(p_VirtIf->IP.Ipv6Data.nameserver1)> 0)
+                        {
+                            if(strlen(newIface->CurrentActiveDNS) > 0)
+                            {
+                                strcat(newIface->CurrentActiveDNS,",");
+                            }
+                            strcat(newIface->CurrentActiveDNS,p_VirtIf->IP.Ipv6Data.nameserver1);
+                        }
+//                        snprintf(newIface->CurrentActiveDNS, sizeof(newIface->CurrentActiveDNS), "%s,%s,%s,%s", p_VirtIf->IP.Ipv4Data.dnsServer,p_VirtIf->IP.Ipv4Data.dnsServer1,p_VirtIf->IP.Ipv6Data.nameserver,p_VirtIf->IP.Ipv6Data.nameserver1);
                         CcspTraceInfo(("%s %d-KAVYA ..\nKAVYA CurrentActiveDNS = [%s]\n",__FUNCTION__,__LINE__,newIface->CurrentActiveDNS));
 #ifdef RBUS_BUILD_FLAG_ENABLE
                         snprintf(CurrentWanStatus,sizeof(CurrentWanStatus), "%s", (p_VirtIf->Status == WAN_IFACE_STATUS_UP)?"Up":"Down");
