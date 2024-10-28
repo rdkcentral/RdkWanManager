@@ -899,9 +899,10 @@ int wan_updateDNS(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl, BOOL addIPv4, BOOL
         // new and curr nameservers are differen, so apply configuration
         CcspTraceInfo(("%s %d: Setting %s\n", __FUNCTION__, __LINE__, SYSEVENT_DHCP_SERVER_RESTART));
         sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_DHCP_SERVER_RESTART, NULL, 0);
-//	CcspTraceInfo(("%s %d: KAVYA Publishevent %s\n", __FUNCTION__, __LINE__,WANMGR_CONFIG_WAN_CURRENTACTIVEDNS));
+	CcspTraceInfo(("%s %d: KAVYA Publishevent sm.c [%s]\n", __FUNCTION__, __LINE__,WANMGR_CONFIG_WAN_CURRENTACTIVEDNS));
 //	WanMgr_Rbus_EventPublishHandler(WANMGR_CONFIG_WAN_CURRENTACTIVEDNS,"2000:3456",RBUS_STRING);
-	//WanMgr_Rbus_String_EventPublish_OnValueChange(WANMGR_CONFIG_WAN_CURRENTACTIVEDNS,"1234:2345", "2000:3456");
+	WanMgr_Rbus_String_EventPublish_OnValueChange(WANMGR_CONFIG_WAN_CURRENTACTIVEDNS,"1234:2345", "2000:3456");
+	CcspTraceInfo(("%s %d: KAVYA Done publishing\n", __FUNCTION__, __LINE__));
     }
     else
     {

@@ -1798,6 +1798,7 @@ ANSC_STATUS Update_Interface_Status()
                     if(pWanIfaceData->Selection.Status == WAN_IFACE_ACTIVE)
                     {
                         snprintf(newIface->CurrentActive, sizeof(newIface->CurrentActive), "%s", p_VirtIf->Name);
+			
                         snprintf(newIface->CurrentActiveDNS, sizeof(newIface->CurrentActiveDNS), "%s,%s,%s,%s", p_VirtIf->IP.Ipv4Data.dnsServer,p_VirtIf->IP.Ipv4Data.dnsServer1,p_VirtIf->IP.Ipv6Data.nameserver,p_VirtIf->IP.Ipv6Data.nameserver1);
                         CcspTraceInfo(("%s %d-KAVYA - CurrentActiveDNS -\nKAVYA [%s]\n",__FUNCTION__,__LINE__,newIface->CurrentActiveDNS));
 #ifdef RBUS_BUILD_FLAG_ENABLE
@@ -1964,7 +1965,7 @@ CcspTraceInfo(("%s %d-KAVYA \n",__FUNCTION__,__LINE__));
     if(publishCurrentActiveDNS == TRUE)
     {
 CcspTraceInfo(("%s %d-KAVYA\nKAVYA prevCurrentActiveDNS= [%s]\nKAVYA CurrentActiveDNS =[%s] \n",__FUNCTION__,__LINE__,prevCurrentActiveDNS,CurrentActiveDNS));
-        WanMgr_Rbus_String_EventPublish_OnValueChange(WANMGR_CONFIG_WAN_CURRENTACTIVEDNS, prevCurrentActiveDNS, CurrentActiveDNS);
+        // WanMgr_Rbus_String_EventPublish_OnValueChange(WANMGR_CONFIG_WAN_CURRENTACTIVEDNS, prevCurrentActiveDNS, CurrentActiveDNS);
     }
     
 
