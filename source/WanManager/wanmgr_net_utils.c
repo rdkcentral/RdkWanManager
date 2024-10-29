@@ -1501,7 +1501,7 @@ static int WanManager_ConfigureIpv6Sysevents(char *pdIPv6Prefix, char *ipAddress
         return ret;
     }
 
-    snprintf(ipv6AddressString, sizeof(ipv6AddressString), "%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x", in6Addr.s6_addr[0], in6Addr.s6_addr[1], in6Addr.s6_addr[2], in6Addr.s6_addr[3], in6Addr.s6_addr[4], in6Addr.s6_addr[5], in6Addr.s6_addr[6], in6Addr.s6_addr[7], 0x0, 0x0, ipAddressBytes[3], ipAddressBytes[2], ipAddressBytes[1], ipAddressBytes[0], 0x0, psidValue);
+    snprintf(ipv6AddressString, sizeof(ipv6AddressString), "%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x", in6Addr.s6_addr[0], in6Addr.s6_addr[1], in6Addr.s6_addr[2], in6Addr.s6_addr[3], in6Addr.s6_addr[4], in6Addr.s6_addr[5], in6Addr.s6_addr[6], in6Addr.s6_addr[7], 0x0, 0x0, ipAddressBytes[3], ipAddressBytes[2], ipAddressBytes[1], ipAddressBytes[0], ((psidValue >> 8) & 0xFF ), (psidValue & 0xFF));
 
     return ret;
 }
