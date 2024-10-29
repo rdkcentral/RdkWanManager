@@ -1831,7 +1831,7 @@ ANSC_STATUS Update_Interface_Status()
                             strcat(newIface->CurrentActiveDNS,p_VirtIf->IP.Ipv6Data.nameserver1);
                         }
 //                        snprintf(newIface->CurrentActiveDNS, sizeof(newIface->CurrentActiveDNS), "%s,%s,%s,%s", p_VirtIf->IP.Ipv4Data.dnsServer,p_VirtIf->IP.Ipv4Data.dnsServer1,p_VirtIf->IP.Ipv6Data.nameserver,p_VirtIf->IP.Ipv6Data.nameserver1);
-                        CcspTraceInfo(("%s %d-KAVYA ..\nKAVYA CurrentActiveDNS = [%s]\n",__FUNCTION__,__LINE__,newIface->CurrentActiveDNS));
+                        CcspTraceInfo(("%s %d KAVYA updated CurrentActiveDNS = [%s]\n",__FUNCTION__,__LINE__,newIface->CurrentActiveDNS));
 #ifdef RBUS_BUILD_FLAG_ENABLE
                         snprintf(CurrentWanStatus,sizeof(CurrentWanStatus), "%s", (p_VirtIf->Status == WAN_IFACE_STATUS_UP)?"Up":"Down");
 #endif
@@ -1924,12 +1924,12 @@ CcspTraceInfo(("%s %d-KAVYA \n",__FUNCTION__,__LINE__));
 CcspTraceInfo(("%s %d-KAVYA \n",__FUNCTION__,__LINE__));
         if(strcmp(pWanDmlData->CurrentActiveDNS,CurrentActiveDNS) != 0)
         {
-CcspTraceInfo(("%s %d-KAVYA \n",__FUNCTION__,__LINE__));
+CcspTraceInfo(("%s %d-KAVYA CurrentActiveDNS changed. \n",__FUNCTION__,__LINE__));
             strncpy(prevCurrentActiveDNS,pWanDmlData->CurrentActiveDNS, sizeof(prevCurrentActiveDNS)-1);
             memset(pWanDmlData->CurrentActiveDNS,0, sizeof(pWanDmlData->CurrentActiveDNS));
             strncpy(pWanDmlData->CurrentActiveDNS,CurrentActiveDNS, sizeof(pWanDmlData->CurrentActiveDNS) - 1);
 #ifdef RBUS_BUILD_FLAG_ENABLE
-CcspTraceInfo(("%s %d-KAVYA \n",__FUNCTION__,__LINE__));
+CcspTraceInfo(("%s %d-KAVYA Set publishCurrentActiveDNS.\n",__FUNCTION__,__LINE__));
             publishCurrentActiveDNS = TRUE;
 #endif
         }
