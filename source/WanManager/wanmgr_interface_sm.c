@@ -881,7 +881,7 @@ int wan_updateDNS(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl, BOOL addIPv4, BOOL
         // new and curr nameservers are differen, so apply configuration
         CcspTraceInfo(("%s %d: Setting %s\n", __FUNCTION__, __LINE__, SYSEVENT_DHCP_SERVER_RESTART));
         sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_DHCP_SERVER_RESTART, NULL, 0);
-	CcspTraceInfo(("%s %d:KAVYA Calling Update_Interface_Status..\n",___FUNCTION__, __LINE__));
+	CcspTraceInfo(("%s %d:KAVYA Calling Update_Interface_Status..\n",__FUNCTION__, __LINE__));
 	Update_Interface_Status();
     }
     else
