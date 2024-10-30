@@ -61,7 +61,6 @@ struct IFACE_INFO
     CHAR    ActiveStatus[BUFLEN_64];
     CHAR    CurrentActive[BUFLEN_64];
     CHAR    CurrentStandby[BUFLEN_64];
-    //CHAR    CurrentActiveDNS[BUFLEN_256];
     struct IFACE_INFO *next;
 };
 
