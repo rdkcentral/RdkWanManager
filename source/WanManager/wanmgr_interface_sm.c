@@ -791,7 +791,7 @@ int wan_updateDNS(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl, BOOL addIPv4, BOOL
                 {
                     if(strlen(CurrentActiveDNS) > 0)
                     {
-                        strcat(			,",");
+                        strcat(CurrentActiveDNS,",");
                     }
                     strcat(CurrentActiveDNS,p_VirtIf->IP.Ipv4Data.dnsServer);
                 }
