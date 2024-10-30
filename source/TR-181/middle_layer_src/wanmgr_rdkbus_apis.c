@@ -2008,7 +2008,8 @@ ANSC_STATUS Update_Interface_Status()
     }
     if(publishCurrentActiveDNS == TRUE)
     {
-        WanMgr_Rbus_String_EventPublish(WANMGR_CONFIG_WAN_CURRENTACTIVEDNS, CurrentActiveDNS);
+	    WanMgr_Rbus_EventPublishHandler(WANMGR_CONFIG_WAN_CURRENTACTIVEDNS,CurrentActiveDNS,RBUS_STRING);
+//        WanMgr_Rbus_String_EventPublish(WANMGR_CONFIG_WAN_CURRENTACTIVEDNS, CurrentActiveDNS);
     }    
 
 #endif //RBUS_BUILD_FLAG_ENABLE
