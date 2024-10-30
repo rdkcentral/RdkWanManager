@@ -75,7 +75,7 @@ ANSC_STATUS WanMgr_Publish_WanStatus(UINT IfaceIndex, UINT VirId);
 ANSC_STATUS DmlSetWanActiveLinkInPSMDB( UINT uiInterfaceIdx, bool flag );
 ANSC_STATUS WanController_ClearWanConfigurationsInPSM();
 ANSC_STATUS Update_Interface_Status();
-ANSC_STATUS Update_DNS();
+//ANSC_STATUS Update_DNS();
 void WanMgr_getRemoteWanIfName(char *IfaceName,int Size);
 int get_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFACE* p_Interface);
 int write_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFACE* p_Interface);

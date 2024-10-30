@@ -1722,6 +1722,7 @@ void SortedInsert( struct IFACE_INFO** head_ref,  struct IFACE_INFO *new_node)
         current->next = new_node;
     }
 }
+/*
 ANSC_STATUS Update_DNS()
 {
     CcspTraceInfo(("[%s %d]KAVYA CurrentActiveDNS = [%s]\n",__FUNCTION__,__LINE__,CurrentActiveDNS));
@@ -1741,6 +1742,7 @@ ANSC_STATUS Update_DNS()
     }
     return ANSC_STATUS_SUCCESS;
 }
+*/
 ANSC_STATUS Update_Interface_Status()
 {
     struct IFACE_INFO *head = NULL;
@@ -1763,7 +1765,7 @@ ANSC_STATUS Update_Interface_Status()
     bool    publishActiveStatus = FALSE;
     bool    publishCurrentActiveInf  = FALSE;
     bool    publishCurrentStandbyInf = FALSE;
-  //  bool    publishCurrentActiveDNS = FALSE;
+    bool    publishCurrentActiveDNS = FALSE;
 #endif
     int uiLoopCount;
 
@@ -1935,16 +1937,17 @@ ANSC_STATUS Update_Interface_Status()
             publishActiveStatus = TRUE;
 #endif
         }
-/*        if(strcmp(pWanDmlData->CurrentActiveDNS,CurrentActiveDNS) != 0)
+        if(strcmp(pWanDmlData->CurrentActiveDNS,CurrentActiveDNS) != 0)
         {
-            strncpy(prevCurrentActiveDNS,pWanDmlData->CurrentActiveDNS, sizeof(prevCurrentActiveDNS)-1);
+		CcspTraceInfo(("%s %d KAVYA \nKAVYA CurrentActiveDNS = [%s]\n",__FUNCTION__,__LINE__,CurrentActiveDNS));
+  //          strncpy(prevCurrentActiveDNS,pWanDmlData->CurrentActiveDNS, sizeof(prevCurrentActiveDNS)-1);
             memset(pWanDmlData->CurrentActiveDNS,0, sizeof(pWanDmlData->CurrentActiveDNS));
             strncpy(pWanDmlData->CurrentActiveDNS,CurrentActiveDNS, sizeof(pWanDmlData->CurrentActiveDNS) - 1);
 #ifdef RBUS_BUILD_FLAG_ENABLE
             publishCurrentActiveDNS = TRUE;
 #endif
         }
-*/
+
         CcspTraceInfo(("%s %d -CurrentActiveInterface- [%s] [%s]\n",__FUNCTION__,__LINE__,pWanDmlData->CurrentActiveInterface,CurrentActiveInterface));
         if(strlen(CurrentActiveInterface) > 0)
         {
@@ -2003,11 +2006,11 @@ ANSC_STATUS Update_Interface_Status()
     {
         WanMgr_Rbus_String_EventPublish_OnValueChange(WANMGR_CONFIG_WAN_INTERFACEACTIVESTATUS, prevInterfaceActiveStatus, InterfaceActiveStatus);
     }
-/*    if(publishCurrentActiveDNS == TRUE)
+    if(publishCurrentActiveDNS == TRUE)
     {
         WanMgr_Rbus_String_EventPublish_OnValueChange(WANMGR_CONFIG_WAN_CURRENTACTIVEDNS, prevCurrentActiveDNS, CurrentActiveDNS);
     }    
-*/
+
 #endif //RBUS_BUILD_FLAG_ENABLE
     return ANSC_STATUS_SUCCESS;
 }

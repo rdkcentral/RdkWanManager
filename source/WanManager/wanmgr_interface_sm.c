@@ -926,8 +926,9 @@ int wan_updateDNS(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl, BOOL addIPv4, BOOL
         CcspTraceInfo(("%s %d: Setting %s\n", __FUNCTION__, __LINE__, SYSEVENT_DHCP_SERVER_RESTART));
         sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_DHCP_SERVER_RESTART, NULL, 0);
 	CcspTraceInfo(("%s %d: KAVYA\nKAVYA CurrentActiveDNS = [%s]\n", __FUNCTION__, __LINE__, CurrentActiveDNS));
-	CcspTraceInfo(("%s %d: KAVYA Calling Update_DNS..\n", __FUNCTION__, __LINE__));
-	Update_DNS();
+	CcspTraceInfo(("%s %d: KAVYA Calling Update_Interface_Status..\n", __FUNCTION__, __LINE__));
+//	Update_DNS();
+	Update_Interface_Status();
     }
     else
     {
