@@ -1724,7 +1724,6 @@ void SortedInsert( struct IFACE_INFO** head_ref,  struct IFACE_INFO *new_node)
 
 ANSC_STATUS Update_Interface_Status()
 {
-
     struct IFACE_INFO *head = NULL;
     DEVICE_NETWORKING_MODE devMode = GATEWAY_MODE;
     CHAR    InterfaceAvailableStatus[BUFLEN_64]  = {0};
@@ -1855,6 +1854,7 @@ ANSC_STATUS Update_Interface_Status()
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
         }
     }
+
     struct IFACE_INFO* pHead = head;
     struct IFACE_INFO* tmp = NULL;
     while(pHead!= NULL)
@@ -1887,8 +1887,8 @@ ANSC_STATUS Update_Interface_Status()
         {
             strcat(CurrentActiveDNS,",");
         }
-        strcat(CurrentActiveDNS,pHead->CurrentActiveDNS);
-	
+        strcat(CurrentActiveDNS,pHead->CurrentActiveDNS);	
+
         tmp = pHead->next;
         free(pHead);
         pHead = tmp;
@@ -1987,9 +1987,7 @@ ANSC_STATUS Update_Interface_Status()
     if(publishCurrentActiveDNS == TRUE)
     {
         WanMgr_Rbus_String_EventPublish_OnValueChange(WANMGR_CONFIG_WAN_CURRENTACTIVEDNS, prevCurrentActiveDNS, CurrentActiveDNS);
-    }
-
-    
+    }    
 
 #endif //RBUS_BUILD_FLAG_ENABLE
     return ANSC_STATUS_SUCCESS;
