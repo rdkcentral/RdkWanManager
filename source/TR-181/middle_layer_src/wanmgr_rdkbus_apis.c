@@ -55,7 +55,7 @@
 extern WANMGR_DATA_ST gWanMgrDataBase;
 extern char g_Subsystem[32];
 extern ANSC_HANDLE bus_handle;
-extern char CurrentActiveDNS[BUFLEN_256];
+char CurrentActiveDNS[BUFLEN_256];
 
 int get_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFACE* p_Interface)
 {
@@ -1722,7 +1722,35 @@ void SortedInsert( struct IFACE_INFO** head_ref,  struct IFACE_INFO *new_node)
         current->next = new_node;
     }
 }
+void Update_Current_ActiveDNS()
+{
+	CcspTraceInfo(("[%s %d]KAVYA Update_Current_ActiveDNS Entered \n", __FUNCTION__,__LINE__));
+    FILE *fp = NULL;
+    char buf[64] = {0};
+    char* token;
 
+    if((fp = fopen(RESOLV_CONF_FILE, "r")) == NULL)
+    {
+        CcspTraceError(("%s %d - Open %s error!\n", __FUNCTION__, __LINE__, RESOLV_CONF_FILE));
+        return RETURN_ERR;
+    }
+
+    while((fgets(buf, sizeof(buf), fp)) != NULL){
+        token = strtok(buf, " ");
+        token = strtok(NULL, " ");
+        if(strlen(token)>0)
+        {
+            if(strlen(CurrentActiveDNS) > 0 ){
+                strcat(CurrentActiveDNS,",");
+	    }
+            token[strlen(token)-1] = '\0';
+            strcat(CurrentActiveDNS,token);
+        }
+    }
+    CcspTraceError(("[%s %d]KAVYA CurrentActiveDNS = [%s] \n", __FUNCTION__, __LINE__, CurrentActiveDNS));
+    CcspTraceInfo(("[%s %d]KAVYA Update_Current_ActiveDNS Exit \n", __FUNCTION__,__LINE__));
+    return;    
+}
 ANSC_STATUS Update_Interface_Status()
 {
     struct IFACE_INFO *head = NULL;
@@ -1853,7 +1881,8 @@ ANSC_STATUS Update_Interface_Status()
         free(pHead);
         pHead = tmp;
     }
-
+CcspTraceInfo(("[%s %d]KAVYA Calling Update_Current_ActiveDNS\n", __FUNCTION__,__LINE__));
+    Update_Current_ActiveDNS();    
     pWanConfigData = WanMgr_GetConfigData_locked();
     if (pWanConfigData != NULL)
     {

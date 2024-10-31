@@ -54,7 +54,7 @@
 #define POSTD_START_FILE "/tmp/.postd_started"
 #define SELECTED_MODE_TIMEOUT_SECONDS 10
 
-char CurrentActiveDNS[BUFLEN_256];
+//char CurrentActiveDNS[BUFLEN_256];
 #if defined(FEATURE_IPOE_HEALTH_CHECK) && defined(IPOE_HEALTH_CHECK_LAN_SYNC_SUPPORT)
 extern lanState_t lanState;
 #endif
@@ -692,7 +692,7 @@ void WanManager_UpdateInterfaceStatus(DML_VIRTUAL_IFACE* pVirtIf, wanmgr_iface_s
 int wan_updateDNS(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl, BOOL addIPv4, BOOL addIPv6)
 {
 
-    memset(CurrentActiveDNS,0,sizeof(CurrentActiveDNS));
+//    memset(CurrentActiveDNS,0,sizeof(CurrentActiveDNS));
     if ((pWanIfaceCtrl == NULL) || (pWanIfaceCtrl->pIfaceData == NULL))
     {
         CcspTraceError(("%s %d - Invalid args \n", __FUNCTION__, __LINE__));
@@ -719,6 +719,7 @@ int wan_updateDNS(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl, BOOL addIPv4, BOOL
     char v4nameserver2[BUFLEN_64];
     char v6nameserver1[BUFLEN_128];
     char v6nameserver2[BUFLEN_128]; 
+    bool resolv_conf_changed = FALSE;
 
     if (deviceMode == GATEWAY_MODE)
     {
@@ -757,17 +758,19 @@ int wan_updateDNS(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl, BOOL addIPv4, BOOL
         {
             CcspTraceError(("%s %d - No valid nameserver is available, adding loopback address for nameserver\n", __FUNCTION__,__LINE__));
             fprintf(fp, "nameserver %s \n", LOOPBACK);
-            if(strlen(LOOPBACK) > 0)
+/*            if(strlen(LOOPBACK) > 0)
             {
                 if(strlen(CurrentActiveDNS) > 0)
                 {
                     strcat(CurrentActiveDNS,",");
                 }
                 strcat(CurrentActiveDNS,LOOPBACK);
-            }	    
+	    }
+	    */
             fclose(fp);
         }
-
+	    CcspTraceInfo(("[%s %d]KAVYA Calling Update_Interface_Status()\n", __FUNCTION__,__LINE__));
+        Update_Interface_Status();
         // new and curr nameservers are different, so apply configuration
         CcspTraceInfo(("%s %d: Setting %s\n", __FUNCTION__, __LINE__, SYSEVENT_DHCP_SERVER_RESTART));
         sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_DHCP_SERVER_RESTART, NULL, 0);
@@ -787,7 +790,9 @@ int wan_updateDNS(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl, BOOL addIPv4, BOOL
                 // GATEWAY Mode
                 CcspTraceInfo(("%s %d: adding nameserver %s >> %s\n", __FUNCTION__, __LINE__, p_VirtIf->IP.Ipv4Data.dnsServer, RESOLV_CONF_FILE));
                 fprintf(fp, "nameserver %s\n", p_VirtIf->IP.Ipv4Data.dnsServer);
-		if(strlen(p_VirtIf->IP.Ipv4Data.dnsServer) > 0)
+	        resolv_conf_changed = TRUE;
+	    CcspTraceInfo(("[%s %d]KAVYA resolv_conf_changed update\n", __FUNCTION__,__LINE__));
+/*		if(strlen(p_VirtIf->IP.Ipv4Data.dnsServer) > 0)
                 {
                     if(strlen(CurrentActiveDNS) > 0)
                     {
@@ -795,6 +800,7 @@ int wan_updateDNS(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl, BOOL addIPv4, BOOL
                     }
                     strcat(CurrentActiveDNS,p_VirtIf->IP.Ipv4Data.dnsServer);
                 }
+		*/
             }
             sysevent_set(sysevent_fd, sysevent_token, syseventParam, p_VirtIf->IP.Ipv4Data.dnsServer, 0);
             CcspTraceInfo(("%s %d: new v4 DNS Server = %s\n", __FUNCTION__, __LINE__, p_VirtIf->IP.Ipv4Data.dnsServer));
@@ -818,7 +824,9 @@ int wan_updateDNS(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl, BOOL addIPv4, BOOL
                 // GATEWAY Mode
                 CcspTraceInfo(("%s %d: adding nameserver %s >> %s\n", __FUNCTION__, __LINE__, p_VirtIf->IP.Ipv4Data.dnsServer1, RESOLV_CONF_FILE));
                 fprintf(fp, "nameserver %s\n", p_VirtIf->IP.Ipv4Data.dnsServer1);
-		if(strlen(p_VirtIf->IP.Ipv4Data.dnsServer1) > 0)
+	        resolv_conf_changed = TRUE;
+	    CcspTraceInfo(("[%s %d]KAVYA resolv_conf_changed update\n", __FUNCTION__,__LINE__));
+/*		if(strlen(p_VirtIf->IP.Ipv4Data.dnsServer1) > 0)
                 {
                     if(strlen(CurrentActiveDNS) > 0)
                     {
@@ -826,6 +834,7 @@ int wan_updateDNS(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl, BOOL addIPv4, BOOL
                     }
                     strcat(CurrentActiveDNS,p_VirtIf->IP.Ipv4Data.dnsServer1);
                 }
+		*/
             }
             CcspTraceInfo(("%s %d: new v4 DNS Server = %s\n", __FUNCTION__, __LINE__, p_VirtIf->IP.Ipv4Data.dnsServer1));
             sysevent_set(sysevent_fd, sysevent_token, syseventParam, p_VirtIf->IP.Ipv4Data.dnsServer1, 0);
@@ -866,7 +875,9 @@ int wan_updateDNS(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl, BOOL addIPv4, BOOL
                 // GATEWAY Mode
                 CcspTraceInfo(("%s %d: adding nameserver %s >> %s\n", __FUNCTION__, __LINE__, p_VirtIf->IP.Ipv6Data.nameserver, RESOLV_CONF_FILE));
                 fprintf(fp, "nameserver %s\n", p_VirtIf->IP.Ipv6Data.nameserver);
-		if(strlen(p_VirtIf->IP.Ipv6Data.nameserver) > 0)
+		resolv_conf_changed = TRUE;
+	    CcspTraceInfo(("[%s %d]KAVYA resolv_conf_changed update\n", __FUNCTION__,__LINE__));
+/*		if(strlen(p_VirtIf->IP.Ipv6Data.nameserver) > 0)
                 {
                     if(strlen(CurrentActiveDNS) > 0)
                     {
@@ -874,6 +885,7 @@ int wan_updateDNS(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl, BOOL addIPv4, BOOL
                     }
                     strcat(CurrentActiveDNS,p_VirtIf->IP.Ipv6Data.nameserver);
                 }
+		*/
             }
             CcspTraceInfo(("%s %d: new v6 DNS Server = %s\n", __FUNCTION__, __LINE__, p_VirtIf->IP.Ipv6Data.nameserver));
             sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_DNS_PRIMARY, p_VirtIf->IP.Ipv6Data.nameserver, 0);
@@ -893,7 +905,9 @@ int wan_updateDNS(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl, BOOL addIPv4, BOOL
             {
                 CcspTraceInfo(("%s %d: adding nameserver %s >> %s\n", __FUNCTION__, __LINE__, p_VirtIf->IP.Ipv6Data.nameserver1, RESOLV_CONF_FILE));
                 fprintf(fp, "nameserver %s\n", p_VirtIf->IP.Ipv6Data.nameserver1);
-		if(strlen(p_VirtIf->IP.Ipv6Data.nameserver1) > 0)
+		resolv_conf_changed = TRUE;
+	    CcspTraceInfo(("[%s %d]KAVYA resolv_conf_changed update\n", __FUNCTION__,__LINE__));
+/*		if(strlen(p_VirtIf->IP.Ipv6Data.nameserver1) > 0)
                 {
                     if(strlen(CurrentActiveDNS) > 0)
                     { 
@@ -901,6 +915,7 @@ int wan_updateDNS(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl, BOOL addIPv4, BOOL
                     }
                     strcat(CurrentActiveDNS,p_VirtIf->IP.Ipv6Data.nameserver1);
                 }
+		*/
             }
             CcspTraceInfo(("%s %d: new v6 DNS Server = %s\n", __FUNCTION__, __LINE__, p_VirtIf->IP.Ipv6Data.nameserver1));
             sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_DNS_SECONDARY, p_VirtIf->IP.Ipv6Data.nameserver1, 0);
@@ -925,7 +940,7 @@ int wan_updateDNS(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl, BOOL addIPv4, BOOL
         // new and curr nameservers are differen, so apply configuration
         CcspTraceInfo(("%s %d: Setting %s\n", __FUNCTION__, __LINE__, SYSEVENT_DHCP_SERVER_RESTART));
         sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_DHCP_SERVER_RESTART, NULL, 0);
-	Update_Interface_Status();
+//	Update_Interface_Status();
     }
     else
     {
@@ -942,7 +957,9 @@ int wan_updateDNS(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl, BOOL addIPv4, BOOL
         if (fp != NULL)
         {
             fprintf(fp, "nameserver %s \n", LOOPBACK);
-	    if(strlen(LOOPBACK) > 0)
+	    resolv_conf_changed = TRUE;
+	    CcspTraceInfo(("[%s %d]KAVYA resolv_conf_changed update\n", __FUNCTION__,__LINE__));
+/*	    if(strlen(LOOPBACK) > 0)
             {
                 if(strlen(CurrentActiveDNS) > 0)
                 {
@@ -950,9 +967,14 @@ int wan_updateDNS(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl, BOOL addIPv4, BOOL
                 }
                 strcat(CurrentActiveDNS,LOOPBACK);
             }
+	    */
         }
     }
-
+    if(resolv_conf_changed)
+    {
+	CcspTraceInfo(("[%s %d]KAVYA resolv_conf_changed,Calling Update_Interface_Status()\n", __FUNCTION__,__LINE__));
+        Update_Interface_Status();
+    }
     if (fp != NULL)
     {
         fclose(fp);
