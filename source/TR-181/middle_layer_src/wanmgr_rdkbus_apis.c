@@ -1729,7 +1729,7 @@ void Update_Current_ActiveDNS()
 	CcspTraceInfo(("[%s %d]KAVYA Update_Current_ActiveDNS Entered \n", __FUNCTION__,__LINE__));
     FILE *fp = NULL;
     char buf[64] = {0};
-    char* token;
+    char* token = NULL;
 
     memset(CurrentActiveDNS,0,sizeof(CurrentActiveDNS));
     if((fp = fopen(RESOLV_CONF_FILE, "r")) == NULL)
@@ -1737,6 +1737,8 @@ void Update_Current_ActiveDNS()
         CcspTraceError(("%s %d - Open %s error!\n", __FUNCTION__, __LINE__, RESOLV_CONF_FILE));
         return RETURN_ERR;
     }
+v_secure_system("cat /etc/resolv.conf >> /tmp/kavya.txt");
+v_secure_system("echo '********************' >> /tmp/kavya.txt");
 
     while((fgets(buf, sizeof(buf), fp)) != NULL){
         token = strtok(buf, " ");
