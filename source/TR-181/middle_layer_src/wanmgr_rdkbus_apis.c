@@ -52,6 +52,8 @@
 #define DATA_SKB_MARKING_LOCATION "/tmp/skb_marking.conf"
 #define WAN_DBUS_PATH             "/com/cisco/spvtg/ccsp/wanmanager"
 #define WAN_COMPONENT_NAME        "eRT.com.cisco.spvtg.ccsp.wanmanager"
+#define RESOLV_CONF_FILE "/etc/resolv.conf"
+
 extern WANMGR_DATA_ST gWanMgrDataBase;
 extern char g_Subsystem[32];
 extern ANSC_HANDLE bus_handle;
