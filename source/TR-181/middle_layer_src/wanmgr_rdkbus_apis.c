@@ -1731,6 +1731,7 @@ void Update_Current_ActiveDNS()
     char buf[64] = {0};
     char* token;
 
+    memset(CurrentActiveDNS,0,sizeof(CurrentActiveDNS));
     if((fp = fopen(RESOLV_CONF_FILE, "r")) == NULL)
     {
         CcspTraceError(("%s %d - Open %s error!\n", __FUNCTION__, __LINE__, RESOLV_CONF_FILE));
@@ -1740,6 +1741,7 @@ void Update_Current_ActiveDNS()
     while((fgets(buf, sizeof(buf), fp)) != NULL){
         token = strtok(buf, " ");
         token = strtok(NULL, " ");
+	CcspTraceError(("[%s %d]KAVYA token = [%s] \n", __FUNCTION__, __LINE__, token));
         if(strlen(token)>0)
         {
             if(strlen(CurrentActiveDNS) > 0 ){
@@ -1749,6 +1751,10 @@ void Update_Current_ActiveDNS()
             strcat(CurrentActiveDNS,token);
         }
     }
+    if (fp != NULL)
+    {
+        fclose(fp);
+    }    
     CcspTraceError(("[%s %d]KAVYA CurrentActiveDNS = [%s] \n", __FUNCTION__, __LINE__, CurrentActiveDNS));
     CcspTraceInfo(("[%s %d]KAVYA Update_Current_ActiveDNS Exit \n", __FUNCTION__,__LINE__));
     return;    
