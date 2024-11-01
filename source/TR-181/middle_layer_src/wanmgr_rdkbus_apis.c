@@ -1737,8 +1737,6 @@ void Update_Current_ActiveDNS()
         CcspTraceError(("%s %d - Open %s error!\n", __FUNCTION__, __LINE__, RESOLV_CONF_FILE));
         return RETURN_ERR;
     }
-v_secure_system("cat /etc/resolv.conf >> /tmp/kavya.txt");
-v_secure_system("echo '********************' >> /tmp/kavya.txt");
 
     while((fgets(buf, sizeof(buf), fp)) != NULL){
         token = strtok(buf, " ");
