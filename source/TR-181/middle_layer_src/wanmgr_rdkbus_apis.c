@@ -53,7 +53,6 @@
 #define WAN_DBUS_PATH             "/com/cisco/spvtg/ccsp/wanmanager"
 #define WAN_COMPONENT_NAME        "eRT.com.cisco.spvtg.ccsp.wanmanager"
 #define RESOLV_CONF_FILE "/etc/resolv.conf"
-
 extern WANMGR_DATA_ST gWanMgrDataBase;
 extern char g_Subsystem[32];
 extern ANSC_HANDLE bus_handle;
@@ -1726,7 +1725,6 @@ void SortedInsert( struct IFACE_INFO** head_ref,  struct IFACE_INFO *new_node)
 }
 void Update_Current_ActiveDNS()
 {
-	CcspTraceInfo(("[%s %d]KAVYA Update_Current_ActiveDNS Entered \n", __FUNCTION__,__LINE__));
     FILE *fp = NULL;
     char buf[64] = {0};
     char* token = NULL;
@@ -1738,13 +1736,12 @@ void Update_Current_ActiveDNS()
         return RETURN_ERR;
     }
 
-    while((fgets(buf, sizeof(buf), fp)) != NULL){
-	CcspTraceError(("[%s %d]KAVYA buf = [%s] \n", __FUNCTION__, __LINE__, buf));
+    while((fgets(buf, sizeof(buf), fp)) != NULL)
+    {
         token = strtok(buf, " ");
 	if(!strcmp(token,"nameserver"))
 	{
             token = strtok(NULL, " ");
-            CcspTraceError(("[%s %d]KAVYA token = [%s] \n", __FUNCTION__, __LINE__, token));
             if(strlen(token)>0)
             {
                 if(strlen(CurrentActiveDNS) > 0 )
@@ -1757,14 +1754,11 @@ void Update_Current_ActiveDNS()
 	}
         memset(buf, 0 , sizeof(buf));
         memset(token,0,sizeof(token));
-	//token = NULL;
     }
     if (fp != NULL)
     {
         fclose(fp);
     }    
-    CcspTraceError(("[%s %d]KAVYA CurrentActiveDNS = [%s] \n", __FUNCTION__, __LINE__, CurrentActiveDNS));
-    CcspTraceInfo(("[%s %d]KAVYA Update_Current_ActiveDNS Exit \n", __FUNCTION__,__LINE__));
     return;    
 }
 ANSC_STATUS Update_Interface_Status()
@@ -1897,7 +1891,6 @@ ANSC_STATUS Update_Interface_Status()
         free(pHead);
         pHead = tmp;
     }
-CcspTraceInfo(("[%s %d]KAVYA Calling Update_Current_ActiveDNS\n", __FUNCTION__,__LINE__));
     Update_Current_ActiveDNS();    
     pWanConfigData = WanMgr_GetConfigData_locked();
     if (pWanConfigData != NULL)
@@ -1991,7 +1984,7 @@ CcspTraceInfo(("[%s %d]KAVYA Calling Update_Current_ActiveDNS\n", __FUNCTION__,_
     if(publishCurrentActiveDNS == TRUE)
     {
         WanMgr_Rbus_EventPublishHandler(WANMGR_CONFIG_WAN_CURRENTACTIVEDNS,CurrentActiveDNS,RBUS_STRING);
-    }    
+    }
 
 #endif //RBUS_BUILD_FLAG_ENABLE
     return ANSC_STATUS_SUCCESS;
