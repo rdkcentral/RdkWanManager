@@ -1741,18 +1741,22 @@ void Update_Current_ActiveDNS()
     while((fgets(buf, sizeof(buf), fp)) != NULL){
 	CcspTraceError(("[%s %d]KAVYA buf = [%s] \n", __FUNCTION__, __LINE__, buf));
         token = strtok(buf, " ");
-        token = strtok(NULL, " ");
-	CcspTraceError(("[%s %d]KAVYA token = [%s] \n", __FUNCTION__, __LINE__, token));
-        if(strlen(token)>0)
-        {
-            if(strlen(CurrentActiveDNS) > 0 ){
-                strcat(CurrentActiveDNS,",");
-	    }
-            token[strlen(token)-1] = '\0';
-            strcat(CurrentActiveDNS,token);
-        }
-	memset(buf, 0 , sizeof(buf));
-	memset(token,0,sizeof(token));
+	if(!strcmp(token,"nameserver"))
+	{
+            token = strtok(NULL, " ");
+            CcspTraceError(("[%s %d]KAVYA token = [%s] \n", __FUNCTION__, __LINE__, token));
+            if(strlen(token)>0)
+            {
+                if(strlen(CurrentActiveDNS) > 0 )
+		{
+                    strcat(CurrentActiveDNS,",");
+                }
+                token[strlen(token)-1] = '\0';
+                strcat(CurrentActiveDNS,token);
+            }
+	}
+        memset(buf, 0 , sizeof(buf));
+        memset(token,0,sizeof(token));
 	//token = NULL;
     }
     if (fp != NULL)
