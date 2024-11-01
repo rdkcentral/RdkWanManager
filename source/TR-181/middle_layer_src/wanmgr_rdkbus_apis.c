@@ -1750,6 +1750,7 @@ void Update_Current_ActiveDNS()
             token[strlen(token)-1] = '\0';
             strcat(CurrentActiveDNS,token);
         }
+	memset(buf, 0 , sizeof(buf));
     }
     if (fp != NULL)
     {
