@@ -1897,7 +1897,7 @@ ANSC_STATUS Update_Interface_Status()
         pHead = tmp;
     }
     Update_Current_ActiveDNS();
-    CcspTraceInfo(("%s %d-KAVYA\nKAVYA Updated old-[%s] new-[%s]\n",__FUNCTION__,__LINE__,pWanDmlData->CurrentActiveDNS,CurrentActiveDNS));
+    CcspTraceInfo(("%s %d-KAVYA\nKAVYA Updated new-[%s]\n",__FUNCTION__,__LINE__,CurrentActiveDNS));
 
     pWanConfigData = WanMgr_GetConfigData_locked();
     if (pWanConfigData != NULL)
