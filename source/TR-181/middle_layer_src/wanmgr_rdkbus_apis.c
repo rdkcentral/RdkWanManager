@@ -1728,6 +1728,7 @@ void Update_Current_ActiveDNS()
     FILE *fp = NULL;
     char buf[64] = {0};
     char* token = NULL;
+    CcspTraceInfo(("%s %d - KAVYA Entered\n", __FUNCTION__,__LINE__));
 
     memset(CurrentActiveDNS,0,sizeof(CurrentActiveDNS));
     if((fp = fopen(RESOLV_CONF_FILE, "r")) == NULL)
@@ -1748,7 +1749,10 @@ void Update_Current_ActiveDNS()
 		{
                     strcat(CurrentActiveDNS,",");
                 }
-                token[strlen(token)-1] = '\0';
+		if(token[strlen(token)-1] == '\n')
+		{
+                    token[strlen(token)-1] = '\0';
+		}
                 strcat(CurrentActiveDNS,token);
             }
 	}
@@ -1774,6 +1778,7 @@ ANSC_STATUS Update_Interface_Status()
     CHAR    prevInterfaceActiveStatus[BUFLEN_64]     = {0};
     CHAR    prevCurrentActiveInterface[BUFLEN_64] = {0};
     CHAR    prevCurrentStandbyInterface[BUFLEN_64] = {0};
+    CHAR    prevCurrentActiveDNS[BUFLEN_256] = {0};
 
 #ifdef RBUS_BUILD_FLAG_ENABLE
     CHAR    CurrentWanStatus[BUFLEN_16] = "Down";
@@ -1916,8 +1921,10 @@ ANSC_STATUS Update_Interface_Status()
         }
         if(strcmp(pWanDmlData->CurrentActiveDNS,CurrentActiveDNS) != 0)
         {
+	    strncpy(prevCurrentActiveDNS,pWanDmlData->CurrentActiveDNS,sizeof(prevCurrentActiveDNS)-1);
             memset(pWanDmlData->CurrentActiveDNS,0, sizeof(pWanDmlData->CurrentActiveDNS));
             strncpy(pWanDmlData->CurrentActiveDNS,CurrentActiveDNS, sizeof(pWanDmlData->CurrentActiveDNS) - 1);
+	    CcspTraceInfo(("%s %d-KAVYA\nKAVYA CurrentActiveDNS- [%s] [%s]\n",__FUNCTION__,__LINE__,pWanDmlData->CurrentActiveDNS,CurrentActiveDNS));
 #ifdef RBUS_BUILD_FLAG_ENABLE
             publishCurrentActiveDNS = TRUE;
 #endif
@@ -1983,7 +1990,9 @@ ANSC_STATUS Update_Interface_Status()
     }
     if(publishCurrentActiveDNS == TRUE)
     {
-        WanMgr_Rbus_EventPublishHandler(WANMGR_CONFIG_WAN_CURRENTACTIVEDNS,CurrentActiveDNS,RBUS_STRING);
+	CcspTraceInfo(("%s %d-KAVYA\nKAVYA CurrentActiveDNS-old= [%s] new= [%s]\n",__FUNCTION__,__LINE__,prevCurrentActiveDNS,CurrentActiveDNS));
+	WanMgr_Rbus_String_EventPublish_OnValueChange(WANMGR_CONFIG_WAN_CURRENTACTIVEDNS,prevCurrentActiveDNS,CurrentActiveDNS);
+//        WanMgr_Rbus_EventPublishHandler(WANMGR_CONFIG_WAN_CURRENTACTIVEDNS,CurrentActiveDNS,RBUS_STRING);
     }
 
 #endif //RBUS_BUILD_FLAG_ENABLE
