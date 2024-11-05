@@ -52,11 +52,11 @@
 #define DATA_SKB_MARKING_LOCATION "/tmp/skb_marking.conf"
 #define WAN_DBUS_PATH             "/com/cisco/spvtg/ccsp/wanmanager"
 #define WAN_COMPONENT_NAME        "eRT.com.cisco.spvtg.ccsp.wanmanager"
-#define RESOLV_CONF_FILE "/etc/resolv.conf"
+#define RESOLV_CONF_FILE          "/etc/resolv.conf"
 extern WANMGR_DATA_ST gWanMgrDataBase;
 extern char g_Subsystem[32];
 extern ANSC_HANDLE bus_handle;
-char CurrentActiveDNS[BUFLEN_256];
+//char CurrentActiveDNS[BUFLEN_256];
 
 int get_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFACE* p_Interface)
 {
@@ -1723,7 +1723,7 @@ void SortedInsert( struct IFACE_INFO** head_ref,  struct IFACE_INFO *new_node)
         current->next = new_node;
     }
 }
-void Update_Current_ActiveDNS()
+void Update_Current_ActiveDNS(char* CurrentActiveDNS)
 {
     FILE *fp = NULL;
     char buf[64] = {0};
@@ -1772,6 +1772,7 @@ ANSC_STATUS Update_Interface_Status()
     CHAR    InterfaceActiveStatus[BUFLEN_64]     = {0};
     CHAR    CurrentActiveInterface[BUFLEN_64] = {0};
     CHAR    CurrentStandbyInterface[BUFLEN_64] = {0};
+    CHAR    CurrentActiveDNS[BUFLEN_256] ={0};
 
     CHAR    prevInterfaceAvailableStatus[BUFLEN_64]  = {0};
     CHAR    prevInterfaceActiveStatus[BUFLEN_64]     = {0};
@@ -1895,7 +1896,7 @@ ANSC_STATUS Update_Interface_Status()
         free(pHead);
         pHead = tmp;
     }
-    Update_Current_ActiveDNS();
+    Update_Current_ActiveDNS(CurrentActiveDNS);
 
     pWanConfigData = WanMgr_GetConfigData_locked();
     if (pWanConfigData != NULL)
