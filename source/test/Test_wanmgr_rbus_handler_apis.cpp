@@ -48,9 +48,9 @@ protected:
         {
             WanMgr_Iface_Data_t*  pIfaceData  = &(pWanIfaceCtrl->pIface[idx]);
 
-            strncpy(pIfaceData->data.VirtIfList->IP.Ipv4Data.ip, "9.9.9.9",sizeof(pIfaceData->data.VirtIfList->IP.Ipv4Data.ip));
-            strncpy(pIfaceData->data.VirtIfList->IP.Ipv6Data.address, "2a02:c7f:8253:3900::1",sizeof(pIfaceData->data.VirtIfList->IP.Ipv6Data.address));
-            strncpy(pIfaceData->data.VirtIfList->IP.Ipv6Data.sitePrefix, "2a02:c7f:8253:3900::1",sizeof(pIfaceData->data.VirtIfList->IP.Ipv6Data.sitePrefix));
+            strncpy(pIfaceData->data.VirtIfList->IP.Ipv4Data.ip, "9.9.9.9",sizeof(pIfaceData->data.VirtIfList->IP.Ipv4Data.ip)-1);
+            strncpy(pIfaceData->data.VirtIfList->IP.Ipv6Data.address, "2a02:c7f:8253:3900::1",sizeof(pIfaceData->data.VirtIfList->IP.Ipv6Data.address)-1);
+            strncpy(pIfaceData->data.VirtIfList->IP.Ipv6Data.sitePrefix, "2a02:c7f:8253:3900::1",sizeof(pIfaceData->data.VirtIfList->IP.Ipv6Data.sitePrefix)-1);
         }
     }
 
@@ -61,36 +61,79 @@ protected:
     }
 };
 
+TEST_F(RbusHandlerTest, InterfaceGetHandlerIPV4Address2)
+{
+    rbusHandle_t handle  = nullptr;
+    std::string DmlName = "Device.X_RDK_WanManager.Interface.2.VirtualInterface.1.IP.IPv4Address";
+    rbusProperty_t property = reinterpret_cast<rbusProperty_t>(0x1234);
+    rbusGetHandlerOptions_t opts;
+    rbusValue_t value = reinterpret_cast<rbusValue_t>(0x5678);
+
+    EXPECT_CALL(mockedRbus, rbusProperty_GetName(property))
+        .Times(1)
+        .WillOnce(Return(DmlName.c_str()));
+
+    EXPECT_CALL(mockedRbus, rbusValue_Init(_))
+        .Times(1)
+        .WillOnce(DoAll(SetArgPointee<0>(value), Return(value)));
+
+    EXPECT_CALL(mockedRbus, rbusValue_SetString(value,StrEq("9.9.9.9"))).Times(1);
+    EXPECT_CALL(mockedRbus, rbusProperty_SetValue(property,value)).Times(1);
+    EXPECT_CALL(mockedRbus, rbusValue_Release(_)).Times(1);
+
+    rbusError_t result = WanMgr_Interface_GetHandler(handle, property, &opts);
+    EXPECT_EQ(result, RBUS_ERROR_SUCCESS);
+}
+
 
 TEST_F(RbusHandlerTest, InterfaceGetHandlerIPV6Address)
 {
     rbusHandle_t handle  = nullptr;
-    rbusProperty_t property  = nullptr;
-    rbusGetHandlerOptions_t *opts = nullptr;
     std::string DmlName = "Device.X_RDK_WanManager.Interface.1.VirtualInterface.1.IP.IPv6Address";
-    
-    EXPECT_CALL(mockedRbus, rbusValue_Init(_)).Times(1);
-    EXPECT_CALL(mockedRbus, rbusValue_SetString(_,StrEq("2a02:c7f:8253:3900::1"))).Times(1);
-    EXPECT_CALL(mockedRbus, rbusProperty_SetValue(_,_)).Times(1);
+    rbusProperty_t property = reinterpret_cast<rbusProperty_t>(0x1234);
+    rbusGetHandlerOptions_t opts;
+    rbusValue_t value = reinterpret_cast<rbusValue_t>(0x5678);
+
+
+    EXPECT_CALL(mockedRbus, rbusProperty_GetName(property))
+        .Times(1)
+        .WillOnce(Return(DmlName.c_str()));
+ 
+
+    EXPECT_CALL(mockedRbus, rbusValue_Init(_))
+        .Times(1)
+        .WillOnce(DoAll(SetArgPointee<0>(value), Return(value)));
+
+    EXPECT_CALL(mockedRbus, rbusValue_SetString(value,StrEq("2a02:c7f:8253:3900::1"))).Times(1);
+    EXPECT_CALL(mockedRbus, rbusProperty_SetValue(property,value)).Times(1);
     EXPECT_CALL(mockedRbus, rbusValue_Release(_)).Times(1);
-    EXPECT_CALL(mockedRbus, rbusProperty_GetName(Eq(nullptr))).Times(1).WillOnce(Return(DmlName.c_str()));
     
-    EXPECT_EQ(RBUS_ERROR_SUCCESS, WanMgr_Interface_GetHandler(handle, property, opts));
+    rbusError_t result = WanMgr_Interface_GetHandler(handle, property, &opts);
+    EXPECT_EQ(result, RBUS_ERROR_SUCCESS);
+
 
 }
 
 TEST_F(RbusHandlerTest, InterfaceGetHandlerIPV4Address)
 {
     rbusHandle_t handle  = nullptr;
-    rbusProperty_t property  = nullptr;
-    rbusGetHandlerOptions_t *opts  = nullptr;
     std::string DmlName = "Device.X_RDK_WanManager.Interface.1.VirtualInterface.1.IP.IPv4Address";
+    rbusProperty_t property = reinterpret_cast<rbusProperty_t>(0x1234);
+    rbusGetHandlerOptions_t opts;
+    rbusValue_t value = reinterpret_cast<rbusValue_t>(0x5678);
 
-    EXPECT_CALL(mockedRbus, rbusValue_Init(_)).Times(1);
+    EXPECT_CALL(mockedRbus, rbusProperty_GetName(property))
+        .Times(1)
+        .WillOnce(Return(DmlName.c_str()));
+
+    EXPECT_CALL(mockedRbus, rbusValue_Init(_))
+        .Times(1)
+        .WillOnce(DoAll(SetArgPointee<0>(value), Return(value)));
+
+    EXPECT_CALL(mockedRbus, rbusValue_SetString(value,StrEq("9.9.9.9"))).Times(1);
+    EXPECT_CALL(mockedRbus, rbusProperty_SetValue(property,value)).Times(1);
     EXPECT_CALL(mockedRbus, rbusValue_Release(_)).Times(1);
-    EXPECT_CALL(mockedRbus, rbusProperty_SetValue(_,_)).Times(1);
-    EXPECT_CALL(mockedRbus, rbusValue_SetString(_,StrEq("9.9.9.9"))).Times(1);
-    EXPECT_CALL(mockedRbus, rbusProperty_GetName(Eq(nullptr))).Times(1).WillOnce(Return(DmlName.c_str()));
-    
-    EXPECT_EQ(RBUS_ERROR_SUCCESS, WanMgr_Interface_GetHandler(handle, property, opts));
+
+    rbusError_t result = WanMgr_Interface_GetHandler(handle, property, &opts);
+    EXPECT_EQ(result, RBUS_ERROR_SUCCESS);
 }

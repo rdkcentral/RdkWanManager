@@ -82,6 +82,7 @@ void WanMgrBase::SetUp()
         for(int i=0; i< pIfaceData->data.NoOfVirtIfs; i++)
         {
             DML_VIRTUAL_IFACE* p_VirtIf = (DML_VIRTUAL_IFACE *) AnscAllocateMemory( sizeof(DML_VIRTUAL_IFACE) );
+            std::cout << "PARTHI Function: " << __func__ << ", Line: " << __LINE__ << " Created "<< p_VirtIf << std::endl;
             WanMgr_VirtIface_Init(p_VirtIf, i);
             WanMgr_AddVirtualToList(&(pIfaceData->data.VirtIfList), p_VirtIf);
         }
@@ -104,15 +105,13 @@ void WanMgrBase::TearDown()
     {
         WanMgr_Iface_Data_t*  pIfaceData  = &(pWanIfaceCtrl->pIface[idx]);
 
-        for(int i=0; i< pIfaceData->data.NoOfVirtIfs; i++)
+        DML_VIRTUAL_IFACE* virIface = pIfaceData->data.VirtIfList;
+        while(virIface != NULL)
         {
-            DML_VIRTUAL_IFACE* virIface = pIfaceData->data.VirtIfList;
-            while(virIface != NULL)
-            {
-                DML_VIRTUAL_IFACE* temp = virIface;
-                virIface = virIface->next;
-                free(temp);
-            }
+            DML_VIRTUAL_IFACE* temp = virIface;
+            virIface = virIface->next;
+            std::cout << "PARTHI Function: " << __func__ << ", Line: " << __LINE__ << " Freeing "<< temp << std::endl;
+            free(temp);
         }
     }
     free(pWanIfaceCtrl->pIface);

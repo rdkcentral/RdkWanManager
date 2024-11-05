@@ -38,6 +38,9 @@ using ::testing::Eq;
 using ::testing::StrEq;
 using ::testing::IsNull;
 using ::testing::NotNull;
+using ::testing::SetArgReferee;
+using ::testing::SetArgPointee;
+using ::testing::DoAll;
 
 class MockWanMgr
 {
