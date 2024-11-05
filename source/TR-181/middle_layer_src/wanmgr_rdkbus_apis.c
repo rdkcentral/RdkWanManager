@@ -1728,7 +1728,6 @@ void Update_Current_ActiveDNS()
     FILE *fp = NULL;
     char buf[64] = {0};
     char* token = NULL;
-    CcspTraceInfo(("%s %d - KAVYA Entered\n", __FUNCTION__,__LINE__));
 
     memset(CurrentActiveDNS,0,sizeof(CurrentActiveDNS));
     if((fp = fopen(RESOLV_CONF_FILE, "r")) == NULL)
@@ -1897,7 +1896,6 @@ ANSC_STATUS Update_Interface_Status()
         pHead = tmp;
     }
     Update_Current_ActiveDNS();
-    CcspTraceInfo(("%s %d-KAVYA\nKAVYA Updated new-[%s]\n",__FUNCTION__,__LINE__,CurrentActiveDNS));
 
     pWanConfigData = WanMgr_GetConfigData_locked();
     if (pWanConfigData != NULL)
@@ -1923,10 +1921,10 @@ ANSC_STATUS Update_Interface_Status()
         }
         if(strcmp(pWanDmlData->CurrentActiveDNS,CurrentActiveDNS) != 0)
         {
+	    CcspTraceInfo(("%s %d CurrentActiveDNS- [%s] [%s]\n",__FUNCTION__,__LINE__,pWanDmlData->CurrentActiveDNS,CurrentActiveDNS));
 	    strncpy(prevCurrentActiveDNS,pWanDmlData->CurrentActiveDNS,sizeof(prevCurrentActiveDNS)-1);
             memset(pWanDmlData->CurrentActiveDNS,0, sizeof(pWanDmlData->CurrentActiveDNS));
             strncpy(pWanDmlData->CurrentActiveDNS,CurrentActiveDNS, sizeof(pWanDmlData->CurrentActiveDNS) - 1);
-	    CcspTraceInfo(("%s %d-KAVYA\nKAVYA CurrentActiveDNS- [%s] [%s]\n",__FUNCTION__,__LINE__,pWanDmlData->CurrentActiveDNS,CurrentActiveDNS));
 #ifdef RBUS_BUILD_FLAG_ENABLE
             publishCurrentActiveDNS = TRUE;
 #endif
@@ -1992,9 +1990,7 @@ ANSC_STATUS Update_Interface_Status()
     }
     if(publishCurrentActiveDNS == TRUE)
     {
-	CcspTraceInfo(("%s %d-KAVYA\nKAVYA CurrentActiveDNS-old= [%s] new= [%s]\n",__FUNCTION__,__LINE__,prevCurrentActiveDNS,CurrentActiveDNS));
 	WanMgr_Rbus_String_EventPublish_OnValueChange(WANMGR_CONFIG_WAN_CURRENTACTIVEDNS,prevCurrentActiveDNS,CurrentActiveDNS);
-//        WanMgr_Rbus_EventPublishHandler(WANMGR_CONFIG_WAN_CURRENTACTIVEDNS,CurrentActiveDNS,RBUS_STRING);
     }
 
 #endif //RBUS_BUILD_FLAG_ENABLE

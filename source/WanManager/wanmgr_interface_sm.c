@@ -912,10 +912,8 @@ int wan_updateDNS(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl, BOOL addIPv4, BOOL
         fclose(fp);
     }
 
-    CcspTraceInfo(("%s %d - KAVYA check resolv_conf_changed\n", __FUNCTION__,__LINE__));
     if(resolv_conf_changed)
     {
-    CcspTraceInfo(("%s %d - KAVYA changed call Update_Interface_Status()\n", __FUNCTION__,__LINE__));
         Update_Interface_Status();
     }
 
