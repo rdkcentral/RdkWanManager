@@ -1076,8 +1076,10 @@ static void updateInterfaceToVoiceManager(WanMgr_IfaceSM_Controller_t* pWanIface
         {
 #if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
             strncpy(voipIfName, p_VirtIf->Name, sizeof(voipIfName));
+	    CcspTraceError(("%s %d - voipifname wan [%s] to VoiceManager \n", __FUNCTION__, __LINE__, voipIfName));
 #else
             strncpy(voipIfName, "erouter0", sizeof(voipIfName));
+	    CcspTraceError(("%s %d - voipifname [%s] to VoiceManager \n", __FUNCTION__, __LINE__, voipIfName));
 #endif
         }
 
