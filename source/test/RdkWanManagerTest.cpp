@@ -211,6 +211,7 @@ TEST_F(WanMgrBase, TestConfigureTADWithDnsIpv4)
 TEST_F(WanMgrBase, TestConfigureTADWithDnsIpv6) 
 {
     //TODO : Set correct expecttations
+    EXPECT_CALL(mockedRbus, rbusObject_Init(testing::_, testing::_)).Times(testing::AnyNumber());
     EXPECT_CALL(mockedRbus, rbusValue_Init(testing::_)).Times(testing::AnyNumber());
     EXPECT_CALL(mockedRbus, rbusValue_SetString(testing::_, testing::_)).Times(testing::AnyNumber());
     EXPECT_CALL(mockedRbus, rbusObject_SetValue(testing::_, testing::_, testing::_)).Times(testing::AnyNumber());

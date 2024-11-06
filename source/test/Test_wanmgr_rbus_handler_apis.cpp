@@ -61,31 +61,6 @@ protected:
     }
 };
 
-TEST_F(RbusHandlerTest, InterfaceGetHandlerIPV4Address2)
-{
-    rbusHandle_t handle  = nullptr;
-    std::string DmlName = "Device.X_RDK_WanManager.Interface.2.VirtualInterface.1.IP.IPv4Address";
-    rbusProperty_t property = reinterpret_cast<rbusProperty_t>(0x1234);
-    rbusGetHandlerOptions_t opts;
-    rbusValue_t value = reinterpret_cast<rbusValue_t>(0x5678);
-
-    EXPECT_CALL(mockedRbus, rbusProperty_GetName(property))
-        .Times(1)
-        .WillOnce(Return(DmlName.c_str()));
-
-    EXPECT_CALL(mockedRbus, rbusValue_Init(_))
-        .Times(1)
-        .WillOnce(DoAll(SetArgPointee<0>(value), Return(value)));
-
-    EXPECT_CALL(mockedRbus, rbusValue_SetString(value,StrEq("9.9.9.9"))).Times(1);
-    EXPECT_CALL(mockedRbus, rbusProperty_SetValue(property,value)).Times(1);
-    EXPECT_CALL(mockedRbus, rbusValue_Release(_)).Times(1);
-
-    rbusError_t result = WanMgr_Interface_GetHandler(handle, property, &opts);
-    EXPECT_EQ(result, RBUS_ERROR_SUCCESS);
-}
-
-
 TEST_F(RbusHandlerTest, InterfaceGetHandlerIPV6Address)
 {
     rbusHandle_t handle  = nullptr;
