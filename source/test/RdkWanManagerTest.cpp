@@ -71,7 +71,7 @@ void WanMgrBase::SetUp()
 
     //init mock interfaces
     WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl = &(gWanMgrDataBase.IfaceCtrl);
-    pWanIfaceCtrl->pIface = (WanMgr_Iface_Data_t*) AnscAllocateMemory( sizeof(WanMgr_Iface_Data_t) * MAX_WAN_INTERFACE_ENTRY);
+    pWanIfaceCtrl->pIface = (WanMgr_Iface_Data_t*) malloc( sizeof(WanMgr_Iface_Data_t) * MAX_WAN_INTERFACE_ENTRY);
     memset( pWanIfaceCtrl->pIface, 0, ( sizeof(WanMgr_Iface_Data_t) * MAX_WAN_INTERFACE_ENTRY ) );
     pWanIfaceCtrl->ulTotalNumbWanInterfaces = 4;
     for(int idx = 0 ; idx <  pWanIfaceCtrl->ulTotalNumbWanInterfaces; idx++ )
@@ -81,9 +81,10 @@ void WanMgrBase::SetUp()
         WanMgr_IfaceData_Init(pIfaceData, idx);
         for(int i=0; i< pIfaceData->data.NoOfVirtIfs; i++)
         {
-            DML_VIRTUAL_IFACE* p_VirtIf = (DML_VIRTUAL_IFACE *) AnscAllocateMemory( sizeof(DML_VIRTUAL_IFACE) );
-            std::cout << "PARTHI Function: " << __func__ << ", Line: " << __LINE__ << " Created "<< p_VirtIf << std::endl;
+            DML_VIRTUAL_IFACE* p_VirtIf = (DML_VIRTUAL_IFACE *) malloc( sizeof(DML_VIRTUAL_IFACE) );
+            memset( p_VirtIf, 0, sizeof(DML_VIRTUAL_IFACE) );
             WanMgr_VirtIface_Init(p_VirtIf, i);
+            p_VirtIf->next = NULL;
             WanMgr_AddVirtualToList(&(pIfaceData->data.VirtIfList), p_VirtIf);
         }
         strncpy(pIfaceData->data.AliasName, ifaceName[idx][1].c_str(),sizeof(pIfaceData->data.AliasName));
@@ -110,7 +111,6 @@ void WanMgrBase::TearDown()
         {
             DML_VIRTUAL_IFACE* temp = virIface;
             virIface = virIface->next;
-            std::cout << "PARTHI Function: " << __func__ << ", Line: " << __LINE__ << " Freeing "<< temp << std::endl;
             free(temp);
         }
     }
@@ -306,6 +306,7 @@ extern "C" ANSC_STATUS wanmgr_handle_dhcpv4_event_data(DML_VIRTUAL_IFACE* pVirtI
         mockWanMgr->wanmgr_handle_dhcpv4_event_data(pVirtIf);
     }
 }
+#ifdef ENABLE_FEATURE_TELEMETRY2_0
 /* 
  * Unit test for the WanMgr_TelemetryEventTrigger() function.
  * 
@@ -320,9 +321,6 @@ extern "C" ANSC_STATUS wanmgr_handle_dhcpv4_event_data(DML_VIRTUAL_IFACE* pVirtI
 
 TEST_F(WanfailOver, TelemetryFailOverOSuccess) 
 {
-#ifndef ENABLE_FEATURE_TELEMETRY2_0
-      GTEST_SKIP() << "Skipping "<< UnitTest::GetInstance()->current_test_info()->name()  <<"test ENABLE_FEATURE_TELEMETRY2_0 is not enabled";
-#endif
     //Start the FailOver Timer for telemetry
     memset(&(FWController.FailOverTimer), 0, sizeof(struct timespec));
     clock_gettime(CLOCK_MONOTONIC_RAW, &(FWController.FailOverTimer));
@@ -348,9 +346,6 @@ TEST_F(WanfailOver, TelemetryFailOverOSuccess)
  */
 TEST_F(WanfailOver, TelemetryRestoreSuccess) 
 {
-#ifndef ENABLE_FEATURE_TELEMETRY2_0
-      GTEST_SKIP() << "Skipping "<< UnitTest::GetInstance()->current_test_info()->name()  <<"test ENABLE_FEATURE_TELEMETRY2_0 is not enabled";
-#endif
     //Start the FailOver Timer for telemetry
     memset(&(FWController.FailOverTimer), 0, sizeof(struct timespec));
     clock_gettime(CLOCK_MONOTONIC_RAW, &(FWController.FailOverTimer));
@@ -375,9 +370,6 @@ TEST_F(WanfailOver, TelemetryRestoreSuccess)
  */
 TEST_F(WanfailOver, TelemetryRestoreFail)
 {
-#ifndef ENABLE_FEATURE_TELEMETRY2_0
-      GTEST_SKIP() << "Skipping "<< UnitTest::GetInstance()->current_test_info()->name()  <<"test ENABLE_FEATURE_TELEMETRY2_0 is not enabled";
-#endif
     EXPECT_CALL(mockWanUtils,t2_event_d(StrCmpLen("WAN_RESTORE_FAIL_COUNT", strlen("WAN_RESTORE_FAIL_COUNT")), Eq(1)))
         .Times(1);
     FWController.TelemetryEvent = WAN_RESTORE_FAIL;
@@ -396,12 +388,10 @@ TEST_F(WanfailOver, TelemetryRestoreFail)
  */
 TEST_F(WanfailOver, TelemetryFailOverFail)
 {
-#ifndef ENABLE_FEATURE_TELEMETRY2_0
-      GTEST_SKIP() << "Skipping "<< UnitTest::GetInstance()->current_test_info()->name()  <<"test ENABLE_FEATURE_TELEMETRY2_0 is not enabled";
-#endif
     EXPECT_CALL(mockWanUtils,t2_event_d(StrCmpLen("WAN_FAILOVER_FAIL_COUNT", strlen("WAN_FAILOVER_FAIL_COUNT")), Eq(1)))
         .Times(1);
     FWController.TelemetryEvent = WAN_FAILOVER_FAIL;
     WanMgr_TelemetryEventTrigger(&FWController);
 }
 
+#endif
