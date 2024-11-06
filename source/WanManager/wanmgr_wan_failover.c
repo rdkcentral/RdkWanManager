@@ -249,38 +249,6 @@ static ANSC_STATUS WanMgr_ActivateGroup(UINT groupId)
     return ANSC_STATUS_SUCCESS;
 }
 
-#if !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
-/* WanMgr_SetRestartV6Client()
- * Trigger the selected interface to restart IPv6 client
- */
-//TODO: This is a workaround for the platforms using PAM for configuring Ipv6
-static ANSC_STATUS WanMgr_SetRestartV6Client(UINT groupId)
-{
-
-    WANMGR_IFACE_GROUP* pWanIfaceGroup = WanMgr_GetIfaceGroup_locked((groupId - 1));
-    if (pWanIfaceGroup != NULL)
-    {
-        if (pWanIfaceGroup->SelectedInterface)
-        {
-            WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked((pWanIfaceGroup->SelectedInterface - 1));
-            if (pWanDmlIfaceData != NULL)
-            {
-                DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
-                if(pWanIfaceData->VirtIfList->IP.IPv6Source == DML_WAN_IP_SOURCE_DHCP)
-                {
-                    CcspTraceInfo(("%s %d Triggering RestartV6Client for %s \n", __FUNCTION__, __LINE__, pWanIfaceData->VirtIfList->Name));
-                    pWanIfaceData->VirtIfList->IP.RestartV6Client =TRUE;
-                }
-                WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
-            }
-        }
-        WanMgrDml_GetIfaceGroup_release();
-    }
-
-    return ANSC_STATUS_SUCCESS;
-}
-#endif
-
 static void WanMgr_FO_IfaceGroupMonitor()
 {
     for(int i = 0; i < WanMgr_GetTotalNoOfGroups(); i++)
@@ -590,9 +558,6 @@ static WcFailOverState_t Transition_ActivateGroup (WanMgr_FailOver_Controller_t 
         //Update Telemetry
         if(pFailOverController->CurrentActiveGroup)
         {
-#if !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
-            WanMgr_SetRestartV6Client(pFailOverController->CurrentActiveGroup); 
-#endif
             if(pFailOverController->CurrentActiveGroup < pFailOverController->HighestValidGroup)
                 pFailOverController->TelemetryEvent = WAN_FAILOVER_SUCCESS;
             else if(pFailOverController->CurrentActiveGroup > pFailOverController->HighestValidGroup)

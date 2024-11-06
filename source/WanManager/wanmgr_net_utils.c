@@ -156,8 +156,8 @@ static ANSC_STATUS setDibblerClientEnable(BOOL * enable);
  ****************************************************************************/
 #define SERIALIZATION_DATA "/tmp/serial.txt"
 static ANSC_STATUS GetAdslUsernameAndPassword(char *Username, char *Password);
-static int WanManager_CalculatePsidAndV4Index(char *pdIPv6Prefix, int v6PrefixLen, int iapdPrefixLen, int v4PrefixLen, int *psidValue, int *ipv4IndexValue, int *psidLen);
 #endif
+static int WanManager_CalculatePsidAndV4Index(char *pdIPv6Prefix, int v6PrefixLen, int iapdPrefixLen, int v4PrefixLen, int *psidValue, int *ipv4IndexValue, int *psidLen);
 
 #if defined(FEATURE_464XLAT)
 #define XLAT_INTERFACE "xlat"
@@ -488,11 +488,12 @@ int WanManager_Ipv6AddrUtil(char *ifname, Ipv6OperType opr, int preflft, int val
         {
             if (strlen(prefix) > 0)
             {
+#if !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_))  //Do not delete prefix from LAn bridge for the comcast platforms.
                 memset(cmdLine, 0, sizeof(cmdLine));
                 snprintf(cmdLine, sizeof(cmdLine), "ip -6 addr del %s/64 dev %s", prefixAddr, IfaceName);
                 if (WanManager_DoSystemActionWithStatus("ip -6 addr del ADDR dev xxxx", cmdLine) != 0)
                     CcspTraceError(("failed to run cmd: %s", cmdLine));
-
+#endif
                 memset(cmdLine, 0, sizeof(cmdLine));
 #if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
                 snprintf(cmdLine, sizeof(cmdLine), "ip -6 route flush match %s ", prefix);
@@ -557,12 +558,7 @@ uint32_t WanManager_StartDhcpv6Client(DML_VIRTUAL_IFACE* pVirtIf, IFACE_TYPE Ifa
     params.ifType = IfaceType;
 
     CcspTraceInfo(("Enter WanManager_StartDhcpv6Client for  %s \n", pVirtIf->Name));
-
-#if (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_)) //TODO: ipv6 handled in PAM
-    //Enable accept_ra while starting dhcpv6 for comcast devices.
-    WanMgr_Configure_accept_ra(pVirtIf, TRUE);
-    usleep(500000); //sleep for 500 milli seconds
-#endif
+    WanManager_send_and_receive_rs(pVirtIf);
     pid = start_dhcpv6_client(&params);
     pVirtIf->IP.Dhcp6cPid = pid;
 
@@ -758,6 +754,40 @@ static ANSC_STATUS WanManager_GetLANIPAddress(char *ipAddress, size_t length)
     return ANSC_STATUS_SUCCESS;
 }
 
+#define UPnPIGD_ENABLE_DML "Device.UPnP.Device.UPnPIGD"
+BOOL g_UPnPIGDServiceStopped = false;
+int WanMgr_RdkBus_ConfigureUPnPIGDService (BOOL configure_UPnPIGD)
+{
+    if( configure_UPnPIGD && g_UPnPIGDServiceStopped)
+    {
+        CcspTraceInfo(("%s %d: upnp_igd was stopped while configuring MAPT. Starting the service again\n", __FUNCTION__, __LINE__));
+        if (WanMgr_RdkBus_SetParamValues( PAM_COMPONENT_NAME, PAM_DBUS_PATH, UPnPIGD_ENABLE_DML, "true", ccsp_boolean, TRUE ) == ANSC_STATUS_SUCCESS)
+        {
+            CcspTraceInfo(("%s %d: Succesfully set %s to true\n", __FUNCTION__, __LINE__, UPnPIGD_ENABLE_DML));
+        }
+        g_UPnPIGDServiceStopped = false;
+    }
+    else if(!configure_UPnPIGD)
+    {
+        char syscfg_enabled[BUFLEN_8] = {0};
+        syscfg_get(NULL, "upnp_igd_enabled", syscfg_enabled, sizeof(syscfg_enabled));
+        if('1' == syscfg_enabled[0])
+        {
+            CcspTraceInfo(("%s %d: Stopping UPnPIGD service \n", __FUNCTION__, __LINE__));
+            if (WanMgr_RdkBus_SetParamValues( PAM_COMPONENT_NAME, PAM_DBUS_PATH, UPnPIGD_ENABLE_DML, "false", ccsp_boolean, TRUE ) == ANSC_STATUS_SUCCESS)
+            {
+                CcspTraceInfo(("%s %d: Succesfully set %s to false\n", __FUNCTION__, __LINE__, UPnPIGD_ENABLE_DML));
+            }
+            g_UPnPIGDServiceStopped = true;
+        }
+        else
+        {
+            CcspTraceInfo(("%s %d: UPnPIGD is not enabled in syscfg upnp_igd_enabled\n", __FUNCTION__, __LINE__));
+        }
+    }
+    return 0;
+}
+
 ANSC_STATUS WanManager_VerifyMAPTConfiguration(ipc_mapt_data_t *dhcp6cMAPTMsgBody, WANMGR_MAPT_CONFIG_DATA *MaptConfig)
 {
     int ret = RETURN_OK;
@@ -883,6 +913,13 @@ int WanManager_ProcessMAPTConfiguration(ipc_mapt_data_t *dhcp6cMAPTMsgBody, WANM
         mtu_size_mapt = MTU_SIZE; /* 1520. */
     }
     MaptInfo("mapt: MTU Size = %d \n", mtu_size_mapt);
+
+    /* Stopping UPnP, if mapt ratio is not 1:1 */
+    if(dhcp6cMAPTMsgBody->ratio > 1)
+    {
+        CcspTraceInfo(("%s %d: MAPT ratio is %d. Stopping UPnP IGD \n", __FUNCTION__, __LINE__, dhcp6cMAPTMsgBody->ratio));
+        WanMgr_RdkBus_ConfigureUPnPIGDService(false);
+    }
 
     /* RM16042: Since erouter0 is vlan interface on top of eth3 ptm, we need
        to first set the MTU size of eth3 to 1520 and then change MTU of erouter0.
@@ -1545,6 +1582,10 @@ int WanManager_ResetMAPTConfiguration(const char *baseIf, const char *vlanIf)
      * `mapt_configure_flag` and restart the firewall. */
     //Reset MAP sysevent parameters
     maptInfo_reset();
+
+    /* Starting UPnP, if we have stopped it  while configuring MAPT */
+    WanMgr_RdkBus_ConfigureUPnPIGDService(true);
+
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, NULL, 0);
     CcspTraceNotice(("FEATURE_MAPT: MAP-T configuration cleared\n"));
     return RETURN_OK;
@@ -2652,3 +2693,55 @@ ANSC_STATUS WanManager_get_interface_mac(char *interfaceName, char* macAddress, 
 
    return returnStatus;
 }
+
+//Send and receive RS
+int  WanManager_send_and_receive_rs(DML_VIRTUAL_IFACE * p_VirtIf) 
+{
+    struct in6_addr addr;
+    int ret = -1;
+    char command[256];
+    char buffer[512];
+    FILE *fp;
+
+    CcspTraceInfo(("%s %d: Requesting Router solicit for %s \n", __FUNCTION__, __LINE__, p_VirtIf->Name));
+    // Prepare the command to execute rdisc6 on the specified interface
+    snprintf(command, sizeof(command), "rdisc6 %s", p_VirtIf->Name );
+
+    // Execute the command and open a pipe to read its output
+    if ((fp = popen(command, "r")) == NULL) 
+    {
+        perror("popen");
+        return -1;
+    }
+
+    // Read the output line by line
+    while (fgets(buffer, sizeof(buffer), fp) != NULL) 
+    {
+        if (strstr(buffer, "Route lifetime")) 
+        {
+            sscanf(buffer, " Route lifetime : %d", &p_VirtIf->IP.Ipv6Route.defRouteLifeTime);
+        }
+
+        // Look for the "from" line to identify the default route address
+        if (strstr(buffer, "from")) 
+        {
+            sscanf(buffer, " from %s",  p_VirtIf->IP.Ipv6Route.defaultRoute);
+            if (inet_pton(AF_INET6, p_VirtIf->IP.Ipv6Route.defaultRoute, &addr) == 1)  //check parsed value is a valid ipv6 address
+            {
+                ret = 0;
+                break;
+            }
+        }
+    }
+
+    // Close the pipe
+    pclose(fp);
+
+    if(ret == 0)
+    {
+        CcspTraceInfo(("%s %d: Received Router Advertisement with default route %s lifetime %d\n", __FUNCTION__, __LINE__, p_VirtIf->IP.Ipv6Route.defaultRoute, p_VirtIf->IP.Ipv6Route.defRouteLifeTime));
+    }
+
+    return ret;
+}
+

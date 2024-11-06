@@ -63,6 +63,7 @@ extern char g_Subsystem[32];
 #endif
 
 #if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
+#define COSA_DML_WANIface_ADDR_SYSEVENT_NAME           "tr_%s_dhcpv6_client_v6addr"
 char PreviousIPv6Address[128] = {0}; //Global varibale to store previous IPv6 address
 #endif
 
@@ -1586,6 +1587,34 @@ static ANSC_STATUS wanmgr_dchpv6_get_ipc_msg_info(WANMGR_IPV6_DATA* pDhcpv6Data,
     return ANSC_STATUS_SUCCESS;
 }
 
+#if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
+/**
+ * @brief Copies the previous prefix from the old IPv6 data to the new IPv6 data.
+ *
+ * This function handles the copying of IAPD details from the old data structure
+ * to the new one, ensuring that the previous IAPD details are used if only IANA is renewed.
+ *
+ * @param[in] pOld Pointer to the old WANMGR_IPV6_DATA structure.
+ * @param[in] pNew Pointer to the new WANMGR_IPV6_DATA structure.
+ * @return int Status code indicating success or failure.
+ */
+static int WanMgr_CopyPreviousPrefix(WANMGR_IPV6_DATA* pOld, WANMGR_IPV6_DATA* pNew)
+{
+    if((pOld == NULL) || (pNew == NULL))
+    {
+        return -1;
+    }
+    strncpy(pNew->sitePrefix, pOld->sitePrefix, sizeof(pNew->sitePrefix));
+    strncpy(pNew->pdIfAddress, pOld->pdIfAddress, sizeof(pNew->pdIfAddress));
+    memcpy(pNew->sitePrefixOld, pOld->sitePrefixOld, BUFLEN_48);
+    pNew->prefixAssigned = true;
+    pNew->prefixCmd = pOld->prefixCmd;
+    pNew->prefixPltime = pOld->prefixPltime;
+    pNew->prefixVltime = pOld->prefixVltime;
+    return 0;
+}
+#endif
+
 ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
 {
     if(NULL == pVirtIf)
@@ -1605,7 +1634,7 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
 
     memset(set_value, 0, sizeof(set_value));
 
-    CcspTraceInfo(("prefixAssigned=%d prefixCmd=%d sitePrefix=%s pdIfAddress=%s \n"
+    CcspTraceInfo(("IPv6 new Lease info: \nprefixAssigned=%d prefixCmd=%d sitePrefix=%s pdIfAddress=%s \n"
                    "prefixPltime=%d prefixVltime=%d\n"
                    "addrAssigned=%d addrCmd=%d address=%s ifname=%s\n"
                    "maptAssigned=%d mapeAssigned=%d\n"
@@ -1616,12 +1645,14 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
                    pNewIpcMsg->maptAssigned, pNewIpcMsg->mapeAssigned,
                    pNewIpcMsg->dnsAssigned, pNewIpcMsg->nameserver, pNewIpcMsg->nameserver1, pNewIpcMsg->aftrAssigned, pNewIpcMsg->aftr, pNewIpcMsg->isExpired));
 
+    WANMGR_IPV6_DATA Ipv6DataNew; // Holds the new lease from the IPC message
+    wanmgr_dchpv6_get_ipc_msg_info(&(Ipv6DataNew), pNewIpcMsg);
+
     /*Check lease expiry*/
     if (pNewIpcMsg->isExpired)
     {
         CcspTraceInfo(("DHCP6LeaseExpired\n"));
         // update current IPv6 data
-        wanmgr_dchpv6_get_ipc_msg_info(&(pVirtIf->IP.Ipv6Data), pNewIpcMsg);
         WanManager_UpdateInterfaceStatus(pVirtIf, WANMGR_IFACE_CONNECTION_IPV6_DOWN);
 
         //Free buffer
@@ -1634,6 +1665,7 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
 
         return ANSC_STATUS_SUCCESS;
     }
+#if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
 
     /* dhcp6c receives an IPv6 address for WAN interface */
     if (pNewIpcMsg->addrAssigned)
@@ -1642,13 +1674,64 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
         {
             CcspTraceInfo(("assigned IPv6 address \n"));
             connected = TRUE;
-#if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE) || (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_)) //TODO: V6 handled in PAM
-            /* TODO: Assign IPv6 address on Wan Interface when received, if dhcpv6 client didn't assign on the ineterface. 
-             * Currently dibbler client will assign IA_NA to the interface. 
-             * VISM will assign the prefix on LAN interface.  
+
+            /* TODO: Assign IPv6 address on Wan Interface when received, if dhcpv6 client didn't assign on the ineterface.
+             * Currently dibbler client will assign IA_NA to the interface.
+             * VISM will assign the prefix on LAN interface.
              */
         }
+    }
+    else if(pDhcp6cInfoCur->addrAssigned && Ipv6DataNew.prefixAssigned)
+    {
+        /* In an IPv6 lease, both IANA and IAPD details are sent together in a struct. 
+         * If only one of them is renewed, the other field will be set to its default value.
+         * In this scenario, we should not consider IANA or IAPD as deleted. 
+         * If we reach this point, only IAPD has been renewed. Use the previous IANA details. */
+
+        CcspTraceWarning(("%s %d IANA is not assigned in this IPC msg, but we have IANA configured from previous lease. Assuming only IAPD renewed. \n", __FUNCTION__, __LINE__));
+        strncpy(Ipv6DataNew.address, pDhcp6cInfoCur->address, sizeof(Ipv6DataNew.address));
+        Ipv6DataNew.addrAssigned = true;
+        pNewIpcMsg->addrAssigned = true;
+        Ipv6DataNew.addrCmd = pDhcp6cInfoCur->addrCmd;
+    }
+
+    /* dhcp6c receives prefix delegation for LAN */
+    if (pNewIpcMsg->prefixAssigned && !IS_EMPTY_STRING(pNewIpcMsg->sitePrefix))
+    {
+        if (pNewIpcMsg->prefixCmd == IFADDRCONF_ADD &&
+            pNewIpcMsg->prefixPltime != 0 && pNewIpcMsg->prefixVltime != 0)
+        {
+            CcspTraceInfo(("assigned prefix=%s \n", pNewIpcMsg->sitePrefix));
+            connected = TRUE;
+        }
+        else /* IFADDRCONF_REMOVE: prefix remove */
+        {
+            /* Validate if the prefix to be removed is the same as the stored prefix */
+            if (strcmp(pDhcp6cInfoCur->sitePrefix, pNewIpcMsg->sitePrefix) == 0)
+            {
+                CcspTraceInfo(("remove prefix \n"));
+                WanManager_UpdateInterfaceStatus(pVirtIf, WANMGR_IFACE_CONNECTION_IPV6_DOWN);
+            }
+        }
+    }
+    else if(pDhcp6cInfoCur->prefixAssigned &&  Ipv6DataNew.addrAssigned)
+    {
+        /* In an IPv6 lease, both IANA and IAPD details are sent together in a struct. 
+         * If only one of them is renewed, the other field will be set to its default value.
+         * In this scenario, we should not consider IANA or IAPD as deleted. 
+         * If we reach this point, only IAPD has been renewed. Use the previous IAPD details. */
+        CcspTraceWarning(("%s %d IAPD is not assigned in this IPC msg, but we have IAPD configured from previous lease. Assuming only IANA renewed. \n", __FUNCTION__, __LINE__));
+        WanMgr_CopyPreviousPrefix(pDhcp6cInfoCur, &Ipv6DataNew);
+    }
+
 #else
+    /* dhcp6c receives an IPv6 address for WAN interface */
+    if (pNewIpcMsg->addrAssigned)
+    {
+        if (pNewIpcMsg->addrCmd == IFADDRCONF_ADD)
+        {
+            CcspTraceInfo(("assigned IPv6 address \n"));
+            connected = TRUE;
             if (strcmp(pDhcp6cInfoCur->address, pNewIpcMsg->address))
             {
                 syscfg_set_string(SYSCFG_FIELD_IPV6_ADDRESS, pNewIpcMsg->address);
@@ -1659,7 +1742,6 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
             CcspTraceInfo(("remove IPv6 address \n"));
             syscfg_set_string(SYSCFG_FIELD_IPV6_ADDRESS, "");
         }
-#endif
     }
 
     /* dhcp6c receives prefix delegation for LAN */
@@ -1672,7 +1754,6 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
             connected = TRUE;
 
             /* Update the WAN prefix validity time in the persistent storage */
-#if !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE) && !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_))  //TODO: V6 handled in PAM
             if (pDhcp6cInfoCur->prefixVltime != pNewIpcMsg->prefixVltime)
             {
                 snprintf(set_value, sizeof(set_value), "%d", pNewIpcMsg->prefixVltime);
@@ -1719,7 +1800,6 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
                     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_PREFIX, prefix, 0);
                 }
             }
-#endif
         }
         else /* IFADDRCONF_REMOVE: prefix remove */
         {
@@ -1727,17 +1807,14 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
             if (strcmp(pDhcp6cInfoCur->sitePrefix, pNewIpcMsg->sitePrefix) == 0)
             {
                 CcspTraceInfo(("remove prefix \n"));
-#if !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE) && !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_))  //TODO: V6 handled in PAM
                 syscfg_set(NULL, SYSCFG_FIELD_IPV6_PREFIX, "");
                 syscfg_set(NULL, SYSCFG_FIELD_PREVIOUS_IPV6_PREFIX, "");
                 syscfg_set_commit(NULL, SYSCFG_FIELD_IPV6_PREFIX_ADDRESS, "");
-#endif
                 WanManager_UpdateInterfaceStatus(pVirtIf, WANMGR_IFACE_CONNECTION_IPV6_DOWN);
             }
         }
     }
 
-#if !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)&& !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_))  //TODO: V6 handled in PAM
     /* dhcp6c receives domain name information */
     if (pNewIpcMsg->domainNameAssigned && !IS_EMPTY_STRING(pNewIpcMsg->domainName))
     {
@@ -1753,11 +1830,11 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
     /* Even when dhcp6c is not used to get the WAN interface IP address,
      *  * use this message as a trigger to check the WAN interface IP.
      *   * Maybe we've been assigned an address by SLAAC.*/
-    char guAddr[IP_ADDR_LENGTH] = {0};
 
     if (!pNewIpcMsg->addrAssigned)
     {
         char guAddrPrefix[IP_ADDR_LENGTH] = {0};
+        char guAddr[IP_ADDR_LENGTH] = {0};
         uint32_t prefixLen = 0;
         ANSC_STATUS r2;
 
@@ -1771,10 +1848,9 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
 
             if (strcmp(pDhcp6cInfoCur->address, guAddrPrefix))
             {
-#if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE) || (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_))  //TODO: V6 handled in PAM
-                strncpy(pVirtIf->IP.Ipv6Data.address,guAddrPrefix, sizeof(pVirtIf->IP.Ipv6Data.address));
+                strncpy(Ipv6DataNew.address, guAddr, sizeof(Ipv6DataNew.address)-1);
                 pNewIpcMsg->addrAssigned = true;
-#else
+#if !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
                 syscfg_set_string(SYSCFG_FIELD_IPV6_ADDRESS, guAddrPrefix);
 #endif
             }
@@ -1792,59 +1868,40 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
 
     if (connected)
     {
-        WANMGR_IPV6_DATA Ipv6DataTemp;
-        wanmgr_dchpv6_get_ipc_msg_info(&(Ipv6DataTemp), pNewIpcMsg);
-
-#if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE) || (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_))//Do not compare if pdIfAddress and sitePrefix is empty. pdIfAddress Will be calculated while configuring LAN prefix.  //TODO: V6 handled in PAM
-        if ((strlen(Ipv6DataTemp.address) > 0 && strcmp(Ipv6DataTemp.address, pDhcp6cInfoCur->address)) ||
-            ((Ipv6DataTemp.pdIfAddress) && (strlen(Ipv6DataTemp.pdIfAddress) > 0)&&
-            (strcmp(Ipv6DataTemp.pdIfAddress, pDhcp6cInfoCur->pdIfAddress))) ||
-            ((Ipv6DataTemp.sitePrefix) && (strlen(Ipv6DataTemp.sitePrefix) > 0)&&
-            (strcmp(Ipv6DataTemp.sitePrefix, pDhcp6cInfoCur->sitePrefix)))||
-#else
-        if (strcmp(Ipv6DataTemp.address, pDhcp6cInfoCur->address) ||
-                strcmp(Ipv6DataTemp.pdIfAddress, pDhcp6cInfoCur->pdIfAddress) ||
-                strcmp(Ipv6DataTemp.sitePrefix, pDhcp6cInfoCur->sitePrefix) ||
-#endif
-                strcmp(Ipv6DataTemp.nameserver, pDhcp6cInfoCur->nameserver) ||
-                strcmp(Ipv6DataTemp.nameserver1, pDhcp6cInfoCur->nameserver1))
+        if ((strlen(Ipv6DataNew.address) > 0 && strcmp(Ipv6DataNew.address, pDhcp6cInfoCur->address)) ||
+                ((strlen(Ipv6DataNew.pdIfAddress) > 0) && (strcmp(Ipv6DataNew.pdIfAddress, pDhcp6cInfoCur->pdIfAddress))) ||
+                ((strlen(Ipv6DataNew.sitePrefix) > 0) && (strcmp(Ipv6DataNew.sitePrefix, pDhcp6cInfoCur->sitePrefix)))||
+                strcmp(Ipv6DataNew.nameserver, pDhcp6cInfoCur->nameserver) ||
+                strcmp(Ipv6DataNew.nameserver1, pDhcp6cInfoCur->nameserver1))
         {
             CcspTraceInfo(("IPv6 configuration has been changed \n"));
             pVirtIf->IP.Ipv6Changed = TRUE;
-            CcspTraceInfo(("%s %d - RestartConnectivityCheck triggered. \n", __FUNCTION__, __LINE__));
 
             char param_name[256] = {0};
             snprintf(param_name, sizeof(param_name), "Device.X_RDK_WanManager.Interface.%d.VirtualInterface.%d.IP.IPv6Address",  pVirtIf->baseIfIdx+1, pVirtIf->VirIfIdx+1);
-            WanMgr_Rbus_EventPublishHandler(param_name, Ipv6DataTemp.address,RBUS_STRING);
+            WanMgr_Rbus_EventPublishHandler(param_name, Ipv6DataNew.address,RBUS_STRING);
             snprintf(param_name, sizeof(param_name), "Device.X_RDK_WanManager.Interface.%d.VirtualInterface.%d.IP.IPv6Prefix",  pVirtIf->baseIfIdx+1, pVirtIf->VirIfIdx+1);
-            WanMgr_Rbus_EventPublishHandler(param_name, Ipv6DataTemp.sitePrefix,RBUS_STRING);
+            WanMgr_Rbus_EventPublishHandler(param_name, Ipv6DataNew.sitePrefix,RBUS_STRING);
 
             pVirtIf->IP.RestartConnectivityCheck = TRUE;
+            CcspTraceInfo(("%s %d - RestartConnectivityCheck triggered. \n", __FUNCTION__, __LINE__));
         }
         else
         {
-            /*TODO: Revisit this*/
-            //call function for changing the prlft and vallft
-            // FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE : Handle Ip renew in handler thread. 
-#if !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_))  //TODO: V6 handled in PAM
-            if ((WanManager_Ipv6AddrUtil(pVirtIf->Name, SET_LFT, pNewIpcMsg->prefixPltime, pNewIpcMsg->prefixVltime) < 0))
+            if(pVirtIf->Status == WAN_IFACE_STATUS_UP &&  pNewIpcMsg->prefixPltime > 0 && pNewIpcMsg->prefixVltime > 0 ) //Update life time only if the interface is active.
             {
-                CcspTraceError(("Life Time Setting Failed"));
+                //call function for changing the prlft and vallft
+                if ((WanManager_Ipv6AddrUtil(pVirtIf->Name, SET_LFT, pNewIpcMsg->prefixPltime, pNewIpcMsg->prefixVltime) < 0))
+                {
+                    CcspTraceError(("Life Time Setting Failed"));
+                }
+                sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_RADVD_RESTART, NULL, 0);
             }
-            sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_RADVD_RESTART, NULL, 0);
-#endif
             pVirtIf->IP.Ipv6Renewed = TRUE;
         }
         // update current IPv6 Data
-        memcpy(&(pVirtIf->IP.Ipv6Data), &(Ipv6DataTemp), sizeof(WANMGR_IPV6_DATA));
+        memcpy(&(pVirtIf->IP.Ipv6Data), &(Ipv6DataNew), sizeof(WANMGR_IPV6_DATA));
         pVirtIf->IP.Ipv6Status = WAN_IFACE_IPV6_STATE_UP;
-#if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE) || (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_))  //TODO: V6 handled in PAM
-        //If only Ipv6 prefix is renewed, IPv6 address is not shared in the lease details. Use the detected Ipv6 address.
-        if(strlen(guAddr) > 0 && strlen(pVirtIf->IP.Ipv6Data.address) <= 0) 
-        {
-            strncpy(pVirtIf->IP.Ipv6Data.address, guAddr, sizeof(pVirtIf->IP.Ipv6Data.address));
-        }
-#endif
     }
 
 #ifdef FEATURE_MAPT
@@ -1855,6 +1912,7 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
 #ifdef FEATURE_MAPT_DEBUG
         MaptInfo("--------- Got a new event in Wanmanager for MAPT_CONFIG ---------");
 #endif
+
         //get MAP-T previous data
         memcpy(&dhcp6cMAPTMsgBodyPrvs, &(pVirtIf->MAP.dhcp6cMAPTparameters), sizeof(ipc_mapt_data_t));
 
@@ -1872,7 +1930,7 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
     }
     else
     {
-        if(pNewIpcMsg->prefixPltime != 0 && pNewIpcMsg->prefixVltime != 0)
+        if (pNewIpcMsg->prefixAssigned && !IS_EMPTY_STRING(pNewIpcMsg->sitePrefix) && pNewIpcMsg->prefixPltime != 0 && pNewIpcMsg->prefixVltime != 0)
         {
 #ifdef FEATURE_MAPT_DEBUG
             MaptInfo("--------- Got an event in Wanmanager for MAPT_STOP ---------");
@@ -1906,7 +1964,6 @@ int setUpLanPrefixIPv6(DML_VIRTUAL_IFACE* pVirtIf)
     CcspTraceInfo(("%s %d Updating SYSEVENT_CURRENT_WAN_IFNAME %s\n", __FUNCTION__, __LINE__,pVirtIf->IP.Ipv6Data.ifname));
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_CURRENT_WAN_IFNAME, pVirtIf->IP.Ipv6Data.ifname, 0);
 
-#if !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_))  //TODO: V6 handled in PAM
     /* Enable accept ra */
     WanMgr_Configure_accept_ra(pVirtIf, TRUE);
 
@@ -1940,7 +1997,6 @@ int setUpLanPrefixIPv6(DML_VIRTUAL_IFACE* pVirtIf)
             sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_TR_EROUTER_DHCPV6_CLIENT_PREFIX, pVirtIf->IP.Ipv6Data.sitePrefix, 0);
         }
     }
-#endif
 #if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
     /* moved from PAM */
     int ret = RETURN_OK;
@@ -1956,8 +2012,8 @@ int setUpLanPrefixIPv6(DML_VIRTUAL_IFACE* pVirtIf)
         if(ret != 0) {
             CcspTraceInfo(("Assign global ip error \n"));
         }
-#ifdef _HUB4_PRODUCT_REQ_
-        else {
+        else 
+        {
             CcspTraceInfo(("%s Going to set [%s] address on brlan0 interface \n", __FUNCTION__, globalIP));
             memset(cmdLine, 0, sizeof(cmdLine));
             snprintf(cmdLine, sizeof(cmdLine), "ip -6 addr add %s/64 dev %s valid_lft %d preferred_lft %d",
@@ -1965,100 +2021,18 @@ int setUpLanPrefixIPv6(DML_VIRTUAL_IFACE* pVirtIf)
             if (WanManager_DoSystemActionWithStatus(__FUNCTION__, cmdLine) != 0)
                 CcspTraceError(("failed to run cmd: %s", cmdLine));
 
+            /*This is for brlan0 interface */
+            char pref_len[10] ={0};
+            sscanf (pVirtIf->IP.Ipv6Data.sitePrefix,"%*[^/]/%s" ,pref_len);
+            sysevent_set(sysevent_fd, sysevent_token, "lan_prefix_v6", pref_len, 0);
             sysevent_set(sysevent_fd, sysevent_token, "lan_ipaddr_v6", globalIP, 0);
-            // send an event to wanmanager that Global-prefix is set
-            sysevent_set(sysevent_fd, sysevent_token, "lan_prefix_set", globalIP, 0);
+            sysevent_set(sysevent_fd, sysevent_token, "lan_prefix_set", globalIP, 0); //TODO: This was a event to Wanmanager. if no other process listens to it. remove it.
         }
-#else
-        else {
-            sysevent_set(sysevent_fd, sysevent_token, "lan_ipaddr_v6", globalIP, 0);
-
-        }
-        // send an event to wanmanager that Global-prefix is set
-        sysevent_set(sysevent_fd, sysevent_token, "lan_prefix_set", globalIP, 0);
-#endif
         memset(cmdLine, 0, sizeof(cmdLine));
         snprintf(cmdLine, sizeof(cmdLine), "ip -6 route add %s dev %s", pVirtIf->IP.Ipv6Data.sitePrefix, COSA_DML_DHCPV6_SERVER_IFNAME);
         if (WanManager_DoSystemActionWithStatus(__FUNCTION__, cmdLine) != 0)
         {
             CcspTraceError(("failed to run cmd: %s", cmdLine));
-        }
-#ifdef _COSA_INTEL_XB3_ARM_
-        memset(cmdLine, 0, sizeof(cmdLine));
-        snprintf(cmdLine, sizeof(cmdLine), "ip -6 route add %s dev %s table erouter", pVirtIf->IP.Ipv6Data.sitePrefix, COSA_DML_DHCPV6_SERVER_IFNAME);
-        if (WanManager_DoSystemActionWithStatus(__FUNCTION__, cmdLine) != 0)
-        {
-            CcspTraceError(("failed to run cmd: %s", cmdLine));
-        }
-#endif
-        //Restart LAN if required.
-        BOOL bRestartLan = FALSE;
-        /* we need save this for zebra to send RA
-           ipv6_prefix           // xx:xx::/yy
-         */
-        memset(cmdLine, 0, sizeof(cmdLine));
-#ifndef _HUB4_PRODUCT_REQ_
-        snprintf(cmdLine, sizeof(cmdLine), "sysevent set ipv6_prefix %s ",v6pref);
-#else
-#ifdef LAN_MGR_SUPPORT
-        snprintf(cmdLine, sizeof(cmdLine), "sysevent set dhcpv6_raserver-restart ");
-#else
-        snprintf(cmdLine, sizeof(cmdLine), "sysevent set zebra-restart ");
-#endif
-#endif
-        if (WanManager_DoSystemActionWithStatus(__FUNCTION__, cmdLine) != 0)
-            CcspTraceError(("failed to run cmd: %s", cmdLine));
-
-        CcspTraceWarning(("%s: globalIP %s PreviousIPv6Address %s\n", __func__,
-                    globalIP, PreviousIPv6Address));
-        if ( _ansc_strcmp(globalIP, PreviousIPv6Address ) ){
-            bRestartLan = TRUE;
-
-            //PaM may restart. When this happen, we should not overwrite previous ipv6
-            if ( PreviousIPv6Address[0] )
-                sysevent_set(sysevent_fd, sysevent_token, "lan_ipaddr_v6_prev", PreviousIPv6Address, 0);
-
-            strncpy(PreviousIPv6Address, globalIP,sizeof(PreviousIPv6Address));
-        }else{
-            char lanrestart[8] = {0};
-            sysevent_get(sysevent_fd, sysevent_token, "lan_restarted", lanrestart, sizeof(lanrestart));
-            fprintf(stderr,"lan restart staus is %s \n",lanrestart);
-            if (strcmp("true",lanrestart) == 0)
-                bRestartLan = TRUE;
-            else
-                bRestartLan = FALSE;
-        }
-        CcspTraceWarning(("%s: bRestartLan %d\n", __func__, bRestartLan));
-        if ( ret != 0 )
-        {
-            CcspTraceError(("error, assign global ip error.\n"));
-        }else if ( bRestartLan == FALSE ){
-            CcspTraceError(("Same global IP, Need not restart.\n"));
-        }else{
-            char pref_len[10] ={0};
-
-            CcspTraceWarning(("Restart lan%s:%d\n", __func__,__LINE__));
-            /* This is for IP.Interface.1. use */
-            sysevent_set(sysevent_fd, sysevent_token, COSA_DML_DHCPV6S_ADDR_SYSEVENT_NAME, globalIP, 0);
-
-            /*This is for brlan0 interface */
-            sysevent_set(sysevent_fd, sysevent_token, "lan_ipaddr_v6", globalIP, 0);
-            sscanf (pVirtIf->IP.Ipv6Data.sitePrefix,"%*[^/]/%s" ,pref_len);
-            sysevent_set(sysevent_fd, sysevent_token, "lan_prefix_v6", pref_len, 0);
-            CcspTraceWarning(("%s: setting lan-restart\n", __FUNCTION__));
-            sysevent_set(sysevent_fd, sysevent_token, "lan-restart", "1", 0);
-
-            // Below code copied from CosaDmlDHCPv6sTriggerRestart(FALSE) PAm function.
-            int fd = 0;
-            char str[32] = "restart";
-            fd= open(DHCPS6V_SERVER_RESTART_FIFO, O_RDWR);
-            if (fd < 0)
-            {
-                fprintf(stderr, "open dhcpv6 server restart fifo when writing.\n");
-                return 1;
-            }
-            write( fd, str, sizeof(str) );
-            close(fd);
         }
     }
 
@@ -2069,6 +2043,9 @@ int setUpLanPrefixIPv6(DML_VIRTUAL_IFACE* pVirtIf)
         {
             CcspTraceInfo(("assigned IPv6 address \n"));
             syscfg_set_string(SYSCFG_FIELD_IPV6_ADDRESS, pVirtIf->IP.Ipv6Data.address);
+            memset(cmdLine, 0, sizeof(cmdLine));
+            snprintf(cmdLine, sizeof(cmdLine), COSA_DML_WANIface_ADDR_SYSEVENT_NAME ,pVirtIf->Name);
+            sysevent_set(sysevent_fd, sysevent_token, cmdLine, pVirtIf->IP.Ipv6Data.address, 0);
         }
         else /* IFADDRCONF_REMOVE */
         {
@@ -2076,6 +2053,7 @@ int setUpLanPrefixIPv6(DML_VIRTUAL_IFACE* pVirtIf)
             syscfg_set_string(SYSCFG_FIELD_IPV6_ADDRESS, "");
         }
     }
+
     if (pVirtIf->IP.Ipv6Data.prefixAssigned && !IS_EMPTY_STRING(pVirtIf->IP.Ipv6Data.sitePrefix))
     {
         if (pVirtIf->IP.Ipv6Data.prefixCmd == IFADDRCONF_ADD &&
@@ -2103,6 +2081,7 @@ int setUpLanPrefixIPv6(DML_VIRTUAL_IFACE* pVirtIf)
                 CcspTraceInfo(("%s %d new prefix = %s\n", __FUNCTION__, __LINE__, pVirtIf->IP.Ipv6Data.sitePrefix));
                 strncat(prefix, "/64",sizeof(prefix)-1);
                 sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_PREFIX, prefix, 0);
+                sysevent_set(sysevent_fd, sysevent_token, "lan_prefix", prefix, 0);
             }
         }else /* IFADDRCONF_REMOVE: prefix remove */
         {
@@ -2122,6 +2101,35 @@ int setUpLanPrefixIPv6(DML_VIRTUAL_IFACE* pVirtIf)
     }
     /* Sysevent set moved from wanmgr_handle_dhcpv6_event_data end */
 
+#ifdef LAN_MGR_SUPPORT
+    //Restart RA(stateless) server
+    sysevent_set(sysevent_fd, sysevent_token, "dhcpv6_raserver-restart", NULL, 0);
+    //recreate Stateful v6 conf
+    sysevent_set(sysevent_fd, sysevent_token, "redirect_URL", NULL, 0);
+    //Restart Stateful V6 server
+    sysevent_set(sysevent_fd, sysevent_token, "dhcpv6-restart", NULL, 0);
+
+#else
+    sysevent_set(sysevent_fd, sysevent_token, "zebra-restart", NULL, 0);
+    CcspTraceWarning(("Restart lan%s:%d\n", __func__,__LINE__));
+    /* This is for IP.Interface.1. use */
+    sysevent_set(sysevent_fd, sysevent_token, COSA_DML_DHCPV6S_ADDR_SYSEVENT_NAME, globalIP, 0);
+
+    CcspTraceWarning(("%s: setting lan-restart\n", __FUNCTION__));
+    sysevent_set(sysevent_fd, sysevent_token, "lan-restart", "1", 0);
+
+    // Below code copied from CosaDmlDHCPv6sTriggerRestart(FALSE) PAm function.
+    int fd = 0;
+    char str[32] = "restart";
+    fd= open(DHCPS6V_SERVER_RESTART_FIFO, O_RDWR);
+    if (fd < 0)
+    {
+        fprintf(stderr, "open dhcpv6 server restart fifo when writing.\n");
+        return 1;
+    }
+    write( fd, str, sizeof(str) );
+    close(fd);
+#endif
 #endif
     return RETURN_OK;
 }
