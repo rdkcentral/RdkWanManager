@@ -769,8 +769,8 @@ static void *WanManagerSyseventHandler(void *args)
                 }
 
                 if( TRUE == IsLANULASupportAvailable )
-                {
         #endif /** _RDKB_GLOBAL_PRODUCT_REQ_ */
+                {
                     datamodel_value = (char *) malloc(sizeof(char) * 256);
                     if(datamodel_value != NULL)
                     {
