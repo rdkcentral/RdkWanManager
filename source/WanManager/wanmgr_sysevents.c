@@ -603,7 +603,7 @@ static void *WanManagerSyseventHandler(void *args)
 #endif
 #endif
 
-#if defined (_HUB4_PRODUCT_REQ_)
+#if defined (_HUB4_PRODUCT_REQ_) || defined(_RDKB_GLOBAL_PRODUCT_REQ_)
     sysevent_set_options(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_ULA_ADDRESS, TUPLE_FLAG_EVENT);
     sysevent_setnotification(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_ULA_ADDRESS, &lan_ula_address_event_asyncid);
 
@@ -705,47 +705,85 @@ static void *WanManagerSyseventHandler(void *args)
             CcspTraceInfo(("%s %d - received notification event %s:%s\n", __FUNCTION__, __LINE__, name, val ));
             if ( strcmp(name, SYSEVENT_ULA_ADDRESS) == 0 )
             {
-		#if defined (_HUB4_PRODUCT_REQ_)
-                datamodel_value = (char *) malloc(sizeof(char) * 256);
-                if(datamodel_value != NULL)
-                {
-                    memset(datamodel_value, 0, 256);
-                    strncpy(datamodel_value, val, sizeof(val));
-                    result = WanMgr_RdkBus_SetParamValues( PAM_COMPONENT_NAME, PAM_DBUS_PATH, "Device.DHCPv6.Server.Pool.1.X_RDKCENTRAL-COM_DNSServersEnabled", "true", ccsp_boolean, TRUE );
-                    if(result == ANSC_STATUS_SUCCESS)
+		#if defined (_HUB4_PRODUCT_REQ_) || defined(_RDKB_GLOBAL_PRODUCT_REQ_)
+        #if defined(_RDKB_GLOBAL_PRODUCT_REQ_)
+                char buf[BUF_SIZE] = {0};
+                unsigned char IsLANULASupportAvailable = FALSE;
+
+                memset(buf,0,sizeof(buf));
+
+                if( 0 == syscfg_get(NULL, SYSCFG_FEATURE_LANULA_SUPPORT, buf, sizeof(buf)) ) 
+                { 
+                    //1-Extender Mode 0-Gateway Mode
+                    if (strcmp(buf,"true") == 0)
                     {
-                        result = WanMgr_RdkBus_SetParamValues( PAM_COMPONENT_NAME, PAM_DBUS_PATH, "Device.DHCPv6.Server.Pool.1.X_RDKCENTRAL-COM_DNSServers", datamodel_value, ccsp_string, TRUE );
-                        if(result != ANSC_STATUS_SUCCESS) {
-                            CcspTraceError(("%s %d - SetDataModelParameter() failed for X_RDKCENTRAL-COM_DNSServers parameter \n", __FUNCTION__, __LINE__));
-                        }
+                        IsLANULASupportAvailable = TRUE;
                     }
-                    else {
-                        CcspTraceError(("%s %d - SetDataModelParameter() failed for X_RDKCENTRAL-COM_DNSServersEnabled parameter \n", __FUNCTION__, __LINE__));
-                    }
-                    free(datamodel_value);
                 }
-                snprintf(cmd_str, sizeof(cmd_str), "ip -6 addr add %s/64 dev %s", val, LAN_BRIDGE_NAME);
-                if (WanManager_DoSystemActionWithStatus("wanmanager", cmd_str) != RETURN_OK)
+
+                if( TRUE == IsLANULASupportAvailable )
+        #endif /** _RDKB_GLOBAL_PRODUCT_REQ_ */
                 {
-                    CcspTraceError(("%s %d failed set command: %s\n", __FUNCTION__, __LINE__, cmd_str));
+                    datamodel_value = (char *) malloc(sizeof(char) * 256);
+                    if(datamodel_value != NULL)
+                    {
+                        memset(datamodel_value, 0, 256);
+                        strncpy(datamodel_value, val, sizeof(val));
+                        result = WanMgr_RdkBus_SetParamValues( PAM_COMPONENT_NAME, PAM_DBUS_PATH, "Device.DHCPv6.Server.Pool.1.X_RDKCENTRAL-COM_DNSServersEnabled", "true", ccsp_boolean, TRUE );
+                        if(result == ANSC_STATUS_SUCCESS)
+                        {
+                            result = WanMgr_RdkBus_SetParamValues( PAM_COMPONENT_NAME, PAM_DBUS_PATH, "Device.DHCPv6.Server.Pool.1.X_RDKCENTRAL-COM_DNSServers", datamodel_value, ccsp_string, TRUE );
+                            if(result != ANSC_STATUS_SUCCESS) {
+                                CcspTraceError(("%s %d - SetDataModelParameter() failed for X_RDKCENTRAL-COM_DNSServers parameter \n", __FUNCTION__, __LINE__));
+                            }
+                        }
+                        else {
+                            CcspTraceError(("%s %d - SetDataModelParameter() failed for X_RDKCENTRAL-COM_DNSServersEnabled parameter \n", __FUNCTION__, __LINE__));
+                        }
+                        free(datamodel_value);
+                    }
+                    snprintf(cmd_str, sizeof(cmd_str), "ip -6 addr add %s/64 dev %s", val, LAN_BRIDGE_NAME);
+                    if (WanManager_DoSystemActionWithStatus("wanmanager", cmd_str) != RETURN_OK)
+                    {
+                        CcspTraceError(("%s %d failed set command: %s\n", __FUNCTION__, __LINE__, cmd_str));
+                    }
                 }
 		#endif
             }
             else if ( strcmp(name, SYSEVENT_ULA_ENABLE) == 0 )
             {
-		#if defined (_HUB4_PRODUCT_REQ_)
-                datamodel_value = (char *) malloc(sizeof(char) * 256);
-                if(datamodel_value != NULL)
-                {
-                    memset(datamodel_value, 0, 256);
-                    strncpy(datamodel_value, val, sizeof(val));
-                    result = WanMgr_RdkBus_SetParamValues( PAM_COMPONENT_NAME, PAM_DBUS_PATH, "Device.DHCPv6.Server.Pool.1.X_RDKCENTRAL-COM_DNSServersEnabled", datamodel_value, ccsp_boolean, TRUE );
-                    if(result != ANSC_STATUS_SUCCESS)
+		#if defined (_HUB4_PRODUCT_REQ_) || defined(_RDKB_GLOBAL_PRODUCT_REQ_)
+        #if defined(_RDKB_GLOBAL_PRODUCT_REQ_)
+                char buf[BUF_SIZE] = {0};
+                unsigned char IsLANULASupportAvailable = FALSE;
+
+                memset(buf,0,sizeof(buf));
+
+                if( 0 == syscfg_get(NULL, SYSCFG_FEATURE_LANULA_SUPPORT, buf, sizeof(buf)) ) 
+                { 
+                    //1-Extender Mode 0-Gateway Mode
+                    if (strcmp(buf,"true") == 0)
                     {
-                        CcspTraceError(("%s %d - SetDataModelParameter failed on dns_enable request \n", __FUNCTION__, __LINE__));
+                        IsLANULASupportAvailable = TRUE;
                     }
                 }
-                free(datamodel_value);
+
+                if( TRUE == IsLANULASupportAvailable )
+                {
+        #endif /** _RDKB_GLOBAL_PRODUCT_REQ_ */
+                    datamodel_value = (char *) malloc(sizeof(char) * 256);
+                    if(datamodel_value != NULL)
+                    {
+                        memset(datamodel_value, 0, 256);
+                        strncpy(datamodel_value, val, sizeof(val));
+                        result = WanMgr_RdkBus_SetParamValues( PAM_COMPONENT_NAME, PAM_DBUS_PATH, "Device.DHCPv6.Server.Pool.1.X_RDKCENTRAL-COM_DNSServersEnabled", datamodel_value, ccsp_boolean, TRUE );
+                        if(result != ANSC_STATUS_SUCCESS)
+                        {
+                            CcspTraceError(("%s %d - SetDataModelParameter failed on dns_enable request \n", __FUNCTION__, __LINE__));
+                        }
+                    }
+                    free(datamodel_value);
+                }
 		#endif
             }
 #ifdef NTP_STATUS_SYNC_EVENT
