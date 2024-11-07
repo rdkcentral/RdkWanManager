@@ -28,6 +28,18 @@
 #include <mocks/mock_securewrapper.h>
 #include <mocks/mock_ansc_memory.h>
 #include <mocks/mock_cap.h>
+#include <mocks/mock_psm.h>
+#include <mocks/mock_ansc_task.h>
+#include <mocks/mock_SysInfoRepository.h>
+#include <mocks/mock_ansc_timer_scheduler.h>
+#include <mocks/mock_ansc_crypto.h>
+#include <mocks/mock_ansc_xml.h>
+#include <mocks/mock_ansc_file_io.h>
+#include <mocks/mock_ansc_co.h>
+
+
+
+
 #include "wanmgr_interface_sm.h"
 
 using namespace std;
@@ -67,12 +79,19 @@ protected:
 
     MockWanMgr mockWanUtils;
     rbusMock mockedRbus;
-
+    AnscCoMock mockedAnscCo;
     SecureWrapperMock mockSecurewrapperMock;
     CapMock  mockCap;
     AnscMemoryMock  mockAnscMemory;
     MessageBusMock mockMessagebus;
     PlatformHalMock mockPlatformHAL;
+    PsmMock mockPSM;
+    AnscTaskMock mockanscTaskMock;
+    SysInfoRepositoryMock mocksysInfoRepositoryMock;
+    AnscTimerSchedulerMock mockanscTimerSchedulerMock;
+    AnscCryptoMock mockanscCryptoMock;
+    AnscXmlMock mockAnscXml;
+    AnscFileIOMock mockAnscFileIOMock;
 
     WanMgrBase();
 

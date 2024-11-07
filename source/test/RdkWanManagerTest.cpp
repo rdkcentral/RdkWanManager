@@ -46,6 +46,15 @@ CapMock * g_capMock = nullptr;
 AnscMemoryMock * g_anscMemoryMock = nullptr;
 MessageBusMock * g_messagebusMock = nullptr;
 PlatformHalMock *g_platformHALMock =nullptr;
+PsmMock *g_psmMock = nullptr;
+AnscTaskMock *g_anscTaskMock = nullptr;
+SysInfoRepositoryMock * g_sysInfoRepositoryMock = nullptr;
+AnscTimerSchedulerMock * g_anscTimerSchedulerMock = nullptr;
+AnscCryptoMock* g_anscCryptoMock = NULL;
+AnscXmlMock *g_anscXmlMock = nullptr;
+AnscFileIOMock* g_anscFileIOMock = NULL;
+AnscCoMock *g_anscCoMock= nullptr;
+
 
 WanMgrBase::WanMgrBase()
 {
@@ -57,12 +66,21 @@ void WanMgrBase::SetUp()
         << " Test Case Name: " << UnitTest::GetInstance()->current_test_info()->name() << endl;
 
     mockWanMgr = &mockWanUtils;
+    g_anscFileIOMock = &mockAnscFileIOMock;
     g_rbusMock = &mockedRbus;
     g_securewrapperMock = &mockSecurewrapperMock;
     g_capMock = &mockCap;
     g_anscMemoryMock = &mockAnscMemory;
     g_messagebusMock = &mockMessagebus;
     g_platformHALMock = &mockPlatformHAL;
+    g_psmMock = &mockPSM;
+    g_anscTaskMock = &mockanscTaskMock;
+    g_sysInfoRepositoryMock = &mocksysInfoRepositoryMock;
+    g_anscTimerSchedulerMock = &mockanscTimerSchedulerMock;
+    g_anscCryptoMock = &mockanscCryptoMock;
+    g_anscXmlMock = &mockAnscXml;
+    g_anscCoMock = &mockedAnscCo;
+
     //Initialise mutex attributes
     pthread_mutexattr_t     muttex_attr;
     pthread_mutexattr_init(&muttex_attr);

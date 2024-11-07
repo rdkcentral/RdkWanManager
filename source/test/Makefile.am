@@ -41,11 +41,12 @@ RdkWanManager_gtest_bin_CPPFLAGS = -I$(PKG_CONFIG_SYSROOT_DIR)$(includedir)/gtes
 RdkWanManager_gtest_bin_LDFLAGS = -lgtest -lgmock -lgcov
 
 #TODO:Compiling all files due to limited time. This should be modified to compile only the required files
-RdkWanManager_gtest_bin_SOURCES =    ../WanManager/wanmgr_core.c ../WanManager/wanmgr_controller.c ../WanManager/wanmgr_data.c ../WanManager/wanmgr_sysevents.c ../WanManager/wanmgr_interface_sm.c ../WanManager/wanmgr_utils.c ../WanManager/wanmgr_net_utils.c  ../WanManager/wanmgr_dhcpv6_apis.c ../WanManager/wanmgr_ipc.c  ../WanManager/wanmgr_policy_autowan_impl.c ../WanManager/wanmgr_policy_auto_impl.c ../WanManager/dm_pack_datamodel.c ../WanManager/wanmgr_wan_failover.c ../WanManager/wanmgr_policy_parallel_scan_impl.c ../WanManager/wanmgr_dhcp_legacy_apis.c ../TR-181/middle_layer_src/wanmgr_rbus_handler_apis.c ../TR-181/middle_layer_src/wanmgr_rdkbus_utils.c ../TR-181/middle_layer_src/wanmgr_rdkbus_apis.c ../WanManager/DHCPv6cMsgHandler/dhcpv6c_msg_apis.c \
+#RdkWanManager_gtest_bin_SOURCES =    ../WanManager/wanmgr_core.c ../WanManager/wanmgr_controller.c ../WanManager/wanmgr_data.c ../WanManager/wanmgr_sysevents.c ../WanManager/wanmgr_interface_sm.c ../WanManager/wanmgr_utils.c ../WanManager/wanmgr_net_utils.c  ../WanManager/wanmgr_dhcpv6_apis.c ../WanManager/wanmgr_ipc.c  ../WanManager/wanmgr_policy_autowan_impl.c ../WanManager/wanmgr_policy_auto_impl.c ../WanManager/dm_pack_datamodel.c ../WanManager/wanmgr_wan_failover.c ../WanManager/wanmgr_policy_parallel_scan_impl.c ../WanManager/wanmgr_dhcp_legacy_apis.c ../TR-181/middle_layer_src/wanmgr_rbus_handler_apis.c ../TR-181/middle_layer_src/wanmgr_rdkbus_utils.c ../TR-181/middle_layer_src/wanmgr_rdkbus_apis.c ../WanManager/DHCPv6cMsgHandler/dhcpv6c_msg_apis.c 
+
+RdkWanManager_gtest_bin_SOURCES =    ../WanManager/wanmgr_core.c ../WanManager/wanmgr_controller.c ../WanManager/wanmgr_data.c ../WanManager/wanmgr_sysevents.c ../WanManager/wanmgr_interface_sm.c ../WanManager/wanmgr_utils.c ../WanManager/wanmgr_net_utils.c  ../WanManager/wanmgr_dhcpv6_apis.c ../WanManager/wanmgr_ipc.c ../WanManager/wanmgr_policy_auto_impl.c ../WanManager/wanmgr_wan_failover.c ../WanManager/wanmgr_policy_parallel_scan_impl.c ../WanManager/wanmgr_dhcp_legacy_apis.c ../TR-181/middle_layer_src/wanmgr_rbus_handler_apis.c ../TR-181/middle_layer_src/wanmgr_rdkbus_utils.c ../TR-181/middle_layer_src/wanmgr_rdkbus_apis.c ../WanManager/DHCPv6cMsgHandler/dhcpv6c_msg_apis.c \
 gtest_main.cpp  RdkWanManagerTest.cpp  Test_wanmgr_rbus_handler_apis.cpp 
 
 # TODO: Partially added RdkbGmock libs. Complete this once all mocks are available. 
 RdkWanManager_gtest_bin_LDADD =  -lrdkloggers  -lapi_dhcpv4c -lnanomsg -lwebconfig_framework -lmsgpackc -ldhcp_client_utils  -lsyscfg -lsysevent -lpthread \
- -lmock_privilege -lmock_rbus -lmock_secure_wrapper -lccsp_common -lmock_platform_hal 
-
+ -lmock_privilege -lmock_rbus -lmock_secure_wrapper -lmock_ccsp_common -lmock_platform_hal -lmock_psm
 
