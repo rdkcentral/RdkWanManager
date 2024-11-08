@@ -778,7 +778,7 @@ int wan_updateDNS(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl, BOOL addIPv4, BOOL
                 // GATEWAY Mode
                 CcspTraceInfo(("%s %d: adding nameserver %s >> %s\n", __FUNCTION__, __LINE__, p_VirtIf->IP.Ipv4Data.dnsServer, RESOLV_CONF_FILE));
                 fprintf(fp, "nameserver %s\n", p_VirtIf->IP.Ipv4Data.dnsServer);
-	        resolv_conf_changed = TRUE;
+	            resolv_conf_changed = TRUE;
             }
             sysevent_set(sysevent_fd, sysevent_token, syseventParam, p_VirtIf->IP.Ipv4Data.dnsServer, 0);
             CcspTraceInfo(("%s %d: new v4 DNS Server = %s\n", __FUNCTION__, __LINE__, p_VirtIf->IP.Ipv4Data.dnsServer));
@@ -802,7 +802,7 @@ int wan_updateDNS(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl, BOOL addIPv4, BOOL
                 // GATEWAY Mode
                 CcspTraceInfo(("%s %d: adding nameserver %s >> %s\n", __FUNCTION__, __LINE__, p_VirtIf->IP.Ipv4Data.dnsServer1, RESOLV_CONF_FILE));
                 fprintf(fp, "nameserver %s\n", p_VirtIf->IP.Ipv4Data.dnsServer1);
-	        resolv_conf_changed = TRUE;
+	            resolv_conf_changed = TRUE;
             }
             CcspTraceInfo(("%s %d: new v4 DNS Server = %s\n", __FUNCTION__, __LINE__, p_VirtIf->IP.Ipv4Data.dnsServer1));
             sysevent_set(sysevent_fd, sysevent_token, syseventParam, p_VirtIf->IP.Ipv4Data.dnsServer1, 0);
@@ -843,7 +843,7 @@ int wan_updateDNS(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl, BOOL addIPv4, BOOL
                 // GATEWAY Mode
                 CcspTraceInfo(("%s %d: adding nameserver %s >> %s\n", __FUNCTION__, __LINE__, p_VirtIf->IP.Ipv6Data.nameserver, RESOLV_CONF_FILE));
                 fprintf(fp, "nameserver %s\n", p_VirtIf->IP.Ipv6Data.nameserver);
-		resolv_conf_changed = TRUE;
+        		resolv_conf_changed = TRUE;
             }
             CcspTraceInfo(("%s %d: new v6 DNS Server = %s\n", __FUNCTION__, __LINE__, p_VirtIf->IP.Ipv6Data.nameserver));
             sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_DNS_PRIMARY, p_VirtIf->IP.Ipv6Data.nameserver, 0);
@@ -863,7 +863,7 @@ int wan_updateDNS(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl, BOOL addIPv4, BOOL
             {
                 CcspTraceInfo(("%s %d: adding nameserver %s >> %s\n", __FUNCTION__, __LINE__, p_VirtIf->IP.Ipv6Data.nameserver1, RESOLV_CONF_FILE));
                 fprintf(fp, "nameserver %s\n", p_VirtIf->IP.Ipv6Data.nameserver1);
-		resolv_conf_changed = TRUE;
+		        resolv_conf_changed = TRUE;
             }
             CcspTraceInfo(("%s %d: new v6 DNS Server = %s\n", __FUNCTION__, __LINE__, p_VirtIf->IP.Ipv6Data.nameserver1));
             sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_DNS_SECONDARY, p_VirtIf->IP.Ipv6Data.nameserver1, 0);
@@ -904,7 +904,7 @@ int wan_updateDNS(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl, BOOL addIPv4, BOOL
         if (fp != NULL)
         {
             fprintf(fp, "nameserver %s \n", LOOPBACK);
-	    resolv_conf_changed = TRUE;
+    	    resolv_conf_changed = TRUE;
         }
     }
     if (fp != NULL)

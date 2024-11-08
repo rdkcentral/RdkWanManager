@@ -1739,24 +1739,24 @@ int Update_Current_ActiveDNS(char* CurrentActiveDNS)
     while((fgets(buf, sizeof(buf), fp)) != NULL)
     {
         token = strtok(buf, " ");
-	if(!strcmp(token,"nameserver"))
-	{
+        if(!strcmp(token,"nameserver"))
+    	{
             token = strtok(NULL, " ");
             if(strlen(token)>0)
             {
                 if(strlen(CurrentActiveDNS) > 0 )
-		{
+	        	{
                     strcat(CurrentActiveDNS,",");
                 }
-		if(token[strlen(token)-1] == '\n')
-		{
+        		if(token[strlen(token)-1] == '\n')
+		        {
                     token[strlen(token)-1] = '\0';
-		}
+        		}
                 strcat(CurrentActiveDNS,token);
             }
-	}
+    	}
         memset(buf, 0 , sizeof(buf));
-        memset(token,0,sizeof(token));
+        token = NULL;
     }
     if (fp != NULL)
     {
@@ -1764,6 +1764,7 @@ int Update_Current_ActiveDNS(char* CurrentActiveDNS)
     }    
     return RETURN_OK;
 }
+
 ANSC_STATUS Update_Interface_Status()
 {
     struct IFACE_INFO *head = NULL;
@@ -1919,12 +1920,12 @@ ANSC_STATUS Update_Interface_Status()
             publishActiveStatus = TRUE;
 #endif
         }
-	if(RETURN_OK == Update_Current_ActiveDNS(CurrentActiveDNS))
-	{
+    	if(RETURN_OK == Update_Current_ActiveDNS(CurrentActiveDNS))
+    	{
             if(strcmp(pWanDmlData->CurrentActiveDNS,CurrentActiveDNS) != 0)
             {
                 CcspTraceInfo(("%s %d CurrentActiveDNS- [%s] [%s]\n",__FUNCTION__,__LINE__,pWanDmlData->CurrentActiveDNS,CurrentActiveDNS));
- 	        strncpy(prevCurrentActiveDNS,pWanDmlData->CurrentActiveDNS,sizeof(prevCurrentActiveDNS)-1);
+ 	            strncpy(prevCurrentActiveDNS,pWanDmlData->CurrentActiveDNS,sizeof(prevCurrentActiveDNS)-1);
                 memset(pWanDmlData->CurrentActiveDNS,0, sizeof(pWanDmlData->CurrentActiveDNS));
                 strncpy(pWanDmlData->CurrentActiveDNS,CurrentActiveDNS, sizeof(pWanDmlData->CurrentActiveDNS) - 1);
 #ifdef RBUS_BUILD_FLAG_ENABLE
@@ -1993,7 +1994,7 @@ ANSC_STATUS Update_Interface_Status()
     }
     if(publishCurrentActiveDNS == TRUE)
     {
-	WanMgr_Rbus_String_EventPublish_OnValueChange(WANMGR_CONFIG_WAN_CURRENTACTIVEDNS,prevCurrentActiveDNS,CurrentActiveDNS);
+    	WanMgr_Rbus_String_EventPublish_OnValueChange(WANMGR_CONFIG_WAN_CURRENTACTIVEDNS,prevCurrentActiveDNS,CurrentActiveDNS);
     }
 
 #endif //RBUS_BUILD_FLAG_ENABLE
