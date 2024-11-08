@@ -1722,7 +1722,7 @@ void SortedInsert( struct IFACE_INFO** head_ref,  struct IFACE_INFO *new_node)
         current->next = new_node;
     }
 }
-void Update_Current_ActiveDNS(char* CurrentActiveDNS)
+int Update_Current_ActiveDNS(char* CurrentActiveDNS)
 {
     FILE *fp = NULL;
     char buf[64] = {0};
@@ -1761,7 +1761,7 @@ void Update_Current_ActiveDNS(char* CurrentActiveDNS)
     {
         fclose(fp);
     }    
-    return;    
+    return RETURN_OK;
 }
 ANSC_STATUS Update_Interface_Status()
 {
@@ -1895,7 +1895,10 @@ ANSC_STATUS Update_Interface_Status()
         free(pHead);
         pHead = tmp;
     }
-    Update_Current_ActiveDNS(CurrentActiveDNS);
+    if(RETURN_OK != Update_Current_ActiveDNS(CurrentActiveDNS))
+    {
+        CcspTraceError(("%s %d - Update_Current_ActiveDNS Failed \n", __FUNCTION__, __LINE__));
+    }
 
     pWanConfigData = WanMgr_GetConfigData_locked();
     if (pWanConfigData != NULL)
@@ -1919,15 +1922,18 @@ ANSC_STATUS Update_Interface_Status()
             publishActiveStatus = TRUE;
 #endif
         }
-        if(strcmp(pWanDmlData->CurrentActiveDNS,CurrentActiveDNS) != 0)
-        {
-	    CcspTraceInfo(("%s %d CurrentActiveDNS- [%s] [%s]\n",__FUNCTION__,__LINE__,pWanDmlData->CurrentActiveDNS,CurrentActiveDNS));
-	    strncpy(prevCurrentActiveDNS,pWanDmlData->CurrentActiveDNS,sizeof(prevCurrentActiveDNS)-1);
-            memset(pWanDmlData->CurrentActiveDNS,0, sizeof(pWanDmlData->CurrentActiveDNS));
-            strncpy(pWanDmlData->CurrentActiveDNS,CurrentActiveDNS, sizeof(pWanDmlData->CurrentActiveDNS) - 1);
+	if(strcmp(CurrentActiveDNS, ""))
+	{
+            if(strcmp(pWanDmlData->CurrentActiveDNS,CurrentActiveDNS) != 0)
+            {
+                CcspTraceInfo(("%s %d CurrentActiveDNS- [%s] [%s]\n",__FUNCTION__,__LINE__,pWanDmlData->CurrentActiveDNS,CurrentActiveDNS));
+ 	        strncpy(prevCurrentActiveDNS,pWanDmlData->CurrentActiveDNS,sizeof(prevCurrentActiveDNS)-1);
+                memset(pWanDmlData->CurrentActiveDNS,0, sizeof(pWanDmlData->CurrentActiveDNS));
+                strncpy(pWanDmlData->CurrentActiveDNS,CurrentActiveDNS, sizeof(pWanDmlData->CurrentActiveDNS) - 1);
 #ifdef RBUS_BUILD_FLAG_ENABLE
-            publishCurrentActiveDNS = TRUE;
+                publishCurrentActiveDNS = TRUE;
 #endif
+            }
         }
 
         CcspTraceInfo(("%s %d -CurrentActiveInterface- [%s] [%s]\n",__FUNCTION__,__LINE__,pWanDmlData->CurrentActiveInterface,CurrentActiveInterface));
