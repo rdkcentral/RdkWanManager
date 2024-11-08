@@ -1895,10 +1895,6 @@ ANSC_STATUS Update_Interface_Status()
         free(pHead);
         pHead = tmp;
     }
-    if(RETURN_OK != Update_Current_ActiveDNS(CurrentActiveDNS))
-    {
-        CcspTraceError(("%s %d - Update_Current_ActiveDNS Failed \n", __FUNCTION__, __LINE__));
-    }
 
     pWanConfigData = WanMgr_GetConfigData_locked();
     if (pWanConfigData != NULL)
@@ -1922,7 +1918,7 @@ ANSC_STATUS Update_Interface_Status()
             publishActiveStatus = TRUE;
 #endif
         }
-	if(strcmp(CurrentActiveDNS, ""))
+	if(RETURN_OK == Update_Current_ActiveDNS(CurrentActiveDNS))
 	{
             if(strcmp(pWanDmlData->CurrentActiveDNS,CurrentActiveDNS) != 0)
             {
