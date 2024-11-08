@@ -1727,8 +1727,9 @@ int Update_Current_ActiveDNS(char* CurrentActiveDNS)
     FILE *fp = NULL;
     char buf[64] = {0};
     char* token = NULL;
-
+    
     memset(CurrentActiveDNS,0,sizeof(CurrentActiveDNS));
+
     if((fp = fopen(RESOLV_CONF_FILE, "r")) == NULL)
     {
         CcspTraceError(("%s %d - Open %s error!\n", __FUNCTION__, __LINE__, RESOLV_CONF_FILE));
