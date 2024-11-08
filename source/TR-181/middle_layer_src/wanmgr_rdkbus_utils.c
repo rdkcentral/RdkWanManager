@@ -967,7 +967,7 @@ ANSC_STATUS WanMgr_RdkBus_setDhcpv6DnsServerInfo(void)
 #if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
 ANSC_STATUS WanMgr_RdkBus_setWanIpInterfaceData(DML_VIRTUAL_IFACE*  pVirtIf)
 {
-    ANSC_STATUS retStatus = ANSC_STATUS_FAILURE;
+    ANSC_STATUS retStatus = ANSC_STATUS_SUCCESS;
     char dmQuery[BUFLEN_256] = {0};
     snprintf(dmQuery, sizeof(dmQuery)-1, "%s.LowerLayers", pVirtIf->IP.Interface);
     if(pVirtIf->PPP.Enable == TRUE)

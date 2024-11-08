@@ -487,7 +487,7 @@ ANSC_STATUS WanMgr_StartIpcServer()
     }
 
 #if defined(WAN_MANAGER_UNIFICATION_ENABLED) && !defined( RDKB_EXTENDER_ENABLED)
-    //TODO: XLE is still using the OLD dhcpv6c_dbg_thrd thread
+    //TODO: XLE is still using the legacy CcspPaM dhcpv6c_dbg_thrd thread
     WanMgr_DhcpV6MsgHandlerInit();
 #endif 
 
