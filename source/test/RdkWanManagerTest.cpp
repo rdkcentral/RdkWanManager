@@ -50,10 +50,20 @@ PsmMock *g_psmMock = nullptr;
 AnscTaskMock *g_anscTaskMock = nullptr;
 SysInfoRepositoryMock * g_sysInfoRepositoryMock = nullptr;
 AnscTimerSchedulerMock * g_anscTimerSchedulerMock = nullptr;
-AnscCryptoMock* g_anscCryptoMock = NULL;
+AnscCryptoMock* g_anscCryptoMock = nullptr;
 AnscXmlMock *g_anscXmlMock = nullptr;
-AnscFileIOMock* g_anscFileIOMock = NULL;
+AnscFileIOMock* g_anscFileIOMock = nullptr;
 AnscCoMock *g_anscCoMock= nullptr;
+DslhDmagntExportedMock* g_dslhDmagntExportedMock = nullptr;
+CcspDmApiMock* g_ccspDmApiMock = nullptr;
+UserRuntimeMock *g_userRuntimeMock = nullptr;
+AnscDebugMock * g_anscDebugMock = NULL;
+TraceMock * g_traceMock = NULL;
+FileIOMock * g_fileIOMock = NULL;
+BaseAPIMock * g_baseapiMock = NULL;
+UserTimeMock * g_usertimeMock = NULL;
+AnscWrapperApiMock * g_anscWrapperApiMock = NULL;
+
 
 
 WanMgrBase::WanMgrBase()
@@ -66,6 +76,10 @@ void WanMgrBase::SetUp()
         << " Test Case Name: " << UnitTest::GetInstance()->current_test_info()->name() << endl;
 
     mockWanMgr = &mockWanUtils;
+    g_baseapiMock = &mockedbaseapi;
+    g_traceMock = &mockedTrace;
+    g_fileIOMock = &mockedFileIO;
+    g_ccspDmApiMock = &mockccspDmApiMock;
     g_anscFileIOMock = &mockAnscFileIOMock;
     g_rbusMock = &mockedRbus;
     g_securewrapperMock = &mockSecurewrapperMock;
@@ -80,6 +94,11 @@ void WanMgrBase::SetUp()
     g_anscCryptoMock = &mockanscCryptoMock;
     g_anscXmlMock = &mockAnscXml;
     g_anscCoMock = &mockedAnscCo;
+    g_dslhDmagntExportedMock = &mockdslhDmagntExported;
+    g_userRuntimeMock = &mockedUserRuntime;
+    g_anscDebugMock = &mockedAnscDebug;
+    g_anscWrapperApiMock = &mockedanscWrapperApi;
+    g_usertimeMock = &mockedUserTime;
 
     //Initialise mutex attributes
     pthread_mutexattr_t     muttex_attr;

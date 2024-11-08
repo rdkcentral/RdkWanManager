@@ -36,7 +36,15 @@
 #include <mocks/mock_ansc_xml.h>
 #include <mocks/mock_ansc_file_io.h>
 #include <mocks/mock_ansc_co.h>
-
+#include <mocks/mock_dslh_dmagnt_exported.h>
+#include <mocks/mock_ccsp_dmapi.h>
+#include <mocks/mock_user_runtime.h>
+#include <mocks/mock_ansc_debug.h>
+#include <mocks/mock_trace.h>
+#include <mocks/mock_file_io.h>
+#include <mocks/mock_base_api.h>
+#include <mocks/mock_usertime.h>
+#include <mocks/mock_ansc_wrapper_api.h>
 
 
 
@@ -92,6 +100,16 @@ protected:
     AnscCryptoMock mockanscCryptoMock;
     AnscXmlMock mockAnscXml;
     AnscFileIOMock mockAnscFileIOMock;
+    DslhDmagntExportedMock mockdslhDmagntExported;
+    CcspDmApiMock mockccspDmApiMock;
+    UserRuntimeMock mockedUserRuntime;
+    AnscDebugMock mockedAnscDebug;
+    TraceMock mockedTrace;
+    FileIOMock mockedFileIO;
+    BaseAPIMock mockedbaseapi;
+    UserTimeMock mockedUserTime;
+    AnscWrapperApiMock mockedanscWrapperApi;
+
 
     WanMgrBase();
 
