@@ -52,6 +52,7 @@
 #define DATA_SKB_MARKING_LOCATION "/tmp/skb_marking.conf"
 #define WAN_DBUS_PATH             "/com/cisco/spvtg/ccsp/wanmanager"
 #define WAN_COMPONENT_NAME        "eRT.com.cisco.spvtg.ccsp.wanmanager"
+#define RESOLV_CONF_FILE          "/etc/resolv.conf"
 extern WANMGR_DATA_ST gWanMgrDataBase;
 extern char g_Subsystem[32];
 extern ANSC_HANDLE bus_handle;
@@ -1725,6 +1726,48 @@ void SortedInsert( struct IFACE_INFO** head_ref,  struct IFACE_INFO *new_node)
         current->next = new_node;
     }
 }
+int Update_Current_ActiveDNS(char* CurrentActiveDNS)
+{
+    FILE *fp = NULL;
+    char buf[64] = {0};
+    char* token = NULL;
+    
+    memset(CurrentActiveDNS,0,sizeof(CurrentActiveDNS));
+
+    if((fp = fopen(RESOLV_CONF_FILE, "r")) == NULL)
+    {
+        CcspTraceError(("%s %d - Open %s error!\n", __FUNCTION__, __LINE__, RESOLV_CONF_FILE));
+        return RETURN_ERR;
+    }
+
+    while((fgets(buf, sizeof(buf), fp)) != NULL)
+    {
+        token = strtok(buf, " ");
+        if(!strcmp(token,"nameserver"))
+    	{
+            token = strtok(NULL, " ");
+            if(strlen(token)>0)
+            {
+                if(strlen(CurrentActiveDNS) > 0 )
+	        	{
+                    strcat(CurrentActiveDNS,",");
+                }
+        		if(token[strlen(token)-1] == '\n')
+		        {
+                    token[strlen(token)-1] = '\0';
+        		}
+                strcat(CurrentActiveDNS,token);
+            }
+    	}
+        memset(buf, 0 , sizeof(buf));
+        token = NULL;
+    }
+    if (fp != NULL)
+    {
+        fclose(fp);
+    }    
+    return RETURN_OK;
+}
 
 ANSC_STATUS Update_Interface_Status()
 {
@@ -1735,17 +1778,20 @@ ANSC_STATUS Update_Interface_Status()
     CHAR    CurrentActiveInterface[BUFLEN_64] = {0};
     CHAR    CurrentWanStatus[BUFLEN_16] = "Down";
     CHAR    CurrentStandbyInterface[BUFLEN_64] = {0};
+    CHAR    CurrentActiveDNS[BUFLEN_256] ={0};
 
     CHAR    prevInterfaceAvailableStatus[BUFLEN_64]  = {0};
     CHAR    prevInterfaceActiveStatus[BUFLEN_64]     = {0};
     CHAR    prevCurrentActiveInterface[BUFLEN_64] = {0};
     CHAR    prevCurrentStandbyInterface[BUFLEN_64] = {0};
+    CHAR    prevCurrentActiveDNS[BUFLEN_256] = {0};
 
 #ifdef RBUS_BUILD_FLAG_ENABLE
     bool    publishAvailableStatus  = FALSE;
     bool    publishActiveStatus = FALSE;
     bool    publishCurrentActiveInf  = FALSE;
     bool    publishCurrentStandbyInf = FALSE;
+    bool    publishCurrentActiveDNS = FALSE;
 #endif
     int uiLoopCount;
 
@@ -1876,6 +1922,19 @@ ANSC_STATUS Update_Interface_Status()
             publishActiveStatus = TRUE;
 #endif
         }
+    	if(RETURN_OK == Update_Current_ActiveDNS(CurrentActiveDNS))
+    	{
+            if(strcmp(pWanDmlData->CurrentActiveDNS,CurrentActiveDNS) != 0)
+            {
+                CcspTraceInfo(("%s %d CurrentActiveDNS- [%s] [%s]\n",__FUNCTION__,__LINE__,pWanDmlData->CurrentActiveDNS,CurrentActiveDNS));
+ 	            strncpy(prevCurrentActiveDNS,pWanDmlData->CurrentActiveDNS,sizeof(prevCurrentActiveDNS)-1);
+                memset(pWanDmlData->CurrentActiveDNS,0, sizeof(pWanDmlData->CurrentActiveDNS));
+                strncpy(pWanDmlData->CurrentActiveDNS,CurrentActiveDNS, sizeof(pWanDmlData->CurrentActiveDNS) - 1);
+#ifdef RBUS_BUILD_FLAG_ENABLE
+                publishCurrentActiveDNS = TRUE;
+#endif
+            }
+        }
 
         CcspTraceInfo(("%s %d -CurrentActiveInterface- [%s] [%s]\n",__FUNCTION__,__LINE__,pWanDmlData->CurrentActiveInterface,CurrentActiveInterface));
         if(strlen(CurrentActiveInterface) > 0)
@@ -1932,6 +1991,10 @@ ANSC_STATUS Update_Interface_Status()
     if(publishActiveStatus == TRUE)
     {
         WanMgr_Rbus_String_EventPublish_OnValueChange(WANMGR_CONFIG_WAN_INTERFACEACTIVESTATUS, prevInterfaceActiveStatus, InterfaceActiveStatus);
+    }
+    if(publishCurrentActiveDNS == TRUE)
+    {
+    	WanMgr_Rbus_String_EventPublish_OnValueChange(WANMGR_CONFIG_WAN_CURRENTACTIVEDNS,prevCurrentActiveDNS,CurrentActiveDNS);
     }
 
 #endif //RBUS_BUILD_FLAG_ENABLE
