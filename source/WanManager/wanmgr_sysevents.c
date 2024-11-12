@@ -714,7 +714,6 @@ static void *WanManagerSyseventHandler(void *args)
 
                 if( 0 == syscfg_get(NULL, SYSCFG_FEATURE_LANULA_SUPPORT, buf, sizeof(buf)) ) 
                 { 
-                    //1-Extender Mode 0-Gateway Mode
                     if (strcmp(buf,"true") == 0)
                     {
                         IsLANULASupportAvailable = TRUE;
@@ -761,7 +760,6 @@ static void *WanManagerSyseventHandler(void *args)
 
                 if( 0 == syscfg_get(NULL, SYSCFG_FEATURE_LANULA_SUPPORT, buf, sizeof(buf)) ) 
                 { 
-                    //1-Extender Mode 0-Gateway Mode
                     if (strcmp(buf,"true") == 0)
                     {
                         IsLANULASupportAvailable = TRUE;
