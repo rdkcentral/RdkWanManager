@@ -922,35 +922,40 @@ static int checkIpv6LanAddressIsReadyToUse(char *ifname)
     char IfaceName[BUFLEN_16] = {0};
     int BridgeMode = 0;
 
-#if defined (_HUB4_PRODUCT_REQ_) //TODO: Need a generic way to check ipv6 prefix and Address. 
-    int address_flag   = 0;
-    struct ifaddrs *ifap = NULL;
-    struct ifaddrs *ifa  = NULL;
-    char addr[INET6_ADDRSTRLEN] = {0};
+#if defined (_HUB4_PRODUCT_REQ_) || defined (_SCER11BEL_PRODUCT_REQ_) //TODO: Need a generic way to check ipv6 prefix and Address. 
+#if defined (_SCER11BEL_PRODUCT_REQ_)
+    if( TRUE == WanMgr_Util_IsThisCurrentPartnerID("sky-uk") )
+#endif /* _SCER11BEL_PRODUCT_REQ_ */
+    {
+        int address_flag   = 0;
+        struct ifaddrs *ifap = NULL;
+        struct ifaddrs *ifa  = NULL;
+        char addr[INET6_ADDRSTRLEN] = {0};
 
-    /* We need to check the interface has got an IPV6-prefix , beacuse P-and-M can send
-    the same event when interface is down, so we ensure send the UP event only
-    when interface has an IPV6-prefix.
-    */
-    if (!getifaddrs(&ifap)) {
-        for (ifa = ifap; ifa; ifa = ifa->ifa_next) {
-            if(strncmp(ifa->ifa_name,ETH_BRIDGE_NAME, strlen(ETH_BRIDGE_NAME)))
-                continue;
-            if (ifa->ifa_addr->sa_family != AF_INET6)
-                continue;
-            getnameinfo(ifa->ifa_addr, sizeof(struct sockaddr_in6), addr,
-                    sizeof(addr), NULL, 0, NI_NUMERICHOST);
-            if((strncmp(addr + (strlen(addr) - 3), "::1", 3) == 0)){
-                address_flag = 1;
-                break;
-            }
-        }//for loop
-        freeifaddrs(ifap);
-    }//getifaddr close
+        /* We need to check the interface has got an IPV6-prefix , beacuse P-and-M can send
+        the same event when interface is down, so we ensure send the UP event only
+        when interface has an IPV6-prefix.
+        */
+        if (!getifaddrs(&ifap)) {
+            for (ifa = ifap; ifa; ifa = ifa->ifa_next) {
+                if(strncmp(ifa->ifa_name,ETH_BRIDGE_NAME, strlen(ETH_BRIDGE_NAME)))
+                    continue;
+                if (ifa->ifa_addr->sa_family != AF_INET6)
+                    continue;
+                getnameinfo(ifa->ifa_addr, sizeof(struct sockaddr_in6), addr,
+                        sizeof(addr), NULL, 0, NI_NUMERICHOST);
+                if((strncmp(addr + (strlen(addr) - 3), "::1", 3) == 0)){
+                    address_flag = 1;
+                    break;
+                }
+            }//for loop
+            freeifaddrs(ifap);
+        }//getifaddr close
 
-    if(address_flag == 0) {
-        CcspTraceError(("%s %d address_flag Failed\n", __FUNCTION__, __LINE__));
-        return -1;
+        if(address_flag == 0) {
+            CcspTraceError(("%s %d address_flag Failed\n", __FUNCTION__, __LINE__));
+            return -1;
+        }   
     }
 #endif
 
@@ -1024,8 +1029,13 @@ static int checkIpv6AddressAssignedToBridge(char *IfaceName)
     int ret = RETURN_ERR;
 
 #if (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_)) &&  !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)//TODO: V6 handled in PAM
-    CcspTraceWarning(("%s %d Ipv6 handled in PAM. No need to check here.  \n",__FUNCTION__, __LINE__));
-    return RETURN_OK;
+#if defined (_SCER11BEL_PRODUCT_REQ_)
+    if( FALSE == WanMgr_Util_IsThisCurrentPartnerID("sky-uk") )
+#endif /* _SCER11BEL_PRODUCT_REQ_ */
+    {
+        CcspTraceWarning(("%s %d Ipv6 handled in PAM. No need to check here.  \n",__FUNCTION__, __LINE__));
+        return RETURN_OK;
+    }
 #endif
     sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_GLOBAL_IPV6_PREFIX_SET, lanPrefix, sizeof(lanPrefix));
 
@@ -1262,16 +1272,21 @@ static int wan_tearDownIPv4(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
     DML_WAN_IFACE * pInterface = pWanIfaceCtrl->pIfaceData;
     DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIfaceById(pInterface->VirtIfList, pWanIfaceCtrl->VirIfIdx);
 
-#if !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_)) //TODO:  XB devices use the DNS of primary for backup.
-        /** Reset IPv4 DNS configuration. */
-    if (RETURN_OK != wan_updateDNS(pWanIfaceCtrl, FALSE, (p_VirtIf->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_UP)))
+#if !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_)) || defined (_SCER11BEL_PRODUCT_REQ_) //TODO:  XB devices use the DNS of primary for backup.
+#if defined (_SCER11BEL_PRODUCT_REQ_)
+    if( TRUE == WanMgr_Util_IsThisCurrentPartnerID("sky-uk") )
+#endif /* _SCER11BEL_PRODUCT_REQ_ */
     {
-        CcspTraceError(("%s %d - Failed to unconfig IPv4 DNS servers \n", __FUNCTION__, __LINE__));
-        ret = RETURN_ERR;
-    }
-    else
-    {
-        CcspTraceInfo(("%s %d -  IPv4 DNS servers unconfig successfully \n", __FUNCTION__, __LINE__));
+            /** Reset IPv4 DNS configuration. */
+        if (RETURN_OK != wan_updateDNS(pWanIfaceCtrl, FALSE, (p_VirtIf->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_UP)))
+        {
+            CcspTraceError(("%s %d - Failed to unconfig IPv4 DNS servers \n", __FUNCTION__, __LINE__));
+            ret = RETURN_ERR;
+        }
+        else
+        {
+            CcspTraceInfo(("%s %d -  IPv4 DNS servers unconfig successfully \n", __FUNCTION__, __LINE__));
+        }
     }
 #endif
 
@@ -1386,13 +1401,18 @@ static int wan_setUpIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
         }
         wanmgr_services_restart();
 
-#if !defined (_XB6_PRODUCT_REQ_) && !defined (_CBR2_PRODUCT_REQ_) && !defined(_PLATFORM_RASPBERRYPI_) //parodus uses cmac for xb platforms
+#if (!defined (_XB6_PRODUCT_REQ_) && !defined (_CBR2_PRODUCT_REQ_) && !defined(_PLATFORM_RASPBERRYPI_)) || defined (_SCER11BEL_PRODUCT_REQ_) //parodus uses cmac for xb platforms
+#if defined (_SCER11BEL_PRODUCT_REQ_)
+    if( TRUE == WanMgr_Util_IsThisCurrentPartnerID("sky-uk") )
+#endif /* _SCER11BEL_PRODUCT_REQ_ */
+    {
         // set wan mac because parodus depends on it to start.
         if(ANSC_STATUS_SUCCESS == WanManager_get_interface_mac(p_VirtIf->IP.Ipv6Data.ifname, ifaceMacAddress, sizeof(ifaceMacAddress)))
         {
             CcspTraceInfo(("%s %d - setting sysevent eth_wan_mac = [%s]  \n", __FUNCTION__, __LINE__, ifaceMacAddress));
             sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_ETH_WAN_MAC, ifaceMacAddress, 0);
         }
+    }
 #endif
     }
   
@@ -1415,48 +1435,62 @@ static int wan_tearDownIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
     DML_WAN_IFACE * pInterface = pWanIfaceCtrl->pIfaceData;
     DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIfaceById(pInterface->VirtIfList, pWanIfaceCtrl->VirIfIdx);
 
-#if !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_)) //TODO: XB devices use the DNS of primary for backup.
-    /** Reset IPv6 DNS configuration. */
-    if (RETURN_OK == wan_updateDNS(pWanIfaceCtrl, (p_VirtIf->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_UP), FALSE))
+#if !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_)) || defined (_SCER11BEL_PRODUCT_REQ_) //TODO: XB devices use the DNS of primary for backup.
+#if defined (_SCER11BEL_PRODUCT_REQ_)
+    if( TRUE == WanMgr_Util_IsThisCurrentPartnerID("sky-uk") )
+#endif /* _SCER11BEL_PRODUCT_REQ_ */
     {
-        CcspTraceInfo(("%s %d -  IPv6 DNS servers unconfig successfully \n", __FUNCTION__, __LINE__));
-    }
-    else
-    {
-        CcspTraceError(("%s %d - Failed to unconfig IPv6 DNS servers \n", __FUNCTION__, __LINE__));
-        ret = RETURN_ERR;
-    }
+        /** Reset IPv6 DNS configuration. */
+        if (RETURN_OK == wan_updateDNS(pWanIfaceCtrl, (p_VirtIf->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_UP), FALSE))
+        {
+            CcspTraceInfo(("%s %d -  IPv6 DNS servers unconfig successfully \n", __FUNCTION__, __LINE__));
+        }
+        else
+        {
+            CcspTraceError(("%s %d - Failed to unconfig IPv6 DNS servers \n", __FUNCTION__, __LINE__));
+            ret = RETURN_ERR;
+        }
 
-    /** Unconfig IPv6. */
-    if ( WanManager_Ipv6AddrUtil(p_VirtIf->Name, DEL_ADDR,0,0) < 0)
-    {
-        AnscTraceError(("%s %d -  Failed to remove inactive address \n", __FUNCTION__,__LINE__));
-    }
+        /** Unconfig IPv6. */
+        if ( WanManager_Ipv6AddrUtil(p_VirtIf->Name, DEL_ADDR,0,0) < 0)
+        {
+            AnscTraceError(("%s %d -  Failed to remove inactive address \n", __FUNCTION__,__LINE__));
+        }
 
-    // Reset sysvevents.
-    char previousPrefix[BUFLEN_48] = {0};
-    char previousPrefix_vldtime[BUFLEN_48] = {0};
-    char previousPrefix_prdtime[BUFLEN_48] = {0};
-    /* set ipv6 down sysevent notification. */
-    sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_PREFIX, previousPrefix, sizeof(previousPrefix));
-    sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_PREFIXVLTIME, previousPrefix_vldtime, sizeof(previousPrefix_vldtime));
-    sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_PREFIXPLTIME, previousPrefix_prdtime, sizeof(previousPrefix_prdtime));
-    if (strncmp(previousPrefix, "", BUFLEN_48) != 0)
-    {
-        sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_PREVIOUS_IPV6_PREFIX, previousPrefix, 0);
-        sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_PREVIOUS_IPV6_PREFIXVLTIME, previousPrefix_vldtime, 0);
-        sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_PREVIOUS_IPV6_PREFIXPLTIME, previousPrefix_prdtime, 0);
+        // Reset sysvevents.
+        char previousPrefix[BUFLEN_48] = {0};
+        char previousPrefix_vldtime[BUFLEN_48] = {0};
+        char previousPrefix_prdtime[BUFLEN_48] = {0};
+        /* set ipv6 down sysevent notification. */
+        sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_PREFIX, previousPrefix, sizeof(previousPrefix));
+        sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_PREFIXVLTIME, previousPrefix_vldtime, sizeof(previousPrefix_vldtime));
+        sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_PREFIXPLTIME, previousPrefix_prdtime, sizeof(previousPrefix_prdtime));
+        if (strncmp(previousPrefix, "", BUFLEN_48) != 0)
+        {
+            sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_PREVIOUS_IPV6_PREFIX, previousPrefix, 0);
+            sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_PREVIOUS_IPV6_PREFIXVLTIME, previousPrefix_vldtime, 0);
+            sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_PREVIOUS_IPV6_PREFIXPLTIME, previousPrefix_prdtime, 0);
+        }
+        sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_PREFIX, "", 0);
+        sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_TR_EROUTER_DHCPV6_CLIENT_PREFIX, "", 0);
+        sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV6_CONNECTION_STATE, WAN_STATUS_DOWN, 0);
+        sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_GLOBAL_IPV6_PREFIX_SET, "", 0);
+        sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, NULL, 0);   
     }
-    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_PREFIX, "", 0);
-    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_TR_EROUTER_DHCPV6_CLIENT_PREFIX, "", 0);
-    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV6_CONNECTION_STATE, WAN_STATUS_DOWN, 0);
-    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_GLOBAL_IPV6_PREFIX_SET, "", 0);
-    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, NULL, 0);
 #endif
 
 //RBUS_WAN_IP
 #if defined (RBUS_WAN_IP)
-#if defined (_HUB4_PRODUCT_REQ_) || defined (_SR213_PRODUCT_REQ_)
+#if defined (_SCER11BEL_PRODUCT_REQ_)
+    if( TRUE == WanMgr_Util_IsThisCurrentPartnerID("sky-uk") )
+    {   
+        sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_LAN_IPV6_ADDRESS, "::", 0);
+    }
+    else
+    {
+        sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV6_WAN_ADDRESS, "::", 0);
+    }
+#elif defined (_HUB4_PRODUCT_REQ_) || defined (_SR213_PRODUCT_REQ_)
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_LAN_IPV6_ADDRESS, "::", 0);
 #else
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV6_WAN_ADDRESS, "::", 0);
