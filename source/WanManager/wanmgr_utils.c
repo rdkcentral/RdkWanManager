@@ -1130,3 +1130,21 @@ int sysctl_iface_set(const char *path, const char *ifname, const char *content)
 
     return 0;
 }
+
+/** WanMgr_Util_IsThisCurrentPartnerID() */
+unsigned char WanMgr_Util_IsThisCurrentPartnerID( const char* pcPartnerID )
+{
+    if ( NULL != pcPartnerID )
+    {
+        char actmpPartnerID[64] = {0};
+
+        if( ( CCSP_SUCCESS == getPartnerId( actmpPartnerID ) ) && \
+            ( actmpPartnerID[ 0 ] != '\0' ) && \
+            ( 0 == strcmp( pcPartnerID, actmpPartnerID ) ) )
+        {
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}

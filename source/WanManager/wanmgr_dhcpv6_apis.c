@@ -1672,7 +1672,11 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
             connected = TRUE;
 
             /* Update the WAN prefix validity time in the persistent storage */
-#if !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE) && !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_))  //TODO: V6 handled in PAM
+#if !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE) && !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_)) || defined (_SCER11BEL_PRODUCT_REQ_) //TODO: V6 handled in PAM
+#if defined (_SCER11BEL_PRODUCT_REQ_)
+    if( TRUE == WanMgr_Util_IsThisCurrentPartnerID("sky-uk") )
+#endif /** _SCER11BEL_PRODUCT_REQ_ */ 
+    {
             if (pDhcp6cInfoCur->prefixVltime != pNewIpcMsg->prefixVltime)
             {
                 snprintf(set_value, sizeof(set_value), "%d", pNewIpcMsg->prefixVltime);
@@ -1719,6 +1723,7 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
                     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_PREFIX, prefix, 0);
                 }
             }
+    }
 #endif
         }
         else /* IFADDRCONF_REMOVE: prefix remove */
@@ -1727,25 +1732,35 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
             if (strcmp(pDhcp6cInfoCur->sitePrefix, pNewIpcMsg->sitePrefix) == 0)
             {
                 CcspTraceInfo(("remove prefix \n"));
-#if !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE) && !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_))  //TODO: V6 handled in PAM
+#if !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE) && !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_)) || defined (_SCER11BEL_PRODUCT_REQ_) //TODO: V6 handled in PAM
+#if defined (_SCER11BEL_PRODUCT_REQ_)
+    if( TRUE == WanMgr_Util_IsThisCurrentPartnerID("sky-uk") )
+#endif /** _SCER11BEL_PRODUCT_REQ_ */ 
+    {
                 syscfg_set(NULL, SYSCFG_FIELD_IPV6_PREFIX, "");
                 syscfg_set(NULL, SYSCFG_FIELD_PREVIOUS_IPV6_PREFIX, "");
                 syscfg_set_commit(NULL, SYSCFG_FIELD_IPV6_PREFIX_ADDRESS, "");
+    }
 #endif
                 WanManager_UpdateInterfaceStatus(pVirtIf, WANMGR_IFACE_CONNECTION_IPV6_DOWN);
             }
         }
     }
 
-#if !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)&& !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_))  //TODO: V6 handled in PAM
-    /* dhcp6c receives domain name information */
-    if (pNewIpcMsg->domainNameAssigned && !IS_EMPTY_STRING(pNewIpcMsg->domainName))
+#if !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)&& !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_)) || defined (_SCER11BEL_PRODUCT_REQ_) //TODO: V6 handled in PAM
+#if defined (_SCER11BEL_PRODUCT_REQ_)
+    if( TRUE == WanMgr_Util_IsThisCurrentPartnerID("sky-uk") )
+#endif /** _SCER11BEL_PRODUCT_REQ_ */ 
     {
-        CcspTraceInfo(("assigned domain name=%s \n", pNewIpcMsg->domainName));
-
-        if (strcmp(pDhcp6cInfoCur->domainName, pNewIpcMsg->domainName))
+        /* dhcp6c receives domain name information */
+        if (pNewIpcMsg->domainNameAssigned && !IS_EMPTY_STRING(pNewIpcMsg->domainName))
         {
-            sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_DOMAIN, pNewIpcMsg->domainName, 0);
+            CcspTraceInfo(("assigned domain name=%s \n", pNewIpcMsg->domainName));
+
+            if (strcmp(pDhcp6cInfoCur->domainName, pNewIpcMsg->domainName))
+            {
+                sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_DOMAIN, pNewIpcMsg->domainName, 0);
+            }
         }
     }
 #endif
@@ -1772,8 +1787,17 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
             if (strcmp(pDhcp6cInfoCur->address, guAddrPrefix))
             {
 #if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE) || (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_))  //TODO: V6 handled in PAM
+#if defined (_SCER11BEL_PRODUCT_REQ_)
+        if( TRUE == WanMgr_Util_IsThisCurrentPartnerID("sky-uk") )
+        {
+            syscfg_set_string(SYSCFG_FIELD_IPV6_ADDRESS, guAddrPrefix);
+        }
+        else
+#endif /** _SCER11BEL_PRODUCT_REQ_ */ 
+        {
                 strncpy(pVirtIf->IP.Ipv6Data.address,guAddrPrefix, sizeof(pVirtIf->IP.Ipv6Data.address));
                 pNewIpcMsg->addrAssigned = true;
+        }
 #else
                 syscfg_set_string(SYSCFG_FIELD_IPV6_ADDRESS, guAddrPrefix);
 #endif
@@ -1826,12 +1850,17 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
             /*TODO: Revisit this*/
             //call function for changing the prlft and vallft
             // FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE : Handle Ip renew in handler thread. 
-#if !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_))  //TODO: V6 handled in PAM
+#if !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_)) || defined (_SCER11BEL_PRODUCT_REQ_) //TODO: V6 handled in PAM
+#if defined (_SCER11BEL_PRODUCT_REQ_)
+    if( TRUE == WanMgr_Util_IsThisCurrentPartnerID("sky-uk") )
+#endif /** _SCER11BEL_PRODUCT_REQ_ */ 
+        {
             if ((WanManager_Ipv6AddrUtil(pVirtIf->Name, SET_LFT, pNewIpcMsg->prefixPltime, pNewIpcMsg->prefixVltime) < 0))
             {
                 CcspTraceError(("Life Time Setting Failed"));
             }
             sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_RADVD_RESTART, NULL, 0);
+        }
 #endif
             pVirtIf->IP.Ipv6Renewed = TRUE;
         }
@@ -1839,11 +1868,16 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
         memcpy(&(pVirtIf->IP.Ipv6Data), &(Ipv6DataTemp), sizeof(WANMGR_IPV6_DATA));
         pVirtIf->IP.Ipv6Status = WAN_IFACE_IPV6_STATE_UP;
 #if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE) || (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_))  //TODO: V6 handled in PAM
+#if defined (_SCER11BEL_PRODUCT_REQ_)
+    if( FALSE == WanMgr_Util_IsThisCurrentPartnerID("sky-uk") )
+#endif /** _SCER11BEL_PRODUCT_REQ_ */ 
+    {
         //If only Ipv6 prefix is renewed, IPv6 address is not shared in the lease details. Use the detected Ipv6 address.
         if(strlen(guAddr) > 0 && strlen(pVirtIf->IP.Ipv6Data.address) <= 0) 
         {
             strncpy(pVirtIf->IP.Ipv6Data.address, guAddr, sizeof(pVirtIf->IP.Ipv6Data.address));
         }
+    }
 #endif
     }
 
@@ -1906,38 +1940,43 @@ int setUpLanPrefixIPv6(DML_VIRTUAL_IFACE* pVirtIf)
     CcspTraceInfo(("%s %d Updating SYSEVENT_CURRENT_WAN_IFNAME %s\n", __FUNCTION__, __LINE__,pVirtIf->IP.Ipv6Data.ifname));
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_CURRENT_WAN_IFNAME, pVirtIf->IP.Ipv6Data.ifname, 0);
 
-#if !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_))  //TODO: V6 handled in PAM
-    /* Enable accept ra */
-    WanMgr_Configure_accept_ra(pVirtIf, TRUE);
-
-    int index = strcspn(pVirtIf->IP.Ipv6Data.sitePrefix, "/");
-    if (index < strlen(pVirtIf->IP.Ipv6Data.sitePrefix))
+#if !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_)) || defined (_SCER11BEL_PRODUCT_REQ_) //TODO: V6 handled in PAM    
+#if defined (_SCER11BEL_PRODUCT_REQ_)
+    if( TRUE == WanMgr_Util_IsThisCurrentPartnerID("sky-uk") )
+#endif /* _SCER11BEL_PRODUCT_REQ_ */
     {
-        char lanPrefix[BUFLEN_48] = {0};
-        strncpy(lanPrefix, pVirtIf->IP.Ipv6Data.sitePrefix, index);
-        if ((sizeof(lanPrefix) - index) > 3)
+        /* Enable accept ra */
+        WanMgr_Configure_accept_ra(pVirtIf, TRUE);
+
+        int index = strcspn(pVirtIf->IP.Ipv6Data.sitePrefix, "/");
+        if (index < strlen(pVirtIf->IP.Ipv6Data.sitePrefix))
         {
-            char previousPrefix[BUFLEN_48] = {0};
-            char previousPrefix_vldtime[BUFLEN_48] = {0};
-            char previousPrefix_prdtime[BUFLEN_48] = {0};
-            strncat(lanPrefix, "/64",sizeof(lanPrefix)-1);
-            sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_PREFIX, previousPrefix, sizeof(previousPrefix));
-            sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_PREFIXVLTIME, previousPrefix_vldtime, sizeof(previousPrefix_vldtime));
-            sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_PREFIXPLTIME, previousPrefix_prdtime, sizeof(previousPrefix_prdtime));
-            if (strncmp(previousPrefix, lanPrefix, BUFLEN_48) == 0)
+            char lanPrefix[BUFLEN_48] = {0};
+            strncpy(lanPrefix, pVirtIf->IP.Ipv6Data.sitePrefix, index);
+            if ((sizeof(lanPrefix) - index) > 3)
             {
-                sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_PREVIOUS_IPV6_PREFIX, "", 0);
-                sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_PREVIOUS_IPV6_PREFIXVLTIME, "0", 0);
-                sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_PREVIOUS_IPV6_PREFIXPLTIME, "0", 0);
+                char previousPrefix[BUFLEN_48] = {0};
+                char previousPrefix_vldtime[BUFLEN_48] = {0};
+                char previousPrefix_prdtime[BUFLEN_48] = {0};
+                strncat(lanPrefix, "/64",sizeof(lanPrefix)-1);
+                sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_PREFIX, previousPrefix, sizeof(previousPrefix));
+                sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_PREFIXVLTIME, previousPrefix_vldtime, sizeof(previousPrefix_vldtime));
+                sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_PREFIXPLTIME, previousPrefix_prdtime, sizeof(previousPrefix_prdtime));
+                if (strncmp(previousPrefix, lanPrefix, BUFLEN_48) == 0)
+                {
+                    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_PREVIOUS_IPV6_PREFIX, "", 0);
+                    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_PREVIOUS_IPV6_PREFIXVLTIME, "0", 0);
+                    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_PREVIOUS_IPV6_PREFIXPLTIME, "0", 0);
+                }
+                else if (strncmp(previousPrefix, "", BUFLEN_48) != 0)
+                {
+                    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_PREVIOUS_IPV6_PREFIX, previousPrefix, 0);
+                    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_PREVIOUS_IPV6_PREFIXVLTIME, previousPrefix_vldtime, 0);
+                    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_PREVIOUS_IPV6_PREFIXPLTIME, previousPrefix_prdtime, 0);
+                }
+                sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_PREFIX, lanPrefix, 0);
+                sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_TR_EROUTER_DHCPV6_CLIENT_PREFIX, pVirtIf->IP.Ipv6Data.sitePrefix, 0);
             }
-            else if (strncmp(previousPrefix, "", BUFLEN_48) != 0)
-            {
-                sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_PREVIOUS_IPV6_PREFIX, previousPrefix, 0);
-                sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_PREVIOUS_IPV6_PREFIXVLTIME, previousPrefix_vldtime, 0);
-                sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_PREVIOUS_IPV6_PREFIXPLTIME, previousPrefix_prdtime, 0);
-            }
-            sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_PREFIX, lanPrefix, 0);
-            sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_TR_EROUTER_DHCPV6_CLIENT_PREFIX, pVirtIf->IP.Ipv6Data.sitePrefix, 0);
         }
     }
 #endif

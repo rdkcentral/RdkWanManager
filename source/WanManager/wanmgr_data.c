@@ -247,7 +247,12 @@ ANSC_STATUS WanMgr_WanIfaceConfInit(WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl)
 
         pWanIfaceCtrl->ulTotalNumbWanInterfaces = uiTotalIfaces;
 #if defined(WAN_MANAGER_UNIFICATION_ENABLED) && (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_))
+#if defined (_SCER11BEL_PRODUCT_REQ_)
+    if( FALSE == WanMgr_Util_IsThisCurrentPartnerID("sky-uk") )
+#endif /* _SCER11BEL_PRODUCT_REQ_ */
+    {
         WanMgr_CheckAndResetV2PSMEntries(uiTotalIfaces);
+    }
 #endif
 
         //Memset all memory
