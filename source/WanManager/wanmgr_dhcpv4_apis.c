@@ -67,7 +67,9 @@ extern char g_Subsystem[32];
 
 #define P2P_SUB_NET_MASK   "255.255.255.255"
 #define DHCP_STATE_UP      "Up"
+#define DHCP_STATE_RENEW   "renew"
 #define DHCP_STATE_DOWN    "Down"
+#define DHCP_STATE_BOUND   "bound"
 
 static ANSC_STATUS wanmgr_dchpv4_get_ipc_msg_info(WANMGR_IPV4_DATA* pDhcpv4Data, ipc_dhcpv4_data_t* pIpcIpv4Data)
 {
@@ -220,6 +222,7 @@ ANSC_STATUS wanmgr_handle_dhcpv4_event_data(DML_VIRTUAL_IFACE* pVirtIf)
         // update current IPv4 data
         wanmgr_dchpv4_get_ipc_msg_info(&(pVirtIf->IP.Ipv4Data), pDhcpcInfo);
         pVirtIf->IP.Ipv4Data.leaseReceivedTime = up_time;
+
         /* Assign the address to the inetrface when received. Remaining configurations are updated when activated from VISM*/
         CcspTraceInfo(("%s %d -  Received Ipv4 lease for interface %s. Configuring address on interface\n", __FUNCTION__, __LINE__, pVirtIf->IP.Ipv4Data.ifname));
         /** Setup IPv4: such as
@@ -940,10 +943,14 @@ WanMgr_DmlDhcpcGetInfo
         pInfo->IPRouters[0].Value  = inet_addr(p_VirtIf->IP.Ipv4Data.gateway);
         pInfo->DNSServers[0].Value = inet_addr(p_VirtIf->IP.Ipv4Data.dnsServer);
         pInfo->DNSServers[1].Value = inet_addr(p_VirtIf->IP.Ipv4Data.dnsServer1);
-        pInfo->DHCPStatus          = (strcmp(p_VirtIf->IP.Ipv4Data.dhcpState, DHCP_STATE_UP) == 0) ? DML_DHCPC_STATUS_Bound : DML_DHCPC_STATUS_Init;
-        pInfo->LeaseTimeRemaining  = (p_VirtIf->IP.Ipv4Data.leaseReceivedTime + p_VirtIf->IP.Ipv4Data.leaseTime) - WanManager_getUpTime();        
+
+        pInfo->DHCPServer.Value = inet_addr(p_VirtIf->IP.Ipv4Data.dhcpServerId);
+	pInfo->DHCPStatus = ((strcmp(p_VirtIf->IP.Ipv4Data.dhcpState, DHCP_STATE_BOUND) == 0) || 
+                       (strcmp(p_VirtIf->IP.Ipv4Data.dhcpState, DHCP_STATE_RENEW) == 0)) ? DML_DHCPC_STATUS_Bound : DML_DHCPC_STATUS_Init;
+        pInfo->LeaseTimeRemaining  = (p_VirtIf->IP.Ipv4Data.leaseReceivedTime + p_VirtIf->IP.Ipv4Data.leaseTime) - WanManager_getUpTime();
         WanMgrDml_GetIfaceData_release(NULL);
     }
+
     pInfo->NumDnsServers = 2;
     pInfo->NumIPRouters = 1;
     return ANSC_STATUS_SUCCESS;
