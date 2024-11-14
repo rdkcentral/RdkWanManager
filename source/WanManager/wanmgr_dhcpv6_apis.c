@@ -1890,12 +1890,14 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
         {
             if(pVirtIf->Status == WAN_IFACE_STATUS_UP &&  pNewIpcMsg->prefixPltime > 0 && pNewIpcMsg->prefixVltime > 0 ) //Update life time only if the interface is active.
             {
+#if !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_))  //Do not add prefix on LAN bridge for the Comcast platforms.
                 //call function for changing the prlft and vallft
                 if ((WanManager_Ipv6AddrUtil(pVirtIf->Name, SET_LFT, pNewIpcMsg->prefixPltime, pNewIpcMsg->prefixVltime) < 0))
                 {
                     CcspTraceError(("Life Time Setting Failed"));
                 }
                 sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_RADVD_RESTART, NULL, 0);
+#endif
             }
             pVirtIf->IP.Ipv6Renewed = TRUE;
         }
@@ -2014,13 +2016,15 @@ int setUpLanPrefixIPv6(DML_VIRTUAL_IFACE* pVirtIf)
         }
         else 
         {
+#if !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_))  //Do not add prefix on LAN bridge for the Comcast platforms.
             CcspTraceInfo(("%s Going to set [%s] address on brlan0 interface \n", __FUNCTION__, globalIP));
             memset(cmdLine, 0, sizeof(cmdLine));
             snprintf(cmdLine, sizeof(cmdLine), "ip -6 addr add %s/64 dev %s valid_lft %d preferred_lft %d",
                     globalIP, COSA_DML_DHCPV6_SERVER_IFNAME, pVirtIf->IP.Ipv6Data.prefixVltime, pVirtIf->IP.Ipv6Data.prefixPltime);
             if (WanManager_DoSystemActionWithStatus(__FUNCTION__, cmdLine) != 0)
                 CcspTraceError(("failed to run cmd: %s", cmdLine));
-
+#endif
+            CcspTraceInfo(("%s lan_ipaddr_v6 set to [%s]  \n", __FUNCTION__, globalIP));
             /*This is for brlan0 interface */
             char pref_len[10] ={0};
             sscanf (pVirtIf->IP.Ipv6Data.sitePrefix,"%*[^/]/%s" ,pref_len);
