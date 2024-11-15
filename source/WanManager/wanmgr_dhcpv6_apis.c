@@ -1484,7 +1484,7 @@ int dhcpv6_assign_global_ip(char * prefix, char * intfName, char * ipAddr)
         CcspTraceError(("error, there is not '::' in prefix:%s\n", prefix));
         return 1;
     }
-#ifdef _HUB4_PRODUCT_REQ_
+#if 0//def _HUB4_PRODUCT_REQ_
     if(strncmp(intfName, COSA_DML_DHCPV6_SERVER_IFNAME, strlen(intfName)) == 0)
     {
         snprintf(ipAddr, 128, "%s1", globalIP);
@@ -1614,6 +1614,72 @@ static int WanMgr_CopyPreviousPrefix(WANMGR_IPV6_DATA* pOld, WANMGR_IPV6_DATA* p
     return 0;
 }
 #endif
+
+#define WAN_SUFFIX 1
+// Function to configure the WAN address
+int configure_wan_address(struct in6_addr wan_addr, int prefix_length, WANMGR_IPV6_DATA *pIpv6DataNew ) 
+{
+
+    wan_addr.s6_addr[prefix_length / 8] |= 0x01; // Use :1 subnet for WAN
+    wan_addr.s6_addr[15] = WAN_SUFFIX; // Setting the last byte for WAN address
+    inet_ntop(AF_INET6, &wan_addr, pIpv6DataNew->address, sizeof(pIpv6DataNew->address));
+
+    CcspTraceInfo(("%s %d Calculated WAN network IP %s/128 \n", __FUNCTION__, __LINE__, pIpv6DataNew->address));        
+    //Since this address calculated by us, it will be assigned by the DHCPv6c client. Assign the address on the Wan interface
+    char cmdLine[256] = {0};
+    snprintf(cmdLine, sizeof(cmdLine), "ip -6 addr add %s/128 dev %s", pIpv6DataNew->address, pIpv6DataNew->ifname);
+    if (WanManager_DoSystemActionWithStatus(__FUNCTION__, cmdLine) != 0)
+        CcspTraceError(("failed to run cmd: %s", cmdLine));
+
+    return 0;
+}
+
+// Function to configure the LAN address range
+int configure_lan_address(struct in6_addr lan_addr, int prefix_length, WANMGR_IPV6_DATA *pIpv6DataNew) 
+{
+    char ip_str[INET6_ADDRSTRLEN];
+    // Use the next block for LAN (e.g., increment the relevant byte)
+    lan_addr.s6_addr[prefix_length / 8] |= 0x02; // Incrementing subnet for LAN
+    inet_ntop(AF_INET6, &lan_addr, ip_str, sizeof(ip_str));
+    //Modify sitefrefix to avoiud overlapping with Wan IP
+    snprintf(pIpv6DataNew->sitePrefix, sizeof(pIpv6DataNew->sitePrefix), "%s/%d",ip_str,prefix_length);
+
+    CcspTraceInfo(("%s %d Calculated LAN network prefix %s \n", __FUNCTION__, __LINE__, pIpv6DataNew->sitePrefix));        
+    return 0;
+}
+
+int wanmgr_Split_IAPD_for_WAN_LAN(WANMGR_IPV6_DATA *pIpv6DataNew)
+{
+    int prefix_length;
+    char iapd_prefix[128] = {0};
+    sscanf (pIpv6DataNew->sitePrefix,"%s/%d" ,iapd_prefix, &prefix_length);
+
+    if ( prefix_length >= 64) 
+    {
+        CcspTraceError(("%s %d Prefix length is >= 64. Can't split to multiple /64 networks\n", __FUNCTION__, __LINE__));        
+        return -1;
+    }
+
+    struct in6_addr prefix;
+    // Convert prefix to binary format
+    if (inet_pton(AF_INET6, iapd_prefix, &prefix) != 1) 
+    {
+        fprintf(stderr, "Invalid IPv6 prefix\n");
+        return -1;
+    }
+
+    // Configure WAN and LAN addresses
+    if (configure_wan_address(prefix, prefix_length, pIpv6DataNew) != 0) 
+    {
+        return -1;
+    }
+    if (configure_lan_address(prefix, prefix_length, pIpv6DataNew) != 0) 
+    {
+        return -1;
+    }
+
+    return 0;
+}
 
 ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
 {
@@ -1855,6 +1921,12 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
 #endif
             }
         }
+        else
+        {
+            CcspTraceInfo(("IANA is not assigned by DHCPV6 and SLAAC. Using the IAPD for Wan Interface \n"));
+            wanmgr_Split_IAPD_for_WAN_LAN(&Ipv6DataNew);
+        }
+
     }
 
     /*
