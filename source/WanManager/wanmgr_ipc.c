@@ -110,7 +110,13 @@ static ANSC_STATUS WanMgr_IpcNewIpv6Msg(ipc_dhcpv6_data_t* pNewIpv6Msg)
     INT try = 0;
 
     CcspTraceInfo(("%s %d - Received Ipc Ipv6Msg for %s\n", __FUNCTION__, __LINE__, pNewIpv6Msg->ifname));
-
+    CcspTraceError(("%s %d - Before checking\n", __FUNCTION__, __LINE__));
+    if (WanManager_DoSystemActionWithStatus("wanmanager", "ifconfig brlan0 >> /rdklogs/logs/WANMANAGERLog.txt.0; ifconfig brlan0 >> /rdklogs/logs/WANMANAGERLog.txt.1") != RETURN_OK)
+    {
+        CcspTraceError(("%s %d failed set command: %s\n", __FUNCTION__, __LINE__, "ifconfig brlan0"));
+    }
+    CcspTraceError(("%s %d - After checking\n", __FUNCTION__, __LINE__));
+    
     while((retStatus != ANSC_STATUS_SUCCESS) && (try < WANMGR_MAX_IPC_PROCCESS_TRY))
     {
         //get iface data

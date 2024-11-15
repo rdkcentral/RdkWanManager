@@ -1338,6 +1338,13 @@ static int wan_setUpIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
         return RETURN_ERR;
     }
 
+    CcspTraceError(("%s %d - Before checking\n", __FUNCTION__, __LINE__));
+    if (WanManager_DoSystemActionWithStatus("wanmanager", "ifconfig brlan0 >> /rdklogs/logs/WANMANAGERLog.txt.0; ifconfig brlan0 >> /rdklogs/logs/WANMANAGERLog.txt.1") != RETURN_OK)
+    {
+        CcspTraceError(("%s %d failed set command: %s\n", __FUNCTION__, __LINE__, "ifconfig brlan0"));
+    }
+    CcspTraceError(("%s %d - After checking\n", __FUNCTION__, __LINE__));
+
     int ret = RETURN_OK;
     char buf[BUFLEN_32] = {0};
 

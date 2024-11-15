@@ -1940,6 +1940,13 @@ int setUpLanPrefixIPv6(DML_VIRTUAL_IFACE* pVirtIf)
     CcspTraceInfo(("%s %d Updating SYSEVENT_CURRENT_WAN_IFNAME %s\n", __FUNCTION__, __LINE__,pVirtIf->IP.Ipv6Data.ifname));
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_CURRENT_WAN_IFNAME, pVirtIf->IP.Ipv6Data.ifname, 0);
 
+    CcspTraceError(("%s %d - Before checking\n", __FUNCTION__, __LINE__));
+    if (WanManager_DoSystemActionWithStatus("wanmanager", "ifconfig brlan0 >> /rdklogs/logs/WANMANAGERLog.txt.0; ifconfig brlan0 >> /rdklogs/logs/WANMANAGERLog.txt.1") != RETURN_OK)
+    {
+        CcspTraceError(("%s %d failed set command: %s\n", __FUNCTION__, __LINE__, "ifconfig brlan0"));
+    }
+    CcspTraceError(("%s %d - After checking\n", __FUNCTION__, __LINE__));
+    
 #if !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_)) || defined (_SCER11BEL_PRODUCT_REQ_) //TODO: V6 handled in PAM    
 #if defined (_SCER11BEL_PRODUCT_REQ_)
     if( TRUE == WanMgr_Util_IsThisCurrentPartnerID("sky-uk") )
