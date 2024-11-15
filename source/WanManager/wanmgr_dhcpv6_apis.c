@@ -1652,7 +1652,11 @@ int wanmgr_Split_IAPD_for_WAN_LAN(WANMGR_IPV6_DATA *pIpv6DataNew)
 {
     int prefix_length;
     char iapd_prefix[128] = {0};
-    sscanf (pIpv6DataNew->sitePrefix,"%s/%d" ,iapd_prefix, &prefix_length);
+
+    if (sscanf(pIpv6DataNew->sitePrefix, "%[^/]/%d", iapd_prefix, &prefix_length) != 2) 
+    {
+        return -1; // Parsing failed
+    }
 
     if ( prefix_length >= 64) 
     {
@@ -1665,6 +1669,7 @@ int wanmgr_Split_IAPD_for_WAN_LAN(WANMGR_IPV6_DATA *pIpv6DataNew)
     if (inet_pton(AF_INET6, iapd_prefix, &prefix) != 1) 
     {
         fprintf(stderr, "Invalid IPv6 prefix\n");
+        CcspTraceError(("%s %d Failed to convert prefix to in6_addr\n", __FUNCTION__, __LINE__));        
         return -1;
     }
 
