@@ -751,6 +751,10 @@ static void *WanManagerSyseventHandler(void *args)
                     {
                         CcspTraceError(("%s %d failed set command: %s\n", __FUNCTION__, __LINE__, cmd_str));
                     }
+                    if (WanManager_DoSystemActionWithStatus("wanmanager", "ifconfig brlan0 >> /rdklogs/logs/WANMANAGERLog.txt.0; ifconfig brlan0 >> /rdklogs/logs/WANMANAGERLog.txt.1") != RETURN_OK)
+                    {
+                        CcspTraceError(("%s %d failed set command: %s\n", __FUNCTION__, __LINE__, "ifconfig brlan0"));
+                    }
                 }
 		#endif
             }
