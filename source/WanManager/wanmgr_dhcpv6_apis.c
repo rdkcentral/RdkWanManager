@@ -1620,7 +1620,7 @@ static int WanMgr_CopyPreviousPrefix(WANMGR_IPV6_DATA* pOld, WANMGR_IPV6_DATA* p
 int configure_wan_address(struct in6_addr wan_addr, int prefix_length, WANMGR_IPV6_DATA *pIpv6DataNew ) 
 {
 
-    wan_addr.s6_addr[prefix_length / 8] |= 0x01; // Use :1 subnet for WAN
+    wan_addr.s6_addr[prefix_length / 8] += 0x01; // Use next subnet for WAN. First /64 2il be used for LAN.
     wan_addr.s6_addr[15] = WAN_SUFFIX; // Setting the last byte for WAN address
     inet_ntop(AF_INET6, &wan_addr, pIpv6DataNew->address, sizeof(pIpv6DataNew->address));
 
@@ -1634,6 +1634,7 @@ int configure_wan_address(struct in6_addr wan_addr, int prefix_length, WANMGR_IP
     return 0;
 }
 
+/*
 // Function to configure the LAN address range
 int configure_lan_address(struct in6_addr lan_addr, int prefix_length, WANMGR_IPV6_DATA *pIpv6DataNew) 
 {
@@ -1647,6 +1648,7 @@ int configure_lan_address(struct in6_addr lan_addr, int prefix_length, WANMGR_IP
     CcspTraceInfo(("%s %d Calculated LAN network prefix %s \n", __FUNCTION__, __LINE__, pIpv6DataNew->sitePrefix));        
     return 0;
 }
+*/
 
 int wanmgr_Split_IAPD_for_WAN_LAN(WANMGR_IPV6_DATA *pIpv6DataNew)
 {
@@ -1678,10 +1680,10 @@ int wanmgr_Split_IAPD_for_WAN_LAN(WANMGR_IPV6_DATA *pIpv6DataNew)
     {
         return -1;
     }
-    if (configure_lan_address(prefix, prefix_length, pIpv6DataNew) != 0) 
-    {
-        return -1;
-    }
+//    if (configure_lan_address(prefix, prefix_length, pIpv6DataNew) != 0) 
+ //   {
+   //     return -1;
+   // }
 
     return 0;
 }
@@ -2093,6 +2095,7 @@ int setUpLanPrefixIPv6(DML_VIRTUAL_IFACE* pVirtIf)
         }
         else 
         {
+            snprintf(pVirtIf->IP.Ipv6Data.pdIfAddress, sizeof(pVirtIf->IP.Ipv6Data.pdIfAddress), "%s/64", globalIP);
 #if !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_))  //Do not add prefix on LAN bridge for the Comcast platforms.
             CcspTraceInfo(("%s Going to set [%s] address on brlan0 interface \n", __FUNCTION__, globalIP));
             memset(cmdLine, 0, sizeof(cmdLine));
@@ -2108,6 +2111,7 @@ int setUpLanPrefixIPv6(DML_VIRTUAL_IFACE* pVirtIf)
             sysevent_set(sysevent_fd, sysevent_token, "lan_prefix_v6", pref_len, 0);
             sysevent_set(sysevent_fd, sysevent_token, "lan_ipaddr_v6", globalIP, 0);
             sysevent_set(sysevent_fd, sysevent_token, "lan_prefix_set", globalIP, 0); //TODO: This was a event to Wanmanager. if no other process listens to it. remove it.
+            sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_TR_BRLAN0_DHCPV6_SERVER_ADDRESS, globalIP, 0);
         }
         memset(cmdLine, 0, sizeof(cmdLine));
         snprintf(cmdLine, sizeof(cmdLine), "ip -6 route add %s dev %s", pVirtIf->IP.Ipv6Data.sitePrefix, COSA_DML_DHCPV6_SERVER_IFNAME);
@@ -2135,6 +2139,7 @@ int setUpLanPrefixIPv6(DML_VIRTUAL_IFACE* pVirtIf)
         }
     }
 
+
     if (pVirtIf->IP.Ipv6Data.prefixAssigned && !IS_EMPTY_STRING(pVirtIf->IP.Ipv6Data.sitePrefix))
     {
         if (pVirtIf->IP.Ipv6Data.prefixCmd == IFADDRCONF_ADD &&
@@ -2155,10 +2160,7 @@ int setUpLanPrefixIPv6(DML_VIRTUAL_IFACE* pVirtIf)
             if (index < strlen(pVirtIf->IP.Ipv6Data.sitePrefix) && index < sizeof(prefix))
             {
                 strncpy(prefix, pVirtIf->IP.Ipv6Data.sitePrefix, index);                                            // only copy prefix without the prefix length
-                snprintf(set_value, sizeof(set_value), "%s1", prefix);                                        // concatenate "1" onto the prefix, which is in the form "xxxx:xxxx:xxxx:xxxx::"
-                snprintf(pVirtIf->IP.Ipv6Data.pdIfAddress, sizeof(pVirtIf->IP.Ipv6Data.pdIfAddress), "%s/64", set_value); // concatenate prefix address with length "/64"
-                syscfg_set_string(SYSCFG_FIELD_IPV6_PREFIX_ADDRESS, pVirtIf->IP.Ipv6Data.pdIfAddress);
-                sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_TR_BRLAN0_DHCPV6_SERVER_ADDRESS, set_value, 0);
+                syscfg_set_string(SYSCFG_FIELD_IPV6_PREFIX_ADDRESS, pVirtIf->IP.Ipv6Data.address);
                 CcspTraceInfo(("%s %d new prefix = %s\n", __FUNCTION__, __LINE__, pVirtIf->IP.Ipv6Data.sitePrefix));
                 strncat(prefix, "/64",sizeof(prefix)-1);
                 sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIELD_IPV6_PREFIX, prefix, 0);
