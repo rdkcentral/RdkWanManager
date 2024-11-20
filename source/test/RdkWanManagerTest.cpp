@@ -46,6 +46,25 @@ CapMock * g_capMock = nullptr;
 AnscMemoryMock * g_anscMemoryMock = nullptr;
 MessageBusMock * g_messagebusMock = nullptr;
 PlatformHalMock *g_platformHALMock =nullptr;
+PsmMock *g_psmMock = nullptr;
+AnscTaskMock *g_anscTaskMock = nullptr;
+SysInfoRepositoryMock * g_sysInfoRepositoryMock = nullptr;
+AnscTimerSchedulerMock * g_anscTimerSchedulerMock = nullptr;
+AnscCryptoMock* g_anscCryptoMock = nullptr;
+AnscXmlMock *g_anscXmlMock = nullptr;
+AnscFileIOMock* g_anscFileIOMock = nullptr;
+AnscCoMock *g_anscCoMock= nullptr;
+DslhDmagntExportedMock* g_dslhDmagntExportedMock = nullptr;
+CcspDmApiMock* g_ccspDmApiMock = nullptr;
+UserRuntimeMock *g_userRuntimeMock = nullptr;
+AnscDebugMock * g_anscDebugMock = NULL;
+TraceMock * g_traceMock = NULL;
+FileIOMock * g_fileIOMock = NULL;
+BaseAPIMock * g_baseapiMock = NULL;
+UserTimeMock * g_usertimeMock = NULL;
+AnscWrapperApiMock * g_anscWrapperApiMock = NULL;
+
+
 
 WanMgrBase::WanMgrBase()
 {
@@ -57,12 +76,30 @@ void WanMgrBase::SetUp()
         << " Test Case Name: " << UnitTest::GetInstance()->current_test_info()->name() << endl;
 
     mockWanMgr = &mockWanUtils;
+    g_baseapiMock = &mockedbaseapi;
+    g_traceMock = &mockedTrace;
+    g_fileIOMock = &mockedFileIO;
+    g_ccspDmApiMock = &mockccspDmApiMock;
+    g_anscFileIOMock = &mockAnscFileIOMock;
     g_rbusMock = &mockedRbus;
     g_securewrapperMock = &mockSecurewrapperMock;
     g_capMock = &mockCap;
     g_anscMemoryMock = &mockAnscMemory;
     g_messagebusMock = &mockMessagebus;
     g_platformHALMock = &mockPlatformHAL;
+    g_psmMock = &mockPSM;
+    g_anscTaskMock = &mockanscTaskMock;
+    g_sysInfoRepositoryMock = &mocksysInfoRepositoryMock;
+    g_anscTimerSchedulerMock = &mockanscTimerSchedulerMock;
+    g_anscCryptoMock = &mockanscCryptoMock;
+    g_anscXmlMock = &mockAnscXml;
+    g_anscCoMock = &mockedAnscCo;
+    g_dslhDmagntExportedMock = &mockdslhDmagntExported;
+    g_userRuntimeMock = &mockedUserRuntime;
+    g_anscDebugMock = &mockedAnscDebug;
+    g_anscWrapperApiMock = &mockedanscWrapperApi;
+    g_usertimeMock = &mockedUserTime;
+
     //Initialise mutex attributes
     pthread_mutexattr_t     muttex_attr;
     pthread_mutexattr_init(&muttex_attr);
@@ -71,7 +108,7 @@ void WanMgrBase::SetUp()
 
     //init mock interfaces
     WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl = &(gWanMgrDataBase.IfaceCtrl);
-    pWanIfaceCtrl->pIface = (WanMgr_Iface_Data_t*) AnscAllocateMemory( sizeof(WanMgr_Iface_Data_t) * MAX_WAN_INTERFACE_ENTRY);
+    pWanIfaceCtrl->pIface = (WanMgr_Iface_Data_t*) malloc( sizeof(WanMgr_Iface_Data_t) * MAX_WAN_INTERFACE_ENTRY);
     memset( pWanIfaceCtrl->pIface, 0, ( sizeof(WanMgr_Iface_Data_t) * MAX_WAN_INTERFACE_ENTRY ) );
     pWanIfaceCtrl->ulTotalNumbWanInterfaces = 4;
     for(int idx = 0 ; idx <  pWanIfaceCtrl->ulTotalNumbWanInterfaces; idx++ )
@@ -81,8 +118,10 @@ void WanMgrBase::SetUp()
         WanMgr_IfaceData_Init(pIfaceData, idx);
         for(int i=0; i< pIfaceData->data.NoOfVirtIfs; i++)
         {
-            DML_VIRTUAL_IFACE* p_VirtIf = (DML_VIRTUAL_IFACE *) AnscAllocateMemory( sizeof(DML_VIRTUAL_IFACE) );
+            DML_VIRTUAL_IFACE* p_VirtIf = (DML_VIRTUAL_IFACE *) malloc( sizeof(DML_VIRTUAL_IFACE) );
+            memset( p_VirtIf, 0, sizeof(DML_VIRTUAL_IFACE) );
             WanMgr_VirtIface_Init(p_VirtIf, i);
+            p_VirtIf->next = NULL;
             WanMgr_AddVirtualToList(&(pIfaceData->data.VirtIfList), p_VirtIf);
         }
         strncpy(pIfaceData->data.AliasName, ifaceName[idx][1].c_str(),sizeof(pIfaceData->data.AliasName));
@@ -104,15 +143,12 @@ void WanMgrBase::TearDown()
     {
         WanMgr_Iface_Data_t*  pIfaceData  = &(pWanIfaceCtrl->pIface[idx]);
 
-        for(int i=0; i< pIfaceData->data.NoOfVirtIfs; i++)
+        DML_VIRTUAL_IFACE* virIface = pIfaceData->data.VirtIfList;
+        while(virIface != NULL)
         {
-            DML_VIRTUAL_IFACE* virIface = pIfaceData->data.VirtIfList;
-            while(virIface != NULL)
-            {
-                DML_VIRTUAL_IFACE* temp = virIface;
-                virIface = virIface->next;
-                free(temp);
-            }
+            DML_VIRTUAL_IFACE* temp = virIface;
+            virIface = virIface->next;
+            free(temp);
         }
     }
     free(pWanIfaceCtrl->pIface);
@@ -212,6 +248,7 @@ TEST_F(WanMgrBase, TestConfigureTADWithDnsIpv4)
 TEST_F(WanMgrBase, TestConfigureTADWithDnsIpv6) 
 {
     //TODO : Set correct expecttations
+    EXPECT_CALL(mockedRbus, rbusObject_Init(testing::_, testing::_)).Times(testing::AnyNumber());
     EXPECT_CALL(mockedRbus, rbusValue_Init(testing::_)).Times(testing::AnyNumber());
     EXPECT_CALL(mockedRbus, rbusValue_SetString(testing::_, testing::_)).Times(testing::AnyNumber());
     EXPECT_CALL(mockedRbus, rbusObject_SetValue(testing::_, testing::_, testing::_)).Times(testing::AnyNumber());
@@ -307,6 +344,7 @@ extern "C" ANSC_STATUS wanmgr_handle_dhcpv4_event_data(DML_VIRTUAL_IFACE* pVirtI
         mockWanMgr->wanmgr_handle_dhcpv4_event_data(pVirtIf);
     }
 }
+#ifdef ENABLE_FEATURE_TELEMETRY2_0
 /* 
  * Unit test for the WanMgr_TelemetryEventTrigger() function.
  * 
@@ -321,9 +359,6 @@ extern "C" ANSC_STATUS wanmgr_handle_dhcpv4_event_data(DML_VIRTUAL_IFACE* pVirtI
 
 TEST_F(WanfailOver, TelemetryFailOverOSuccess) 
 {
-#ifndef ENABLE_FEATURE_TELEMETRY2_0
-      GTEST_SKIP() << "Skipping "<< UnitTest::GetInstance()->current_test_info()->name()  <<"test ENABLE_FEATURE_TELEMETRY2_0 is not enabled";
-#endif
     //Start the FailOver Timer for telemetry
     memset(&(FWController.FailOverTimer), 0, sizeof(struct timespec));
     clock_gettime(CLOCK_MONOTONIC_RAW, &(FWController.FailOverTimer));
@@ -349,9 +384,6 @@ TEST_F(WanfailOver, TelemetryFailOverOSuccess)
  */
 TEST_F(WanfailOver, TelemetryRestoreSuccess) 
 {
-#ifndef ENABLE_FEATURE_TELEMETRY2_0
-      GTEST_SKIP() << "Skipping "<< UnitTest::GetInstance()->current_test_info()->name()  <<"test ENABLE_FEATURE_TELEMETRY2_0 is not enabled";
-#endif
     //Start the FailOver Timer for telemetry
     memset(&(FWController.FailOverTimer), 0, sizeof(struct timespec));
     clock_gettime(CLOCK_MONOTONIC_RAW, &(FWController.FailOverTimer));
@@ -376,9 +408,6 @@ TEST_F(WanfailOver, TelemetryRestoreSuccess)
  */
 TEST_F(WanfailOver, TelemetryRestoreFail)
 {
-#ifndef ENABLE_FEATURE_TELEMETRY2_0
-      GTEST_SKIP() << "Skipping "<< UnitTest::GetInstance()->current_test_info()->name()  <<"test ENABLE_FEATURE_TELEMETRY2_0 is not enabled";
-#endif
     EXPECT_CALL(mockWanUtils,t2_event_d(StrCmpLen("WAN_RESTORE_FAIL_COUNT", strlen("WAN_RESTORE_FAIL_COUNT")), Eq(1)))
         .Times(1);
     FWController.TelemetryEvent = WAN_RESTORE_FAIL;
@@ -397,12 +426,10 @@ TEST_F(WanfailOver, TelemetryRestoreFail)
  */
 TEST_F(WanfailOver, TelemetryFailOverFail)
 {
-#ifndef ENABLE_FEATURE_TELEMETRY2_0
-      GTEST_SKIP() << "Skipping "<< UnitTest::GetInstance()->current_test_info()->name()  <<"test ENABLE_FEATURE_TELEMETRY2_0 is not enabled";
-#endif
     EXPECT_CALL(mockWanUtils,t2_event_d(StrCmpLen("WAN_FAILOVER_FAIL_COUNT", strlen("WAN_FAILOVER_FAIL_COUNT")), Eq(1)))
         .Times(1);
     FWController.TelemetryEvent = WAN_FAILOVER_FAIL;
     WanMgr_TelemetryEventTrigger(&FWController);
 }
 
+#endif
