@@ -370,8 +370,8 @@ typedef struct _DML_WANIFACE_IP
     WANMGR_IPV6_DATA            Ipv6Data;
     ipc_dhcpv4_data_t*          pIpcIpv4Data;
     ipc_dhcpv6_data_t*          pIpcIpv6Data;
-    UINT                        Dhcp4cPid;
-    UINT                        Dhcp6cPid;
+    INT                        Dhcp4cPid;
+    INT                        Dhcp6cPid;
 } DML_WANIFACE_IP;
 
 #ifdef FEATURE_MAPT
