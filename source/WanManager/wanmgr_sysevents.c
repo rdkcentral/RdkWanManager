@@ -728,13 +728,6 @@ static void *WanManagerSyseventHandler(void *args)
                 if( TRUE == IsLANULASupportAvailable )
         #endif /** _RDKB_GLOBAL_PRODUCT_REQ_ */
                 {
-                    CcspTraceError(("%s %d - Before checking\n", __FUNCTION__, __LINE__));
-                    if (WanManager_DoSystemActionWithStatus("wanmanager", "ifconfig brlan0 >> /rdklogs/logs/WANMANAGERLog.txt.0; ifconfig >> /rdklogs/logs/WANMANAGERLog.txt.0") != RETURN_OK)
-                    {
-                        CcspTraceError(("%s %d failed set command: %s\n", __FUNCTION__, __LINE__, "ifconfig brlan0"));
-                    }
-                    CcspTraceError(("%s %d - After checking\n", __FUNCTION__, __LINE__));
-
                     datamodel_value = (char *) malloc(sizeof(char) * 256);
                     if(datamodel_value != NULL)
                     {
@@ -758,17 +751,6 @@ static void *WanManagerSyseventHandler(void *args)
                     {
                         CcspTraceError(("%s %d failed set command: %s\n", __FUNCTION__, __LINE__, cmd_str));
                     }
-                    if (WanManager_DoSystemActionWithStatus("wanmanager", "ifconfig brlan0 >> /rdklogs/logs/WANMANAGERLog.txt.0; ifconfig brlan0 >> /rdklogs/logs/WANMANAGERLog.txt.1") != RETURN_OK)
-                    {
-                        CcspTraceError(("%s %d failed set command: %s\n", __FUNCTION__, __LINE__, "ifconfig brlan0"));
-                    }
-
-                    CcspTraceError(("%s %d - Before checking\n", __FUNCTION__, __LINE__));
-                    if (WanManager_DoSystemActionWithStatus("wanmanager", "ifconfig brlan0 >> /rdklogs/logs/WANMANAGERLog.txt.0; ifconfig >> /rdklogs/logs/WANMANAGERLog.txt.0") != RETURN_OK)
-                    {
-                        CcspTraceError(("%s %d failed set command: %s\n", __FUNCTION__, __LINE__, "ifconfig brlan0"));
-                    }
-                    CcspTraceError(("%s %d - After checking\n", __FUNCTION__, __LINE__));
                 }
 		#endif
             }
@@ -792,13 +774,6 @@ static void *WanManagerSyseventHandler(void *args)
                 if( TRUE == IsLANULASupportAvailable )
         #endif /** _RDKB_GLOBAL_PRODUCT_REQ_ */
                 {
-                    CcspTraceError(("%s %d - Before checking\n", __FUNCTION__, __LINE__));
-                    if (WanManager_DoSystemActionWithStatus("wanmanager", "ifconfig brlan0 >> /rdklogs/logs/WANMANAGERLog.txt.0; ifconfig >> /rdklogs/logs/WANMANAGERLog.txt.0") != RETURN_OK)
-                    {
-                        CcspTraceError(("%s %d failed set command: %s\n", __FUNCTION__, __LINE__, "ifconfig brlan0"));
-                    }
-                    CcspTraceError(("%s %d - After checking\n", __FUNCTION__, __LINE__));
-                    
                     datamodel_value = (char *) malloc(sizeof(char) * 256);
                     if(datamodel_value != NULL)
                     {
