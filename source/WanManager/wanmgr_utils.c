@@ -704,7 +704,7 @@ void WanManager_DoSystemAction(const char *from, char *cmd)
  * @param pid PID of the process to be checked
  * @return TRUE upon success else FALSE returned
  ***************************************************************************/
-BOOL WanMgr_IsPIDRunning(UINT pid)
+BOOL WanMgr_IsPIDRunning(int pid)
 {
     /* If sig is 0 (the null signal), error checking is performed but no signal is actually sent. 
        The null signal can be used to check the validity of pid. */
