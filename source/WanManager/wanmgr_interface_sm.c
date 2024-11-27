@@ -470,10 +470,18 @@ static void WanMgr_MonitorDhcpApps (WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
     //Check if IPv6 dhcp client is still running - handling runtime crash of dhcp client
     if ((p_VirtIf->IP.Mode == DML_WAN_IP_MODE_IPV6_ONLY || p_VirtIf->IP.Mode == DML_WAN_IP_MODE_DUAL_STACK) &&  // IP.Mode supports V6
         p_VirtIf->IP.IPv6Source == DML_WAN_IP_SOURCE_DHCP &&                                                    // uses DHCP client
-        (p_VirtIf->IP.Dhcp6cPid -1 ||                                                                           // DHCP cleint failed to start
+        (p_VirtIf->IP.Dhcp6cPid == -1 ||                                                                           // DHCP cleint failed to start
         (p_VirtIf->IP.Dhcp6cPid > 0 &&                                                                          // dhcp started by ISM
         WanMgr_IsPIDRunning(p_VirtIf->IP.Dhcp6cPid) != TRUE)))                                                   // but DHCP client not running
     {
+        if (p_VirtIf->IP.Dhcp6cPid == -1 )
+        {
+            /* DHCPv6c client can fail to start due to DAD failuer on the link local address. 
+             * This could happen if multiple WAN interfaces are up with same MAC address. Toggling will restart the DAD again.
+             */
+            CcspTraceInfo(("%s %d - DHCPv6c cleint failed to start. Toggeling Ipv6 before retry... \n", __FUNCTION__, __LINE__, p_VirtIf->Name));
+            Force_IPv6_toggle(p_VirtIf->Name); 
+        }
         p_VirtIf->IP.Dhcp6cPid = WanManager_StartDhcpv6Client(p_VirtIf, pInterface->IfaceType);
         CcspTraceInfo(("%s %d - SELFHEAL - Started dhcp6c on interface %s, dhcpv6_pid %d \n", __FUNCTION__, __LINE__, p_VirtIf->Name, p_VirtIf->IP.Dhcp6cPid));
 #ifdef ENABLE_FEATURE_TELEMETRY2_0
