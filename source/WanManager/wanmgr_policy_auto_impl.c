@@ -1176,8 +1176,8 @@ static WcAwPolicyState_t State_ScanningInterface (WanMgr_Policy_Controller_t * p
     }
 
 
-    //If PHY is down ,rollback to waiting state after all VISM are terminated.
-    if(pActiveInterface->BaseInterfaceStatus != WAN_IFACE_PHY_STATUS_UP && WanMgr_Get_ISM_RunningStatus(pWanController->activeInterfaceIdx) == FALSE) 
+    //Rollback to waiting state after all VISM are terminated. This could happen if PHY status changes when Interface is in scanning state.
+    if(WanMgr_Get_ISM_RunningStatus(pWanController->activeInterfaceIdx) == FALSE) 
     {
         CcspTraceInfo(("%s %d: selected interface index:%d is BaseInetrfaceStatus DOWN. \n", __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx ));
         return Transition_ScanningInterfaceDown(pWanController);
