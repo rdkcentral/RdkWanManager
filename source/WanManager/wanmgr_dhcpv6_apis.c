@@ -1997,7 +1997,7 @@ int setUpLanPrefixIPv6(DML_VIRTUAL_IFACE* pVirtIf)
            ipv6_prefix           // xx:xx::/yy
          */
         memset(cmdLine, 0, sizeof(cmdLine));
-#ifndef _HUB4_PRODUCT_REQ_
+#if !defined(_HUB4_PRODUCT_REQ_) && !defined(_PLATFORM_RASPBERRYPI_)
         snprintf(cmdLine, sizeof(cmdLine), "sysevent set ipv6_prefix %s ",v6pref);
 #else
 #ifdef LAN_MGR_SUPPORT
