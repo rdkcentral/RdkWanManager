@@ -270,7 +270,7 @@ static void WanMgr_Policy_Auto_GetHighPriorityIface(WanMgr_Policy_Controller_t *
                     }
                     // pWanIfaceData - is Wan-Enabled & has valid Priority
                     if(pWanIfaceData->Selection.Priority < iSelPriority
-#if (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_))
+#if (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_))
                         //TODO: this is a workaround to support upgarde from Comcast autowan policy to Unification build
                         || isLastActiveLinkFromSysCfg(pWanIfaceData)
 #endif    
