@@ -460,7 +460,7 @@ static void WanMgr_MonitorDhcpApps (WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
         (p_VirtIf->IP.Dhcp4cPid > 0 &&                                                                          // dhcp started by ISM
         WanMgr_IsPIDRunning(p_VirtIf->IP.Dhcp4cPid) != TRUE)))                                                  // but DHCP client not running
     {
-        if (p_VirtIf->IP.Dhcp6cPid != -1 )
+        if (p_VirtIf->IP.Dhcp4cPid != -1 )
         {
 #ifdef ENABLE_FEATURE_TELEMETRY2_0
             t2_event_d("SYS_ERROR_DHCPV4Client_notrunning", 1);
