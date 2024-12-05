@@ -1234,6 +1234,21 @@ int WanManager_ProcessMAPTConfiguration(ipc_mapt_data_t *dhcp6cMAPTMsgBody, WANM
     }
 #endif  // NAT46_KERNEL_SUPPORT
 
+#if defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_)
+    // override udp timeout for mapt
+    CcspTraceInfo(("%s %d :Setting nf_conntrack_udp_timeout to 30 seconds for MAPT! \n", __FUNCTION__, __LINE__));
+    if ( v_secure_system("sysctl -w net.netfilter.nf_conntrack_udp_timeout=30") )
+    {
+        CcspTraceError(("%s %d : Failed to set nf_conntrack_udp_timeout! \n", __FUNCTION__, __LINE__));
+    }
+
+    CcspTraceInfo(("%s %d :Setting nf_conntrack_udp_timeout_stream to 120 seconds for MAPT! \n", __FUNCTION__, __LINE__));
+    if ( v_secure_system("sysctl -w net.netfilter.nf_conntrack_udp_timeout_stream=120") )
+    {
+        CcspTraceError(("%s %d : Failed to set nf_conntrack_udp_timeout_stream! \n", __FUNCTION__, __LINE__));
+    }
+#endif
+
 #if defined(IVI_KERNEL_SUPPORT) || (NAT46_KERNEL_SUPPORT)
     /**
      * Firewall rules are changed to utopia firewall
