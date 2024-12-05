@@ -313,7 +313,7 @@ typedef struct _WANMGR_IPV4_DATA
     uint32_t downstreamCurrRate;       /** Downstream rate */
     char dhcpServerId[BUFLEN_64];      /** Dhcp server id */
     char dhcpState[BUFLEN_64];         /** Dhcp state. */
-    uint32_t leaseTime;                /** Lease time, , if addressAssigned==TRUE */
+    uint32_t leaseTime;                /** Lease time */
 #endif
 } WANMGR_IPV4_DATA;
 
@@ -340,6 +340,11 @@ typedef struct _WANMGR_IPV6_DATA
    #endif
 } WANMGR_IPV6_DATA;
 
+typedef struct _WANMGR_IPV6_RA_DATA
+{
+   char defaultRoute[INET6_ADDRSTRLEN]; 
+   uint32_t defRouteLifeTime;
+} WANMGR_IPV6_RA_DATA;
 
 typedef struct _DML_WANIFACE_IP
 {
@@ -355,7 +360,6 @@ typedef struct _DML_WANIFACE_IP
     BOOL                        RestartConnectivityCheck;
     BOOL                        WCC_TypeChanged; // Flag to notify change in ConnectivityCheckType
     BOOL                        RefreshDHCP;
-    BOOL                        RestartV6Client; //This is a workaround to restart dhcpv6 client for the platform where PAM configures IPv6. !FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE
     DML_WAN_IP_MODE             Mode;
     DML_WAN_IP_PREFERRED_MODE   PreferredMode;
     DML_WAN_IP_PREFERRED_MODE   SelectedMode;
@@ -368,6 +372,7 @@ typedef struct _DML_WANIFACE_IP
     BOOL                        Ipv6Renewed;
     WANMGR_IPV4_DATA            Ipv4Data;
     WANMGR_IPV6_DATA            Ipv6Data;
+    WANMGR_IPV6_RA_DATA         Ipv6Route;
     ipc_dhcpv4_data_t*          pIpcIpv4Data;
     ipc_dhcpv6_data_t*          pIpcIpv6Data;
     UINT                        Dhcp4cPid;

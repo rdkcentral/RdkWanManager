@@ -124,7 +124,8 @@ ANSC_STATUS wanmgr_handle_dhcpv4_event_data(DML_VIRTUAL_IFACE* pVirtIf)
     bool IPv4ConfigChanged = FALSE;
 
 
-    if( strcmp(pDhcpcInfo->gateway, "0.0.0.0") == 0){
+    if( strcmp(pDhcpcInfo->gateway, "0.0.0.0") == 0)
+    {
         CcspTraceInfo(("%s %d - gateway=[%s] Iface Status to VALID\n", __FUNCTION__, __LINE__, pDhcpcInfo->gateway));
         if (pVirtIf->IP.pIpcIpv4Data != NULL )
         {
@@ -132,7 +133,13 @@ ANSC_STATUS wanmgr_handle_dhcpv4_event_data(DML_VIRTUAL_IFACE* pVirtIf)
             free(pVirtIf->IP.pIpcIpv4Data);
             pVirtIf->IP.pIpcIpv4Data = NULL;
         }
-        pVirtIf->Status = WAN_IFACE_STATUS_VALID;
+
+        //Don't set the status to  VALID if it is already UP or STANDBY
+        if(pVirtIf->Status != WAN_IFACE_STATUS_STANDBY && pVirtIf->Status != WAN_IFACE_STATUS_UP)
+        {
+            CcspTraceInfo(("%s %d - Setting Iface Status to VALID\n", __FUNCTION__, __LINE__, pDhcpcInfo->gateway));
+            pVirtIf->Status = WAN_IFACE_STATUS_VALID;
+        }
         return ANSC_STATUS_SUCCESS;
     }
 
@@ -214,8 +221,7 @@ ANSC_STATUS wanmgr_handle_dhcpv4_event_data(DML_VIRTUAL_IFACE* pVirtIf)
 
         // update current IPv4 data
         wanmgr_dchpv4_get_ipc_msg_info(&(pVirtIf->IP.Ipv4Data), pDhcpcInfo);
-
-	pVirtIf->IP.Ipv4Data.leaseReceivedTime = up_time;
+        pVirtIf->IP.Ipv4Data.leaseReceivedTime = up_time;
 
         /* Assign the address to the inetrface when received. Remaining configurations are updated when activated from VISM*/
         CcspTraceInfo(("%s %d -  Received Ipv4 lease for interface %s. Configuring address on interface\n", __FUNCTION__, __LINE__, pVirtIf->IP.Ipv4Data.ifname));
@@ -937,6 +943,7 @@ WanMgr_DmlDhcpcGetInfo
         pInfo->IPRouters[0].Value  = inet_addr(p_VirtIf->IP.Ipv4Data.gateway);
         pInfo->DNSServers[0].Value = inet_addr(p_VirtIf->IP.Ipv4Data.dnsServer);
         pInfo->DNSServers[1].Value = inet_addr(p_VirtIf->IP.Ipv4Data.dnsServer1);
+
         pInfo->DHCPServer.Value = inet_addr(p_VirtIf->IP.Ipv4Data.dhcpServerId);
 	pInfo->DHCPStatus = ((strcmp(p_VirtIf->IP.Ipv4Data.dhcpState, DHCP_STATE_BOUND) == 0) || 
                        (strcmp(p_VirtIf->IP.Ipv4Data.dhcpState, DHCP_STATE_RENEW) == 0)) ? DML_DHCPC_STATUS_Bound : DML_DHCPC_STATUS_Init;
