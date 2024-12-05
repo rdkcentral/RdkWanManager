@@ -71,7 +71,6 @@ static struct {
 }gDhcpv6c_ctx;
 
 extern WANMGR_BACKEND_OBJ* g_pWanMgrBE;
-static void * dhcpv6c_dbg_thrd(void * in);
 
 /*erouter topology mode*/
 enum tp_mod {
@@ -114,10 +113,8 @@ static int _dibbler_client_operation(char * arg);
 
 static DML_DHCPCV6_FULL  g_dhcpv6_client;
 
-static int _dibbler_server_operation(char * arg);
 void _cosa_dhcpsv6_refresh_config();
 
-static int DHCPv6sDmlTriggerRestart(BOOL OnlyTrigger);
 
 void _get_shell_output(FILE *fp, char * out, int len)
 {
@@ -1404,31 +1401,6 @@ WanMgr_DmlDhcpv6cGetReceivedOptionCfg
     AnscCopyMemory(g_recv_options, *ppEntry, sizeof(DML_DHCPCV6_RECV) * g_recv_option_num);
 
     return ANSC_STATUS_SUCCESS;
-}
-
-static int DHCPv6sDmlTriggerRestart(BOOL OnlyTrigger)
-{
-    int fd = 0;
-    char str[32] = "restart";
-
-  #if defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) && ! defined(DHCPV6_PREFIX_FIX)
-    sysevent_set(sysevent_fd, sysevent_token, "dhcpv6_server-restart", "" , 0);
-  #else
-
-    //not restart really.we only need trigger pthread to check whether there is pending action.
-
-    fd= open(DHCPS6V_SERVER_RESTART_FIFO, O_RDWR);
-
-    if (fd < 0)
-    {
-        fprintf(stderr, "open dhcpv6 server restart fifo when writing.\n");
-        return 1;
-    }
-    write( fd, str, sizeof(str) );
-    close(fd);
-
-  #endif
-    return 0;
 }
 
 void
