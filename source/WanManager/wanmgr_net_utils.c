@@ -2493,11 +2493,27 @@ bool IsDefaultRoutePresent(char *IfaceName, bool IsV4)
 
     if (IsV4)
     {
-        fp = v_secure_popen("r","ip -4 route show default | grep default | awk '{print $5}'");
+        // For erouter0 we want take default route from erouter table
+        if (strcmp(IfaceName, "erouter0") == 0)
+        {
+            fp = v_secure_popen("r","ip -4 route list table erouter | grep default | awk '{print $5}'");
+        }
+        else
+        {
+            fp = v_secure_popen("r","ip -4 route show default | grep default | awk '{print $5}'");
+        }
     }
     else
     {
-        fp = v_secure_popen("r","ip -6 route show default | grep default | awk '{print $5}'");
+        // For erouter0 we want take default route from erouter table
+        if (strcmp(IfaceName, "erouter0") == 0)
+        {
+            fp = v_secure_popen("r","ip -6 route list table erouter | grep default | awk '{print $5}'");
+        }
+        else
+        {
+            fp = v_secure_popen("r","ip -6 route show default | grep default | awk '{print $5}'");
+        }
     }
     if (fp)
     {
