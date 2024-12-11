@@ -73,7 +73,7 @@ static ANSC_STATUS WanMgr_IpcNewIpv4Msg(ipc_dhcpv4_data_t* pNewIpv4Msg)
     while((retStatus != ANSC_STATUS_SUCCESS) && (try < WANMGR_MAX_IPC_PROCCESS_TRY))
     {
         //get iface data
-        DML_VIRTUAL_IFACE* pVirtIf = WanMgr_GetVirtualIfaceByName_locked(pNewIpv4Msg->dhcpcInterface);
+        DML_VIRTUAL_IFACE* pVirtIf = WanMgr_GetVIfByName_VISM_running_locked(pNewIpv4Msg->dhcpcInterface);
         if(pVirtIf != NULL)
         {
             //check if previously message was already handled
@@ -114,7 +114,7 @@ static ANSC_STATUS WanMgr_IpcNewIpv6Msg(ipc_dhcpv6_data_t* pNewIpv6Msg)
     while((retStatus != ANSC_STATUS_SUCCESS) && (try < WANMGR_MAX_IPC_PROCCESS_TRY))
     {
         //get iface data
-        DML_VIRTUAL_IFACE* pVirtIf = WanMgr_GetVirtualIfaceByName_locked(pNewIpv6Msg->ifname);
+        DML_VIRTUAL_IFACE* pVirtIf = WanMgr_GetVIfByName_VISM_running_locked(pNewIpv6Msg->ifname);
         if(pVirtIf != NULL)
         {
             //check if previously message was already handled
@@ -139,34 +139,6 @@ static ANSC_STATUS WanMgr_IpcNewIpv6Msg(ipc_dhcpv6_data_t* pNewIpv6Msg)
             try++;
             usleep(WANMGR_IPC_PROCCESS_TRY_WAIT_TIME);
         }
-    }
-
-    return retStatus;
-}
-
-/*TODO:
- *the below code should be removed once Unified MAPT Implemented.
- */
-static ANSC_STATUS WanMgr_MaptStatusChanged(ipc_dhcpv6_data_t* pNewMaptMsg)
-{
-    ANSC_STATUS retStatus = ANSC_STATUS_FAILURE;
-
-    CcspTraceInfo(("%s %d - Received Ipc MAMPT-Msg for %s\n", __FUNCTION__, __LINE__, pNewMaptMsg->ifname));
-
-    DML_VIRTUAL_IFACE* pVirtIf = WanMgr_GetVirtualIfaceByName_locked(pNewMaptMsg->ifname);
-    if(pVirtIf != NULL)
-    {
-        if (pNewMaptMsg->maptAssigned == TRUE)
-        {
-            WanManager_UpdateInterfaceStatus(pVirtIf, WANMGR_IFACE_MAPT_START);
-            retStatus = ANSC_STATUS_SUCCESS;
-        }
-        else if (pNewMaptMsg->maptAssigned == FALSE)
-        {
-            WanManager_UpdateInterfaceStatus(pVirtIf, WANMGR_IFACE_MAPT_STOP);
-            retStatus = ANSC_STATUS_SUCCESS;
-        }
-        WanMgr_VirtualIfaceData_release(pVirtIf);
     }
 
     return retStatus;
@@ -351,16 +323,6 @@ static void* IpcServerThread( void *arg )
                     }
                     break;
 #endif
-                /*TODO:
-                 *The below code should be removed once Unified MAPT Implemented.
-                 */
-                case MAPT_STATE_CHANGED:
-                    if (WanMgr_MaptStatusChanged(&(ipc_msg.data.dhcpv6)) != ANSC_STATUS_SUCCESS)
-                    {
-                        CcspTraceError(("[%s-%d] Failed to proccess MAPT state change message for %s \n", __FUNCTION__, __LINE__,ipc_msg.data.dhcpv6.ifname));
-                    }
-                    break;
-
                 default:
                         CcspTraceError(("[%s-%d] Invalid  Message sent to Wan Manager\n", __FUNCTION__, __LINE__));
             }
@@ -523,6 +485,12 @@ ANSC_STATUS WanMgr_StartIpcServer()
         CcspTraceInfo(("%s %d - IPC Thread Started Successfully\n", __FUNCTION__, __LINE__));
         retStatus = ANSC_STATUS_SUCCESS;
     }
+
+#if defined(WAN_MANAGER_UNIFICATION_ENABLED) && !defined( RDKB_EXTENDER_ENABLED)
+    //TODO: XLE is still using the legacy CcspPaM dhcpv6c_dbg_thrd thread
+    WanMgr_DhcpV6MsgHandlerInit();
+#endif 
+
     return retStatus ;
 }
 

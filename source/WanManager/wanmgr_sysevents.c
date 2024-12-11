@@ -1144,35 +1144,6 @@ static int CheckV6DefaultRule (char *wanInterface)
     return ret;
 }
 
-static int do_toggle_v6_status (void)
-{
-    int ret = 0;
-
-#ifdef FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE
-    char wanInterface[BUFLEN_64] = {'\0'};
-    wanmgr_get_wan_interface(wanInterface);
-#else
-    char *wanInterface = "erouter0";
-#endif
-
-    if (CheckV6DefaultRule(wanInterface) != TRUE)
-    {
-        CcspTraceInfo(("%s %d toggle initiated\n", __FUNCTION__, __LINE__));
-
-        if (sysctl_iface_set("/proc/sys/net/ipv6/conf/%s/disable_ipv6", wanInterface, "1") != 0)
-        {
-            CcspTraceWarning(("%s-%d : Failure writing to /proc file\n", __FUNCTION__, __LINE__));
-        }
-
-        if (sysctl_iface_set("/proc/sys/net/ipv6/conf/%s/disable_ipv6", wanInterface, "0") != 0)
-        {
-            CcspTraceWarning(("%s-%d : Failure writing to /proc file\n", __FUNCTION__, __LINE__));
-        }
-    }
-
-    return ret;
-}
-
 /*
  * @brief Utility function used to toggle ipv6 triggered from ISM.
  * This function will not check existing default route.
@@ -1193,26 +1164,28 @@ int Force_IPv6_toggle (char* wanInterface)
     {
         CcspTraceWarning(("%s-%d : Failure writing to /proc file\n", __FUNCTION__, __LINE__));
     }
+
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV6_TOGGLE, "FALSE", 0); //Reset toggle flag to false.
 
     return ret;
 }
 
-void wanmgr_Ipv6Toggle (void)
+/*
+ * @brief Utility function used to check the default route and send router solicit if not available.
+ * @param : Virtual Interface Interface .
+ * @return Returns NONE.
+ */
+void WanMgr_CheckDefaultRA (DML_VIRTUAL_IFACE * pVirtIf)
 {
     char v6Toggle[BUFLEN_128] = {0};
-#if (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_)) &&  !defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)//TODO: V6 handled in PAM
-    /*Ipv6 handled in PAM.  No Toggle Needed. */
-    return;
-#endif
-
+    //TODO : Move router monitor to a WanManager thread ? to avoid continous sysevent get
     sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_IPV6_TOGGLE, v6Toggle, sizeof(v6Toggle));
 
     if((strlen(v6Toggle) == 0) || (!strcmp(v6Toggle,"TRUE")))
     {
         CcspTraceInfo(("%s %d SYSEVENT_IPV6_TOGGLE[TRUE] \n", __FUNCTION__, __LINE__));
-
-        if(do_toggle_v6_status() ==0)
+        //TODO: add check for remote device ( static ip )
+        if (CheckV6DefaultRule(pVirtIf->Name) == TRUE ||  WanManager_send_and_receive_rs(pVirtIf) == 0)
         {
             sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV6_TOGGLE, "FALSE", 0);
         }
@@ -1220,7 +1193,7 @@ void wanmgr_Ipv6Toggle (void)
 }
 
 /*
- * @brief Utility function used to Configure accept_ra from ISM.
+ * @brief Utility function used to Configure accept_ra_defrtr from ISM.
  * @param : Virtual Interface and Enable.
  * @return Returns NONE.
  */
@@ -1237,28 +1210,23 @@ void WanMgr_Configure_accept_ra(DML_VIRTUAL_IFACE * pVirtIf, BOOL EnableRa)
     }
 
     CcspTraceInfo(("%s %d %s accept_ra for interface %s\n", __FUNCTION__, __LINE__,EnableRa?"Enabling":"Disabling", pVirtIf->Name));
-   
+    //Enable accept_ra to allow receiving RA all the time. This funtion  only blocks learning defult route from RA.
+    v_secure_system("sysctl -w net.ipv6.conf.%s.accept_ra=2",pVirtIf->Name);
     if(EnableRa)
     {
         v_secure_system("sysctl -w net.ipv6.conf.%s.router_solicitations=3",pVirtIf->Name);
-        v_secure_system("sysctl -w net.ipv6.conf.%s.accept_ra=2",pVirtIf->Name);
-
-        CcspTraceInfo(("%s %d Enabling forwarding for interface %s\n", __FUNCTION__, __LINE__,pVirtIf->Name));
         v_secure_system("sysctl -w net.ipv6.conf.%s.forwarding=1",pVirtIf->Name);
         v_secure_system("sysctl -w net.ipv6.conf.%s.accept_ra_pinfo=0",pVirtIf->Name);
-        v_secure_system("sysctl -w net.ipv6.conf.%s.accept_ra_defrtr=1",pVirtIf->Name);
+        v_secure_system("sysctl -w net.ipv6.conf.%s.accept_ra_defrtr=1",pVirtIf->Name); //Learn defult route from the RA.
         v_secure_system("sysctl -w net.ipv6.conf.all.forwarding=1");
-        CcspTraceInfo(("%s %d IPv6 toggle after ra accept \n", __FUNCTION__, __LINE__));
-#if !defined (_PLATFORM_RASPBERRYPI_) //REFPLTB-3054
-        Force_IPv6_toggle(pVirtIf->Name); // Do a IPv6 toggle to send Router Solicit
-#endif
+        CcspTraceInfo(("%s %d Enabling forwarding for interface %s\n", __FUNCTION__, __LINE__,pVirtIf->Name));
     }
     else
     {
+        //Only accept_ra_defrtr set to false to block setting default route.
         v_secure_system("sysctl -w net.ipv6.conf.%s.router_solicitations=0",pVirtIf->Name);
-        v_secure_system("sysctl -w net.ipv6.conf.%s.accept_ra=0",pVirtIf->Name); 
+        v_secure_system("sysctl -w net.ipv6.conf.%s.accept_ra_defrtr=0",pVirtIf->Name); 
     }
-    
 }
 
 INT wanmgr_isWanStandby()
