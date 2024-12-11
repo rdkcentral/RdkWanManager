@@ -261,13 +261,11 @@ int get_Virtual_Interface_FromPSM(ULONG instancenum, ULONG virtInsNum ,DML_VIRTU
         pVirtIf->Enable = TRUE;
     }
 
-#if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE) /* TODO: This is a workaround for the platforms using same Wan Name.*/
     _ansc_memset(param_name, 0, sizeof(param_name));
     _ansc_memset(param_value, 0, sizeof(param_value));
     _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_NAME, instancenum, (virtInsNum + 1));
     retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
     AnscCopyString(pVirtIf->Name, param_value);
-#endif
 
     _ansc_memset(param_name, 0, sizeof(param_name));
     _ansc_memset(param_value, 0, sizeof(param_value));
@@ -530,13 +528,11 @@ int write_Virtual_Interface_ToPSM(ULONG instancenum, ULONG virtInsNum ,DML_VIRTU
     _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_ENABLE, instancenum, (virtInsNum + 1));
     WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
 
-#if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE) /* TODO: This is a workaround for the platforms using same Wan Name.*/
     memset(param_value, 0, sizeof(param_value));
     memset(param_name, 0, sizeof(param_name));
     AnscCopyString(param_value, pVirtIf->Name);
     _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_NAME, instancenum, (virtInsNum + 1));
     WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
-#endif
 
     memset(param_value, 0, sizeof(param_value));
     memset(param_name, 0, sizeof(param_name));
