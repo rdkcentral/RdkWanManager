@@ -138,14 +138,6 @@ static BOOL IsZeroIpvxAddress(uint32_t ipvx, const char *addr);
  ****************************************************************************/
 static int ParsePrefixAddress(const char *prefixAddr, char *address, uint32_t *plen);
 
-#ifdef _HUB4_PRODUCT_REQ_
-/***************************************************************************
- * @brief API used to get ADSL username and password
- * @param Username: ADSL username
- * @param Password: ADSL Password
- * @return TRUE if ADSL Username and Password is read from file else returned false.
- ****************************************************************************/
-#endif
 static int WanManager_CalculatePsidAndV4Index(char *pdIPv6Prefix, int v6PrefixLen, int iapdPrefixLen, int v4PrefixLen, int *psidValue, int *ipv4IndexValue, int *psidLen);
 
 #if defined(FEATURE_464XLAT)
