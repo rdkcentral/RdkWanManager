@@ -270,7 +270,7 @@ static void WanMgr_Policy_Auto_GetHighPriorityIface(WanMgr_Policy_Controller_t *
                     }
                     // pWanIfaceData - is Wan-Enabled & has valid Priority
                     if(pWanIfaceData->Selection.Priority < iSelPriority
-#if (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_))
+#if (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_))
                         //TODO: this is a workaround to support upgarde from Comcast autowan policy to Unification build
                         || isLastActiveLinkFromSysCfg(pWanIfaceData)
 #endif    
@@ -710,8 +710,11 @@ static WcAwPolicyState_t Transition_TryingNextInterface (WanMgr_Policy_Controlle
         if (pWanIfaceGroup != NULL)
         {
             //All interfaces are scanned atleast once. set InitialScanComplete to TRUE
-            pWanIfaceGroup->InitialScanComplete = TRUE;
-            CcspTraceInfo(("%s %d  group(%d) Initial Scan Completed\n", __FUNCTION__, __LINE__, pWanController->GroupInst));
+            if(pWanIfaceGroup->InitialScanComplete == FALSE)
+            {
+                pWanIfaceGroup->InitialScanComplete = TRUE;
+                CcspTraceInfo(("%s %d  group(%d) Initial Scan Completed\n", __FUNCTION__, __LINE__, pWanController->GroupInst));
+            }
             WanMgrDml_GetIfaceGroup_release();
         }
 
