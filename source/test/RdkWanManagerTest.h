@@ -28,6 +28,26 @@
 #include <mocks/mock_securewrapper.h>
 #include <mocks/mock_ansc_memory.h>
 #include <mocks/mock_cap.h>
+#include <mocks/mock_psm.h>
+#include <mocks/mock_ansc_task.h>
+#include <mocks/mock_SysInfoRepository.h>
+#include <mocks/mock_ansc_timer_scheduler.h>
+#include <mocks/mock_ansc_crypto.h>
+#include <mocks/mock_ansc_xml.h>
+#include <mocks/mock_ansc_file_io.h>
+#include <mocks/mock_ansc_co.h>
+#include <mocks/mock_dslh_dmagnt_exported.h>
+#include <mocks/mock_ccsp_dmapi.h>
+#include <mocks/mock_user_runtime.h>
+#include <mocks/mock_ansc_debug.h>
+#include <mocks/mock_trace.h>
+#include <mocks/mock_file_io.h>
+#include <mocks/mock_base_api.h>
+#include <mocks/mock_usertime.h>
+#include <mocks/mock_ansc_wrapper_api.h>
+
+
+
 #include "wanmgr_interface_sm.h"
 
 using namespace std;
@@ -38,6 +58,9 @@ using ::testing::Eq;
 using ::testing::StrEq;
 using ::testing::IsNull;
 using ::testing::NotNull;
+using ::testing::SetArgReferee;
+using ::testing::SetArgPointee;
+using ::testing::DoAll;
 
 class MockWanMgr
 {
@@ -64,12 +87,29 @@ protected:
 
     MockWanMgr mockWanUtils;
     rbusMock mockedRbus;
-
+    AnscCoMock mockedAnscCo;
     SecureWrapperMock mockSecurewrapperMock;
     CapMock  mockCap;
     AnscMemoryMock  mockAnscMemory;
     MessageBusMock mockMessagebus;
     PlatformHalMock mockPlatformHAL;
+    PsmMock mockPSM;
+    AnscTaskMock mockanscTaskMock;
+    SysInfoRepositoryMock mocksysInfoRepositoryMock;
+    AnscTimerSchedulerMock mockanscTimerSchedulerMock;
+    AnscCryptoMock mockanscCryptoMock;
+    AnscXmlMock mockAnscXml;
+    AnscFileIOMock mockAnscFileIOMock;
+    DslhDmagntExportedMock mockdslhDmagntExported;
+    CcspDmApiMock mockccspDmApiMock;
+    UserRuntimeMock mockedUserRuntime;
+    AnscDebugMock mockedAnscDebug;
+    TraceMock mockedTrace;
+    FileIOMock mockedFileIO;
+    BaseAPIMock mockedbaseapi;
+    UserTimeMock mockedUserTime;
+    AnscWrapperApiMock mockedanscWrapperApi;
+
 
     WanMgrBase();
 
