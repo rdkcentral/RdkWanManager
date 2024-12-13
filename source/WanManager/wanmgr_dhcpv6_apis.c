@@ -38,7 +38,7 @@ extern token_t sysevent_token;
 extern ANSC_HANDLE bus_handle;
 extern char g_Subsystem[32];
 
-#if defined(_HUB4_PRODUCT_REQ_)
+#ifdef _HUB4_PRODUCT_REQ_
 #include "wanmgr_ipc.h"
 #if defined SUCCESS
 #undef SUCCESS

@@ -216,10 +216,10 @@ ANSC_STATUS wanmgr_set_Ipv4Sysevent(const WANMGR_IPV4_DATA* dhcp4Info, DEVICE_NE
     }
     sysevent_set(sysevent_fd, sysevent_token,name, dhcp4Info->ip, 0);
 
-#if (!defined (_XB6_PRODUCT_REQ_) && !defined (_CBR2_PRODUCT_REQ_)) || defined (_SCER11BEL_PRODUCT_REQ_) //parodus uses cmac for xb platforms
-#if defined (_SCER11BEL_PRODUCT_REQ_)
-    if( TRUE == WanMgr_Util_IsThisCurrentPartnerID("sky-uk") )
-#endif /* _SCER11BEL_PRODUCT_REQ_ */
+#if (!defined (_XB6_PRODUCT_REQ_) && !defined (_CBR2_PRODUCT_REQ_)) || defined (_RDKB_GLOBAL_PRODUCT_REQ_) //parodus uses cmac for xb platforms
+#if defined (_RDKB_GLOBAL_PRODUCT_REQ_)
+if ( TRUE == WanMgr_Util_IsThisFeatureApplicable(SYSEVENT_FEATURE_USE_WANMAC_FOR_MANAGEMENT_SERVICES_SUPPORT, INPUT_SOURCE_TYPE_SYSEVENT) )
+#endif /* _RDKB_GLOBAL_PRODUCT_REQ_ */
     {
         // set wan mac because parodus depends on it to start.
         if(ANSC_STATUS_SUCCESS == WanManager_get_interface_mac(dhcp4Info->ifname, ifaceMacAddress, sizeof(ifaceMacAddress)))
