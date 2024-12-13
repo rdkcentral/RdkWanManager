@@ -221,6 +221,14 @@ BRIDGE_MODE_STATUS_STOPPED,
 
 #endif
 
+#if defined(_RDKB_GLOBAL_PRODUCT_REQ_)
+/* Global Product Build Features */
+#define SYSCFG_FEATURE_LANULA_SUPPORT                       "LANULASupport"
+#define SYSEVENT_FEATURE_BACKUPWANDNS_SUPPORT               "BackupWanDnsSupport"
+#define SYSEVENT_FEATURE_IPv6_EUI64_FORMAT_SUPPORT          "IPv6EUI64FormatSupport"
+#define SYSEVENT_FEATURE_IPv6_PREFIX_ON_LANBRIDGE_SUPPORT   "IPv6PrefixOnLANBridgeSupport"
+#endif /** _RDKB_GLOBAL_PRODUCT_REQ_ */
+
 /**********************************************************************
                 FUNCTION PROTOTYPES
 **********************************************************************/

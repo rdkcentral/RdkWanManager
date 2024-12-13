@@ -1130,3 +1130,54 @@ int sysctl_iface_set(const char *path, const char *ifname, const char *content)
 
     return 0;
 }
+
+/** WanMgr_Util_IsThisCurrentPartnerID() */
+unsigned char WanMgr_Util_IsThisCurrentPartnerID( const char* pcPartnerID )
+{
+    if ( NULL != pcPartnerID )
+    {
+        char actmpPartnerID[64] = {0};
+
+        if( ( CCSP_SUCCESS == getPartnerId( actmpPartnerID ) ) && \
+            ( actmpPartnerID[ 0 ] != '\0' ) && \
+            ( 0 == strncmp( pcPartnerID, actmpPartnerID, strlen(pcPartnerID) ) ) )
+        {
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
+/** WanMgr_Util_IsThisFeatureApplicable() */
+unsigned char WanMgr_Util_IsThisFeatureApplicable( const char* pcFeatureFlag, wanmgr_util_InputSourceType  enInputSourceType )
+{
+    if ( ( NULL != pcFeatureFlag ) && ( INPUT_SOURCE_TYPE_UNKNOWN > enInputSourceType ) )
+    {
+        char actmpResult[64] = {0};
+
+        if( INPUT_SOURCE_TYPE_SYSCFG == enInputSourceType )
+        {
+            if( ( (syscfg_get( NULL, pcFeatureFlag, actmpResult, sizeof(actmpResult)) == 0) ) && \
+                ( actmpResult[ 0 ] != '\0' ) && \
+                ( 0 == strncmp(actmpResult, "true", 4) ) )
+            {
+                return TRUE;
+            }
+        }
+        else if( INPUT_SOURCE_TYPE_SYSEVENT == enInputSourceType )
+        {
+            token_t  tokEventToken;
+            int iEventFileDescriptor = s_sysevent_connect( &tokEventToken );
+
+            if( ( sysevent_get( iEventFileDescriptor, tokEventToken, pcFeatureFlag, actmpResult, sizeof(actmpResult) ) == 0 ) && \
+                ( actmpResult[ 0 ] != '\0' ) && \
+                ( 0 == strncmp(actmpResult, "true", 4) ) )
+            {
+                return TRUE;
+            }
+        }
+    }
+
+    return FALSE;
+}

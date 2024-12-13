@@ -32,6 +32,9 @@
 
 
 #include "wanmgr_rdkbus_common.h"
+#include "ccsp_base_api.h"
+#include <syscfg/syscfg.h>
+#include <sysevent/sysevent.h>
 //#include "ipc_msg.h"
 
 
@@ -59,6 +62,12 @@
 
 #define WANMGR_RESTART_INFO_FILE          "/tmp/rdkwanmanager.db"
 #define WANMGR_RESTART_INFO_TMP_FILE      "/tmp/rdkwanmanager_tmp.db"
+
+typedef enum {
+    INPUT_SOURCE_TYPE_SYSCFG      = 1,
+    INPUT_SOURCE_TYPE_SYSEVENT,
+    INPUT_SOURCE_TYPE_UNKNOWN
+} wanmgr_util_InputSourceType;
 
 /***************************************************************************
  * @brief Utility function used to start application
@@ -165,5 +174,7 @@ ANSC_STATUS WanMgr_RestartUpdateCfg (const char * param, int idx, char * output,
 ANSC_STATUS WanMgr_RestartUpdateCfg_Bool (const char * param, int idx, BOOL* output);
 
 int sysctl_iface_set(const char *path, const char *ifname, const char *content);
+unsigned char WanMgr_Util_IsThisCurrentPartnerID( const char* pcPartnerID );
+unsigned char WanMgr_Util_IsThisFeatureApplicable( const char* pcFeatureFlag, wanmgr_util_InputSourceType  enInputSourceType );
 
 #endif /* _WANMGR_UTILS_H_ */
