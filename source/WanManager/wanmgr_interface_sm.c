@@ -1379,10 +1379,10 @@ static int wan_setUpIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
         }
         wanmgr_services_restart();
 
-#if (!defined (_XB6_PRODUCT_REQ_) && !defined (_CBR2_PRODUCT_REQ_) && !defined(_PLATFORM_RASPBERRYPI_)) || defined (_SCER11BEL_PRODUCT_REQ_) //parodus uses cmac for xb platforms
-#if defined (_SCER11BEL_PRODUCT_REQ_)
-    if( TRUE == WanMgr_Util_IsThisCurrentPartnerID("sky-") )
-#endif /* _SCER11BEL_PRODUCT_REQ_ */
+#if (!defined (_XB6_PRODUCT_REQ_) && !defined (_CBR2_PRODUCT_REQ_) && !defined(_PLATFORM_RASPBERRYPI_)) || defined (_RDKB_GLOBAL_PRODUCT_REQ_) //parodus uses cmac for xb platforms
+#if defined(_RDKB_GLOBAL_PRODUCT_REQ_)
+    if ( TRUE == WanMgr_Util_IsThisFeatureApplicable(SYSEVENT_FEATURE_USE_WANMAC_FOR_MANAGEMENT_SERVICES_SUPPORT, INPUT_SOURCE_TYPE_SYSEVENT) )
+#endif /** _RDKB_GLOBAL_PRODUCT_REQ_ */
     {
         // set wan mac because parodus depends on it to start.
         if(ANSC_STATUS_SUCCESS == WanManager_get_interface_mac(p_VirtIf->IP.Ipv6Data.ifname, ifaceMacAddress, sizeof(ifaceMacAddress)))
@@ -1459,8 +1459,8 @@ static int wan_tearDownIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
 
 //RBUS_WAN_IP
 #if defined (RBUS_WAN_IP)
-#if defined (_SCER11BEL_PRODUCT_REQ_)
-    if( TRUE == WanMgr_Util_IsThisCurrentPartnerID("sky-") )
+#if defined(_RDKB_GLOBAL_PRODUCT_REQ_)
+    if ( TRUE == WanMgr_Util_IsThisFeatureApplicable(SYSEVENT_FEATURE_CONFIGURE_WANIPV6_ON_LANBRIDGE_SUPPORT, INPUT_SOURCE_TYPE_SYSEVENT) )
     {   
         sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_LAN_IPV6_ADDRESS, "::", 0);
     }
