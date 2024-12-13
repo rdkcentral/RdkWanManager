@@ -33,6 +33,9 @@
 #define COLLECT_WAIT_INTERVAL_MS 40
 #define APP_TERMINATE_TIMEOUT (5 * MSECS_IN_SEC)
 
+extern int sysevent_fd;
+extern token_t sysevent_token;
+
 static void freeArgs(char **argv);
 static int parseArgs(const char *cmd, const char *args, char ***argv);
 static int strtol64(const char *str, char **endptr, int32_t base, int64_t *val);
@@ -1167,10 +1170,7 @@ unsigned char WanMgr_Util_IsThisFeatureApplicable( const char* pcFeatureFlag, wa
         }
         else if( INPUT_SOURCE_TYPE_SYSEVENT == enInputSourceType )
         {
-            token_t  tokEventToken;
-            int iEventFileDescriptor = s_sysevent_connect( &tokEventToken );
-
-            if( ( sysevent_get( iEventFileDescriptor, tokEventToken, pcFeatureFlag, actmpResult, sizeof(actmpResult) ) == 0 ) && \
+            if( ( sysevent_get( sysevent_fd, sysevent_token, pcFeatureFlag, actmpResult, sizeof(actmpResult) ) == 0 ) && \
                 ( actmpResult[ 0 ] != '\0' ) && \
                 ( 0 == strncmp(actmpResult, "true", 4) ) )
             {
