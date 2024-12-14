@@ -218,7 +218,7 @@ ANSC_STATUS wanmgr_set_Ipv4Sysevent(const WANMGR_IPV4_DATA* dhcp4Info, DEVICE_NE
 
 #if (!defined (_XB6_PRODUCT_REQ_) && !defined (_CBR2_PRODUCT_REQ_)) || defined (_RDKB_GLOBAL_PRODUCT_REQ_) //parodus uses cmac for xb platforms
 #if defined (_RDKB_GLOBAL_PRODUCT_REQ_)
-if ( TRUE == WanMgr_Util_IsThisFeatureApplicable(SYSEVENT_FEATURE_USE_WANMAC_FOR_MANAGEMENT_SERVICES_SUPPORT, INPUT_SOURCE_TYPE_SYSEVENT) )
+if ( TRUE == WanMgr_Util_IsFeatureApplicable(SYSEVENT_FEATURE_USE_WANMAC_FOR_MANAGEMENT_SERVICES_SUPPORT, INPUT_SOURCE_TYPE_SYSEVENT) )
 #endif /* _RDKB_GLOBAL_PRODUCT_REQ_ */
     {
         // set wan mac because parodus depends on it to start.

@@ -1486,7 +1486,7 @@ int dhcpv6_assign_global_ip(char * prefix, char * intfName, char * ipAddr)
     }
 #if defined(_HUB4_PRODUCT_REQ_) || defined(_RDKB_GLOBAL_PRODUCT_REQ_)
 #if defined(_RDKB_GLOBAL_PRODUCT_REQ_)
-    if ( TRUE == WanMgr_Util_IsThisFeatureApplicable(SYSEVENT_FEATURE_DISABLE_IPV6_EUI64_FORMAT_SUPPORT, INPUT_SOURCE_TYPE_SYSEVENT) )
+    if ( TRUE == WanMgr_Util_IsFeatureApplicable(SYSEVENT_FEATURE_DISABLE_IPV6_EUI64_FORMAT_SUPPORT, INPUT_SOURCE_TYPE_SYSEVENT) )
 #endif /** _RDKB_GLOBAL_PRODUCT_REQ_ */
     {
         if(strncmp(intfName, COSA_DML_DHCPV6_SERVER_IFNAME, strlen(intfName)) == 0)
@@ -1897,7 +1897,7 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
             {
 #if !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_)) || defined(_RDKB_GLOBAL_PRODUCT_REQ_) //Do not add prefix on LAN bridge for the Comcast platforms.
 #if defined(_RDKB_GLOBAL_PRODUCT_REQ_)
-            if ( TRUE == WanMgr_Util_IsThisFeatureApplicable(SYSEVENT_FEATURE_CONFIGURE_WANIPV6_ON_LANBRIDGE_SUPPORT, INPUT_SOURCE_TYPE_SYSEVENT) )
+            if ( TRUE == WanMgr_Util_IsFeatureApplicable(SYSEVENT_FEATURE_CONFIGURE_WANIPV6_ON_LANBRIDGE_SUPPORT, INPUT_SOURCE_TYPE_SYSEVENT) )
 #endif /** _RDKB_GLOBAL_PRODUCT_REQ_ */
             {
                 //call function for changing the prlft and vallft
