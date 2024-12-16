@@ -224,10 +224,6 @@ BRIDGE_MODE_STATUS_STOPPED,
 #if defined(_RDKB_GLOBAL_PRODUCT_REQ_)
 /* Global Product Build Features */
 #define SYSCFG_FEATURE_LANULA_SUPPORT                                   "LANULASupport"
-#define SYSEVENT_FEATURE_BACKUPWANDNS_SUPPORT                           "BackupWanDnsSupport"
-#define SYSEVENT_FEATURE_DISABLE_IPV6_EUI64_FORMAT_SUPPORT              "DisableIPv6EUI64FormatSupport"
-#define SYSEVENT_FEATURE_CONFIGURE_WANIPV6_ON_LANBRIDGE_SUPPORT         "ConfigureWANIPv6OnLANBridgeSupport"
-#define SYSEVENT_FEATURE_USE_WANMAC_FOR_MANAGEMENT_SERVICES_SUPPORT     "UseWANMACForManagementServices"
 #endif /** _RDKB_GLOBAL_PRODUCT_REQ_ */
 
 /**********************************************************************

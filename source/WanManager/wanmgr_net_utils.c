@@ -490,7 +490,7 @@ int WanManager_Ipv6AddrUtil(char *ifname, Ipv6OperType opr, int preflft, int val
             {
 #if !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_)) || defined(_RDKB_GLOBAL_PRODUCT_REQ_) //Do not delete prefix from LAn bridge for the comcast platforms.
 #if defined(_RDKB_GLOBAL_PRODUCT_REQ_)
-                if ( TRUE == WanMgr_Util_IsFeatureApplicable(SYSEVENT_FEATURE_CONFIGURE_WANIPV6_ON_LANBRIDGE_SUPPORT, INPUT_SOURCE_TYPE_SYSEVENT) )
+                if ( TRUE == WanMgr_Util_IsFeatureApplicable(PSM_WANMANAGER_CONFIGUREWANIPV6ON_LANBRIDGE_SUPPPORT, INPUT_SOURCE_TYPE_PSM) )
 #endif /** _RDKB_GLOBAL_PRODUCT_REQ_ */
                 {
                     memset(cmdLine, 0, sizeof(cmdLine));

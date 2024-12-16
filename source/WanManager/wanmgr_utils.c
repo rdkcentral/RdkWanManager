@@ -1159,6 +1159,15 @@ unsigned char WanMgr_Util_IsFeatureApplicable( const char* pcFeatureFlag, wanmgr
                 return TRUE;
             }
         }
+        else if( INPUT_SOURCE_TYPE_PSM == enInputSourceType )
+        {
+            if ( ( WanMgr_RdkBus_GetParamValuesFromDB( pcFeatureFlag, actmpResult , sizeof(actmpResult) ) == CCSP_SUCCESS ) && \
+                 ( actmpResult[ 0 ] != '\0' ) && \
+                 ( 0 == strncmp(actmpResult, "TRUE", 4) ) ) 
+            { 
+                return TRUE;
+            }
+        }
     }
 
     return FALSE;

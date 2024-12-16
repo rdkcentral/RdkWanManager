@@ -31,7 +31,7 @@
 #include <time.h>
 
 
-#include "wanmgr_rdkbus_common.h"
+#include "wanmgr_rdkbus_utils.h"
 #include "ccsp_base_api.h"
 #include <syscfg/syscfg.h>
 #include <sysevent/sysevent.h>
@@ -66,6 +66,7 @@
 typedef enum {
     INPUT_SOURCE_TYPE_SYSCFG      = 1,
     INPUT_SOURCE_TYPE_SYSEVENT,
+    INPUT_SOURCE_TYPE_PSM,
     INPUT_SOURCE_TYPE_UNKNOWN
 } wanmgr_util_InputSourceType;
 
