@@ -33,9 +33,6 @@
 #define COLLECT_WAIT_INTERVAL_MS 40
 #define APP_TERMINATE_TIMEOUT (5 * MSECS_IN_SEC)
 
-extern int sysevent_fd;
-extern token_t sysevent_token;
-
 static void freeArgs(char **argv);
 static int parseArgs(const char *cmd, const char *args, char ***argv);
 static int strtol64(const char *str, char **endptr, int32_t base, int64_t *val);
@@ -1132,43 +1129,4 @@ int sysctl_iface_set(const char *path, const char *ifname, const char *content)
     close(fd);
 
     return 0;
-}
-
-/** WanMgr_Util_IsFeatureApplicable() */
-unsigned char WanMgr_Util_IsFeatureApplicable( const char* pcFeatureFlag, wanmgr_util_InputSourceType  enInputSourceType )
-{
-    if ( ( NULL != pcFeatureFlag ) && ( INPUT_SOURCE_TYPE_UNKNOWN > enInputSourceType ) )
-    {
-        char actmpResult[64] = {0};
-
-        if( INPUT_SOURCE_TYPE_SYSCFG == enInputSourceType )
-        {
-            if( ( (syscfg_get( NULL, pcFeatureFlag, actmpResult, sizeof(actmpResult)) == 0) ) && \
-                ( actmpResult[ 0 ] != '\0' ) && \
-                ( 0 == strncmp(actmpResult, "true", 4) ) )
-            {
-                return TRUE;
-            }
-        }
-        else if( INPUT_SOURCE_TYPE_SYSEVENT == enInputSourceType )
-        {
-            if( ( sysevent_get( sysevent_fd, sysevent_token, pcFeatureFlag, actmpResult, sizeof(actmpResult) ) == 0 ) && \
-                ( actmpResult[ 0 ] != '\0' ) && \
-                ( 0 == strncmp(actmpResult, "true", 4) ) )
-            {
-                return TRUE;
-            }
-        }
-        else if( INPUT_SOURCE_TYPE_PSM == enInputSourceType )
-        {
-            if ( ( WanMgr_RdkBus_GetParamValuesFromDB( pcFeatureFlag, actmpResult , sizeof(actmpResult) ) == CCSP_SUCCESS ) && \
-                 ( actmpResult[ 0 ] != '\0' ) && \
-                 ( 0 == strncmp(actmpResult, "TRUE", 4) ) ) 
-            { 
-                return TRUE;
-            }
-        }
-    }
-
-    return FALSE;
 }
