@@ -221,11 +221,6 @@ BRIDGE_MODE_STATUS_STOPPED,
 
 #endif
 
-#if defined(_RDKB_GLOBAL_PRODUCT_REQ_)
-/* Global Product Build Features */
-#define SYSCFG_FEATURE_LANULA_SUPPORT                                   "LANULASupport"
-#endif /** _RDKB_GLOBAL_PRODUCT_REQ_ */
-
 /**********************************************************************
                 FUNCTION PROTOTYPES
 **********************************************************************/
