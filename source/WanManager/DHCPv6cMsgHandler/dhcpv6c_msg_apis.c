@@ -54,6 +54,7 @@
 #include "secure_wrapper.h"
 
 #include "wanmgr_dml.h"
+#include "wanmgr_data.h"
 #include "dhcpv6c_msg_apis.h"
 
 /*
