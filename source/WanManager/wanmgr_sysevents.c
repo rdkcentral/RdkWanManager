@@ -216,12 +216,26 @@ ANSC_STATUS wanmgr_set_Ipv4Sysevent(const WANMGR_IPV4_DATA* dhcp4Info, DEVICE_NE
     }
     sysevent_set(sysevent_fd, sysevent_token,name, dhcp4Info->ip, 0);
 
-#if !defined (_XB6_PRODUCT_REQ_) && !defined (_CBR2_PRODUCT_REQ_) //parodus uses cmac for xb platforms
-    // set wan mac because parodus depends on it to start.
-    if(ANSC_STATUS_SUCCESS == WanManager_get_interface_mac(dhcp4Info->ifname, ifaceMacAddress, sizeof(ifaceMacAddress)))
+#if (!defined (_XB6_PRODUCT_REQ_) && !defined (_CBR2_PRODUCT_REQ_)) || defined (_RDKB_GLOBAL_PRODUCT_REQ_) //parodus uses cmac for xb platforms
+#if defined (_RDKB_GLOBAL_PRODUCT_REQ_)
+    WanMgr_Config_Data_t    *pWanConfigData = WanMgr_GetConfigData_locked();
+    unsigned char           UseWANMACForManagementServices = FALSE;
+
+    if( NULL != pWanConfigData )
     {
-        CcspTraceInfo(("%s %d - setting sysevent eth_wan_mac = [%s]  \n", __FUNCTION__, __LINE__, ifaceMacAddress));
-        sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_ETH_WAN_MAC, ifaceMacAddress, 0);
+        UseWANMACForManagementServices = pWanConfigData->data.UseWANMACForManagementServices;
+        WanMgrDml_GetConfigData_release(pWanConfigData);
+    }
+
+if ( TRUE == UseWANMACForManagementServices )
+#endif /* _RDKB_GLOBAL_PRODUCT_REQ_ */
+    {
+        // set wan mac because parodus depends on it to start.
+        if(ANSC_STATUS_SUCCESS == WanManager_get_interface_mac(dhcp4Info->ifname, ifaceMacAddress, sizeof(ifaceMacAddress)))
+        {
+            CcspTraceInfo(("%s %d - setting sysevent eth_wan_mac = [%s]  \n", __FUNCTION__, __LINE__, ifaceMacAddress));
+            sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_ETH_WAN_MAC, ifaceMacAddress, 0);
+        }   
     }
 #endif
 
@@ -603,7 +617,7 @@ static void *WanManagerSyseventHandler(void *args)
 #endif
 #endif
 
-#if defined (_HUB4_PRODUCT_REQ_)
+#if defined (_HUB4_PRODUCT_REQ_) || defined(_RDKB_GLOBAL_PRODUCT_REQ_)
     sysevent_set_options(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_ULA_ADDRESS, TUPLE_FLAG_EVENT);
     sysevent_setnotification(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_ULA_ADDRESS, &lan_ula_address_event_asyncid);
 
@@ -705,7 +719,7 @@ static void *WanManagerSyseventHandler(void *args)
             CcspTraceInfo(("%s %d - received notification event %s:%s\n", __FUNCTION__, __LINE__, name, val ));
             if ( strcmp(name, SYSEVENT_ULA_ADDRESS) == 0 )
             {
-		#if defined (_HUB4_PRODUCT_REQ_)
+		#if defined (_HUB4_PRODUCT_REQ_) || defined(_RDKB_GLOBAL_PRODUCT_REQ_)
                 datamodel_value = (char *) malloc(sizeof(char) * 256);
                 if(datamodel_value != NULL)
                 {
@@ -733,7 +747,7 @@ static void *WanManagerSyseventHandler(void *args)
             }
             else if ( strcmp(name, SYSEVENT_ULA_ENABLE) == 0 )
             {
-		#if defined (_HUB4_PRODUCT_REQ_)
+		#if defined (_HUB4_PRODUCT_REQ_) || defined(_RDKB_GLOBAL_PRODUCT_REQ_)
                 datamodel_value = (char *) malloc(sizeof(char) * 256);
                 if(datamodel_value != NULL)
                 {
