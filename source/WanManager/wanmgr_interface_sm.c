@@ -1258,7 +1258,7 @@ static int wan_tearDownIPv4(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
 #if (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_) || defined (_RDKB_GLOBAL_PRODUCT_REQ_))
 #if defined (_RDKB_GLOBAL_PRODUCT_REQ_)
     WanMgr_Config_Data_t    *pWanConfigData = WanMgr_GetConfigData_locked();
-    unsigned char           BackupWanDnsSupport = FALSE;
+    unsigned char           BackupWanDnsSupport = TRUE;
 
     if( NULL != pWanConfigData )
     {
@@ -1266,7 +1266,7 @@ static int wan_tearDownIPv4(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
         WanMgrDml_GetConfigData_release(pWanConfigData);
     }
 
-    if ( ( FALSE == BackupWanDnsSupport ) && \
+    if ( ( FALSE == BackupWanDnsSupport ) && 
          (p_VirtIf->MAP.MaptStatus == WAN_IFACE_MAPT_STATE_UP && strstr(pInterface->BaseInterface, "Ethernet") == NULL) )
 #else
     //TODO:  XB devices use the DNS of primary for backup interfaces. Clear V4 DNS only if MAPT is up
@@ -1437,7 +1437,7 @@ static int wan_tearDownIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
     //TODO: FIXME: XB devices use the DNS of primary for backup and doesn't deconfigure the primary ipv6 prefix from the LAN interface. 
 #if (!(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_))) || defined (_RDKB_GLOBAL_PRODUCT_REQ_)
 #if defined (_RDKB_GLOBAL_PRODUCT_REQ_)
-    unsigned char BackupWanDnsSupport = FALSE;
+    unsigned char BackupWanDnsSupport = TRUE;
 
     pWanConfigData = WanMgr_GetConfigData_locked();
     if( NULL != pWanConfigData )

@@ -1564,18 +1564,14 @@ ANSC_STATUS WanMgr_WanConfInit (DML_WANMGR_CONFIG* pWanConfig)
     memset(param_value, 0, sizeof(param_value));
     _ansc_sprintf(param_name, PSM_WANMANAGER_BACKUPWANDNS_SUPPORT);
     retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
-    if ((retPsmGet == CCSP_SUCCESS) && (param_value[0] != '\0') && (0 == strncmp(param_value, "TRUE", 4)))
-        pWanConfig->BackupWanDnsSupport = TRUE;
-    else
+    if ((retPsmGet == CCSP_SUCCESS) && (param_value[0] != '\0') && (0 == strncmp(param_value, "FALSE", 5)))
         pWanConfig->BackupWanDnsSupport = FALSE;
 
     memset(param_name, 0, sizeof(param_name));
     memset(param_value, 0, sizeof(param_value));
     _ansc_sprintf(param_name, PSM_WANMANAGER_IPV6EUI64FORMAT_SUPPPORT);
     retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
-    if ((retPsmGet == CCSP_SUCCESS) && (param_value[0] != '\0') && (0 == strncmp(param_value, "TRUE", 4)))
-        pWanConfig->IPv6EUI64FormatSupport = TRUE;
-    else
+    if ((retPsmGet == CCSP_SUCCESS) && (param_value[0] != '\0') && (0 == strncmp(param_value, "FALSE", 5)))
         pWanConfig->IPv6EUI64FormatSupport = FALSE;
 
     memset(param_name, 0, sizeof(param_name));
@@ -1584,8 +1580,6 @@ ANSC_STATUS WanMgr_WanConfInit (DML_WANMGR_CONFIG* pWanConfig)
     retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
     if ((retPsmGet == CCSP_SUCCESS) && (param_value[0] != '\0') && (0 == strncmp(param_value, "TRUE", 4)))
         pWanConfig->ConfigureWANIPv6OnLANBridgeSupport = TRUE;
-    else
-        pWanConfig->ConfigureWANIPv6OnLANBridgeSupport = FALSE;
 
     memset(param_name, 0, sizeof(param_name));
     memset(param_value, 0, sizeof(param_value));
@@ -1593,8 +1587,6 @@ ANSC_STATUS WanMgr_WanConfInit (DML_WANMGR_CONFIG* pWanConfig)
     retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
     if ((retPsmGet == CCSP_SUCCESS) && (param_value[0] != '\0') && (0 == strncmp(param_value, "TRUE", 4)))
         pWanConfig->UseWANMACForManagementServices = TRUE;
-    else
-        pWanConfig->UseWANMACForManagementServices = FALSE;
 
     return ret_val;
 }

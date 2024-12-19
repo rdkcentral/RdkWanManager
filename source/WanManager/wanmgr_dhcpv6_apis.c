@@ -1487,7 +1487,7 @@ int dhcpv6_assign_global_ip(char * prefix, char * intfName, char * ipAddr)
 #if defined(_HUB4_PRODUCT_REQ_) || defined(_RDKB_GLOBAL_PRODUCT_REQ_)
 #if defined(_RDKB_GLOBAL_PRODUCT_REQ_)
     WanMgr_Config_Data_t    *pWanConfigData = WanMgr_GetConfigData_locked();
-    unsigned char           IPv6EUI64FormatSupport = FALSE;
+    unsigned char           IPv6EUI64FormatSupport = TRUE;
 
     if( NULL != pWanConfigData )
     {

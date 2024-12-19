@@ -69,8 +69,8 @@ void WanMgr_SetConfigData_Default(DML_WANMGR_CONFIG* pWanDmlConfig)
         pWanDmlConfig->DeviceNwMode = GATEWAY_MODE;
         pWanDmlConfig->DeviceNwModeChanged = FALSE;
         pWanDmlConfig->BootToWanUp = FALSE;
-        pWanDmlConfig->BackupWanDnsSupport = FALSE;    
-        pWanDmlConfig->IPv6EUI64FormatSupport = FALSE;
+        pWanDmlConfig->BackupWanDnsSupport = TRUE;    
+        pWanDmlConfig->IPv6EUI64FormatSupport = TRUE;
         pWanDmlConfig->ConfigureWANIPv6OnLANBridgeSupport = FALSE;
         pWanDmlConfig->UseWANMACForManagementServices = FALSE;  
 
