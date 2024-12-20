@@ -40,7 +40,6 @@
 #endif
 
 #define IF_SIZE      32
-#define DEFAULT_IFNAME    "erouter0"
 #define LOOP_TIMEOUT 50000 // timeout in microseconds. This is the state machine loop interval
 #define RESOLV_CONF_FILE "/etc/resolv.conf"
 #define LOOPBACK "127.0.0.1"
@@ -1066,7 +1065,13 @@ static void updateInterfaceToVoiceManager(WanMgr_IfaceSM_Controller_t* pWanIface
         // Update the Interface name after auto wan sesning is complete.
         // When interface is down (due to cable removal etc) set Interface name to empty string
         if (voip_started)
-            strncpy(voipIfName, DEFAULT_IFNAME, sizeof(voipIfName));
+        {
+#if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
+            strncpy(voipIfName, p_VirtIf->Name, sizeof(voipIfName));
+#else
+            strncpy(voipIfName, "erouter0", sizeof(voipIfName));
+#endif
+        }
 
         /* If there is a VOIP interface present, then do not update DATA vlan name to TelecoVoiceManager. */
         for(int virIf_id=0; virIf_id< pWanIfaceData->NoOfVirtIfs; virIf_id++)
