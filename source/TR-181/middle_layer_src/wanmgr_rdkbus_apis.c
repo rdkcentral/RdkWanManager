@@ -719,7 +719,7 @@ DmlWanDeletePSMRecordValue
 
 #ifdef FEATURE_802_1P_COS_MARKING
 
-#ifdef _HUB4_PRODUCT_REQ_
+#if defined(_HUB4_PRODUCT_REQ_) || defined(_SCER11BEL_PRODUCT_REQ_)
 static void AddSkbMarkingToConfFile(UINT data_skb_mark)
 {
    FILE * fp = fopen(DATA_SKB_MARKING_LOCATION, "w+");
@@ -798,6 +798,14 @@ ANSC_STATUS WanMgr_WanIfaceMarkingInit ()
         CcspTraceError(("%s %d - Invalid buffer\n", __FUNCTION__, __LINE__));
         return ANSC_STATUS_FAILURE;
     }
+
+#if defined(_RDKB_GLOBAL_PRODUCT_REQ_)
+    if( FALSE == gWanMgrDataBase.Config.InterfaceVLANMarkingSupport )
+    {
+        CcspTraceInfo(("%s %d - Interface VLAN Marking Not Supported\n", __FUNCTION__, __LINE__));
+        return ANSC_STATUS_SUCCESS;  
+    }
+#endif /** _RDKB_GLOBAL_PRODUCT_REQ_ */
 
     //Initialise Marking Params
     for( iLoopCount = 0; iLoopCount < pWanIfaceCtrl->ulTotalNumbWanInterfaces; iLoopCount++ )
@@ -954,7 +962,7 @@ ANSC_STATUS WanMgr_WanIfaceMarkingInit ()
                         CcspTraceInfo(("%s - Name[%s] Data[%s,%u,%u,%d]\n", __FUNCTION__, acTmpMarkingData, p_Marking->Alias, p_Marking->SKBPort, p_Marking->SKBMark, p_Marking->EthernetPriorityMark));
                             
                             Marking_UpdateInitValue(pWanIfaceCtrl->pIface,ulIfInstanceNumber-1,ulInstanceNumber,p_Marking);
-#ifdef _HUB4_PRODUCT_REQ_
+#if defined(_HUB4_PRODUCT_REQ_) || defined(_SCER11BEL_PRODUCT_REQ_)
                             /* Adding skb mark to config file if alis is 'DATA', so that udhcpc could use it to mark dhcp packets */
                             if(0 == strncmp(p_Marking->Alias, "DATA", 4))
                             {
@@ -1030,6 +1038,23 @@ DmlCheckAndProceedMarkingOperations
         CcspTraceError(("%s %d Invalid Buffer\n", __FUNCTION__,__LINE__));
         return ANSC_STATUS_FAILURE;
     }
+
+#if defined(_RDKB_GLOBAL_PRODUCT_REQ_)
+    WanMgr_Config_Data_t    *pWanConfigData = WanMgr_GetConfigData_locked();
+    unsigned char           InterfaceVLANMarkingSupport = FALSE;
+
+    if( NULL != pWanConfigData )
+    {
+        UseWANMACForManagementServices = pWanConfigData->data.InterfaceVLANMarkingSupport;
+        WanMgrDml_GetConfigData_release(pWanConfigData);
+    }
+
+    if( FALSE == gWanMgrDataBase.Config.InterfaceVLANMarkingSupport )
+    {
+        CcspTraceError(("%s %d - Interface VLAN Marking Not Supported. So ignoring %d request\n", __FUNCTION__, __LINE__, enMarkingOp));
+        return ANSC_STATUS_FAILURE;  
+    }
+#endif /** _RDKB_GLOBAL_PRODUCT_REQ_ */
 
     //Find the Marking entry in PSM
     ulIfInstanceNumber = pMarking->ulWANIfInstanceNumber;
@@ -1587,6 +1612,13 @@ ANSC_STATUS WanMgr_WanConfInit (DML_WANMGR_CONFIG* pWanConfig)
     retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
     if ((retPsmGet == CCSP_SUCCESS) && (param_value[0] != '\0') && (0 == strncmp(param_value, "TRUE", 4)))
         pWanConfig->UseWANMACForManagementServices = TRUE;
+
+    memset(param_name, 0, sizeof(param_name));
+    memset(param_value, 0, sizeof(param_value));
+    _ansc_sprintf(param_name, PSM_WANMANAGER_INTERFACE_VLAN_MARKING_SUPPORT);
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
+    if ((retPsmGet == CCSP_SUCCESS) && (param_value[0] != '\0') && (0 == strncmp(param_value, "TRUE", 4)))
+        pWanConfig->InterfaceVLANMarkingSupport = TRUE;
 
     return ret_val;
 }
