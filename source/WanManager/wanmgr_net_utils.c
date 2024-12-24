@@ -1235,6 +1235,26 @@ int WanManager_ProcessMAPTConfiguration(ipc_mapt_data_t *dhcp6cMAPTMsgBody, WANM
     }
 #endif  // NAT46_KERNEL_SUPPORT
 
+/*
+ * Any VoIP/SIP application running on the CPE itself or in the home LAN, MUST send some form of SIP keepalives (Options or Register messages), 
+ * more frequent than the nf_conntrack_udp_timeout_stream value to allow unsolicited inbound calls to not be blocked by the firewall.   
+ * Either increase this value above the SIP keepalive frequency, or ensure SIP applications are configured to send keepalives more frequent than Linux's default value of 120 seconds.
+ */
+#if defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_)
+    // This is a configuration specific for Comcast. Sky devices has nf_conntrack_udp_timeout_stream set to 300 seconds.
+    CcspTraceInfo(("%s %d :Setting nf_conntrack_udp_timeout to 30 seconds for MAPT! \n", __FUNCTION__, __LINE__));
+    if ( v_secure_system("sysctl -w net.netfilter.nf_conntrack_udp_timeout=30") )
+    {
+        CcspTraceError(("%s %d : Failed to set nf_conntrack_udp_timeout! \n", __FUNCTION__, __LINE__));
+    }
+
+    CcspTraceInfo(("%s %d :Setting nf_conntrack_udp_timeout_stream to 120 seconds for MAPT! \n", __FUNCTION__, __LINE__));
+    if ( v_secure_system("sysctl -w net.netfilter.nf_conntrack_udp_timeout_stream=120") )
+    {
+        CcspTraceError(("%s %d : Failed to set nf_conntrack_udp_timeout_stream! \n", __FUNCTION__, __LINE__));
+    }
+#endif
+
 #if defined(IVI_KERNEL_SUPPORT) || (NAT46_KERNEL_SUPPORT)
     /**
      * Firewall rules are changed to utopia firewall
