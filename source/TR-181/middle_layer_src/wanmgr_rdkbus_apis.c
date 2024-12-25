@@ -1045,7 +1045,7 @@ DmlCheckAndProceedMarkingOperations
 
     if( NULL != pWanConfigData )
     {
-        UseWANMACForManagementServices = pWanConfigData->data.InterfaceVLANMarkingSupport;
+        InterfaceVLANMarkingSupport = pWanConfigData->data.InterfaceVLANMarkingSupport;
         WanMgrDml_GetConfigData_release(pWanConfigData);
     }
 
