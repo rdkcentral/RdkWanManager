@@ -800,7 +800,7 @@ ANSC_STATUS WanMgr_WanIfaceMarkingInit ()
     }
 
 #if defined(_RDKB_GLOBAL_PRODUCT_REQ_)
-    if( FALSE == gWanMgrDataBase.Config.Data.InterfaceVLANMarkingSupport )
+    if( FALSE == gWanMgrDataBase.Config.data.InterfaceVLANMarkingSupport )
     {
         CcspTraceInfo(("%s %d - Interface VLAN Marking Not Supported\n", __FUNCTION__, __LINE__));
         return ANSC_STATUS_SUCCESS;  
