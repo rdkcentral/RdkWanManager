@@ -1485,6 +1485,29 @@ int dhcpv6_assign_global_ip(char * prefix, char * intfName, char * ipAddr)
         return 1;
     }
 
+#if defined(_HUB4_PRODUCT_REQ_) || defined(_RDKB_GLOBAL_PRODUCT_REQ_)
+#if defined(_RDKB_GLOBAL_PRODUCT_REQ_)
+    WanMgr_Config_Data_t    *pWanConfigData = WanMgr_GetConfigData_locked();
+    unsigned char           IPv6EUI64FormatSupport = TRUE;
+
+    if( NULL != pWanConfigData )
+    {
+        IPv6EUI64FormatSupport = pWanConfigData->data.IPv6EUI64FormatSupport;
+        WanMgrDml_GetConfigData_release(pWanConfigData);
+    }
+
+    if ( FALSE == IPv6EUI64FormatSupport )
+#endif /** _RDKB_GLOBAL_PRODUCT_REQ_ */
+    {
+        if(strncmp(intfName, COSA_DML_DHCPV6_SERVER_IFNAME, strlen(intfName)) == 0)
+        {
+            snprintf(ipAddr, 128, "%s1", globalIP);
+            CcspTraceInfo(("the full part is:%s\n", ipAddr));
+            return 0;
+        }
+    }
+#endif
+
     j = i-2;
     k = 0;
     while( j>0 ){
@@ -1673,6 +1696,7 @@ int wanmgr_construct_wan_address_from_IAPD(WANMGR_IPV6_DATA *pIpv6DataNew)
 
     return 0;
 }
+
 
 ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
 {
@@ -1964,14 +1988,30 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
         {
             if(pVirtIf->Status == WAN_IFACE_STATUS_UP &&  pNewIpcMsg->prefixPltime > 0 && pNewIpcMsg->prefixVltime > 0 ) //Update life time only if the interface is active.
             {
-#if !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_))  //Do not add prefix on LAN bridge for the Comcast platforms.
+#if !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_)) || defined(_RDKB_GLOBAL_PRODUCT_REQ_) //Do not add prefix on LAN bridge for the Comcast platforms.
+            //call function for changing the prlft and vallft
+            //Find sysevent /bus API to update LAN prefix lifetime.
+#if defined(_RDKB_GLOBAL_PRODUCT_REQ_)
+  
+            WanMgr_Config_Data_t    *pWanConfigData = WanMgr_GetConfigData_locked();
+            unsigned char           ConfigureWANIPv6OnLANBridgeSupport = FALSE;
+
+            if( NULL != pWanConfigData )
+            {
+                ConfigureWANIPv6OnLANBridgeSupport = pWanConfigData->data.ConfigureWANIPv6OnLANBridgeSupport;
+                WanMgrDml_GetConfigData_release(pWanConfigData);
+            }
+
+            if ( TRUE == ConfigureWANIPv6OnLANBridgeSupport )
+#endif /** _RDKB_GLOBAL_PRODUCT_REQ_ */
+            {
                 //call function for changing the prlft and vallft
-                //Find sysevent /bus PAI to update LAN prefix lifetime.
                 if ((WanManager_Ipv6AddrUtil(pVirtIf->Name, SET_LFT, pNewIpcMsg->prefixPltime, pNewIpcMsg->prefixVltime) < 0))
                 {
                     CcspTraceError(("Life Time Setting Failed"));
                 }
                 sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_RADVD_RESTART, NULL, 0);
+            }
 #endif
             }
             pVirtIf->IP.Ipv6Renewed = TRUE;
@@ -2126,7 +2166,6 @@ int setUpLanPrefixIPv6(DML_VIRTUAL_IFACE* pVirtIf)
             syscfg_set_string(SYSCFG_FIELD_IPV6_ADDRESS, "");
         }
     }
-
 
     if (pVirtIf->IP.Ipv6Data.prefixAssigned && !IS_EMPTY_STRING(pVirtIf->IP.Ipv6Data.sitePrefix))
     {

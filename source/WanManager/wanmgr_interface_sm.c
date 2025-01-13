@@ -1255,19 +1255,36 @@ static int wan_tearDownIPv4(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
     DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIfaceById(pInterface->VirtIfList, pWanIfaceCtrl->VirIfIdx);
 
     /** Reset IPv4 DNS configuration. */
-#if (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_)) 
+#if (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_) || defined (_RDKB_GLOBAL_PRODUCT_REQ_))
+#if defined (_RDKB_GLOBAL_PRODUCT_REQ_)
+    WanMgr_Config_Data_t    *pWanConfigData = WanMgr_GetConfigData_locked();
+    unsigned char           BackupWanDnsSupport = TRUE;
+
+    if( NULL != pWanConfigData )
+
+    {
+        BackupWanDnsSupport = pWanConfigData->data.BackupWanDnsSupport;
+        WanMgrDml_GetConfigData_release(pWanConfigData);
+    }
+
+    if ( ( FALSE == BackupWanDnsSupport ) && 
+         (p_VirtIf->MAP.MaptStatus == WAN_IFACE_MAPT_STATE_UP && strstr(pInterface->BaseInterface, "Ethernet") == NULL) )
+#else
     //TODO:  XB devices use the DNS of primary for backup interfaces. Clear V4 DNS only if MAPT is up
     /* FIXME: Issue in DNS ipv6 resolution when ethwan enabled *//* Workaround: We keep the ipv4 entries for name resolution */
     if(p_VirtIf->MAP.MaptStatus == WAN_IFACE_MAPT_STATE_UP && strstr(pInterface->BaseInterface, "Ethernet") == NULL)
+#endif /** _RDKB_GLOBAL_PRODUCT_REQ_ */ 
 #endif
-    if (RETURN_OK != wan_updateDNS(pWanIfaceCtrl, FALSE, (p_VirtIf->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_UP)))
     {
-        CcspTraceError(("%s %d - Failed to unconfig IPv4 DNS servers \n", __FUNCTION__, __LINE__));
-        ret = RETURN_ERR;
-    }
-    else
-    {
-        CcspTraceInfo(("%s %d -  IPv4 DNS servers unconfig successfully \n", __FUNCTION__, __LINE__));
+        if (RETURN_OK != wan_updateDNS(pWanIfaceCtrl, FALSE, (p_VirtIf->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_UP)))
+        {
+            CcspTraceError(("%s %d - Failed to unconfig IPv4 DNS servers \n", __FUNCTION__, __LINE__));
+            ret = RETURN_ERR;
+        }
+        else
+        {
+            CcspTraceInfo(("%s %d -  IPv4 DNS servers unconfig successfully \n", __FUNCTION__, __LINE__));
+        }   
     }
 
     if (WanManager_DelDefaultGatewayRoute(DeviceNwMode, pWanIfaceCtrl->DeviceNwModeChanged, &p_VirtIf->IP.Ipv4Data) != RETURN_OK)
@@ -1372,13 +1389,27 @@ static int wan_setUpIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
         }
         wanmgr_services_restart();
 
-#if !defined (_XB6_PRODUCT_REQ_) && !defined (_CBR2_PRODUCT_REQ_) && !defined(_PLATFORM_RASPBERRYPI_) //parodus uses cmac for xb platforms
+#if (!defined (_XB6_PRODUCT_REQ_) && !defined (_CBR2_PRODUCT_REQ_) && !defined(_PLATFORM_RASPBERRYPI_)) || defined (_RDKB_GLOBAL_PRODUCT_REQ_) //parodus uses cmac for xb platforms
+#if defined(_RDKB_GLOBAL_PRODUCT_REQ_)
+    WanMgr_Config_Data_t    *pWanConfigData = WanMgr_GetConfigData_locked();
+    unsigned char           UseWANMACForManagementServices = FALSE;
+
+    if( NULL != pWanConfigData )
+    {
+        UseWANMACForManagementServices = pWanConfigData->data.UseWANMACForManagementServices;
+        WanMgrDml_GetConfigData_release(pWanConfigData);
+    }
+
+    if ( TRUE == UseWANMACForManagementServices )
+#endif /** _RDKB_GLOBAL_PRODUCT_REQ_ */
+    {
         // set wan mac because parodus depends on it to start.
         if(ANSC_STATUS_SUCCESS == WanManager_get_interface_mac(p_VirtIf->IP.Ipv6Data.ifname, ifaceMacAddress, sizeof(ifaceMacAddress)))
         {
             CcspTraceInfo(("%s %d - setting sysevent eth_wan_mac = [%s]  \n", __FUNCTION__, __LINE__, ifaceMacAddress));
             sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_ETH_WAN_MAC, ifaceMacAddress, 0);
         }
+    }
 #endif
     }
   
@@ -1397,21 +1428,39 @@ static int wan_tearDownIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
 
     int ret = RETURN_OK;
     char buf[BUFLEN_32] = {0};
+#if defined (_RDKB_GLOBAL_PRODUCT_REQ_)
+    WanMgr_Config_Data_t    *pWanConfigData = NULL;
+#endif /** _RDKB_GLOBAL_PRODUCT_REQ_ */
 
     DML_WAN_IFACE * pInterface = pWanIfaceCtrl->pIfaceData;
     DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIfaceById(pInterface->VirtIfList, pWanIfaceCtrl->VirIfIdx);
 
     //TODO: FIXME: XB devices use the DNS of primary for backup and doesn't deconfigure the primary ipv6 prefix from the LAN interface. 
-#if !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_)) 
-    /** Reset IPv6 DNS configuration. */
-    if (RETURN_OK == wan_updateDNS(pWanIfaceCtrl, (p_VirtIf->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_UP), FALSE))
+#if (!(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_))) || defined (_RDKB_GLOBAL_PRODUCT_REQ_)
+#if defined (_RDKB_GLOBAL_PRODUCT_REQ_)
+    unsigned char BackupWanDnsSupport = TRUE;
+
+    pWanConfigData = WanMgr_GetConfigData_locked();
+    if( NULL != pWanConfigData )
     {
-        CcspTraceInfo(("%s %d -  IPv6 DNS servers unconfig successfully \n", __FUNCTION__, __LINE__));
+        BackupWanDnsSupport = pWanConfigData->data.BackupWanDnsSupport;
+        WanMgrDml_GetConfigData_release(pWanConfigData);
+        pWanConfigData = NULL;
     }
-    else
+
+    if ( FALSE == BackupWanDnsSupport ) 
+#endif /** _RDKB_GLOBAL_PRODUCT_REQ_ */
     {
-        CcspTraceError(("%s %d - Failed to unconfig IPv6 DNS servers \n", __FUNCTION__, __LINE__));
-        ret = RETURN_ERR;
+        /** Reset IPv6 DNS configuration. */
+        if (RETURN_OK == wan_updateDNS(pWanIfaceCtrl, (p_VirtIf->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_UP), FALSE))
+        {
+            CcspTraceInfo(("%s %d -  IPv6 DNS servers unconfig successfully \n", __FUNCTION__, __LINE__));
+        }
+        else
+        {
+            CcspTraceError(("%s %d - Failed to unconfig IPv6 DNS servers \n", __FUNCTION__, __LINE__));
+            ret = RETURN_ERR;
+        }
     }
 
 #endif
@@ -1443,7 +1492,26 @@ static int wan_tearDownIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
 
 //RBUS_WAN_IP
 #if defined (RBUS_WAN_IP)
-#if defined (_HUB4_PRODUCT_REQ_) || defined (_SR213_PRODUCT_REQ_)
+#if defined(_RDKB_GLOBAL_PRODUCT_REQ_)
+    unsigned char ConfigureWANIPv6OnLANBridgeSupport = FALSE;
+
+    pWanConfigData = WanMgr_GetConfigData_locked();
+    if( NULL != pWanConfigData )
+    {
+        ConfigureWANIPv6OnLANBridgeSupport = pWanConfigData->data.ConfigureWANIPv6OnLANBridgeSupport;
+        WanMgrDml_GetConfigData_release(pWanConfigData);
+        pWanConfigData = NULL;
+    }
+
+    if ( TRUE == ConfigureWANIPv6OnLANBridgeSupport )
+    {   
+        sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_LAN_IPV6_ADDRESS, "::", 0);
+    }
+    else
+    {
+        sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV6_WAN_ADDRESS, "::", 0);
+    }
+#elif defined (_HUB4_PRODUCT_REQ_) || defined (_SR213_PRODUCT_REQ_)
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_LAN_IPV6_ADDRESS, "::", 0);
 #else
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV6_WAN_ADDRESS, "::", 0);
