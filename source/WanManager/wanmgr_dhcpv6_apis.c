@@ -1485,29 +1485,6 @@ int dhcpv6_assign_global_ip(char * prefix, char * intfName, char * ipAddr)
         return 1;
     }
 
-#if defined(_HUB4_PRODUCT_REQ_) || defined(_RDKB_GLOBAL_PRODUCT_REQ_)
-#if defined(_RDKB_GLOBAL_PRODUCT_REQ_)
-    WanMgr_Config_Data_t    *pWanConfigData = WanMgr_GetConfigData_locked();
-    unsigned char           IPv6EUI64FormatSupport = TRUE;
-
-    if( NULL != pWanConfigData )
-    {
-        IPv6EUI64FormatSupport = pWanConfigData->data.IPv6EUI64FormatSupport;
-        WanMgrDml_GetConfigData_release(pWanConfigData);
-    }
-
-    if ( FALSE == IPv6EUI64FormatSupport )
-#endif /** _RDKB_GLOBAL_PRODUCT_REQ_ */
-    {
-        if(strncmp(intfName, COSA_DML_DHCPV6_SERVER_IFNAME, strlen(intfName)) == 0)
-        {
-            snprintf(ipAddr, 128, "%s1", globalIP);
-            CcspTraceInfo(("the full part is:%s\n", ipAddr));
-            return 0;
-        }
-    }
-#endif
-
     j = i-2;
     k = 0;
     while( j>0 ){
@@ -1654,11 +1631,11 @@ static int WanMgr_CopyPreviousPrefix(WANMGR_IPV6_DATA* pOld, WANMGR_IPV6_DATA* p
  * - WAN IPv6 Address: "2a06:5906:13:d001::1/128"
  */
 #define WAN_SUFFIX 1
-int wanmgr_construct_wan_address_from_IAPD(WANMGR_IPV6_DATA *pIpv6DataNew)
+static int wanmgr_construct_wan_address_from_IAPD(WANMGR_IPV6_DATA *pIpv6DataNew)
 {
     int prefix_length;
     char iapd_prefix[128] = {0};
-
+    char cmdLine[256] = {0};
     if (sscanf(pIpv6DataNew->sitePrefix, "%[^/]/%d", iapd_prefix, &prefix_length) != 2) 
     {
         return -1; // Parsing failed
@@ -1679,13 +1656,35 @@ int wanmgr_construct_wan_address_from_IAPD(WANMGR_IPV6_DATA *pIpv6DataNew)
         return -1;
     }
 
-    prefix.s6_addr[prefix_length / 8] += 0x01; // Use next subnet for WAN. First /64 will be used for LAN.
-    prefix.s6_addr[15] = WAN_SUFFIX; // Setting the last byte for WAN address
-    inet_ntop(AF_INET6, &prefix, pIpv6DataNew->address, sizeof(pIpv6DataNew->address));
+    prefix.s6_addr[7] += 0x01; // Use next subnet for WAN. First /64 will be used for LAN.
+
+    WanMgr_Config_Data_t    *pWanConfigData = WanMgr_GetConfigData_locked();
+    unsigned char           IPv6EUI64FormatSupport = TRUE;
+    if( NULL != pWanConfigData )
+    {
+        IPv6EUI64FormatSupport = pWanConfigData->data.IPv6EUI64FormatSupport;
+        WanMgrDml_GetConfigData_release(pWanConfigData);
+    }
+    
+    if(IPv6EUI64FormatSupport)
+    {
+        char newPref[128] = {0};
+        inet_ntop(AF_INET6, &prefix, newPref, sizeof(newPref));
+        CcspTraceInfo(("%s %d EUI64 format is enabled using new prefix %s \n", __FUNCTION__, __LINE__, newPref));    
+        snprintf(cmdLine, sizeof(cmdLine), "%s/%d", newPref, prefix_length);    
+        dhcpv6_assign_global_ip(cmdLine, pIpv6DataNew->ifname, pIpv6DataNew->address);
+    }
+    else
+    {
+        CcspTraceInfo(("%s %d EUI64 format is not enabled using WAN SUFFIX %d \n", __FUNCTION__, __LINE__, WAN_SUFFIX));    
+        prefix.s6_addr[15] = WAN_SUFFIX; // Setting the last byte for WAN address
+        inet_ntop(AF_INET6, &prefix, pIpv6DataNew->address, sizeof(pIpv6DataNew->address));
+    }
+    
 
     CcspTraceInfo(("%s %d Calculated WAN network IP %s/128 \n", __FUNCTION__, __LINE__, pIpv6DataNew->address));        
     //Since this address calculated by us, it will be assigned by the DHCPv6c client. Assign the address on the Wan interface
-    char cmdLine[256] = {0};
+    memset(cmdLine, 0, sizeof(cmdLine));
     snprintf(cmdLine, sizeof(cmdLine), "ip -6 addr add %s/128 dev %s", pIpv6DataNew->address, pIpv6DataNew->ifname);
     if (WanManager_DoSystemActionWithStatus(__FUNCTION__, cmdLine) != 0)
         CcspTraceError(("failed to run cmd: %s", cmdLine));
