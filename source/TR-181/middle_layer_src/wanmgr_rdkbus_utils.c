@@ -1112,10 +1112,6 @@ ANSC_STATUS WanMgr_GetSelectedIPMode(DML_VIRTUAL_IFACE * pVirtIf)
 void Wanmgr_TriggerReboot()
 {
     char lastRebootReason[64] = {'\0'};
-
-    // work around if the CPE fails to reboot from the below call and gets stuck.
-    wanmgr_sysevent_hw_reconfig_reboot();
-
     // set reboot reason as previous reboot reason because of webPA and Webconfig dependency on various reboot scenarios.
     if(syscfg_get( NULL, "X_RDKCENTRAL-COM_LastRebootReason", lastRebootReason, sizeof(lastRebootReason)) == 0)
     {
@@ -1142,6 +1138,9 @@ void Wanmgr_TriggerReboot()
     {
         CcspTraceInfo(("%s %d: Failed to get LastRebootReason\n", __FUNCTION__, __LINE__));
     }
+
+    // work around if the CPE fails to reboot from the below call and gets stuck.
+    wanmgr_sysevent_hw_reconfig_reboot();
 
     // Call Device Reboot and Exit from state machine.
     if((WanMgr_RdkBus_SetParamValues(PAM_COMPONENT_NAME, PAM_DBUS_PATH, "Device.X_CISCO_COM_DeviceControl.RebootDevice", "Device", ccsp_string, TRUE) == ANSC_STATUS_SUCCESS))
