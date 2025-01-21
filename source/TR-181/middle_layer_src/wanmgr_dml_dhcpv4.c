@@ -638,9 +638,16 @@ Client_GetParamIntValue
     {
         /* collect value */
         WanMgr_DmlDhcpcGetInfo(NULL, pCxtLink->InstanceNumber, &pDhcpc->Info);
-        
-        *pInt   = pDhcpc->Info.LeaseTimeRemaining;
-        
+
+        if (pDhcpc->Info.IPAddress.Value) 
+        {
+            *pInt = pDhcpc->Info.LeaseTimeRemaining;            
+        }
+        else
+        {
+            *pInt = 0;
+        }
+          
         return TRUE;
     }
 
