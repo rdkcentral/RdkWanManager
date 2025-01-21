@@ -719,7 +719,7 @@ DmlWanDeletePSMRecordValue
 
 #ifdef FEATURE_802_1P_COS_MARKING
 
-#if defined(_HUB4_PRODUCT_REQ_) || defined(_SCER11BEL_PRODUCT_REQ_)
+#if defined(_HUB4_PRODUCT_REQ_) || defined(_RDKB_GLOBAL_PRODUCT_REQ_)
 static void AddSkbMarkingToConfFile(UINT data_skb_mark)
 {
    FILE * fp = fopen(DATA_SKB_MARKING_LOCATION, "w+");
@@ -962,7 +962,7 @@ ANSC_STATUS WanMgr_WanIfaceMarkingInit ()
                         CcspTraceInfo(("%s - Name[%s] Data[%s,%u,%u,%d]\n", __FUNCTION__, acTmpMarkingData, p_Marking->Alias, p_Marking->SKBPort, p_Marking->SKBMark, p_Marking->EthernetPriorityMark));
                             
                             Marking_UpdateInitValue(pWanIfaceCtrl->pIface,ulIfInstanceNumber-1,ulInstanceNumber,p_Marking);
-#if defined(_HUB4_PRODUCT_REQ_) || defined(_SCER11BEL_PRODUCT_REQ_)
+#if defined(_HUB4_PRODUCT_REQ_) || defined(_RDKB_GLOBAL_PRODUCT_REQ_)
                             /* Adding skb mark to config file if alis is 'DATA', so that udhcpc could use it to mark dhcp packets */
                             if(0 == strncmp(p_Marking->Alias, "DATA", 4))
                             {
