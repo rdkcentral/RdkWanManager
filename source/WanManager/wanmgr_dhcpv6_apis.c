@@ -38,15 +38,6 @@ extern token_t sysevent_token;
 extern ANSC_HANDLE bus_handle;
 extern char g_Subsystem[32];
 
-#ifdef _HUB4_PRODUCT_REQ_ //TODO : clean up ?
-#include "wanmgr_ipc.h"
-#if defined SUCCESS
-#undef SUCCESS
-#endif
-#define SYSEVENT_FIELD_IPV6_DNS_SERVER    "wan6_ns"
-#define SYSEVENT_FIELD_IPV6_ULA_ADDRESS   "ula_address"
-#endif
-
 #if defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) && defined(_COSA_BCM_MIPS_)
 #include <netinet/in.h>
 #endif
