@@ -75,7 +75,7 @@
  *  DHCP Client
  */
 
-#if ifdef FEATURE_MAPT
+#ifdef FEATURE_MAPT
 #define SYSEVENT_MAPT_CONFIG_FLAG "mapt_config_flag"
 #define SYSEVENT_MAPT_RATIO "mapt_ratio"
 #define SYSEVENT_MAP_RULE_IPADDRESS "map_rule_ip_address"
