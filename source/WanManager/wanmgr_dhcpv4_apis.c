@@ -855,7 +855,7 @@ WanMgr_DmlDhcpcRenew
     UNREFERENCED_PARAMETER(hContext);
     if(ulInstanceNumber != 1)
         return(ANSC_STATUS_FAILURE);
-#ifndef _HUB4_PRODUCT_REQ_
+#ifndef _HUB4_PRODUCT_REQ_ //TODO : clean up ?
     v_secure_system("sysevent set dhcp_client-renew");
 #endif
     return(ANSC_STATUS_SUCCESS);

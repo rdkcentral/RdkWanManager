@@ -38,7 +38,7 @@ extern token_t sysevent_token;
 extern ANSC_HANDLE bus_handle;
 extern char g_Subsystem[32];
 
-#ifdef _HUB4_PRODUCT_REQ_
+#ifdef _HUB4_PRODUCT_REQ_ //TODO : clean up ?
 #include "wanmgr_ipc.h"
 #if defined SUCCESS
 #undef SUCCESS
@@ -479,7 +479,7 @@ static int _dibbler_client_operation(char * arg)
             CcspTraceInfo(("%s-%d [%s] is already running, killing it \n", __FUNCTION__,__LINE__,CLIENT_BIN));
             v_secure_system("killall " CLIENT_BIN);
             sleep(2);
-#ifdef _HUB4_PRODUCT_REQ_
+#ifdef _HUB4_PRODUCT_REQ_ //TODO : clean up ?
             fp = v_secure_popen("r", "ps | grep "CLIENT_BIN " | grep -v grep");
 #else
             fp = v_secure_popen("r", "ps -A|grep "CLIENT_BIN);
