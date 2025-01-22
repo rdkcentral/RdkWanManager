@@ -460,14 +460,11 @@ static void WanMgr_MonitorDhcpApps (WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
         (p_VirtIf->IP.Dhcp4cPid > 0 &&                                                                          // dhcp started by ISM
         WanMgr_IsPIDRunning(p_VirtIf->IP.Dhcp4cPid) != TRUE)))                                                  // but DHCP client not running
     {
-        if (p_VirtIf->IP.Dhcp4cPid != -1 )
-        {
-#ifdef ENABLE_FEATURE_TELEMETRY2_0
-            t2_event_d("SYS_ERROR_DHCPV4Client_notrunning", 1);
-#endif
-        }
         p_VirtIf->IP.Dhcp4cPid = WanManager_StartDhcpv4Client(p_VirtIf, pInterface->Name, pInterface->IfaceType);
         CcspTraceInfo(("%s %d - SELFHEAL - Started dhcpc on interface %s, dhcpv4_pid %d \n", __FUNCTION__, __LINE__, p_VirtIf->Name, p_VirtIf->IP.Dhcp4cPid));
+#ifdef ENABLE_FEATURE_TELEMETRY2_0
+        t2_event_d("SYS_ERROR_DHCPV4Client_notrunning", 1);
+#endif
     }
 
     //Check if IPv6 dhcp client is still running - handling runtime crash of dhcp client
@@ -477,14 +474,11 @@ static void WanMgr_MonitorDhcpApps (WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
         (p_VirtIf->IP.Dhcp6cPid > 0 &&                                                                          // dhcp started by ISM
         WanMgr_IsPIDRunning(p_VirtIf->IP.Dhcp6cPid) != TRUE)))                                                   // but DHCP client not running
     {
-        if (p_VirtIf->IP.Dhcp6cPid != -1 )
-        {
-#ifdef ENABLE_FEATURE_TELEMETRY2_0
-            t2_event_d("SYS_ERROR_DHCPV6Client_notrunning", 1);
-#endif
-        }
         p_VirtIf->IP.Dhcp6cPid = WanManager_StartDhcpv6Client(p_VirtIf, pInterface->IfaceType);
         CcspTraceInfo(("%s %d - SELFHEAL - Started dhcp6c on interface %s, dhcpv6_pid %d \n", __FUNCTION__, __LINE__, p_VirtIf->Name, p_VirtIf->IP.Dhcp6cPid));
+#ifdef ENABLE_FEATURE_TELEMETRY2_0
+        t2_event_d("SYS_ERROR_DHCPV6Client_notrunning", 1);
+#endif
     }
 
     /* Handling Runtime IP.ConnectivityCheckType change */
