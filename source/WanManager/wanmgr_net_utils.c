@@ -429,7 +429,7 @@ int WanManager_Ipv6AddrUtil(char *ifname, Ipv6OperType opr, int preflft, int val
     return 0;
 }
 
-uint32_t WanManager_StartDhcpv6Client(DML_VIRTUAL_IFACE* pVirtIf, IFACE_TYPE IfaceType)
+int WanManager_StartDhcpv6Client(DML_VIRTUAL_IFACE* pVirtIf, IFACE_TYPE IfaceType)
 {
     if (pVirtIf == NULL)
     {
@@ -437,7 +437,7 @@ uint32_t WanManager_StartDhcpv6Client(DML_VIRTUAL_IFACE* pVirtIf, IFACE_TYPE Ifa
         return 0;
     }
 
-    uint32_t pid = 0;
+    int pid = 0;
     dhcp_params params;
     memset (&params, 0, sizeof(dhcp_params));
     params.ifname = pVirtIf->Name;
@@ -446,6 +446,11 @@ uint32_t WanManager_StartDhcpv6Client(DML_VIRTUAL_IFACE* pVirtIf, IFACE_TYPE Ifa
     CcspTraceInfo(("Enter WanManager_StartDhcpv6Client for  %s \n", pVirtIf->Name));
     WanManager_send_and_receive_rs(pVirtIf);
     pid = start_dhcpv6_client(&params);
+    if (pid == 0) 
+    {
+        CcspTraceError(("%s %d: dhcpv6 client failed to start. Returing pid -1.\n", __FUNCTION__, __LINE__));
+        pid = -1;
+    }
     pVirtIf->IP.Dhcp6cPid = pid;
 
     return pid;
@@ -490,7 +495,7 @@ ANSC_STATUS WanManager_StopDhcpv6Client(char * iface_name, DHCP_RELEASE_BEHAVIOU
 }
 
 
-uint32_t WanManager_StartDhcpv4Client(DML_VIRTUAL_IFACE* pVirtIf, char* baseInterface, IFACE_TYPE IfaceType)
+int WanManager_StartDhcpv4Client(DML_VIRTUAL_IFACE* pVirtIf, char* baseInterface, IFACE_TYPE IfaceType)
 {
     if (pVirtIf == NULL)
     {
@@ -503,7 +508,7 @@ uint32_t WanManager_StartDhcpv4Client(DML_VIRTUAL_IFACE* pVirtIf, char* baseInte
     return 0;//TODO:Read and return PID
 #endif
     dhcp_params params;
-    uint32_t pid = 0;
+    int pid = 0;
 
     memset (&params, 0, sizeof(dhcp_params));
     params.ifname = pVirtIf->Name;
@@ -512,6 +517,12 @@ uint32_t WanManager_StartDhcpv4Client(DML_VIRTUAL_IFACE* pVirtIf, char* baseInte
 
     CcspTraceInfo(("Starting DHCPv4 Client for iface: %s \n", params.ifname));
     pid = start_dhcpv4_client(&params);
+
+    if (pid == 0) 
+    {
+        CcspTraceError(("%s %d: dhcpv4 client failed to start. Returing pid -1.\n", __FUNCTION__, __LINE__));
+        pid = -1;
+    }
     pVirtIf->IP.Dhcp4cPid = pid;
     return pid;
 }

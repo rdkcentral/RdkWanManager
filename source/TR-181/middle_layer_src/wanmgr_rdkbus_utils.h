@@ -71,6 +71,7 @@ extern token_t sysevent_token;
 #define WAN_CONFIG_PORT_DM_SUFFIX           ".WanConfigPort"
 
 #if defined(WAN_MANAGER_UNIFICATION_ENABLED)
+#define WAN_INTERFACE_TABLE                         "Device.X_RDK_WanManager.Interface.%d.VirtualInterface.%d"
 #define WAN_ENABLE_CUSTOM_CONFIG_PARAM_NAME         "Device.X_RDK_WanManager.Interface.%d.EnableCustomConfig"
 #define WAN_CUSTOM_CONFIG_PATH_PARAM_NAME           "Device.X_RDK_WanManager.Interface.%d.CustomConfigPath"
 #define WAN_CONFIGURE_WAN_ENABLE_PARAM_NAME         "Device.X_RDK_WanManager.Interface.%d.ConfigureWanEnable"

@@ -375,8 +375,8 @@ typedef struct _DML_WANIFACE_IP
     WANMGR_IPV6_RA_DATA         Ipv6Route;
     ipc_dhcpv4_data_t*          pIpcIpv4Data;
     ipc_dhcpv6_data_t*          pIpcIpv6Data;
-    UINT                        Dhcp4cPid;
-    UINT                        Dhcp6cPid;
+    int                         Dhcp4cPid;
+    int                         Dhcp6cPid;
 } DML_WANIFACE_IP;
 
 #ifdef FEATURE_MAPT
@@ -590,7 +590,8 @@ typedef struct _DML_WANMGR_CONFIG_
     BOOLEAN BackupWanDnsSupport;    
     BOOLEAN IPv6EUI64FormatSupport;
     BOOLEAN ConfigureWANIPv6OnLANBridgeSupport;
-    BOOLEAN UseWANMACForManagementServices;            
+    BOOLEAN UseWANMACForManagementServices;
+    BOOLEAN InterfaceVLANMarkingSupport;            
 } DML_WANMGR_CONFIG;
 
 //WAN CONFIG
