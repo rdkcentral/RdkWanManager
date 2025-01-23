@@ -1025,6 +1025,32 @@ ANSC_STATUS WanManager_ConfigurePPPSession(DML_VIRTUAL_IFACE* pVirtIf, BOOL PPPE
 
     syscfg_set_commit(NULL, SYSCFG_WAN_INTERFACE_NAME, pVirtIf->Name);
 
+#ifdef DYNAMIC_CONFIGURE_PPP_LOWERLAYER
+    snprintf( acSetParamName, sizeof(acSetParamName), "%s.Name", pVirtIf->VLAN.VLANInUse);
+
+    ret = WanMgr_RdkBus_GetParamValues( VLAN_COMPONENT_NAME, VLAN_DBUS_PATH, acSetParamName, acSetParamValue );
+    if(ret != ANSC_STATUS_SUCCESS)
+    {
+        CcspTraceError(("%s %d DM get %s %s failed\n", __FUNCTION__,__LINE__, acSetParamName, acSetParamValue));
+        return ANSC_STATUS_FAILURE;
+    }
+    strncpy(pVirtIf->Name, acSetParamValue, sizeof(pVirtIf->Name));
+
+    memset(acSetParamName, 0, sizeof(acSetParamName));
+    memset(acSetParamValue, 0, sizeof(acSetParamValue));
+    snprintf( acSetParamName, sizeof(acSetParamName), "%s.LowerLayers", pVirtIf->PPP.Interface);
+    snprintf( acSetParamValue, sizeof(acSetParamValue), WAN_INTERFACE_TABLE, (pVirtIf->baseIfIdx + 1), (pVirtIf->VirIfIdx + 1));
+    ret = WanMgr_RdkBus_SetParamValues( PPPMGR_COMPONENT_NAME, PPPMGR_DBUS_PATH, acSetParamName, acSetParamValue, ccsp_string, TRUE );
+
+    if(ret != ANSC_STATUS_SUCCESS)
+    {
+        CcspTraceError(("%s %d DM set %s %s failed\n", __FUNCTION__,__LINE__, acSetParamName, acSetParamValue));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    CcspTraceInfo(("%s %d DM set %s %s Successful\n", __FUNCTION__,__LINE__, acSetParamName, acSetParamValue));
+#endif
+
     //Set PPP Enable
     CcspTraceInfo(("%s %d %s PPP %s\n", __FUNCTION__,__LINE__, PPPEnable? "Enabling":"Disabling",pVirtIf->PPP.Interface));
     snprintf( acSetParamName, DATAMODEL_PARAM_LENGTH, "%s.Enable", pVirtIf->PPP.Interface );
