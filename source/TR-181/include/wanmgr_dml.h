@@ -590,7 +590,8 @@ typedef struct _DML_WANMGR_CONFIG_
     BOOLEAN BackupWanDnsSupport;    
     BOOLEAN IPv6EUI64FormatSupport;
     BOOLEAN ConfigureWANIPv6OnLANBridgeSupport;
-    BOOLEAN UseWANMACForManagementServices;            
+    BOOLEAN UseWANMACForManagementServices;
+    BOOLEAN InterfaceVLANMarkingSupport;            
 } DML_WANMGR_CONFIG;
 
 //WAN CONFIG
