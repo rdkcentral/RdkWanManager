@@ -135,7 +135,7 @@ extern token_t sysevent_token;
 #define ETHWAN_PHY_STATUS_DM_SUFFIX "LinkStatus"
 
 //Dm for HW configuration in XB devices
-#define XBx_SELECTED_MODE           "Device.X_RDKCENTRAL-COM_EthernetWAN.SelectedOperationalMode"
+#define SELECTED_OPERATIONAL_MODE           "Device.X_RDKCENTRAL-COM_EthernetWAN.SelectedOperationalMode"
 
 //CM Agent
 #define CMAGENT_COMPONENT_NAME "eRT.com.cisco.spvtg.ccsp.cm"
