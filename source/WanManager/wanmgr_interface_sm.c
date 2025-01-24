@@ -447,7 +447,7 @@ static void WanMgr_MonitorDhcpApps (WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
         {
             CcspTraceInfo(("%s %d: IP Mode change processed. Resetting flag. \n", __FUNCTION__, __LINE__));
             p_VirtIf->IP.RefreshDHCP = FALSE;
-	}	
+	    }	
         return;
     }
 
@@ -455,9 +455,10 @@ static void WanMgr_MonitorDhcpApps (WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
     if ((p_VirtIf->IP.Mode == DML_WAN_IP_MODE_IPV4_ONLY || p_VirtIf->IP.Mode == DML_WAN_IP_MODE_DUAL_STACK) &&  // IP.Mode supports V4
         p_VirtIf->IP.IPv4Source == DML_WAN_IP_SOURCE_DHCP && (p_VirtIf->PPP.Enable == FALSE) &&                 // uses DHCP client
         p_VirtIf->MAP.MaptStatus == WAN_IFACE_MAPT_STATE_DOWN &&                                                // MAPT status is DOWN
-        p_VirtIf->IP.SelectedModeTimerStatus != RUNNING  &&
-        p_VirtIf->IP.Dhcp4cPid > 0 &&                                                                           // dhcp started by ISM
-        (WanMgr_IsPIDRunning(p_VirtIf->IP.Dhcp4cPid) != TRUE))                                                  // but DHCP client not running
+        p_VirtIf->IP.SelectedModeTimerStatus != RUNNING  &&                                                     // Prefered mode timer Running. Wait for it to expire.
+        (p_VirtIf->IP.Dhcp4cPid == -1 ||                                                                        // DHCP cleint failed to start OR
+        (p_VirtIf->IP.Dhcp4cPid > 0 &&                                                                          // dhcp started by ISM
+        WanMgr_IsPIDRunning(p_VirtIf->IP.Dhcp4cPid) != TRUE)))                                                  // but DHCP client not running
     {
         p_VirtIf->IP.Dhcp4cPid = WanManager_StartDhcpv4Client(p_VirtIf, pInterface->Name, pInterface->IfaceType);
         CcspTraceInfo(("%s %d - SELFHEAL - Started dhcpc on interface %s, dhcpv4_pid %d \n", __FUNCTION__, __LINE__, p_VirtIf->Name, p_VirtIf->IP.Dhcp4cPid));
@@ -469,9 +470,18 @@ static void WanMgr_MonitorDhcpApps (WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
     //Check if IPv6 dhcp client is still running - handling runtime crash of dhcp client
     if ((p_VirtIf->IP.Mode == DML_WAN_IP_MODE_IPV6_ONLY || p_VirtIf->IP.Mode == DML_WAN_IP_MODE_DUAL_STACK) &&  // IP.Mode supports V6
         p_VirtIf->IP.IPv6Source == DML_WAN_IP_SOURCE_DHCP &&                                                    // uses DHCP client
-        p_VirtIf->IP.Dhcp6cPid > 0 &&                                                                           // dhcp started by ISM
-        (WanMgr_IsPIDRunning(p_VirtIf->IP.Dhcp6cPid) != TRUE))                                                  // but DHCP client not running
+        (p_VirtIf->IP.Dhcp6cPid == -1 ||                                                                           // DHCP cleint failed to start
+        (p_VirtIf->IP.Dhcp6cPid > 0 &&                                                                          // dhcp started by ISM
+        WanMgr_IsPIDRunning(p_VirtIf->IP.Dhcp6cPid) != TRUE)))                                                   // but DHCP client not running
     {
+        if (p_VirtIf->IP.Dhcp6cPid == -1 )
+        {
+            /* DHCPv6c client can fail to start due to DAD failuer on the link local address. 
+             * This could happen if multiple WAN interfaces are up with same MAC address. Toggling will restart the DAD again.
+             */
+            CcspTraceInfo(("%s %d - DHCPv6c client failed to start on interface %s. Toggeling Ipv6 before retry... \n", __FUNCTION__, __LINE__, p_VirtIf->Name));
+            Force_IPv6_toggle(p_VirtIf->Name); 
+        }
         p_VirtIf->IP.Dhcp6cPid = WanManager_StartDhcpv6Client(p_VirtIf, pInterface->IfaceType);
         CcspTraceInfo(("%s %d - SELFHEAL - Started dhcp6c on interface %s, dhcpv6_pid %d \n", __FUNCTION__, __LINE__, p_VirtIf->Name, p_VirtIf->IP.Dhcp6cPid));
 #ifdef ENABLE_FEATURE_TELEMETRY2_0
@@ -2945,6 +2955,7 @@ static eWanState_t wan_transition_standby_deconfig_ips(WanMgr_IfaceSM_Controller
         {
             CcspTraceError(("%s %d - Failed to tear down IPv6 for %s Interface \n", __FUNCTION__, __LINE__, p_VirtIf->Name));
         }
+        p_VirtIf->IP.Ipv6Changed = TRUE; //We have deconfigured Ipv6 from the device. set this flag to configure again when moves back to active.
     }
 
     WanMgr_Configure_accept_ra(p_VirtIf, FALSE);

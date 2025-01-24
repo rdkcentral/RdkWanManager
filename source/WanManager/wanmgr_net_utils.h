@@ -92,7 +92,7 @@ typedef enum {
  * @param isPPP indicates PPP enabled or nor
  * @return ANSC_STATUS_SUCCESS upon success else returned error code.
  ***************************************************************************/
-uint32_t WanManager_StartDhcpv6Client(DML_VIRTUAL_IFACE* pVirtIf, IFACE_TYPE IfaceType);
+int WanManager_StartDhcpv6Client(DML_VIRTUAL_IFACE* pVirtIf, IFACE_TYPE IfaceType);
 
 /***************************************************************************
  * @brief API used to stop Dhcpv6 client application.
@@ -106,7 +106,7 @@ ANSC_STATUS WanManager_StopDhcpv6Client(char * iface_name, DHCP_RELEASE_BEHAVIOU
  * @param intf Interface name on which the dhcpv4 needs to start
  * @return ANSC_STATUS_SUCCESS upon success else returned error code.
  ***************************************************************************/
-uint32_t WanManager_StartDhcpv4Client(DML_VIRTUAL_IFACE* pVirtIf, char* baseInterface ,IFACE_TYPE IfaceType);
+int WanManager_StartDhcpv4Client(DML_VIRTUAL_IFACE* pVirtIf, char* baseInterface ,IFACE_TYPE IfaceType);
 
 /***************************************************************************
  * @brief API used to stop Dhcpv4 client application.
@@ -153,7 +153,7 @@ int WanManager_Ipv6AddrUtil(char *ifname,Ipv6OperType opr,int preflft,int vallft
  * @param pid PID of the process to be checked
  * @return TRUE upon success else FALSE returned
  ***************************************************************************/
-BOOL WanMgr_IsPIDRunning(UINT pid);
+BOOL WanMgr_IsPIDRunning(int pid);
 
 #if defined(FEATURE_464XLAT)
 int xlat_configure(char *interface, char *xlat_address);
