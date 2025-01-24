@@ -101,6 +101,15 @@ AC_ARG_ENABLE([wanunificationsupport],
              [echo "mapt unification is disabled"])
 AM_CONDITIONAL(WAN_UNIFICATION_ENABLED, test "x$WAN_UNIFICATION_SUPPORT_ENABLED" = xtrue)
 
+AC_ARG_ENABLE([dhcp_manager],
+[  --enable-dhcp_manager    Turn on dhcp_manager ],
+[case "${enableval}" in
+yes) DHCP_MANAGER_ENABLE=true ;;
+no)  DHCP_MANAGER_ENABLE=false ;;
+*) AC_MSG_ERROR([bad value ${enableval} for --enable-dhcp_manager]) ;;
+esac],[DHCP_MANAGER_ENABLE=false])
+AM_CONDITIONAL([DHCP_MANAGER_ENABLE], [test x$DHCP_MANAGER_ENABLE = xtrue])
+
 dnl Checks for header files.
 AC_CHECK_HEADERS([limits.h memory.h stdlib.h string.h sys/socket.h unistd.h])
 
