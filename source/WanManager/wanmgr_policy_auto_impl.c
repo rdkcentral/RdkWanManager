@@ -142,6 +142,10 @@ bool isLastActiveLinkFromSysCfg(DML_WAN_IFACE* pWanIfaceData)
         {
             IfaceIndex = WAN_INDEX_ETHWAN;
         }
+        else
+	{
+	   IfaceIndex = WAN_INDEX_DOCSIS;
+	}
 
         if(pWanIfaceData->uiIfaceIdx < MAX_WanModeToIfaceMap && mode == IfaceIndex)
         {
