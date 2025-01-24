@@ -1070,3 +1070,59 @@ ANSC_STATUS WanMgr_GetSelectedIPMode(DML_VIRTUAL_IFACE * pVirtIf)
     CcspTraceInfo(("%s %d - IP SelectedMode=[%d] IP ModeForceEnable=[%d]\n", __FUNCTION__, __LINE__, pVirtIf->IP.SelectedMode, pVirtIf->IP.ModeForceEnable));
     return ANSC_STATUS_SUCCESS;
 }
+
+/**
+ * @brief Wanmgr_TriggerReboot() - Initiates a device reboot.
+ * 
+ * This API is invoked when the platform needs to reboot to apply new WAN configurations. 
+ * 
+ * @note This function retains the last reboot reason for the current reboot due to dependencies 
+ * from WebPA and Webconfig on various reboot scenarios (e.g., factory reset, reboot command, etc.).
+ * 
+ * @param void
+ * @return void
+ */
+
+void Wanmgr_TriggerReboot()
+{
+    char lastRebootReason[64] = {'\0'};
+    // set reboot reason as previous reboot reason because of webPA and Webconfig dependency on various reboot scenarios.
+    if(syscfg_get( NULL, "X_RDKCENTRAL-COM_LastRebootReason", lastRebootReason, sizeof(lastRebootReason)) == 0)
+    {
+        if(lastRebootReason[0] != '\0')
+        {
+            CcspTraceInfo(("%s %d: X_RDKCENTRAL-COM_LastRebootReason = [%s]\n", __FUNCTION__, __LINE__, lastRebootReason));
+            CcspTraceInfo(("%s %d: WanManager is triggering the reboot and setting the reboot reason as last reboot reason \n", __FUNCTION__, __LINE__));
+
+            if (syscfg_set_commit(NULL, "X_RDKCENTRAL-COM_LastRebootReason", lastRebootReason) != 0)
+            {
+                CcspTraceInfo(("%s %d: Failed to set LastRebootReason\n", __FUNCTION__, __LINE__));
+            }
+            if (syscfg_set_commit(NULL, "X_RDKCENTRAL-COM_LastRebootCounter", "1") != 0)
+            {
+                CcspTraceInfo(("%s %d: Failed to set LastRebootCounter\n", __FUNCTION__, __LINE__));
+            }
+        }
+        else
+        {
+            CcspTraceInfo(("%s %d: lastRebootReason is empty \n", __FUNCTION__, __LINE__));
+        }
+    }
+    else
+    {
+        CcspTraceInfo(("%s %d: Failed to get LastRebootReason\n", __FUNCTION__, __LINE__));
+    }
+
+    // work around if the CPE fails to reboot from the below call and gets stuck.
+    wanmgr_sysevent_hw_reconfig_reboot();
+
+    // Call Device Reboot and Exit from state machine.
+    if((WanMgr_RdkBus_SetParamValues(PAM_COMPONENT_NAME, PAM_DBUS_PATH, "Device.X_CISCO_COM_DeviceControl.RebootDevice", "Device", ccsp_string, TRUE) == ANSC_STATUS_SUCCESS))
+    {
+        CcspTraceInfo(("%s %d: WanManager triggered a reboot successfully \n", __FUNCTION__, __LINE__));
+    }
+    else
+    {
+        CcspTraceError(("%s %d: WanManager Failed to trigger reboot \n", __FUNCTION__, __LINE__));
+    }
+}
