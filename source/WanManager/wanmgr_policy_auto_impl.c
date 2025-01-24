@@ -123,7 +123,8 @@ static int WanMgr_RdkBus_AddAllIntfsToLanBridge (WanMgr_Policy_Controller_t * pW
 #if (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_))
 //TODO: this is a workaround to support upgarde from Comcast autowan policy to Unification build
 #define MAX_WanModeToIfaceMap 2
-static const int lastWanModeToIface_map[MAX_WanModeToIfaceMap] = {2, 1}; 
+#define WAN_INDEX_DOCSIS      2
+#define WAN_INDEX_ETHWAN      1
 
 bool isLastActiveLinkFromSysCfg(DML_WAN_IFACE* pWanIfaceData)
 {
@@ -131,7 +132,22 @@ bool isLastActiveLinkFromSysCfg(DML_WAN_IFACE* pWanIfaceData)
     if (syscfg_get(NULL, "last_wan_mode", buf, sizeof(buf)) == 0)
     {
         int mode = atoi(buf);
-        if(pWanIfaceData->uiIfaceIdx < MAX_WanModeToIfaceMap && mode == lastWanModeToIface_map[pWanIfaceData->uiIfaceIdx])
+        UINT IfaceIndex = WAN_INDEX_DOCSIS;
+
+        if ( strstr(pWanIfaceData->BaseInterface, "CableModem") )
+        {
+            IfaceIndex = WAN_INDEX_DOCSIS;
+        }
+        else if ( strstr(pWanIfaceData->BaseInterface, "Ethernet") )
+        {
+            IfaceIndex = WAN_INDEX_ETHWAN;
+        }
+        else
+	{
+	   IfaceIndex = WAN_INDEX_DOCSIS;
+	}
+
+        if(pWanIfaceData->uiIfaceIdx < MAX_WanModeToIfaceMap && mode == IfaceIndex)
         {
             CcspTraceInfo(("%s %d: Iface Id %d is the last_wan_mode and will be scanned first\n", __FUNCTION__, __LINE__, pWanIfaceData->uiIfaceIdx));
             return TRUE;
@@ -140,11 +156,23 @@ bool isLastActiveLinkFromSysCfg(DML_WAN_IFACE* pWanIfaceData)
     return FALSE;
 }
 
-void setActiveLinkToSysCfg(UINT IfaceIndex)
+void setActiveLinkToSysCfg(WanMgr_Policy_Controller_t *pWanController)
 {
-    char buf[10] ={0};
-    CcspTraceInfo(("%s %d:  last_wan_mode, curr_wan_mode set to %d\n", __FUNCTION__, __LINE__, lastWanModeToIface_map[IfaceIndex]));
-    snprintf(buf, sizeof(buf), "%d", lastWanModeToIface_map[IfaceIndex]);
+    char           buf[10]         = {0};
+    UINT           IfaceIndex      = WAN_INDEX_DOCSIS;
+    DML_WAN_IFACE *pActiveInterface = &(pWanController->pWanActiveIfaceData->data);
+
+    if ( strstr(pActiveInterface->BaseInterface, "CableModem") )
+    {
+        IfaceIndex = WAN_INDEX_DOCSIS;
+    }
+    else if ( strstr(pActiveInterface->BaseInterface, "Ethernet") )
+    {
+        IfaceIndex = WAN_INDEX_ETHWAN;
+    }
+
+    CcspTraceInfo(("%s %d:  last_wan_mode, curr_wan_mode set to %d\n", __FUNCTION__, __LINE__, IfaceIndex));
+    snprintf(buf, sizeof(buf), "%d", IfaceIndex);
     syscfg_set_commit(NULL, "last_wan_mode", buf); 
     syscfg_set_commit(NULL, "curr_wan_mode", buf);
 }
@@ -607,7 +635,7 @@ static WcAwPolicyState_t Transition_InterfaceSelected (WanMgr_Policy_Controller_
      */
     if (strstr(pActiveInterface->BaseInterface, "CableModem") || (strstr(pActiveInterface->BaseInterface, "Ethernet")))
     {    
-        setActiveLinkToSysCfg(pWanController->activeInterfaceIdx);
+        setActiveLinkToSysCfg(pWanController);
 #if defined(AUTOWAN_ENABLE)
         char operationalMode[64] ={0};
         strncpy(operationalMode, strstr(pActiveInterface->BaseInterface, "CableModem")?"DOCSIS":"Ethernet", sizeof(operationalMode));
