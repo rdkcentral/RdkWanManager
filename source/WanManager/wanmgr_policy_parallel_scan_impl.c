@@ -702,14 +702,7 @@ static WcPsPolicyState_t Transition_Reboot (WanMgr_Policy_Controller_t * pWanCon
     }
 
     CcspTraceInfo(("%s %d: wanmanager triggering reboot. \n", __FUNCTION__, __LINE__));
-    if((WanMgr_RdkBus_SetParamValues(PAM_COMPONENT_NAME, PAM_DBUS_PATH, "Device.X_CISCO_COM_DeviceControl.RebootDevice", "Device", ccsp_string, TRUE) == ANSC_STATUS_SUCCESS))
-    {
-        CcspTraceInfo(("%s %d: WanManager triggered a reboot successfully \n", __FUNCTION__, __LINE__));
-    }
-    else
-    {
-        CcspTraceInfo(("%s %d: WanManager Failed to trigger reboot \n", __FUNCTION__, __LINE__));
-    }
+    Wanmgr_TriggerReboot();
 
     return STATE_PARALLEL_SCAN_REBOOT;
 }

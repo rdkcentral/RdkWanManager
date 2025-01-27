@@ -210,4 +210,18 @@ ANSC_STATUS WanMgr_GetSelectedIPMode(DML_VIRTUAL_IFACE * pVirtIf);
 ANSC_STATUS  WanMgr_SetDnsConnectivityCheck(BOOL Enable);
 BOOL WanMgr_GetDnsConnectivityCheck(void);
 ANSC_STATUS WanMgr_SetConnectivityCheckTypeToPSM(DML_VIRTUAL_IFACE* pVirtIf, CONNECTIVITY_CHECK_TYPE type);
+
+/**
+ * @brief Wanmgr_TriggerReboot() - Initiates a device reboot.
+ * 
+ * This API is invoked when the platform needs to reboot to apply new WAN configurations. 
+ * 
+ * @note This function retains the last reboot reason for the current reboot due to dependencies 
+ * from WebPA and Webconfig on various reboot scenarios (e.g., factory reset, reboot command, etc.).
+ * 
+ * @param void
+ * @return void
+ */
+void Wanmgr_TriggerReboot();
+
 #endif /* _WANMGR_RDKBUS_UTILS_H_ */
