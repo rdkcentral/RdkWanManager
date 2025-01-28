@@ -60,7 +60,6 @@ static WcPsPolicyState_t State_Reboot (WanMgr_Policy_Controller_t * pWanControll
 static WcPsPolicyState_t State_SelectedInterfaceUp (WanMgr_Policy_Controller_t * pWanController);
 static WcPsPolicyState_t State_SelectedInterfaceDown (WanMgr_Policy_Controller_t * pWanController);
 static WcPsPolicyState_t State_InterfaceTearDown (WanMgr_Policy_Controller_t * pWanController);
-static WcPsPolicyState_t State_PolicyExit (WanMgr_Policy_Controller_t * pWanController);
 
 /* TRANSITIONS */
 static WcPsPolicyState_t Transition_Start (WanMgr_Policy_Controller_t* pWanController);
