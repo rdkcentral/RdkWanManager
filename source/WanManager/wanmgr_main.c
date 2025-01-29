@@ -64,9 +64,7 @@
 #include "ccsp_dm_api.h"
 
 #include "webconfig_framework.h"
-#if defined (_HUB4_PRODUCT_REQ_)
-#include "wanmgr_rbus_handler_apis.h"
-#endif
+
 #define DEBUG_INI_NAME "/etc/debug.ini"
 
 #ifdef ENABLE_SD_NOTIFY

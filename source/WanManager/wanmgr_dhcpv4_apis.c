@@ -576,163 +576,6 @@ ANSC_STATUS IPCPStateChangeHandler (DML_VIRTUAL_IFACE* pVirtIf)
     return ANSC_STATUS_SUCCESS;
 }
 
-static ANSC_STATUS DhcpcDmlScan()
-{
-    CHAR            tmpBuff[64]    = {0};
-    CHAR            tmp[3][64];
-    CHAR            ip[32];   
-    CHAR            subnet[32];
-    CHAR            str_val[64] = {0};
-    CHAR            str_key[64] = {0};
-    CHAR            dns[3][32]  = {"","",""};
-    CHAR            line[128];
-    char            *tok;
-    int             nmu_dns_server =  0;
-    FILE            *fp = NULL;
-
-    PDML_DHCPC_FULL  pEntry = NULL;
-
-    ULONG ulIndex = 0;
-
-    g_Dhcp4ClientNum = 0;
-
-    for (ulIndex = 0; ulIndex < 2; ulIndex++)
-    {
-        if (ulIndex == 0)
-        {
-            fp = fopen("/tmp/udhcp.log", "r");
-        }       
-        else if (ulIndex == 1)
-        {
-
-            /*RDKB-6750, CID-33082, free resources before exit*/
-            if(fp)
-            {
-                fclose(fp);
-                fp = NULL;
-            }
-
-            return ANSC_STATUS_SUCCESS;
-
-        }
-        pEntry = &CH_g_dhcpv4_client[ulIndex];
-
-        if (!fp) 
-        {
-            return ANSC_STATUS_FAILURE;
-        }   
-
-        while ( fgets(line, sizeof(line), fp) )
-        {         
-            memset(str_key, 0, sizeof(str_key));
-            memset(str_val, 0, sizeof(str_val));
-
-            tok = strtok( line, ":");
-            if(tok) strncpy(str_key, tok, sizeof(str_key)-1 );
-
-            tok = strtok(NULL, ":");
-            while( tok && (tok[0] == ' ') ) tok++; /*RDKB-6750, CID-33384, CID-32954; null check before use*/
-            if(tok) strncpy(str_val, tok, sizeof(str_val)-1 );
-
-            if ( str_val[ _ansc_strlen(str_val) - 1 ] == '\n' )
-            {
-                str_val[ _ansc_strlen(str_val) - 1 ] = '\0';
-            }
-
-            if( !strcmp(str_key, "interface     ") )
-            {
-                AnscCopyString( pEntry->Cfg.Interface, str_val);
-            }
-            else if( !strcmp(str_key, "ip address    ") )
-            {
-                sscanf(str_val, "%31s", ip);
-                AnscWriteUlong(&pEntry->Info.IPAddress.Value, _ansc_inet_addr(ip));
-            }
-            else if( !strcmp(str_key, "subnet mask   ") )
-            {
-                sscanf(str_val, "%31s", subnet );
-                AnscWriteUlong(&pEntry->Info.SubnetMask.Value, _ansc_inet_addr(subnet));
-            }
-            else if( !strcmp(str_key, "lease time    ") )
-            {
-                pEntry->Info.LeaseTimeRemaining = atoi(str_val);
-            }
-            else if( !strcmp(str_key, "router        ") )
-            {
-                sscanf(str_val, "%31s", ip ); 
-                AnscWriteUlong(&pEntry->Info.IPRouters[0].Value, _ansc_inet_addr(ip) ); 
-            }
-            else if( !strcmp(str_key, "server id     ") )
-            {
-                sscanf(str_val, "%31s", ip ); 
-                AnscWriteUlong(&pEntry->Info.DHCPServer.Value, _ansc_inet_addr(ip));
-            }
-            else if( !strcmp(str_key, "dns server    ") )
-            {
-                nmu_dns_server = 0;               
-                char *tok;
-
-                tok = strtok( str_val, " ");
-                if(tok) strncpy(dns[0], tok, sizeof(dns[0])-1 ); 
-                if( dns[0] ) 
-                {
-                    ++nmu_dns_server;
-                    AnscWriteUlong(&pEntry->Info.DNSServers[0].Value, _ansc_inet_addr(dns[0]));
-                }
-                while( tok != NULL)
-                {
-                    tok = strtok(NULL, " ");
-                    if(tok) strncpy(dns[nmu_dns_server], tok, sizeof(dns[nmu_dns_server])-1 );
-                    if (strlen(dns[nmu_dns_server]) > 1 )
-                    {    
-                        AnscWriteUlong(&pEntry->Info.DNSServers[nmu_dns_server].Value, _ansc_inet_addr(dns[nmu_dns_server]));
-                        ++nmu_dns_server;
-                        if( nmu_dns_server > 2) /*RDKB-6750, CID-33057, Fixing Out-of-bounds read of dns[3][] */
-                            nmu_dns_server = 2;
-                    }
-                }
-            }
-        }
-
-        if ( !_ansc_strncmp(pEntry->Cfg.Interface, DML_DHCP_CLIENT_IFNAME, _ansc_strlen(DML_DHCP_CLIENT_IFNAME)) )
-        {
-            memset(tmpBuff, 0, sizeof(tmpBuff));
-            syscfg_get(NULL, "tr_dhcp4_instance_wan", tmpBuff, sizeof(tmpBuff));
-            CH_g_dhcpv4_client[ulIndex].Cfg.InstanceNumber  = atoi(tmpBuff);
-
-            memset(tmpBuff, 0, sizeof(tmpBuff));
-            syscfg_get(NULL, "tr_dhcp4_alias_wan", tmpBuff, sizeof(tmpBuff));
-            AnscCopyString(CH_g_dhcpv4_client[ulIndex].Cfg.Alias, tmpBuff);
-        }
-        else if ( !_ansc_strncmp(pEntry->Cfg.Interface, "lan0", _ansc_strlen("lan0")) )
-        {
-            memset(tmpBuff, 0, sizeof(tmpBuff));
-            syscfg_get(NULL, "tr_dhcp4_instance_lan", tmpBuff, sizeof(tmpBuff));
-            CH_g_dhcpv4_client[ulIndex].Cfg.InstanceNumber  = atoi(tmpBuff);
-
-            memset(tmpBuff, 0, sizeof(tmpBuff));
-            syscfg_get(NULL, "tr_dhcp4_alias_lan", tmpBuff, sizeof(tmpBuff));
-            AnscCopyString(CH_g_dhcpv4_client[ulIndex].Cfg.Alias, tmpBuff);
-        }
-
-        pEntry->Cfg.PassthroughEnable   = FALSE;
-
-        //AnscCopyString( pEntry->Cfg.PassthroughDHCPPool, "");  
-        pEntry->Cfg.bEnabled                     = TRUE;
-        //pEntry->Cfg.bRenew                       = FALSE;
-
-        pEntry->Info.Status                      = DML_DHCP_STATUS_Enabled;
-        pEntry->Info.DHCPStatus                  = DML_DHCPC_STATUS_Bound;
-
-        pEntry->Info.NumIPRouters                = 1;
-        pEntry->Info.NumDnsServers               = nmu_dns_server;
-        g_Dhcp4ClientNum++;
-
-    }    
-    fclose(fp);
-    return ANSC_STATUS_SUCCESS;
-}
-
 /*
     Description:
         The API retrieves the number of DHCP clients in the system.
@@ -1012,7 +855,7 @@ WanMgr_DmlDhcpcRenew
     UNREFERENCED_PARAMETER(hContext);
     if(ulInstanceNumber != 1)
         return(ANSC_STATUS_FAILURE);
-#ifndef _HUB4_PRODUCT_REQ_
+#ifndef _HUB4_PRODUCT_REQ_ //TODO : clean up ?
     v_secure_system("sysevent set dhcp_client-renew");
 #endif
     return(ANSC_STATUS_SUCCESS);
@@ -1024,13 +867,6 @@ WanMgr_DmlDhcpcRenew
  *  The options are managed on top of a DHCP client,
  *  which is identified through pClientAlias
  */
-
-static BOOL WanMgr_DmlDhcpcWriteOptions(ULONG ulClientInstanceNumber)
-{
-    UNREFERENCED_PARAMETER(ulClientInstanceNumber);
-    return FALSE;
-}
-
 
 ULONG
 WanMgr_DmlDhcpcGetNumberOfSentOption

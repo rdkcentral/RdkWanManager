@@ -123,7 +123,8 @@ static int WanMgr_RdkBus_AddAllIntfsToLanBridge (WanMgr_Policy_Controller_t * pW
 #if (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_))
 //TODO: this is a workaround to support upgarde from Comcast autowan policy to Unification build
 #define MAX_WanModeToIfaceMap 2
-static const int lastWanModeToIface_map[MAX_WanModeToIfaceMap] = {2, 1}; 
+#define WAN_INDEX_DOCSIS      2
+#define WAN_INDEX_ETHWAN      1
 
 bool isLastActiveLinkFromSysCfg(DML_WAN_IFACE* pWanIfaceData)
 {
@@ -131,7 +132,22 @@ bool isLastActiveLinkFromSysCfg(DML_WAN_IFACE* pWanIfaceData)
     if (syscfg_get(NULL, "last_wan_mode", buf, sizeof(buf)) == 0)
     {
         int mode = atoi(buf);
-        if(pWanIfaceData->uiIfaceIdx < MAX_WanModeToIfaceMap && mode == lastWanModeToIface_map[pWanIfaceData->uiIfaceIdx])
+        UINT IfaceIndex = WAN_INDEX_DOCSIS;
+
+        if ( strstr(pWanIfaceData->BaseInterface, "CableModem") )
+        {
+            IfaceIndex = WAN_INDEX_DOCSIS;
+        }
+        else if ( strstr(pWanIfaceData->BaseInterface, "Ethernet") )
+        {
+            IfaceIndex = WAN_INDEX_ETHWAN;
+        }
+        else
+	{
+	   IfaceIndex = WAN_INDEX_DOCSIS;
+	}
+
+        if(pWanIfaceData->uiIfaceIdx < MAX_WanModeToIfaceMap && mode == IfaceIndex)
         {
             CcspTraceInfo(("%s %d: Iface Id %d is the last_wan_mode and will be scanned first\n", __FUNCTION__, __LINE__, pWanIfaceData->uiIfaceIdx));
             return TRUE;
@@ -140,11 +156,23 @@ bool isLastActiveLinkFromSysCfg(DML_WAN_IFACE* pWanIfaceData)
     return FALSE;
 }
 
-void setActiveLinkToSysCfg(UINT IfaceIndex)
+void setActiveLinkToSysCfg(WanMgr_Policy_Controller_t *pWanController)
 {
-    char buf[10] ={0};
-    CcspTraceInfo(("%s %d:  last_wan_mode, curr_wan_mode set to %d\n", __FUNCTION__, __LINE__, lastWanModeToIface_map[IfaceIndex]));
-    snprintf(buf, sizeof(buf), "%d", lastWanModeToIface_map[IfaceIndex]);
+    char           buf[10]         = {0};
+    UINT           IfaceIndex      = WAN_INDEX_DOCSIS;
+    DML_WAN_IFACE *pActiveInterface = &(pWanController->pWanActiveIfaceData->data);
+
+    if ( strstr(pActiveInterface->BaseInterface, "CableModem") )
+    {
+        IfaceIndex = WAN_INDEX_DOCSIS;
+    }
+    else if ( strstr(pActiveInterface->BaseInterface, "Ethernet") )
+    {
+        IfaceIndex = WAN_INDEX_ETHWAN;
+    }
+
+    CcspTraceInfo(("%s %d:  last_wan_mode, curr_wan_mode set to %d\n", __FUNCTION__, __LINE__, IfaceIndex));
+    snprintf(buf, sizeof(buf), "%d", IfaceIndex);
     syscfg_set_commit(NULL, "last_wan_mode", buf); 
     syscfg_set_commit(NULL, "curr_wan_mode", buf);
 }
@@ -602,24 +630,24 @@ static WcAwPolicyState_t Transition_InterfaceSelected (WanMgr_Policy_Controller_
 
 #if (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_))
     /* TODO: For Xb devices DOCSIS and Ethrenet hal are controlled by a single DM. 
-     * Setting XBx_SELECTED_MODE DM to a mode will disable other stack. 
+     * Setting SELECTED_OPERATIONAL_MODE DM to a mode will disable other stack. 
      * We have to set this DM to start Wan operation on a specific interface. 
      */
     if (strstr(pActiveInterface->BaseInterface, "CableModem") || (strstr(pActiveInterface->BaseInterface, "Ethernet")))
     {    
-        setActiveLinkToSysCfg(pWanController->activeInterfaceIdx);
+        setActiveLinkToSysCfg(pWanController);
 #if defined(AUTOWAN_ENABLE)
         char operationalMode[64] ={0};
         strncpy(operationalMode, strstr(pActiveInterface->BaseInterface, "CableModem")?"DOCSIS":"Ethernet", sizeof(operationalMode));
 
-        if (WanMgr_RdkBus_SetParamValues(ETH_COMPONENT_NAME, ETH_COMPONENT_PATH, XBx_SELECTED_MODE, operationalMode, ccsp_string, TRUE) != ANSC_STATUS_SUCCESS)
+        if (WanMgr_RdkBus_SetParamValues(ETH_COMPONENT_NAME, ETH_COMPONENT_PATH, SELECTED_OPERATIONAL_MODE, operationalMode, ccsp_string, TRUE) != ANSC_STATUS_SUCCESS)
         {
-            CcspTraceError(("%s %d: unable to change %s = %s. Retry...\n", __FUNCTION__, __LINE__, XBx_SELECTED_MODE, operationalMode));
+            CcspTraceError(("%s %d: unable to change %s = %s. Retry...\n", __FUNCTION__, __LINE__, SELECTED_OPERATIONAL_MODE, operationalMode));
             return STATE_AUTO_WAN_INTERFACE_SELECTING;
         }
         else
         {
-            CcspTraceInfo(("%s %d: succesfully changed %s to %s\n",__FUNCTION__, __LINE__,XBx_SELECTED_MODE, operationalMode));
+            CcspTraceInfo(("%s %d: succesfully changed %s to %s\n",__FUNCTION__, __LINE__,SELECTED_OPERATIONAL_MODE, operationalMode));
         }
 #endif /* AUTOWAN_ENABLE */
     }
@@ -1001,47 +1029,8 @@ static WcAwPolicyState_t Transition_ResetSelectedInterface (WanMgr_Policy_Contro
 
 static WcAwPolicyState_t Transition_RebootDevice(void)
 {
-    char lastRebootReason[64] = {'\0'};
-
-    // work around if the CPE fails to reboot from the below call and gets stuck.
-    wanmgr_sysevent_hw_reconfig_reboot();
-
-    // set reboot reason as previous reboot reason because of webPA and Webconfig dependency on various reboot scenarios.
-    if(syscfg_get( NULL, "X_RDKCENTRAL-COM_LastRebootReason", lastRebootReason, sizeof(lastRebootReason)) == 0)
-    {
-        if(lastRebootReason[0] != '\0')
-        {
-            CcspTraceInfo(("%s %d: X_RDKCENTRAL-COM_LastRebootReason = [%s]\n", __FUNCTION__, __LINE__, lastRebootReason));
-            CcspTraceInfo(("%s %d: WanManager is triggering the reboot and setting the reboot reason as last reboot reason \n", __FUNCTION__, __LINE__));
-
-            if (syscfg_set_commit(NULL, "X_RDKCENTRAL-COM_LastRebootReason", lastRebootReason) != 0)
-            {
-                CcspTraceInfo(("%s %d: Failed to set LastRebootReason\n", __FUNCTION__, __LINE__));
-            }
-            if (syscfg_set_commit(NULL, "X_RDKCENTRAL-COM_LastRebootCounter", "1") != 0)
-            {
-                CcspTraceInfo(("%s %d: Failed to set LastRebootCounter\n", __FUNCTION__, __LINE__));
-            }
-        }
-        else
-        {
-            CcspTraceInfo(("%s %d: lastRebootReason is empty \n", __FUNCTION__, __LINE__));
-        }
-    }
-    else
-    {
-        CcspTraceInfo(("%s %d: Failed to get LastRebootReason\n", __FUNCTION__, __LINE__));
-    }
-
-    // Call Device Reboot and Exit from state machine.
-    if((WanMgr_RdkBus_SetParamValues(PAM_COMPONENT_NAME, PAM_DBUS_PATH, "Device.X_CISCO_COM_DeviceControl.RebootDevice", "Device", ccsp_string, TRUE) == ANSC_STATUS_SUCCESS))
-    {
-        CcspTraceInfo(("%s %d: WanManager triggered a reboot successfully \n", __FUNCTION__, __LINE__));
-    }
-    else
-    {
-        CcspTraceInfo(("%s %d: WanManager Failed to trigger reboot \n", __FUNCTION__, __LINE__));
-    }
+    CcspTraceInfo(("%s %d: wanmanager triggering reboot. \n", __FUNCTION__, __LINE__));
+    Wanmgr_TriggerReboot();
     return STATE_AUTO_WAN_SM_EXIT;
 }
 

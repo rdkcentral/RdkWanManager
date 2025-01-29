@@ -30,8 +30,6 @@
 #include "wanmgr_rdkbus_common.h"
 #include "wanmgr_sysevents.h"
 
-#if defined(_HUB4_PRODUCT_REQ_) || defined(_COSA_BCM_ARM_)
-
 #define CONSOLE_LOG_FILE "/rdklogs/logs/Consolelog.txt.0"
 #define LOG_CONSOLE(fmt ...)     {\
                                         FILE     *fp        = NULL;\
@@ -44,9 +42,4 @@
                                }\
 
 
-#else
-
-#define LOG_CONSOLE(fmt ...)
-
-#endif //_HUB4_PRODUCT_REQ_
 #endif /*_WANMGR_PLATFORM_EVENTS_H_*/

@@ -54,7 +54,6 @@
 
 #ifdef FEATURE_IPOE_HEALTH_CHECK
 #define IHC_CLIENT_NAME "ipoe_health_check"
-#define DHCP6C_RENEW_PREFIX_FILE    "/tmp/erouter0.dhcpc6c_renew_prefix.conf"
 #endif /* FEATURE_IPOE_HEALTH_CHECK */
 
 #define WANMGR_RESTART_INFO_FILE          "/tmp/rdkwanmanager.db"

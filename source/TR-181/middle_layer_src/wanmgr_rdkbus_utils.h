@@ -135,9 +135,7 @@ extern token_t sysevent_token;
 #define ETHWAN_PHY_STATUS_DM_SUFFIX "LinkStatus"
 
 //Dm for HW configuration in XB devices
-#if (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_))
-#define XBx_SELECTED_MODE           "Device.X_RDKCENTRAL-COM_EthernetWAN.SelectedOperationalMode"
-#endif /*(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_)) */
+#define SELECTED_OPERATIONAL_MODE           "Device.X_RDKCENTRAL-COM_EthernetWAN.SelectedOperationalMode"
 
 //CM Agent
 #define CMAGENT_COMPONENT_NAME "eRT.com.cisco.spvtg.ccsp.cm"
@@ -212,4 +210,18 @@ ANSC_STATUS WanMgr_GetSelectedIPMode(DML_VIRTUAL_IFACE * pVirtIf);
 ANSC_STATUS  WanMgr_SetDnsConnectivityCheck(BOOL Enable);
 BOOL WanMgr_GetDnsConnectivityCheck(void);
 ANSC_STATUS WanMgr_SetConnectivityCheckTypeToPSM(DML_VIRTUAL_IFACE* pVirtIf, CONNECTIVITY_CHECK_TYPE type);
+
+/**
+ * @brief Wanmgr_TriggerReboot() - Initiates a device reboot.
+ * 
+ * This API is invoked when the platform needs to reboot to apply new WAN configurations. 
+ * 
+ * @note This function retains the last reboot reason for the current reboot due to dependencies 
+ * from WebPA and Webconfig on various reboot scenarios (e.g., factory reset, reboot command, etc.).
+ * 
+ * @param void
+ * @return void
+ */
+void Wanmgr_TriggerReboot();
+
 #endif /* _WANMGR_RDKBUS_UTILS_H_ */
