@@ -1272,6 +1272,7 @@ static int wan_tearDownIPv4(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
     unsigned char           BackupWanDnsSupport = TRUE;
 
     if( NULL != pWanConfigData )
+
     {
         BackupWanDnsSupport = pWanConfigData->data.BackupWanDnsSupport;
         WanMgrDml_GetConfigData_release(pWanConfigData);
@@ -1472,6 +1473,7 @@ static int wan_tearDownIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
             ret = RETURN_ERR;
         }
     }
+
 #endif
     /** Unconfig IPv6. */
     if ( WanManager_Ipv6AddrUtil(p_VirtIf->Name, DEL_ADDR,0,0) < 0)
@@ -1707,14 +1709,14 @@ static ANSC_STATUS WanMgr_SendMsgTo_ConnectivityCheck(WanMgr_IfaceSM_Controller_
                     //Restarting firewall to add IPOE_HEALTH_CHECK firewall rules.
                     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, NULL, 0);
                 }
-                WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_UP, p_VirtIf->Name);
+                WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_UP, p_VirtIf);
                 pWanIfaceCtrl->IhcV4Status = IHC_STARTED;
             }
         }
         else if(type == CONNECTION_MSG_IPV4 && ConnStatus == FALSE)
         {
                 CcspTraceInfo(("%s %d Sending IPOE_MSG_WAN_CONNECTION_DOWN \n", __FUNCTION__, __LINE__));
-                WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_DOWN, p_VirtIf->Name);
+                WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_DOWN, p_VirtIf);
                 pWanIfaceCtrl->IhcV4Status = IHC_STOPPED;
         }
         else if(type == CONNECTION_MSG_IPV6 && ConnStatus == TRUE)
@@ -1729,14 +1731,14 @@ static ANSC_STATUS WanMgr_SendMsgTo_ConnectivityCheck(WanMgr_IfaceSM_Controller_
                     //Restarting firewall to add IPOE_HEALTH_CHECK firewall rules.
                     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, NULL, 0);
                 }
-               WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_IPV6_UP, p_VirtIf->Name);
+               WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_IPV6_UP, p_VirtIf);
                pWanIfaceCtrl->IhcV6Status = IHC_STARTED;
             }
         }
         else if(type == CONNECTION_MSG_IPV6 && ConnStatus == FALSE)
         {
                 CcspTraceInfo(("%s %d Sending IPOE_MSG_WAN_CONNECTION_IPV6_DOWN \n", __FUNCTION__, __LINE__));
-                WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_IPV6_DOWN, p_VirtIf->Name);
+                WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_IPV6_DOWN, p_VirtIf);
                 pWanIfaceCtrl->IhcV6Status = IHC_STOPPED;
         }
 

@@ -374,6 +374,7 @@ int WanManager_Ipv6AddrUtil(char *ifname, Ipv6OperType opr, int preflft, int val
                 if ( TRUE == ConfigureWANIPv6OnLANBridgeSupport )
 #endif /** _RDKB_GLOBAL_PRODUCT_REQ_ */
                 {
+                    //TODO: Find a sysevent/bus api to remove lan prefix address from LAN bridge. WAN manager shouldn't configure LAN address.
                     memset(cmdLine, 0, sizeof(cmdLine));
                     snprintf(cmdLine, sizeof(cmdLine), "ip -6 addr del %s/64 dev %s", prefixAddr, IfaceName);
                     if (WanManager_DoSystemActionWithStatus("ip -6 addr del ADDR dev xxxx", cmdLine) != 0)
