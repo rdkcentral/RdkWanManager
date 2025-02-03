@@ -617,7 +617,17 @@ static WcAwPolicyState_t Transition_InterfaceSelected (WanMgr_Policy_Controller_
 
     // update the  controller SelectedTimeOut for new selected active iface
     DML_WAN_IFACE* pActiveInterface = &(pWanController->pWanActiveIfaceData->data);
-    pWanController->InterfaceSelectionTimeOut = pActiveInterface->Selection.Timeout;
+
+    //If th einterface is last active interface, set the timeout to LastActiveInterfaceRetries times of selection timeout. 
+    if(pActiveInterface->Selection.ActiveLink == TRUE)
+    {
+        pWanController->InterfaceSelectionTimeOut = pActiveInterface->Selection.Timeout * pActiveInterface->Selection.LastActiveInterfaceRetries;
+        CcspTraceInfo(("%s %d: selected interface idx=%d, name=%s, is the last active interface. Will be scanned for %d times \n",
+                __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx, pActiveInterface->DisplayName, pActiveInterface->Selection.LastActiveInterfaceRetries ));
+    }else
+    {
+        pWanController->InterfaceSelectionTimeOut = pActiveInterface->Selection.Timeout;
+    }
     CcspTraceInfo(("%s %d: selected interface idx=%d, name=%s, selectionTimeOut=%d \n",
                 __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx, pActiveInterface->DisplayName,
                 pWanController->InterfaceSelectionTimeOut));

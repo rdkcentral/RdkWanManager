@@ -797,6 +797,7 @@ void WanMgr_IfaceData_Init(WanMgr_Iface_Data_t* pIfaceData, UINT iface_index)
         pWanDmlIface->Selection.Enable = FALSE;
         pWanDmlIface->Selection.Priority = -1;
         pWanDmlIface->Selection.Timeout = 0;
+        pWanDmlIface->Selection.LastActiveInterfaceRetries = 1; 
         pWanDmlIface->IfaceType = LOCAL_IFACE;    // InterfaceType is Local by default
         pWanDmlIface->Selection.ActiveLink = FALSE;
 	    pWanDmlIface->Selection.Status = WAN_IFACE_NOT_SELECTED;
