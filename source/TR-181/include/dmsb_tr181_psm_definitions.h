@@ -68,6 +68,7 @@
 #define PSM_WANMANAGER_IF_SELECTION_GROUP                   "dmsb.wanmanager.if.%d.Selection.Group"
 #define PSM_WANMANAGER_IF_SELECTION_PRIORITY                "dmsb.wanmanager.if.%d.Selection.Priority"
 #define PSM_WANMANAGER_IF_SELECTION_TIMEOUT                 "dmsb.wanmanager.if.%d.Selection.Timeout"
+#define PSM_WANMANAGER_IF_SELECTION_LAST_ACTIVE_RETRY       "dmsb.wanmanager.if.%d.Selection.LastActiveInterfaceRetries"
 
 #define PSM_WANMANAGER_IF_VIRIF_ENABLE_MAPT                 "dmsb.wanmanager.if.%d.VirtualInterface.%d.EnableMAPT"
 #define PSM_WANMANAGER_IF_VIRIF_ENABLE_DSLITE               "dmsb.wanmanager.if.%d.VirtualInterface.%d.EnableDSLite"
