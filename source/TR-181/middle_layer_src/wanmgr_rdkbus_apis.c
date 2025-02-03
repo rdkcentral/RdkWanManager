@@ -180,11 +180,12 @@ int get_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFACE* p_Inte
     if (retPsmGet == CCSP_SUCCESS)
     {
         _ansc_sscanf(param_value, "%d", &(p_Interface->Selection.LastActiveInterfaceRetries));
-    }
-    //LastActiveInterfaceRetries should be greater than 0
-    if (p_Interface->Selection.LastActiveInterfaceRetries <= 0)
-    {
-        p_Interface->Selection.LastActiveInterfaceRetries = 1;
+        //LastActiveInterfaceRetries should be greater than 0 and less than 10
+        if (p_Interface->Selection.LastActiveInterfaceRetries <= 0 || p_Interface->Selection.LastActiveInterfaceRetries > 10)
+        {
+            CcspTraceError(("%s %d LastActiveInterfaceRetries value is invalid. Resetting to default. \n", __FUNCTION__, __LINE__));
+            p_Interface->Selection.LastActiveInterfaceRetries = 1;
+        }
     }
 
     _ansc_memset(param_name, 0, sizeof(param_name));
