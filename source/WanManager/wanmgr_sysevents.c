@@ -76,10 +76,6 @@ static int set_default_conf_entry();
 int mapt_feature_enable_changed = FALSE;
 #endif
 
-#if defined(FEATURE_IPOE_HEALTH_CHECK) && defined(IPOE_HEALTH_CHECK_LAN_SYNC_SUPPORT)
-lanState_t lanState = LAN_STATE_RESET;
-#endif
-
 #if defined(_DT_WAN_Manager_Enable_)
 bool needDibblerRestart = TRUE;
 #endif

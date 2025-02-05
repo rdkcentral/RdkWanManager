@@ -54,9 +54,6 @@
 #define POSTD_START_FILE "/tmp/.postd_started"
 #define SELECTED_MODE_TIMEOUT_SECONDS 10
 
-#if defined(FEATURE_IPOE_HEALTH_CHECK) && defined(IPOE_HEALTH_CHECK_LAN_SYNC_SUPPORT)
-extern lanState_t lanState;
-#endif
 
 #if defined(FEATURE_464XLAT)
 typedef enum
@@ -3582,18 +3579,6 @@ static eWanState_t wan_state_ipv6_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
 
     WanMgr_CheckDefaultRA(p_VirtIf);
 
-#if defined(FEATURE_IPOE_HEALTH_CHECK) && defined(IPOE_HEALTH_CHECK_LAN_SYNC_SUPPORT)
-    if(lanState == LAN_STATE_STOPPED)
-    {
-        WanMgr_SendMsgTo_ConnectivityCheck(pWanIfaceCtrl, CONNECTION_MSG_IPV6 , FALSE);
-        lanState = LAN_STATE_RESET;
-    }
-    else if(lanState == LAN_STATE_STARTED)
-    {
-        WanMgr_SendMsgTo_ConnectivityCheck(pWanIfaceCtrl, CONNECTION_MSG_IPV6 , TRUE);
-        lanState = LAN_STATE_RESET;
-    }
-#endif
     return WAN_STATE_IPV6_LEASED;
 }
 
@@ -3727,18 +3712,6 @@ static eWanState_t wan_state_dual_stack_active(WanMgr_IfaceSM_Controller_t* pWan
     WanMgr_MonitorDhcpApps(pWanIfaceCtrl);
     WanMgr_CheckDefaultRA(p_VirtIf);
 
-#if defined(FEATURE_IPOE_HEALTH_CHECK) && defined(IPOE_HEALTH_CHECK_LAN_SYNC_SUPPORT)
-    if(lanState == LAN_STATE_STOPPED)
-    {
-        WanMgr_SendMsgTo_ConnectivityCheck(pWanIfaceCtrl, CONNECTION_MSG_IPV6 , FALSE);
-        lanState = LAN_STATE_RESET;
-    }
-    else if(lanState == LAN_STATE_STARTED)
-    {
-        WanMgr_SendMsgTo_ConnectivityCheck(pWanIfaceCtrl, CONNECTION_MSG_IPV6 , TRUE);
-        lanState = LAN_STATE_RESET;
-    }
-#endif
     return WAN_STATE_DUAL_STACK_ACTIVE;
 }
 
@@ -3872,18 +3845,7 @@ static eWanState_t wan_state_mapt_active(WanMgr_IfaceSM_Controller_t* pWanIfaceC
     WanMgr_MonitorDhcpApps(pWanIfaceCtrl);
 
     WanMgr_CheckDefaultRA(p_VirtIf);
-#if defined(FEATURE_IPOE_HEALTH_CHECK) && defined(IPOE_HEALTH_CHECK_LAN_SYNC_SUPPORT)
-    if(lanState == LAN_STATE_STOPPED)
-    {
-        WanMgr_SendMsgTo_ConnectivityCheck(pWanIfaceCtrl, CONNECTION_MSG_IPV6 , FALSE);
-        lanState = LAN_STATE_RESET;
-    }
-    else if(lanState == LAN_STATE_STARTED)
-    {
-        WanMgr_SendMsgTo_ConnectivityCheck(pWanIfaceCtrl, CONNECTION_MSG_IPV6 , TRUE);
-        lanState = LAN_STATE_RESET;
-    }
-#endif
+
     return WAN_STATE_MAPT_ACTIVE;
 }
 #endif //FEATURE_MAPT
