@@ -1950,31 +1950,8 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
         {
             if(pVirtIf->Status == WAN_IFACE_STATUS_UP &&  pNewIpcMsg->prefixPltime > 0 && pNewIpcMsg->prefixVltime > 0 ) //Update life time only if the interface is active.
             {
-#if !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_)) || defined(_RDKB_GLOBAL_PRODUCT_REQ_) //Do not add prefix on LAN bridge for the Comcast platforms.
-            //call function for changing the prlft and vallft
-            //Find sysevent /bus API to update LAN prefix lifetime.
-#if defined(_RDKB_GLOBAL_PRODUCT_REQ_)
-  
-            WanMgr_Config_Data_t    *pWanConfigData = WanMgr_GetConfigData_locked();
-            unsigned char           ConfigureWANIPv6OnLANBridgeSupport = FALSE;
-
-            if( NULL != pWanConfigData )
-            {
-                ConfigureWANIPv6OnLANBridgeSupport = pWanConfigData->data.ConfigureWANIPv6OnLANBridgeSupport;
-                WanMgrDml_GetConfigData_release(pWanConfigData);
-            }
-
-            if ( TRUE == ConfigureWANIPv6OnLANBridgeSupport )
-#endif /** _RDKB_GLOBAL_PRODUCT_REQ_ */
-            {
-                //call function for changing the prlft and vallft
-                if ((WanManager_Ipv6AddrUtil(pVirtIf->Name, SET_LFT, pNewIpcMsg->prefixPltime, pNewIpcMsg->prefixVltime) < 0))
-                {
-                    CcspTraceError(("Life Time Setting Failed"));
-                }
+                //TODO : RADVD restart required for ipv6 renew ?
                 sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_RADVD_RESTART, NULL, 0);
-            }
-#endif
             }
             pVirtIf->IP.Ipv6Renewed = TRUE;
         }

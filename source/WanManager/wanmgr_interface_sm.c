@@ -1269,7 +1269,6 @@ static int wan_tearDownIPv4(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
     unsigned char           BackupWanDnsSupport = TRUE;
 
     if( NULL != pWanConfigData )
-
     {
         BackupWanDnsSupport = pWanConfigData->data.BackupWanDnsSupport;
         WanMgrDml_GetConfigData_release(pWanConfigData);
@@ -1470,10 +1469,10 @@ static int wan_tearDownIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
             ret = RETURN_ERR;
         }
     }
-
 #endif
+
     /** Unconfig IPv6. */
-    if ( WanManager_Ipv6AddrUtil(p_VirtIf->Name, DEL_ADDR,0,0) < 0)
+    if ( WanManager_Ipv6AddrUtil(p_VirtIf, DEL_ADDR) < 0)
     {
         AnscTraceError(("%s %d -  Failed to remove inactive address \n", __FUNCTION__,__LINE__));
     }
@@ -1499,6 +1498,7 @@ static int wan_tearDownIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, NULL, 0);
 
 //RBUS_WAN_IP
+//TODO : **************************** Check this ************************
 #if defined (RBUS_WAN_IP)
 #if defined(_RDKB_GLOBAL_PRODUCT_REQ_)
     unsigned char ConfigureWANIPv6OnLANBridgeSupport = FALSE;
