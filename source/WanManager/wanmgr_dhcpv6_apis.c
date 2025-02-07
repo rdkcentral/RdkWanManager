@@ -53,10 +53,8 @@ extern char g_Subsystem[32];
 #endif
 #endif
 
-#if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
 #define COSA_DML_WANIface_ADDR_SYSEVENT_NAME           "tr_%s_dhcpv6_client_v6addr"
 char PreviousIPv6Address[128] = {0}; //Global varibale to store previous IPv6 address
-#endif
 
 static struct {
     pthread_t          dhcpv6c_thread;
