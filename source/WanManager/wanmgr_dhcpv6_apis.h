@@ -49,7 +49,7 @@
     #define ULOGF
 #endif
 
-#define COSA_DML_DHCPV6_SERVER_IFNAME                 CFG_TR181_DHCPv6_SERVER_IfName
+#define COSA_DML_DHCPV6_SERVER_IFNAME                 "brlan0"
 
 #define COSA_DML_DHCPV6C_PREF_SYSEVENT_NAME           "tr_"DML_DHCP_CLIENT_IFNAME"_dhcpv6_client_v6pref"
 #define COSA_DML_DHCPV6C_PREF_IAID_SYSEVENT_NAME      "tr_"DML_DHCP_CLIENT_IFNAME"_dhcpv6_client_pref_iaid"

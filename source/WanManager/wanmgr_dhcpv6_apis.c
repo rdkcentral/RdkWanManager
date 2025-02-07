@@ -1406,8 +1406,14 @@ WanMgr_DmlDhcpv6Remove(ANSC_HANDLE hContext)
 }
 
 #if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
- /* dhcpv6_assign_global_ip Copied from PAM module */
-int dhcpv6_assign_global_ip(char * prefix, char * intfName, char * ipAddr)
+/**
+@brief  Generates a full IPv6 address in EUI-64 format from a delegated prefix.
+@param prefix The delegated IPv6 prefix.
+@param intfName The name of the network interface.
+@param ipAddr The buffer to store the generated IPv6 address.
+@return int 0 on success, non-zero on failure. 
+*/
+static int WanMgr_create_eui64_ipv6_address(char * prefix, char * intfName, char * ipAddr)
 {
 
     unsigned int    length           = 0;
@@ -1465,6 +1471,7 @@ int dhcpv6_assign_global_ip(char * prefix, char * intfName, char * ipAddr)
     CcspTraceInfo(("the first part is:%s\n", globalIP));
 
     /* prepare second part */
+    /* Step 1: Extract the MAC address of the specified network interface */
     fp = v_secure_popen("r", "ifconfig %s | grep HWaddr", intfName );
     _get_shell_output(fp, out, sizeof(out));
     v_secure_pclose(fp);
@@ -1477,6 +1484,7 @@ int dhcpv6_assign_global_ip(char * prefix, char * intfName, char * ipAddr)
     while( pMac && (pMac[0] == ' ') )
         pMac++;
 
+    /* Step 2: Toggle the 7th bit of the first byte of the MAC address */
     /* switch 7bit to 1*/
     tmp[0] = pMac[1];
 
@@ -1491,12 +1499,14 @@ int dhcpv6_assign_global_ip(char * prefix, char * intfName, char * ipAddr)
     pMac[1] = k;
     pMac[17] = '\0';
 
+    /* Step 3: Insert the "FF:FE" sequence in the middle of the MAC address */
     //00:50:56: FF:FE:  92:00:22
     _ansc_strncpy(out, pMac, 9);
     out[9] = '\0';
     _ansc_strcat(out, "FF:FE:");
     _ansc_strcat(out, pMac+9);
 
+    /* Step 4: Format the resulting string into the IPv6 address format */
     for(k=0,j=0;out[j];j++){
         if ( out[j] == ':' )
             continue;
@@ -1509,7 +1519,7 @@ int dhcpv6_assign_global_ip(char * prefix, char * intfName, char * ipAddr)
 
     globalIP[i-1] = '\0';
 
-    CcspTraceInfo(("the full part is:%s\n", globalIP));
+    CcspTraceInfo(("The generated Ip v6 address for interface %s is:%s\n",intfName, globalIP));
     _ansc_strncpy(ipAddr, globalIP, sizeof(globalIP) - 1);
     /* This IP should be unique. If not I have no idea. */
     return 0;
@@ -1635,7 +1645,7 @@ static int wanmgr_construct_wan_address_from_IAPD(WANMGR_IPV6_DATA *pIpv6DataNew
         inet_ntop(AF_INET6, &prefix, newPref, sizeof(newPref));
         CcspTraceInfo(("%s %d EUI64 format is enabled using new prefix %s \n", __FUNCTION__, __LINE__, newPref));    
         snprintf(cmdLine, sizeof(cmdLine), "%s/%d", newPref, prefix_length);    
-        dhcpv6_assign_global_ip(cmdLine, pIpv6DataNew->ifname, pIpv6DataNew->address);
+        WanMgr_create_eui64_ipv6_address(cmdLine, pIpv6DataNew->ifname, pIpv6DataNew->address);
     }
     else
     {
@@ -2009,6 +2019,14 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
     return ANSC_STATUS_SUCCESS;
 } /* End of ProcessDhcp6cStateChanged() */
 
+/**
+ * @brief Sets up the IPv6 /128 address for the LAN bridge.
+ * This function creates an IPv6 /128 address for the LAN bridge, 
+ * configures all necessary system events for the IPv6 LAN, 
+ * and restarts the DHCPv6 server and RA server if required.
+ * @param pVirtIf Pointer to the virtual interface structure.
+ * @return int 0 on success, non-zero on failure.
+ */
 int setUpLanPrefixIPv6(DML_VIRTUAL_IFACE* pVirtIf)
 {
     if (pVirtIf == NULL)
@@ -2064,7 +2082,8 @@ int setUpLanPrefixIPv6(DML_VIRTUAL_IFACE* pVirtIf)
 
     if (pVirtIf->IP.Ipv6Data.prefixPltime != 0 && pVirtIf->IP.Ipv6Data.prefixVltime != 0)
     {
-        ret = dhcpv6_assign_global_ip(pVirtIf->IP.Ipv6Data.sitePrefix, COSA_DML_DHCPV6_SERVER_IFNAME, globalIP);
+        //Create a global IP for the LAN bridge from the received delegated prefix.
+        ret = WanMgr_create_eui64_ipv6_address(pVirtIf->IP.Ipv6Data.sitePrefix, COSA_DML_DHCPV6_SERVER_IFNAME, globalIP);
         if(ret != 0) {
             CcspTraceInfo(("Assign global ip error \n"));
         }
