@@ -1011,10 +1011,10 @@ static int checkIpv6AddressIsReadyToUse(DML_VIRTUAL_IFACE* p_VirtIf)
         }
     }
 
-    //if DAD failed on LAN bridge, log an ERROR message and continue with the WAN process.
+    //if DAD failed on WAN interface, log an ERROR message and continue with the WAN process.
     if(dad_flag == 0 || route_flag == 0) 
     {
-        CcspTraceError(("%s %d dad_flag[%d] route_flag[%d] Failed \n", __FUNCTION__, __LINE__,dad_flag,route_flag));
+        CcspTraceError(("%s %d dad_flag[%s] route_flag[%s] Failed \n", __FUNCTION__, __LINE__,dad_flag ?"SUCCESS":"FAILED",route_flag?"SUCCESS":"FAILED"));
     }
 
     if(route_flag == 0)
