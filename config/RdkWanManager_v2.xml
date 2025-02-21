@@ -283,6 +283,12 @@
                                     <writable>true</writable>
                                 </parameter>
                                 <parameter>
+                                    <name>LastActiveInterfaceRetries</name>
+                                    <type>unsignedInt[1:10]</type>
+                                    <syntax>uint32</syntax>
+                                    <writable>true</writable>
+                                </parameter>
+                                <parameter>
                                     <name>Priority</name>
                                     <type>int</type>
                                     <syntax>int</syntax>
