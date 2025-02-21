@@ -840,6 +840,8 @@ void WanMgr_VirtIface_Init(DML_VIRTUAL_IFACE * pVirtIf, UINT iface_index)
     memset(pVirtIf->VLAN.VLANInUse,0, sizeof(pVirtIf->VLAN.VLANInUse));
     pVirtIf->Reset = FALSE;
     memset(pVirtIf->IP.Interface, 0, 64);
+    memset(pVirtIf->IP.DHCPv4Iface, 0, 128);
+    memset(pVirtIf->IP.DHCPv6Iface, 0, 128);
     pVirtIf->IP.Ipv4Status = WAN_IFACE_IPV4_STATE_DOWN;
     pVirtIf->IP.Ipv6Status = WAN_IFACE_IPV6_STATE_DOWN;
     pVirtIf->IP.IPv4Source= DML_WAN_IP_SOURCE_DHCP;

@@ -349,6 +349,8 @@ typedef struct _WANMGR_IPV6_RA_DATA
 typedef struct _DML_WANIFACE_IP
 {
     CHAR                        Interface[BUFLEN_64];
+    CHAR                        DHCPv4Iface[BUFLEN_128];
+    CHAR                        DHCPv6Iface[BUFLEN_128];
     DML_WAN_IFACE_IPV4_STATUS   Ipv4Status;
     DML_WAN_IFACE_IPV6_STATUS   Ipv6Status;
     CONNECTIVITY_CHECK_TYPE     ConnectivityCheckType;

@@ -1906,7 +1906,7 @@ static eWanState_t wan_transition_physical_interface_down(WanMgr_IfaceSM_Control
     {
         // v4 config is teared down if already configured, stop DHCPv4 client if running without RELEASE
         CcspTraceInfo(("%s %d: Stopping DHCP v4\n", __FUNCTION__, __LINE__));
-        WanManager_StopDhcpv4Client(p_VirtIf->Name, STOP_DHCP_WITHOUT_RELEASE);
+        WanManager_StopDhcpv4Client(p_VirtIf, STOP_DHCP_WITHOUT_RELEASE);
         p_VirtIf->IP.Dhcp4cPid = 0;
     }
 
@@ -1915,7 +1915,7 @@ static eWanState_t wan_transition_physical_interface_down(WanMgr_IfaceSM_Control
     {
         // v6 config is teared down if already configured, stop DHCPv6 client if running without RELEASE
         CcspTraceInfo(("%s %d: Stopping DHCP v6\n", __FUNCTION__, __LINE__));
-        WanManager_StopDhcpv6Client(p_VirtIf->Name, STOP_DHCP_WITHOUT_RELEASE);
+        WanManager_StopDhcpv6Client(p_VirtIf, STOP_DHCP_WITHOUT_RELEASE);
         p_VirtIf->IP.Dhcp6cPid = 0;
     }
 
@@ -2267,7 +2267,7 @@ static eWanState_t wan_transition_ipv4_down(WanMgr_IfaceSM_Controller_t* pWanIfa
             {
                 release_action = STOP_DHCP_WITHOUT_RELEASE;
             }
-            WanManager_StopDhcpv4Client(p_VirtIf->Name, release_action);
+            WanManager_StopDhcpv4Client(p_VirtIf, release_action);
             p_VirtIf->IP.Dhcp4cPid = 0;
         }
     }
@@ -2541,7 +2541,7 @@ static eWanState_t wan_transition_ipv6_down(WanMgr_IfaceSM_Controller_t* pWanIfa
         {
             release_action = STOP_DHCP_WITHOUT_RELEASE;
         }
-        WanManager_StopDhcpv6Client(p_VirtIf->Name, release_action);
+        WanManager_StopDhcpv6Client(p_VirtIf, release_action);
         p_VirtIf->IP.Dhcp6cPid = 0;
     }
     else
@@ -2665,7 +2665,7 @@ static eWanState_t wan_transition_mapt_feature_refresh(WanMgr_IfaceSM_Controller
 
         // MAPT config changed, if we got a v6 lease at this stage, send a v6 RELEASE
         CcspTraceInfo(("%s %d: Stopping DHCP v6\n", __FUNCTION__, __LINE__));
-        WanManager_StopDhcpv6Client(p_VirtIf->Name, STOP_DHCP_WITH_RELEASE);
+        WanManager_StopDhcpv6Client(p_VirtIf, STOP_DHCP_WITH_RELEASE);
         p_VirtIf->IP.Dhcp6cPid = 0;
 
         for(i= 0; i < 10; i++)
@@ -2739,7 +2739,7 @@ static eWanState_t wan_transition_mapt_up(WanMgr_IfaceSM_Controller_t* pWanIface
     {
         // MAPT is configured, stop DHCPv4 client with RELEASE if v4 configured
         CcspTraceInfo(("%s %d: Stopping DHCP v4\n", __FUNCTION__, __LINE__));
-        WanManager_StopDhcpv4Client(p_VirtIf->Name, STOP_DHCP_WITH_RELEASE);
+        WanManager_StopDhcpv4Client(p_VirtIf, STOP_DHCP_WITH_RELEASE);
         p_VirtIf->IP.Dhcp4cPid = 0;
     }
 
@@ -3207,7 +3207,7 @@ static eWanState_t wan_state_obtaining_ip_addresses(WanMgr_IfaceSM_Controller_t*
         {
             // DHCP config changed, if we got a v4 lease at this stage, send a v4 RELEASE
             CcspTraceInfo(("%s %d: Stopping DHCP v4\n", __FUNCTION__, __LINE__));
-            WanManager_StopDhcpv4Client(p_VirtIf->Name, STOP_DHCP_WITH_RELEASE);
+            WanManager_StopDhcpv4Client(p_VirtIf, STOP_DHCP_WITH_RELEASE);
             p_VirtIf->IP.Dhcp4cPid = 0;
         }
 
@@ -3224,7 +3224,7 @@ static eWanState_t wan_state_obtaining_ip_addresses(WanMgr_IfaceSM_Controller_t*
         {
             // DHCP config changed, if we got a v6 lease at this stage, send a v6 RELEASE
             CcspTraceInfo(("%s %d: Stopping DHCP v6\n", __FUNCTION__, __LINE__));
-            WanManager_StopDhcpv6Client(p_VirtIf->Name, STOP_DHCP_WITH_RELEASE); // release dhcp lease
+            WanManager_StopDhcpv6Client(p_VirtIf, STOP_DHCP_WITH_RELEASE); // release dhcp lease
             p_VirtIf->IP.Dhcp6cPid = 0;
         }
 

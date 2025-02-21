@@ -437,6 +437,17 @@ int WanManager_StartDhcpv6Client(DML_VIRTUAL_IFACE* pVirtIf, IFACE_TYPE IfaceTyp
         return 0;
     }
 
+#if FEATURE_RDKB_DHCP_MANAGER
+    if (ANSC_STATUS_SUCCESS == WanMgr_RdkBus_SetParamValues(DHCPMGR_COMPONENT_NAME, DHCPMGR_DBUS_PATH, pVirtIf->IP.DHCPv6Iface, "true", ccsp_boolean, TRUE))
+    {
+        CcspTraceInfo(("%s %d - Successfully set [%s] to DHCP Manager \n", __FUNCTION__, __LINE__, pVirtIf->Name));
+    }
+    else
+    {
+        CcspTraceInfo(("%s %d - Failed setting [%s] to DHCP Manager \n", __FUNCTION__, __LINE__, pVirtIf->Name));
+    }
+    return 1;//TODO:fix pid
+#else
     int pid = 0;
     dhcp_params params;
     memset (&params, 0, sizeof(dhcp_params));
@@ -454,6 +465,7 @@ int WanManager_StartDhcpv6Client(DML_VIRTUAL_IFACE* pVirtIf, IFACE_TYPE IfaceTyp
     pVirtIf->IP.Dhcp6cPid = pid;
 
     return pid;
+#endif
 }
 
 /**
@@ -462,15 +474,15 @@ int WanManager_StartDhcpv6Client(DML_VIRTUAL_IFACE* pVirtIf, IFACE_TYPE IfaceTyp
  * @param boolDisconnect : This indicates whether this function called from disconnect context or not.
  *              TRUE (disconnect context) / FALSE (Non disconnect context)
  */
-ANSC_STATUS WanManager_StopDhcpv6Client(char * iface_name, DHCP_RELEASE_BEHAVIOUR is_release_required)
+ANSC_STATUS WanManager_StopDhcpv6Client(DML_VIRTUAL_IFACE* pVirtIf, DHCP_RELEASE_BEHAVIOUR is_release_required)
 {
-    if (iface_name == NULL)
+    if (pVirtIf == NULL)
     {
         CcspTraceError(("%s %d: Invalid args \n", __FUNCTION__, __LINE__));
         return 0;
     }
 
-    CcspTraceInfo (("%s %d: Stopping dhcpv6 client for %s %s\n", __FUNCTION__, __LINE__, iface_name, (is_release_required==STOP_DHCP_WITH_RELEASE)? "With release": "."));
+    CcspTraceInfo (("%s %d: Stopping dhcpv6 client for %s %s\n", __FUNCTION__, __LINE__, pVirtIf->Name, (is_release_required==STOP_DHCP_WITH_RELEASE)? "With release": "."));
 
     if (is_release_required == STOP_DHCP_WITH_RELEASE)
     {
@@ -483,6 +495,17 @@ ANSC_STATUS WanManager_StopDhcpv6Client(char * iface_name, DHCP_RELEASE_BEHAVIOU
         }
     }
 
+#if FEATURE_RDKB_DHCP_MANAGER
+    if (ANSC_STATUS_SUCCESS == WanMgr_RdkBus_SetParamValues(DHCPMGR_COMPONENT_NAME, DHCPMGR_DBUS_PATH, pVirtIf->IP.DHCPv6Iface, "false", ccsp_boolean, TRUE))
+    {
+        CcspTraceInfo(("%s %d - Successfully set [%s] to DHCP Manager \n", __FUNCTION__, __LINE__, pVirtIf->Name));
+    }
+    else
+    {
+        CcspTraceInfo(("%s %d - Failed setting [%s] to DHCP Manager \n", __FUNCTION__, __LINE__, pVirtIf->Name));
+    }
+    return ANSC_STATUS_SUCCESS;
+#else
     int ret;
     dhcp_params params;
 
@@ -492,6 +515,7 @@ ANSC_STATUS WanManager_StopDhcpv6Client(char * iface_name, DHCP_RELEASE_BEHAVIOU
     ret = stop_dhcpv6_client(&params);
 
     return ret;
+#endif
 }
 
 
@@ -502,7 +526,17 @@ int WanManager_StartDhcpv4Client(DML_VIRTUAL_IFACE* pVirtIf, char* baseInterface
         CcspTraceError(("%s %d: Invalid args \n", __FUNCTION__, __LINE__));
         return 0;
     }
-
+#if FEATURE_RDKB_DHCP_MANAGER
+    if (ANSC_STATUS_SUCCESS == WanMgr_RdkBus_SetParamValues(DHCPMGR_COMPONENT_NAME, DHCPMGR_DBUS_PATH, pVirtIf->IP.DHCPv4Iface, "true", ccsp_boolean, TRUE))
+    {
+        CcspTraceInfo(("%s %d - Successfully set [%s] to DHCP Manager \n", __FUNCTION__, __LINE__, pVirtIf->Name));
+    }
+    else
+    {
+        CcspTraceInfo(("%s %d - Failed setting [%s] to DHCP Manager \n", __FUNCTION__, __LINE__, pVirtIf->Name));
+    }
+    return 1;//TODO:fix pid
+#else
 #if defined(_DT_WAN_Manager_Enable_)
     WanManager_CreateDHCPService(pVirtIf);
     return 0;//TODO:Read and return PID
@@ -525,17 +559,28 @@ int WanManager_StartDhcpv4Client(DML_VIRTUAL_IFACE* pVirtIf, char* baseInterface
     }
     pVirtIf->IP.Dhcp4cPid = pid;
     return pid;
+#endif
 }
 
-ANSC_STATUS WanManager_StopDhcpv4Client(char * iface_name, DHCP_RELEASE_BEHAVIOUR IsReleaseNeeded)
+ANSC_STATUS WanManager_StopDhcpv4Client(DML_VIRTUAL_IFACE* pVirtIf, DHCP_RELEASE_BEHAVIOUR IsReleaseNeeded)
 {
-    if (iface_name == NULL)
+    if (pVirtIf == NULL)
     {
         CcspTraceError(("%s %d: Invalid args \n", __FUNCTION__, __LINE__));
         return 0;
     }
-
-    CcspTraceInfo (("%s %d: Stopping dhcpv4 client for %s %s\n", __FUNCTION__, __LINE__, iface_name, (IsReleaseNeeded==STOP_DHCP_WITH_RELEASE)? "With release": "."));
+    CcspTraceInfo (("%s %d: Stopping dhcpv4 client for %s %s\n", __FUNCTION__, __LINE__, pVirtIf->Name, (IsReleaseNeeded==STOP_DHCP_WITH_RELEASE)? "With release": "."));
+    #if FEATURE_RDKB_DHCP_MANAGER
+    if (ANSC_STATUS_SUCCESS == WanMgr_RdkBus_SetParamValues(DHCPMGR_COMPONENT_NAME, DHCPMGR_DBUS_PATH, pVirtIf->IP.DHCPv4Iface, "false", ccsp_boolean, TRUE))
+    {
+        CcspTraceInfo(("%s %d - Successfully set [%s] to DHCP Manager \n", __FUNCTION__, __LINE__, pVirtIf->Name));
+    }
+    else
+    {
+        CcspTraceInfo(("%s %d - Failed setting [%s] to DHCP Manager \n", __FUNCTION__, __LINE__, pVirtIf->Name));
+    }
+    return ANSC_STATUS_SUCCESS;
+#else
 #if defined(_DT_WAN_Manager_Enable_)
     WanManager_StopUdhcpcService(iface_name);
     return ANSC_STATUS_SUCCESS;
@@ -558,6 +603,7 @@ ANSC_STATUS WanManager_StopDhcpv4Client(char * iface_name, DHCP_RELEASE_BEHAVIOU
     }
 
     return ret;
+#endif
 }
 
 void WanManager_PrintBootEvents (WanBootEventState state)
