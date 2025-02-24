@@ -71,7 +71,6 @@ static int lan_wan_started = 0;
 static int ipv4_connection_up = 0;
 static int ipv6_connection_up = 0;
 static void check_lan_wan_ready();
-static int getVendorClassInfo(char *buffer, int length);
 static int set_default_conf_entry();
 #if defined(FEATURE_MAPT) || defined(FEATURE_SUPPORT_MAPT_NAT46)
 int mapt_feature_enable_changed = FALSE;
@@ -1227,11 +1226,11 @@ void WanMgr_Configure_accept_ra(DML_VIRTUAL_IFACE * pVirtIf, BOOL EnableRa)
     CcspTraceInfo(("%s %d %s accept_ra for interface %s\n", __FUNCTION__, __LINE__,EnableRa?"Enabling":"Disabling", pVirtIf->Name));
     //Enable accept_ra to allow receiving RA all the time. This funtion  only blocks learning defult route from RA.
     v_secure_system("sysctl -w net.ipv6.conf.%s.accept_ra=2",pVirtIf->Name);
+    v_secure_system("sysctl -w net.ipv6.conf.%s.accept_ra_pinfo=0",pVirtIf->Name);
     if(EnableRa)
     {
         v_secure_system("sysctl -w net.ipv6.conf.%s.router_solicitations=3",pVirtIf->Name);
         v_secure_system("sysctl -w net.ipv6.conf.%s.forwarding=1",pVirtIf->Name);
-        v_secure_system("sysctl -w net.ipv6.conf.%s.accept_ra_pinfo=0",pVirtIf->Name);
         v_secure_system("sysctl -w net.ipv6.conf.%s.accept_ra_defrtr=1",pVirtIf->Name); //Learn defult route from the RA.
         v_secure_system("sysctl -w net.ipv6.conf.all.forwarding=1");
         CcspTraceInfo(("%s %d Enabling forwarding for interface %s\n", __FUNCTION__, __LINE__,pVirtIf->Name));
@@ -1242,31 +1241,6 @@ void WanMgr_Configure_accept_ra(DML_VIRTUAL_IFACE * pVirtIf, BOOL EnableRa)
         v_secure_system("sysctl -w net.ipv6.conf.%s.router_solicitations=0",pVirtIf->Name);
         v_secure_system("sysctl -w net.ipv6.conf.%s.accept_ra_defrtr=0",pVirtIf->Name); 
     }
-}
-
-static int getVendorClassInfo(char *buffer, int length)
-{
-    FILE * fp;
-    char * line = NULL;
-    size_t len = 0;
-    ssize_t characters;
-    fp = fopen(SKY_DHCPV6_OPTIONS, "r");
-    if (fp == NULL) {
-        //AnscTraceFlow(("%s file not found", SKY_DHCPV6_OPTIONS));
-        return -1;
-    }
-    if ((characters = getline(&line, &len, fp)) != -1) {
-        if ((characters = getline(&line, &len, fp)) != -1) {
-            if (line != NULL) {
-                if (line[characters - 1] == '\n')
-                    line[characters - 1] = '\0';
-                strncpy(buffer, line, length);
-                free(line);
-            }
-        }
-    }
-    fclose(fp);
-    return 0;
 }
 
 INT wanmgr_isWanStandby()

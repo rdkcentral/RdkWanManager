@@ -875,46 +875,6 @@ ANSC_STATUS WanManager_StopIpoeHealthCheckService(UINT IhcPid)
     CollectApp(IhcPid);
     return ANSC_STATUS_SUCCESS;
 }
-
-static ANSC_STATUS readIAPDPrefixFromFile(char *prefix, int buflen, int *plen, int *pltime, int *vltime)
-{
-    FILE *fp = NULL;
-    char *conffile = DHCP6C_RENEW_PREFIX_FILE;
-    ANSC_STATUS ret = ANSC_STATUS_SUCCESS;
-    char prefixAddr[128];
-    int prefixLen = 0;
-    int prefLifeTime = 0;
-    int validLifeTime = 0;
-
-    if ((fp = fopen(conffile,"r")) == NULL)
-    {
-        CcspTraceError(("Unable to open renew prefix file \n"));
-        ret = ANSC_STATUS_FAILURE;
-    }
-    else
-    {
-        /* Read the IA_PD information in the variable */
-        (void)fscanf(fp, "%127s %d %d %d",prefixAddr, &prefixLen, &prefLifeTime, &validLifeTime);
-        CcspTraceInfo(("prefixAddr:%s buflen:%d prefixLen:%d prefLifeTime:%d validLifeTime:%d",
-            prefixAddr, buflen, prefixLen, prefLifeTime, validLifeTime));
-        /* Copy the IA_PD prefix and delete the prefix file */
-        if((prefix != NULL) && (strlen(prefixAddr) <= buflen))
-        {
-            strncpy(prefix, prefixAddr, strlen(prefixAddr));
-            *plen = prefixLen;
-            *pltime = prefLifeTime;
-            *vltime = validLifeTime;
-        }
-        else
-        {
-            ret = ANSC_STATUS_FAILURE;
-        }
-        fclose(fp);
-        unlink(conffile);
-    }
-
-    return ret;
-}
 #endif
 
 

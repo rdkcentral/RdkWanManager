@@ -1029,15 +1029,16 @@ static int checkIpv6LanAddressIsReadyToUse(DML_VIRTUAL_IFACE* p_VirtIf)
         }
     }
 
+    //if DAD failed on LAN bridge, log an ERROR message and continue with the WAN process.
+    if(dad_flag == 0 || route_flag == 0) 
+    {
+        CcspTraceError(("%s %d dad_flag[%d] route_flag[%d] Failed \n", __FUNCTION__, __LINE__,dad_flag,route_flag));
+    }
+
     if(route_flag == 0)
     {
         //If the default route is not present, Send a router solicit.
         WanManager_send_and_receive_rs(p_VirtIf);
-    }
-
-    if(dad_flag == 0 || route_flag == 0) 
-    {
-        CcspTraceError(("%s %d dad_flag[%d] route_flag[%d] Failed \n", __FUNCTION__, __LINE__,dad_flag,route_flag));
         return -1;
     }
 

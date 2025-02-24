@@ -630,7 +630,7 @@ static WcAwPolicyState_t Transition_InterfaceSelected (WanMgr_Policy_Controller_
 
 #if (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_))
     /* TODO: For Xb devices DOCSIS and Ethrenet hal are controlled by a single DM. 
-     * Setting XBx_SELECTED_MODE DM to a mode will disable other stack. 
+     * Setting SELECTED_OPERATIONAL_MODE DM to a mode will disable other stack. 
      * We have to set this DM to start Wan operation on a specific interface. 
      */
     if (strstr(pActiveInterface->BaseInterface, "CableModem") || (strstr(pActiveInterface->BaseInterface, "Ethernet")))
@@ -640,14 +640,14 @@ static WcAwPolicyState_t Transition_InterfaceSelected (WanMgr_Policy_Controller_
         char operationalMode[64] ={0};
         strncpy(operationalMode, strstr(pActiveInterface->BaseInterface, "CableModem")?"DOCSIS":"Ethernet", sizeof(operationalMode));
 
-        if (WanMgr_RdkBus_SetParamValues(ETH_COMPONENT_NAME, ETH_COMPONENT_PATH, XBx_SELECTED_MODE, operationalMode, ccsp_string, TRUE) != ANSC_STATUS_SUCCESS)
+        if (WanMgr_RdkBus_SetParamValues(ETH_COMPONENT_NAME, ETH_COMPONENT_PATH, SELECTED_OPERATIONAL_MODE, operationalMode, ccsp_string, TRUE) != ANSC_STATUS_SUCCESS)
         {
-            CcspTraceError(("%s %d: unable to change %s = %s. Retry...\n", __FUNCTION__, __LINE__, XBx_SELECTED_MODE, operationalMode));
+            CcspTraceError(("%s %d: unable to change %s = %s. Retry...\n", __FUNCTION__, __LINE__, SELECTED_OPERATIONAL_MODE, operationalMode));
             return STATE_AUTO_WAN_INTERFACE_SELECTING;
         }
         else
         {
-            CcspTraceInfo(("%s %d: succesfully changed %s to %s\n",__FUNCTION__, __LINE__,XBx_SELECTED_MODE, operationalMode));
+            CcspTraceInfo(("%s %d: succesfully changed %s to %s\n",__FUNCTION__, __LINE__,SELECTED_OPERATIONAL_MODE, operationalMode));
         }
 #endif /* AUTOWAN_ENABLE */
     }
