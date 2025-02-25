@@ -1520,7 +1520,13 @@ void *WanMgr_WanRemoteIfaceConfigure_thread(void *arg)
                             __FUNCTION__, __LINE__, cpeInterfaceIndex));
             pWanDmlIface->Selection.Enable = FALSE;
             pWanDmlIface->BaseInterfaceStatus = WAN_IFACE_PHY_STATUS_DOWN;
-            wanmgr_t2_event_string("WAN_ERROR_PHY_DOWN",pWanDmlIface->DisplayName,NULL,NULL,NULL);
+            //Telemetry start
+            WanMgr_Telemetry_Marker_t Marker;
+            Marker.marker = WAN_ERROR_PHY_DOWN;
+            strcpy(Marker.phy_interface,pWanDmlIface->DisplayName);
+            wanmgr_telemetry_event_string(Marker);
+            CcspTraceInfo(("%s %d: KAVYA, WAN_ERROR_PHY_DOWN..\n",__FUNCTION__, __LINE__));
+            //Telemetry end
             free(pDeviceChangeEvent);
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
             pthread_mutex_unlock(&RemoteIfaceConfigure_mutex);

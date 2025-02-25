@@ -1110,7 +1110,14 @@ static WcAwPolicyState_t State_WaitForInterface (WanMgr_Policy_Controller_t * pW
         // timer expired for selected iface but there is another interface that can be used
         CcspTraceInfo(("%s %d: Validation Timer expired for interface index:%d and there is another iface that can be possibly used as Wan interface\n", 
                     __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
-        wanmgr_t2_event_string("WAN_WARN_IP_OBTAIN_TIMER_EXPIRED",pActiveInterface->DisplayName,pActiveInterface->Name,NULL,NULL);
+        //Telemetry start
+            WanMgr_Telemetry_Marker_t Marker;
+            Marker.marker = WAN_WARN_IP_OBTAIN_TIMER_EXPIRED;
+            strcpy(Marker.phy_interface,pActiveInterface->DisplayName);
+            strcpy(Marker.wan_interface,pActiveInterface->Name);
+            wanmgr_telemetry_event_string(Marker);
+            CcspTraceInfo(("%s %d: KAVYA, WAN_WARN_IP_OBTAIN_TIMER_EXPIRED..\n",__FUNCTION__, __LINE__));
+            //Telemetry end
         return Transition_InterfaceInvalid(pWanController);
     }
 
@@ -1194,7 +1201,14 @@ static WcAwPolicyState_t State_ScanningInterface (WanMgr_Policy_Controller_t * p
         {
             CcspTraceInfo(("%s %d: Validation Timer expired for interface index:%d and there is another iface that can be possibly used as Wan interface\n", 
                         __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
-            wanmgr_t2_event_string("WAN_WARN_IP_OBTAIN_TIMER_EXPIRED",pActiveInterface->DisplayName,pActiveInterface->Name,NULL,NULL);   
+             //Telemetry start
+            WanMgr_Telemetry_Marker_t Marker;
+            Marker.marker = WAN_WARN_IP_OBTAIN_TIMER_EXPIRED;
+            strcpy(Marker.phy_interface,pActiveInterface->DisplayName);
+            strcpy(Marker.wan_interface,pActiveInterface->Name);
+            wanmgr_telemetry_event_string(Marker);
+            CcspTraceInfo(("%s %d: KAVYA, WAN_WARN_IP_OBTAIN_TIMER_EXPIRED..\n",__FUNCTION__, __LINE__));
+            //Telemetry end
             return Transition_InterfaceDeselect(pWanController);
         }
     }
