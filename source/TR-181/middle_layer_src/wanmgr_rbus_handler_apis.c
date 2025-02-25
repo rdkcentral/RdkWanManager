@@ -23,6 +23,8 @@
 #include "wanmgr_rbus_handler_apis.h"
 #include "wanmgr_rdkbus_apis.h"
 #include "dmsb_tr181_psm_definitions.h"
+#include "wanmgr_telemetry.h"
+
 enum {
 ENUM_PHY = 1,
 ENUM_WAN_STATUS,

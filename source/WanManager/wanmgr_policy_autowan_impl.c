@@ -35,6 +35,7 @@
 #include <pthread.h>
 #include "secure_wrapper.h"
 #include "platform_hal.h"
+#include "wanmgr_telemetry.h"
 #ifdef ENABLE_FEATURE_TELEMETRY2_0
 #include <telemetry_busmessage_sender.h>
 #endif
