@@ -2371,7 +2371,7 @@ static WcFmobPolicyState_t Transition_WanInterfaceActive(WanMgr_AutoWan_SMInfo_t
     Update_Interface_Status();
 
     CcspTraceInfo(("%s %d - State changed to STATE_WAN_INTERFACE_ACTIVE if_name %s\n", __FUNCTION__, __LINE__,pFixedInterface->VirtIfList->Name));
-
+    wanmgr_t2_event_string("WAN_INFO_WAN_UP",pFixedInterface->DisplayName,pFixedInterface->Name,NULL,NULL);
     return STATE_WAN_INTERFACE_ACTIVE;
 }
 #ifdef WAN_FAILOVER_SUPPORTED

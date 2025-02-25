@@ -885,6 +885,7 @@ ANSC_STATUS WanMgr_GetBaseInterfaceStatus (DML_WAN_IFACE *pWanIfaceData)
         if(strcmp(dmValue,"true") == 0)
         {
             pWanIfaceData->BaseInterfaceStatus = WAN_IFACE_PHY_STATUS_UP;
+	    wanmgr_t2_event_string("WAN_INFO_PHY_UP",pWanIfaceData->DisplayName,NULL,NULL,NULL);
         }
 
     }
@@ -900,6 +901,7 @@ ANSC_STATUS WanMgr_GetBaseInterfaceStatus (DML_WAN_IFACE *pWanIfaceData)
         if(strcmp(dmValue,"true") == 0)
         {
             pWanIfaceData->BaseInterfaceStatus = WAN_IFACE_PHY_STATUS_UP;
+	    wanmgr_t2_event_string("WAN_INFO_PHY_UP",pWanIfaceData->DisplayName,NULL,NULL,NULL);
         }
 
     }
@@ -915,6 +917,7 @@ ANSC_STATUS WanMgr_GetBaseInterfaceStatus (DML_WAN_IFACE *pWanIfaceData)
         if(strcmp(dmValue,"OPERATIONAL") == 0)
         {
             pWanIfaceData->BaseInterfaceStatus = WAN_IFACE_PHY_STATUS_UP;
+	    wanmgr_t2_event_string("WAN_INFO_PHY_UP",pWanIfaceData->DisplayName,NULL,NULL,NULL);
         }
 
     }
@@ -930,6 +933,7 @@ ANSC_STATUS WanMgr_GetBaseInterfaceStatus (DML_WAN_IFACE *pWanIfaceData)
         if(strcmp(dmValue,"Up") == 0)
         {
             pWanIfaceData->BaseInterfaceStatus = WAN_IFACE_PHY_STATUS_UP;
+	    wanmgr_t2_event_string("WAN_INFO_PHY_UP",pWanIfaceData->DisplayName,NULL,NULL,NULL);
         }
     }
     CcspTraceInfo(("%s %d  %s : %s \n", __FUNCTION__, __LINE__, dmQuery, dmValue));

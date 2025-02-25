@@ -1413,6 +1413,7 @@ static int WanManager_CreateDHCPService(DML_VIRTUAL_IFACE* p_VirtIf)
             pid = atoi(pidStr);
             fclose(fp);
         }
+	wanmgr_t2_event_string("WAN_INFO_IP_CONFIG_TYPE",NULL,NULL,p_VirtIf->Name,"STATIC");
     }
 
     if ( pid < 0 || 0 != kill(pid, 0))
