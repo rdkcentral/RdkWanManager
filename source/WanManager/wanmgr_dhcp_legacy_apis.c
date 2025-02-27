@@ -1421,12 +1421,13 @@ static int WanManager_CreateDHCPService(DML_VIRTUAL_IFACE* p_VirtIf)
                 pWanDmlIface = &(pWanDmlIfaceData->data);
                 WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
             }
-            WanMgr_Telemetry_Marker_t Marker;
+            WanMgr_Telemetry_Marker_t Marker; 
+	    memset(&Marker, 0, sizeof(WanMgr_Telemetry_Marker_t));
             Marker.marker = WAN_INFO_IP_CONFIG_TYPE;
-            strcpy(Marker.phy_interface,pWanDmlIface->DisplayName);
-            strcpy(Marker.wan_interface,pWanDmlIface->Name);
-            strcpy(Marker.split_value,"STATIC");
-            wanmgr_telemetry_event_string(Marker);
+            snprintf(Marker.acPhysicalInterface,sizeof(Marker.acPhysicalInterface),"%s",pWanDmlIface->DisplayName);
+            snprintf(Marker.acWANInterface,sizeof(Marker.acWANInterface),"%s",pWanDmlIface->Name);
+            snprintf(Marker.acSplitValue,sizeof(Marker.acSplitValue),"%s","STATIC");
+            wanmgr_telemetry_event_string(&Marker);
             CcspTraceInfo(("%s %d: KAVYA, WAN_INFO_IP_CONFIG_TYPE..\n",__FUNCTION__, __LINE__));
             //Telemetry end
     }

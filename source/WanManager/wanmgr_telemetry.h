@@ -66,15 +66,15 @@ static const char * const WanMgr_TelemetryEventStr[] =
 
 typedef  struct _WANMGR_TELEMETRY_MARKER_
 {
-        WanMgr_TelemetryEvent_t marker;
-        char phy_interface[32];
-        char wan_interface[32];
-        char virt_wan_interface[32];
-        char split_value[32];
+        WanMgr_TelemetryEvent_t enTelemetryMarkerID;
+        char acPhysicalInterface[32];
+        char acWANInterface[32];
+        char acVirtualWANInterface[32];
+        char acSplitValue[32];
 
 } WanMgr_Telemetry_Marker_t;
 
-void wanmgr_telemetry_event_string(WanMgr_Telemetry_Marker_t Marker);
+void wanmgr_telemetry_event_string(WanMgr_Telemetry_Marker_t *Marker);
 #endif //_WAN_TELEMETRY_MARKER_H_
 
 

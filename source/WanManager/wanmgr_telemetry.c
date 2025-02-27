@@ -1,6 +1,6 @@
 #include "wanmgr_telemetry.h"
 
-char buf[128] = {0};
+static char buf[128] = {0};
 
 /*append api appends key value in pairs, separated by DELIMITER*/
 static void wanmgr_append(char* key, char* value)
@@ -33,23 +33,23 @@ static void wanmgr_telemetry_event_float( char *marker, double value)
 }
 
 /* wanmgr_telemetry_event_string - This api is to send string type telemetry marker. */
-void wanmgr_telemetry_event_string(WanMgr_Telemetry_Marker_t Marker)
+void wanmgr_telemetry_event_string(WanMgr_Telemetry_Marker_t *Marker)
 {
         memset(buf,sizeof(buf),0);
 
-        if(strlen(Marker.phy_interface) > 0)
-            wanmgr_append(PHY_INT_STRING,Marker.phy_interface);
+        if(strlen(Marker->acPhysicalInterface) > 0)
+            wanmgr_append(PHY_INT_STRING,Marker->acPhysicalInterface);
 
-        if(strlen(Marker.wan_interface) > 0)
-            wanmgr_append(WAN_INT_STRING,Marker.wan_interface);
+        if(strlen(Marker->acWANInterface) > 0)
+            wanmgr_append(WAN_INT_STRING,Marker->acWANInterface);
 
-        if(strlen(Marker.virt_wan_interface) > 0)
-            wanmgr_append(VIRT_WAN_INT_STRING,Marker.virt_wan_interface);
+        if(strlen(Marker->acVirtualWANInterface) > 0)
+            wanmgr_append(VIRT_WAN_INT_STRING,Marker->acVirtualWANInterface);
 
-        if(strlen(Marker.split_value) > 0 )
-            wanmgr_append(SPLIT_VAL_STRING,Marker.split_value);
+        if(strlen(Marker->acSplitValue) > 0 )
+            wanmgr_append(SPLIT_VAL_STRING,Marker->acSplitValue);
 
         strcat(buf,"\0");
         //eg: buf = [PHY_INT:DSL,WAN_INT:dsl,VIRT_WAN_INT:vdsl0,SPLIT_VAL:STATIC] -> key value pair ':' separated, arguments ',' separted
-        t2_event_s(WanMgr_TelemetryEventStr[Marker.marker],buf);
+        t2_event_s(WanMgr_TelemetryEventStr[Marker->marker],buf);
 }

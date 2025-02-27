@@ -888,9 +888,10 @@ ANSC_STATUS WanMgr_GetBaseInterfaceStatus (DML_WAN_IFACE *pWanIfaceData)
             pWanIfaceData->BaseInterfaceStatus = WAN_IFACE_PHY_STATUS_UP;
             //Telemetry start
             WanMgr_Telemetry_Marker_t Marker;
+	    memset(&Marker, 0, sizeof(WanMgr_Telemetry_Marker_t));
             Marker.marker = WAN_INFO_PHY_UP;
-            strcpy(Marker.phy_interface,pWanIfaceData->DisplayName);
-            wanmgr_telemetry_event_string(Marker);
+            snprintf(Marker.acPhysicalInterface,sizeof(Marker.acPhysicalInterface),"%s",pWanIfaceData->DisplayName);
+            wanmgr_telemetry_event_string(&Marker);
             CcspTraceInfo(("%s %d: KAVYA, WAN_INFO_PHY_UP..\n",__FUNCTION__, __LINE__));
             //Telemetry end
         }
@@ -910,9 +911,10 @@ ANSC_STATUS WanMgr_GetBaseInterfaceStatus (DML_WAN_IFACE *pWanIfaceData)
             pWanIfaceData->BaseInterfaceStatus = WAN_IFACE_PHY_STATUS_UP;
             //Telemetry start
             WanMgr_Telemetry_Marker_t Marker;
+	    memset(&Marker, 0, sizeof(WanMgr_Telemetry_Marker_t));
             Marker.marker = WAN_INFO_PHY_UP;
-            strcpy(Marker.phy_interface,pWanIfaceData->DisplayName);
-            wanmgr_telemetry_event_string(Marker);
+            snprintf(Marker.acPhysicalInterface,sizeof(Marker.acPhysicalInterface),"%s",pWanIfaceData->DisplayName);
+            wanmgr_telemetry_event_string(&Marker);
             CcspTraceInfo(("%s %d: KAVYA, WAN_INFO_PHY_UP..\n",__FUNCTION__, __LINE__));
             //Telemetry end
         }
@@ -931,10 +933,11 @@ ANSC_STATUS WanMgr_GetBaseInterfaceStatus (DML_WAN_IFACE *pWanIfaceData)
         {
             pWanIfaceData->BaseInterfaceStatus = WAN_IFACE_PHY_STATUS_UP;
             //Telemetry start
-            WanMgr_Telemetry_Marker_t Marker;
+            WanMgr_Telemetry_Marker_t Marker; 
+	    memset(&Marker, 0, sizeof(WanMgr_Telemetry_Marker_t));
             Marker.marker = WAN_INFO_PHY_UP;
-            strcpy(Marker.phy_interface,pWanIfaceData->DisplayName);
-            wanmgr_telemetry_event_string(Marker);
+            snprintf(Marker.acPhysicalInterface,sizeof(Marker.acPhysicalInterface),"%s",pWanIfaceData->DisplayName);
+            wanmgr_telemetry_event_string(&Marker);
             CcspTraceInfo(("%s %d: KAVYA, WAN_INFO_PHY_UP..\n",__FUNCTION__, __LINE__));
             //Telemetry end
         }
@@ -953,10 +956,11 @@ ANSC_STATUS WanMgr_GetBaseInterfaceStatus (DML_WAN_IFACE *pWanIfaceData)
         {
             pWanIfaceData->BaseInterfaceStatus = WAN_IFACE_PHY_STATUS_UP;
             //Telemetry start
-            WanMgr_Telemetry_Marker_t Marker;
+            WanMgr_Telemetry_Marker_t Marker; 
+	    memset(&Marker, 0, sizeof(WanMgr_Telemetry_Marker_t));
             Marker.marker = WAN_INFO_PHY_UP;
-            strcpy(Marker.phy_interface,pWanIfaceData->DisplayName);
-            wanmgr_telemetry_event_string(Marker);
+            snprintf(Marker.acPhysicalInterface,sizeof(Marker.acPhysicalInterface),"%s",pWanIfaceData->DisplayName);
+            wanmgr_telemetry_event_string(&Marker);
             CcspTraceInfo(("%s %d: KAVYA, WAN_INFO_PHY_UP..\n",__FUNCTION__, __LINE__));
             //Telemetry end
         }
