@@ -1897,7 +1897,7 @@ ANSC_STATUS Update_Interface_Status()
 
                 if(pWanIfaceData->Selection.Status == WAN_IFACE_ACTIVE)
                 {
-                    snprintf(newIface->CurrentActive, sizeof(newIface->CurrentActive), "%s", (devMode == GATEWAY_MODE) ? (p_VirtIf->Name : MESH_IFNAME ));
+                    snprintf(newIface->CurrentActive, sizeof(newIface->CurrentActive), "%s", (devMode == GATEWAY_MODE) ? p_VirtIf->Name : MESH_IFNAME );
 #ifdef RBUS_BUILD_FLAG_ENABLE
                     snprintf(CurrentWanStatus,sizeof(CurrentWanStatus), "%s", (p_VirtIf->Status == WAN_IFACE_STATUS_UP)?"Up":"Down");
 #endif
