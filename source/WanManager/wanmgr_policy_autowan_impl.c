@@ -2375,7 +2375,7 @@ static WcFmobPolicyState_t Transition_WanInterfaceActive(WanMgr_AutoWan_SMInfo_t
     //Telemetry start
             WanMgr_Telemetry_Marker_t Marker; 
 	    memset(&Marker, 0, sizeof(WanMgr_Telemetry_Marker_t));
-            Marker.marker = WAN_INFO_WAN_UP;
+            Marker.enTelemetryMarkerID = WAN_INFO_WAN_UP;
             snprintf(Marker.acPhysicalInterface,sizeof(Marker.acPhysicalInterface),"%s",pFixedInterface->DisplayName);
             snprintf(Marker.acWANInterface,sizeof(Marker.acWANInterface),"%s",pFixedInterface->Name);
             wanmgr_telemetry_event_string(&Marker);

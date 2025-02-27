@@ -1113,7 +1113,7 @@ static WcAwPolicyState_t State_WaitForInterface (WanMgr_Policy_Controller_t * pW
         //Telemetry start
             WanMgr_Telemetry_Marker_t Marker; 
 	    memset(&Marker, 0, sizeof(WanMgr_Telemetry_Marker_t));
-            Marker.marker = WAN_WARN_IP_OBTAIN_TIMER_EXPIRED;
+            Marker.enTelemetryMarkerID = WAN_WARN_IP_OBTAIN_TIMER_EXPIRED;
             snprintf(Marker.acPhysicalInterface,sizeof(Marker.acPhysicalInterface),"%s",pActiveInterface->DisplayName);
             snprintf(Marker.acWANInterface,sizeof(Marker.acWANInterface),"%s",pActiveInterface->Name);
             wanmgr_telemetry_event_string(&Marker);
@@ -1205,7 +1205,7 @@ static WcAwPolicyState_t State_ScanningInterface (WanMgr_Policy_Controller_t * p
              //Telemetry start
             WanMgr_Telemetry_Marker_t Marker; 
 	    memset(&Marker, 0, sizeof(WanMgr_Telemetry_Marker_t));
-            Marker.marker = WAN_WARN_IP_OBTAIN_TIMER_EXPIRED;
+            Marker.enTelemetryMarkerID = WAN_WARN_IP_OBTAIN_TIMER_EXPIRED;
             snprintf(Marker.acPhysicalInterface,sizeof(Marker.acPhysicalInterface),"%s",pActiveInterface->DisplayName);
             snprintf(Marker.acWANInterface,sizeof(Marker.acWANInterface),"%s",pActiveInterface->Name);
             wanmgr_telemetry_event_string(&Marker);

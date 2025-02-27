@@ -51,5 +51,5 @@ void wanmgr_telemetry_event_string(WanMgr_Telemetry_Marker_t *Marker)
 
         strcat(buf,"\0");
         //eg: buf = [PHY_INT:DSL,WAN_INT:dsl,VIRT_WAN_INT:vdsl0,SPLIT_VAL:STATIC] -> key value pair ':' separated, arguments ',' separted
-        t2_event_s(WanMgr_TelemetryEventStr[Marker->marker],buf);
+        t2_event_s(WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID],buf);
 }

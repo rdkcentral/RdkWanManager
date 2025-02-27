@@ -1423,7 +1423,7 @@ static int WanManager_CreateDHCPService(DML_VIRTUAL_IFACE* p_VirtIf)
             }
             WanMgr_Telemetry_Marker_t Marker; 
 	    memset(&Marker, 0, sizeof(WanMgr_Telemetry_Marker_t));
-            Marker.marker = WAN_INFO_IP_CONFIG_TYPE;
+            Marker.enTelemetryMarkerID = WAN_INFO_IP_CONFIG_TYPE;
             snprintf(Marker.acPhysicalInterface,sizeof(Marker.acPhysicalInterface),"%s",pWanDmlIface->DisplayName);
             snprintf(Marker.acWANInterface,sizeof(Marker.acWANInterface),"%s",pWanDmlIface->Name);
             snprintf(Marker.acSplitValue,sizeof(Marker.acSplitValue),"%s","STATIC");

@@ -1523,7 +1523,7 @@ void *WanMgr_WanRemoteIfaceConfigure_thread(void *arg)
             //Telemetry start
             WanMgr_Telemetry_Marker_t Marker;
 	    memset(&Marker, 0, sizeof(WanMgr_Telemetry_Marker_t));
-            Marker.marker = WAN_ERROR_PHY_DOWN;
+            Marker.enTelemetryMarkerID = WAN_ERROR_PHY_DOWN;
             snprintf(Marker.acPhysicalInterface,sizeof(Marker.acPhysicalInterface),"%s",pWanDmlIface->DisplayName);
             wanmgr_telemetry_event_string(&Marker);
             CcspTraceInfo(("%s %d: KAVYA, WAN_ERROR_PHY_DOWN..\n",__FUNCTION__, __LINE__));

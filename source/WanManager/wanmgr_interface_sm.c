@@ -671,7 +671,7 @@ void WanManager_UpdateInterfaceStatus(DML_VIRTUAL_IFACE* pVirtIf, wanmgr_iface_s
             }
             WanMgr_Telemetry_Marker_t Marker; 
 	    memset(&Marker, 0, sizeof(WanMgr_Telemetry_Marker_t));
-            Marker.marker = WAN_INFO_IPv4_UP;
+            Marker.enTelemetryMarkerID = WAN_INFO_IPv4_UP;
             snprintf(Marker.acPhysicalInterface,sizeof(Marker.acPhysicalInterface),"%s",pWanDmlIface->DisplayName);
             snprintf(Marker.acWANInterface,sizeof(Marker.acWANInterface),"%s",pWanDmlIface->Name);
             wanmgr_telemetry_event_string(&Marker);
@@ -695,7 +695,7 @@ void WanManager_UpdateInterfaceStatus(DML_VIRTUAL_IFACE* pVirtIf, wanmgr_iface_s
             }
             WanMgr_Telemetry_Marker_t Marker; 
 	    memset(&Marker, 0, sizeof(WanMgr_Telemetry_Marker_t));
-            Marker.marker = WAN_ERROR_IPv4_DOWN;
+            Marker.enTelemetryMarkerID = WAN_ERROR_IPv4_DOWN;
             snprintf(Marker.acPhysicalInterface,sizeof(Marker.acPhysicalInterface),"%s",pWanDmlIface->DisplayName);
             snprintf(Marker.acWANInterface,sizeof(Marker.acWANInterface),"%s",pWanDmlIface->Name);
             wanmgr_telemetry_event_string(&Marker);
@@ -716,7 +716,7 @@ void WanManager_UpdateInterfaceStatus(DML_VIRTUAL_IFACE* pVirtIf, wanmgr_iface_s
             }
             WanMgr_Telemetry_Marker_t Marker; 
 	    memset(&Marker, 0, sizeof(WanMgr_Telemetry_Marker_t));
-            Marker.marker = WAN_INFO_IPv6_UP;
+            Marker.enTelemetryMarkerID = WAN_INFO_IPv6_UP;
             snprintf(Marker.acPhysicalInterface,sizeof(Marker.acPhysicalInterface),"%s",pWanDmlIface->DisplayName);
             snprintf(Marker.acWANInterface,sizeof(Marker.acWANInterface),"%s",pWanDmlIface->Name);
             wanmgr_telemetry_event_string(&Marker);
@@ -747,13 +747,13 @@ void WanManager_UpdateInterfaceStatus(DML_VIRTUAL_IFACE* pVirtIf, wanmgr_iface_s
             }
             WanMgr_Telemetry_Marker_t Marker; 
 	    memset(&Marker, 0, sizeof(WanMgr_Telemetry_Marker_t));
-            Marker.marker = WAN_ERROR_IPv6_DOWN;
+            Marker.enTelemetryMarkerID = WAN_ERROR_IPv6_DOWN;
             snprintf(Marker.acPhysicalInterface,sizeof(Marker.acPhysicalInterface),"%s",pWanDmlIface->DisplayName);
             snprintf(Marker.acWANInterface,sizeof(Marker.acWANInterface),"%s",pWanDmlIface->Name);
             wanmgr_telemetry_event_string(&Marker);
             CcspTraceInfo(("%s %d: KAVYA, WAN_ERROR_IPv6_DOWN..\n",__FUNCTION__, __LINE__));
 
-            Marker.marker = WAN_ERROR_MAPT_STATUS_DOWN;
+            Marker.enTelemetryMarkerID = WAN_ERROR_MAPT_STATUS_DOWN;
             wanmgr_telemetry_event_string(&Marker);
             CcspTraceInfo(("%s %d: KAVYA, WAN_ERROR_MAPT_STATUS_DOWN..\n",__FUNCTION__, __LINE__));
             //Telemetry end
@@ -776,7 +776,7 @@ void WanManager_UpdateInterfaceStatus(DML_VIRTUAL_IFACE* pVirtIf, wanmgr_iface_s
             }
             WanMgr_Telemetry_Marker_t Marker; 
 	    memset(&Marker, 0, sizeof(WanMgr_Telemetry_Marker_t));
-            Marker.marker = WAN_INFO_MAPT_STATUS_UP;
+            Marker.enTelemetryMarkerID = WAN_INFO_MAPT_STATUS_UP;
             snprintf(Marker.acPhysicalInterface,sizeof(Marker.acPhysicalInterface),"%s",pWanDmlIface->DisplayName);
             snprintf(Marker.acWANInterface,sizeof(Marker.acWANInterface),"%s",pWanDmlIface->Name);
             wanmgr_telemetry_event_string(&Marker);
@@ -800,7 +800,7 @@ void WanManager_UpdateInterfaceStatus(DML_VIRTUAL_IFACE* pVirtIf, wanmgr_iface_s
             }
             WanMgr_Telemetry_Marker_t Marker; 
 	    memset(&Marker, 0, sizeof(WanMgr_Telemetry_Marker_t));
-            Marker.marker = WAN_ERROR_MAPT_STATUS_DOWN;
+            Marker.enTelemetryMarkerID = WAN_ERROR_MAPT_STATUS_DOWN;
             snprintf(Marker.acPhysicalInterface,sizeof(Marker.acPhysicalInterface),"%s",pWanDmlIface->DisplayName);
             snprintf(Marker.acWANInterface,sizeof(Marker.acWANInterface),"%s",pWanDmlIface->Name);
             wanmgr_telemetry_event_string(&Marker);
@@ -1703,7 +1703,7 @@ static ANSC_STATUS WanMgr_StartConnectivityCheck(WanMgr_IfaceSM_Controller_t* pW
             }
             WanMgr_Telemetry_Marker_t Marker; 
 	    memset(&Marker, 0, sizeof(WanMgr_Telemetry_Marker_t));
-            Marker.marker = WAN_INFO_CONNECTIVITY_CHECK_TYPE;
+            Marker.enTelemetryMarkerID = WAN_INFO_CONNECTIVITY_CHECK_TYPE;
             snprintf(Marker.acPhysicalInterface,sizeof(Marker.acPhysicalInterface),"%s",pWanDmlIface->DisplayName);
             snprintf(Marker.acWANInterface,sizeof(Marker.acWANInterface),"%s",pWanDmlIface->Name);
             snprintf(Marker.acSplitValue,sizeof(Marker.acSplitValue),"%s","TAD");
@@ -1726,7 +1726,7 @@ static ANSC_STATUS WanMgr_StartConnectivityCheck(WanMgr_IfaceSM_Controller_t* pW
             }
             WanMgr_Telemetry_Marker_t Marker; 
 	    memset(&Marker, 0, sizeof(WanMgr_Telemetry_Marker_t));
-            Marker.marker = WAN_INFO_CONNECTIVITY_CHECK_TYPE;
+            Marker.enTelemetryMarkerID = WAN_INFO_CONNECTIVITY_CHECK_TYPE;
             snprintf(Marker.acPhysicalInterface,sizeof(Marker.acPhysicalInterface),"%s",pWanDmlIface->DisplayName);
             snprintf(Marker.acWANInterface,sizeof(Marker.acWANInterface),"%s",pWanDmlIface->Name);
             snprintf(Marker.acSplitValue,sizeof(Marker.acSplitValue),"%s","IPOEHC");
@@ -2087,7 +2087,7 @@ static eWanState_t wan_transition_physical_interface_down(WanMgr_IfaceSM_Control
             }
             WanMgr_Telemetry_Marker_t Marker; 
 	    memset(&Marker, 0, sizeof(WanMgr_Telemetry_Marker_t));
-            Marker.marker = WAN_ERROR_VLAN_DOWN;
+            Marker.enTelemetryMarkerID = WAN_ERROR_VLAN_DOWN;
             snprintf(Marker.acPhysicalInterface,sizeof(Marker.acPhysicalInterface),"%s",pWanDmlIface->DisplayName);
             snprintf(Marker.acWANInterface,sizeof(Marker.acWANInterface),"%s",pWanDmlIface->Name);
             snprintf(Marker.acVirtualWANInterface,sizeof(Marker.acVirtualWANInterface),"%s",p_VirtIf->Name);
@@ -3055,7 +3055,7 @@ static eWanState_t wan_transition_standby(WanMgr_IfaceSM_Controller_t* pWanIface
     //Telemetry start
             WanMgr_Telemetry_Marker_t Marker; 
 	    memset(&Marker, 0, sizeof(WanMgr_Telemetry_Marker_t));
-            Marker.marker = WAN_INFO_WAN_STANDBY;
+            Marker.enTelemetryMarkerID = WAN_INFO_WAN_STANDBY;
             snprintf(Marker.acPhysicalInterface,sizeof(Marker.acPhysicalInterface),"%s",pInterface->DisplayName);
             snprintf(Marker.acWANInterface,sizeof(Marker.acWANInterface),"%s",pInterface->Name);
             wanmgr_telemetry_event_string(&Marker);
