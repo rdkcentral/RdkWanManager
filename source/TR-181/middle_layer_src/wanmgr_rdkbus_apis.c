@@ -1890,29 +1890,30 @@ ANSC_STATUS Update_Interface_Status()
                 }else
                     snprintf(newIface->ActiveStatus, sizeof(newIface->ActiveStatus), "%s,0", pWanIfaceData->DisplayName);
 
-                if(devMode  == GATEWAY_MODE)
+                /*
+                 * In Gateway Mode, CurrentActiveInterface should be an actual virtual Interface Name
+                 * In Modem/Extender Mode, CurrentActiveInterface should be always Mesh Interface Name
+                 */
+
+                if(pWanIfaceData->Selection.Status == WAN_IFACE_ACTIVE)
                 {
-                    if(pWanIfaceData->Selection.Status == WAN_IFACE_ACTIVE)
-                    {
-                        snprintf(newIface->CurrentActive, sizeof(newIface->CurrentActive), "%s", p_VirtIf->Name);
+                    snprintf(newIface->CurrentActive, sizeof(newIface->CurrentActive), "%s", (devMode == GATEWAY_MODE) ? p_VirtIf->Name : MESH_IFNAME);
 #ifdef RBUS_BUILD_FLAG_ENABLE
-                        snprintf(CurrentWanStatus,sizeof(CurrentWanStatus), "%s", (p_VirtIf->Status == WAN_IFACE_STATUS_UP)?"Up":"Down");
+                    snprintf(CurrentWanStatus,sizeof(CurrentWanStatus), "%s", (p_VirtIf->Status == WAN_IFACE_STATUS_UP)?"Up":"Down");
 #endif
 #if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
+                    if (devMode == GATEWAY_MODE)
+                    {
                         /* Update Only for Gateway mode. Wan IP Interface entry not added in PAM for MODEM_MODE */
                         WanMgr_RdkBus_setWanIpInterfaceData(p_VirtIf);
+                    }
 #endif
-                    }
-                    else if(pWanIfaceData->Selection.Status == WAN_IFACE_SELECTED)
-                    {
-                        snprintf(newIface->CurrentStandby, sizeof(newIface->CurrentStandby), "%s", p_VirtIf->Name);
-                    }
                 }
-                else // MODEM_MODE
+                else if(pWanIfaceData->Selection.Status == WAN_IFACE_SELECTED)
                 {
-                    /*In Modem/Extender Mode, CurrentActiveInterface should be always Mesh Interface Name*/
-                    strncpy(newIface->CurrentActive, MESH_IFNAME, sizeof(MESH_IFNAME));
+                    snprintf(newIface->CurrentStandby, sizeof(newIface->CurrentStandby), "%s", p_VirtIf->Name);
                 }
+
                 /* Sort the link list based on priority */
                 SortedInsert(&head, newIface);
             }
