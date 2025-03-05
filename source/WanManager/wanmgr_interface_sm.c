@@ -944,6 +944,16 @@ int wan_updateDNS(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl, BOOL addIPv4, BOOL
 
     if(resolv_conf_changed)
     {
+#if (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_))
+        //TODO: this is a workaround for the devices using the primary DNS for the backup interfaces. CurrentActiveDNS may not have the right value. 
+        WanMgr_Config_Data_t*   pWanConfigData = WanMgr_GetConfigData_locked();
+        if (pWanConfigData != NULL)
+        {
+            DML_WANMGR_CONFIG* pWanDmlData = &(pWanConfigData->data);
+            memset(pWanDmlData->CurrentActiveDNS, 0, sizeof(pWanDmlData->CurrentActiveDNS));
+            WanMgrDml_GetConfigData_release(pWanConfigData);
+        }
+#endif
         Update_Interface_Status();
     }
 
