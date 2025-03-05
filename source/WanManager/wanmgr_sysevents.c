@@ -1386,6 +1386,15 @@ static ANSC_STATUS wanmgr_snmpv3_restart()
 
 ANSC_STATUS wanmgr_services_restart()
 {
+    /** 
+     * Below WAN services will be refreshed during below use cases
+     * 1. WAN refresh
+     * 2. MAP-T to DualStack migration and vice versa
+     * 
+     * We need to ensure below WAN services restart may affect slow service distruption which were already 
+     * in progress. Like snmpv3 query may happen from outside of CPE and may reconnect,
+     * Someone trying to connect CPE via reversessh and it may delay or reconnect
+     */
     wanmgr_sshd_restart();
 #ifdef SNMPV3_ENABLED
     wanmgr_snmpv3_restart();
