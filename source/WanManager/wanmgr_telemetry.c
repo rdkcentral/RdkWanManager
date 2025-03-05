@@ -3,53 +3,102 @@
 static char buf[128] = {0};
 
 /*append api appends key value in pairs, separated by DELIMITER*/
-static void wanmgr_append(char* key, char* value)
+static void wanmgr_telemetry_append_key_value(char* key, const char* value)
 {
-        if(strlen(buf)>0)
-                strcat(buf,DELIMITER);
+        if(value != NULL)
+        {
+                if(strlen(buf)>0)
+                        strcat(buf,WANMGR_TELEMETRY_MARKER_ARG_DELIMITER);
 
-        strcat(buf,key);
-        strcat(buf,":");
-        strcat(buf,value);
+                strcat(buf,key);
+                strcat(buf,WANMGR_TELEMETRY_MARKER_KEY_VALUE_DELIMITER);
+                strcat(buf,value);
+        }
 }
 
-/*int type*/
-static void wanmgr_telemetry_event_int(char *marker, int value)
+void wanmgr_get_data_from_interface_data(DML_WAN_IFACE *pInterface,WanMgr_TelemetryEvent_t MarkerID)
 {
-        if(value == 0)
-                value = 1;
+        wanmgr_telemetry_append_key_value(WANMGR_PHY_INTERFACE_STRING,pInterface->DisplayName);
+        wanmgr_telemetry_append_key_value(WANMGR_WAN_INTERFACE_STRING,pInterface->Name);
+        switch(MarkerID)
+        {
+                case WAN_INFO_IP_MODE:
+//                      wanmgr_telemetry_append_key_value(WANMGR_WANMGR_SPLIT_VAL_STRING,WanMgr_Telemetry_IpModeStr[pInterface->VirtIfList->IP.Mode]);
+                        break;
+                default:
+        }
+        strcat(buf,"\0");
+        t2_event_s(WanMgr_TelemetryEventStr[MarkerID],buf);
 
-        //This api further to be developed
-        t2_event_d(marker,value);
+}
+void wanmgr_get_data_from_virt_interface_data(DML_VIRTUAL_IFACE *p_VirtIf, WanMgr_TelemetryEvent_t MarkerID)
+{
+        DML_WAN_IFACE *pInterface = NULL;
+        WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(p_VirtIf->baseIfIdx);
+        if(pWanDmlIfaceData != NULL)
+        {
+                pInterface = &(pWanDmlIfaceData->data);
+                WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+        }
+        wanmgr_telemetry_append_key_value(WANMGR_PHY_INTERFACE_STRING,pInterface->DisplayName);
+        wanmgr_telemetry_append_key_value(WANMGR_WAN_INTERFACE_STRING,pInterface->Name);
+
+        switch(MarkerID)
+        {
+                case WAN_INFO_IP_CONFIG_TYPE:
+//                      wanmgr_telemetry_append_key_value(WANMGR_WANMGR_SPLIT_VAL_STRING,WanMgr_Telemetry_IpSourceStr[p_VirtIf->IPv4Source]);
+                        break;
+                case WAN_ERROR_VLAN_DOWN:
+                case WAN_ERROR_VLAN_CREATION_FAILED:
+                        wanmgr_telemetry_append_key_value(WANMGR_VIRT_WAN_INTERFACE_STRING,p_VirtIf->Name);
+                        break;
+                case WAN_INFO_CONNECTIVITY_CHECK_TYPE:
+//                      wanmgr_telemetry_append_key_value(WANMGR_WANMGR_SPLIT_VAL_STRING,WanMgr_Telemetry_ConnectivityTypeStr[p_VirtIf->ConnectivityCheckType]);
+                        break;
+                default:
+        }
+        strcat(buf,"\0");
+        t2_event_s(WanMgr_TelemetryEventStr[MarkerID],buf);
+
 }
 
-/*float type*/
-static void wanmgr_telemetry_event_float( char *marker, double value)
+void wanmgr_telemetry_event(void *pStruct, WanMgr_TelemetryEvent_t MarkerID)
 {
-        if (value == 0)
-                value = 1;
-        //This api further to be developed
-        t2_event_f(marker, value);
-}
-
-/* wanmgr_telemetry_event_string - This api is to send string type telemetry marker. */
-void wanmgr_telemetry_event_string(WanMgr_Telemetry_Marker_t *Marker)
-{
+#ifdef ENABLE_FEATURE_TELEMETRY2_0
         memset(buf,sizeof(buf),0);
 
-        if(strlen(Marker->acPhysicalInterface) > 0)
-            wanmgr_append(PHY_INT_STRING,Marker->acPhysicalInterface);
+        switch(MarkerID)
+        {
+                case WAN_INFO_PHY_UP:
+                case WAN_ERROR_PHY_DOWN:
+                case WAN_WARN_IP_OBTAIN_TIMER_EXPIRED:
+                case WAN_INFO_WAN_UP:
+                case WAN_INFO_WAN_STANDBY:
+                case WAN_ERROR_WAN_DOWN:
+                case WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP:
+                case WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN:
+                case WAN_WARN_CONNECTIVITY_CHECK_STATUS_FAILED:
+                case WAN_INFO_IP_MODE:
+                        wanmgr_get_data_from_interface_data((DML_WAN_IFACE *)pStruct,MarkerID);
+                        break;
+                case WAN_INFO_IPv4_UP:
+                case WAN_ERROR_IPv4_DOWN:
+                case WAN_INFO_IPv6_UP:
+                case WAN_ERROR_IPv6_DOWN:
+                case WAN_ERROR_MAPT_STATUS_DOWN:
+                case WAN_INFO_MAPT_STATUS_UP:
+                case WAN_ERROR_MAPT_STATUS_FAILED:
+                case WAN_INFO_IP_CONFIG_TYPE:
+                case WAN_INFO_CONNECTIVITY_CHECK_TYPE:
+                case WAN_ERROR_VLAN_DOWN:
+                case WAN_ERROR_VLAN_CREATION_FAILED:
+                        wanmgr_get_data_from_virt_interface_data((DML_VIRTUAL_IFACE*)pStruct,MarkerID);
+                        break;
+                default:
 
-        if(strlen(Marker->acWANInterface) > 0)
-            wanmgr_append(WAN_INT_STRING,Marker->acWANInterface);
-
-        if(strlen(Marker->acVirtualWANInterface) > 0)
-            wanmgr_append(VIRT_WAN_INT_STRING,Marker->acVirtualWANInterface);
-
-        if(strlen(Marker->acSplitValue) > 0 )
-            wanmgr_append(SPLIT_VAL_STRING,Marker->acSplitValue);
-
-        strcat(buf,"\0");
-        //eg: buf = [PHY_INT:DSL,WAN_INT:dsl,VIRT_WAN_INT:vdsl0,SPLIT_VAL:STATIC] -> key value pair ':' separated, arguments ',' separted
-        t2_event_s(WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID],buf);
+        }
+/*#else
+ * Further Telemetry versions to be handled here
+ */
+#endif
 }

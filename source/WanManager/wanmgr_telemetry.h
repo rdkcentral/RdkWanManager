@@ -4,13 +4,16 @@
 #include <stdlib.h>
 #include <string.h>
 #include "wanmgr_rdkbus_utils.h"
+#include "wanmgr_dml.h"
 
-#define DELIMITER ","
+#define WANMGR_TELEMETRY_MARKER_ARG_DELIMITER ","
+#define WANMGR_TELEMETRY_MARKER_KEY_VALUE_DELIMITER ":"
 
-#define PHY_INT_STRING       "PHY_INT"
-#define WAN_INT_STRING       "WAN_INT"
-#define VIRT_WAN_INT_STRING  "VIRT_WAN_INT"
-#define SPLIT_VAL_STRING     "SPLIT_VAL"
+
+#define WANMGR_PHY_INTERFACE_STRING       "PHY_NAME"
+#define WANMGR_WAN_INTERFACE_STRING       "WAN_NAME"
+#define WANMGR_VIRT_WAN_INTERFACE_STRING  "VIRT_WAN_NAME"
+#define WANMGR_WANMGR_SPLIT_VAL_STRING    "SPLIT_VAL"
 
 typedef enum WanMgr_TelemetryEvent
 {
@@ -63,18 +66,27 @@ static const char * const WanMgr_TelemetryEventStr[] =
         [WAN_ERROR_VLAN_DOWN] = "WAN_ERROR_VLAN_DOWN_split",
         [WAN_ERROR_VLAN_CREATION_FAILED] = "WAN_ERROR_VLAN_CREATION_FAILED_split"
 };
-
-typedef  struct _WANMGR_TELEMETRY_MARKER_
+static const char * const WanMgr_Telemetry_IpSourceStr[] =
 {
-        WanMgr_TelemetryEvent_t enTelemetryMarkerID;
-        char acPhysicalInterface[32];
-        char acWANInterface[32];
-        char acVirtualWANInterface[32];
-        char acSplitValue[32];
+    [DML_WAN_IP_SOURCE_STATIC] = "STATIC",
+    [DML_WAN_IP_SOURCE_DHCP] = "DHCP",
+    [DML_WAN_IP_SOURCE_PPP] = "PPP"
+};
 
-} WanMgr_Telemetry_Marker_t;
+static const char * const WanMgr_Telemetry_IpModeStr[] =
+{
+    [DML_WAN_IP_MODE_IPV4_ONLY] = "IPV4_ONLY",
+    [DML_WAN_IP_MODE_IPV6_ONLY] = "IPV6_ONLY",
+    [DML_WAN_IP_MODE_DUAL_STACK] = "DUAL_STACK",
+    [DML_WAN_IP_MODE_NO_IP] = "NO_IP"
+};
 
-void wanmgr_telemetry_event_string(WanMgr_Telemetry_Marker_t *Marker);
+static const char * const WanMgr_Telemetry_ConnectivityTypeStr[] =
+{
+    [WAN_CONNECTIVITY_TYPE_NO_CHECK] = "NO_CHECK",
+    [WAN_CONNECTIVITY_TYPE_IHC] = "IPOEHC",
+    [WAN_CONNECTIVITY_TYPE_TAD] = "TAD"
+};
+
+void wanmgr_telemetry_event(void *pStruct, WanMgr_TelemetryEvent_t enTelemetryMarkerID);
 #endif //_WAN_TELEMETRY_MARKER_H_
-
-

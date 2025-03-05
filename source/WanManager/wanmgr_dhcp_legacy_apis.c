@@ -1413,7 +1413,7 @@ static int WanManager_CreateDHCPService(DML_VIRTUAL_IFACE* p_VirtIf)
             pid = atoi(pidStr);
             fclose(fp);
         }
-            //Telemetry start
+            /*Telemetry start
             WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(p_VirtIf->baseIfIdx);
             DML_WAN_IFACE* pWanDmlIface;
             if(pWanDmlIfaceData != NULL)
@@ -1429,7 +1429,7 @@ static int WanManager_CreateDHCPService(DML_VIRTUAL_IFACE* p_VirtIf)
             snprintf(Marker.acSplitValue,sizeof(Marker.acSplitValue),"%s","STATIC");
             wanmgr_telemetry_event_string(&Marker);
             CcspTraceInfo(("%s %d: KAVYA, WAN_INFO_IP_CONFIG_TYPE..\n",__FUNCTION__, __LINE__));
-            //Telemetry end
+            //Telemetry end*/
     }
 
     if ( pid < 0 || 0 != kill(pid, 0))
