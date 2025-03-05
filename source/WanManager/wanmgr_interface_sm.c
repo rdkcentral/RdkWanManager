@@ -451,6 +451,7 @@ static void WanMgr_MonitorDhcpApps (WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
         return;
     }
 
+#ifndef FEATURE_RDKB_DHCP_MANAGER
     //Check if IPv4 dhcp client is still running - handling runtime crash of dhcp scenario
     if ((p_VirtIf->IP.Mode == DML_WAN_IP_MODE_IPV4_ONLY || p_VirtIf->IP.Mode == DML_WAN_IP_MODE_DUAL_STACK) &&  // IP.Mode supports V4
         p_VirtIf->IP.IPv4Source == DML_WAN_IP_SOURCE_DHCP && (p_VirtIf->PPP.Enable == FALSE) &&                 // uses DHCP client
@@ -488,6 +489,7 @@ static void WanMgr_MonitorDhcpApps (WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
         t2_event_d("SYS_ERROR_DHCPV6Client_notrunning", 1);
 #endif
     }
+#endif
 
     /* Handling Runtime IP.ConnectivityCheckType change */
     if(p_VirtIf->IP.WCC_TypeChanged  == TRUE)

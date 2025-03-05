@@ -34,7 +34,7 @@
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <ifaddrs.h>
-#include "platform_hal.h"
+//#include "platform_hal.h"
 #include <sys/sysinfo.h>
 #include <syscfg/syscfg.h>
 #include "dhcp_client_utils.h"
@@ -438,7 +438,15 @@ int WanManager_StartDhcpv6Client(DML_VIRTUAL_IFACE* pVirtIf, IFACE_TYPE IfaceTyp
     }
 
 #if FEATURE_RDKB_DHCP_MANAGER
-    if (ANSC_STATUS_SUCCESS == WanMgr_RdkBus_SetParamValues(DHCPMGR_COMPONENT_NAME, DHCPMGR_DBUS_PATH, pVirtIf->IP.DHCPv6Iface, "true", ccsp_boolean, TRUE))
+    char dmlName[256] = {0};
+    
+    snprintf( dmlName, sizeof(dmlName), "%s.Interface", pVirtIf->IP.DHCPv6Iface );
+    WanMgr_RdkBus_SetParamValues(DHCPMGR_COMPONENT_NAME, DHCPMGR_DBUS_PATH, dmlName, pVirtIf->Name, ccsp_string, TRUE);
+    memset(dmlName, 0, sizeof(dmlName));
+
+    snprintf( dmlName, sizeof(dmlName), "%s.Enable", pVirtIf->IP.DHCPv6Iface );
+
+    if (ANSC_STATUS_SUCCESS == WanMgr_RdkBus_SetParamValues(DHCPMGR_COMPONENT_NAME, DHCPMGR_DBUS_PATH, dmlName , "true", ccsp_boolean, TRUE))
     {
         CcspTraceInfo(("%s %d - Successfully set [%s] to DHCP Manager \n", __FUNCTION__, __LINE__, pVirtIf->Name));
     }
@@ -496,7 +504,9 @@ ANSC_STATUS WanManager_StopDhcpv6Client(DML_VIRTUAL_IFACE* pVirtIf, DHCP_RELEASE
     }
 
 #if FEATURE_RDKB_DHCP_MANAGER
-    if (ANSC_STATUS_SUCCESS == WanMgr_RdkBus_SetParamValues(DHCPMGR_COMPONENT_NAME, DHCPMGR_DBUS_PATH, pVirtIf->IP.DHCPv6Iface, "false", ccsp_boolean, TRUE))
+    char dmlName[256] = {0};
+    snprintf( dmlName, sizeof(dmlName), "%s.Enable", pVirtIf->IP.DHCPv6Iface );
+    if (ANSC_STATUS_SUCCESS == WanMgr_RdkBus_SetParamValues(DHCPMGR_COMPONENT_NAME, DHCPMGR_DBUS_PATH, dmlName, "false", ccsp_boolean, TRUE))
     {
         CcspTraceInfo(("%s %d - Successfully set [%s] to DHCP Manager \n", __FUNCTION__, __LINE__, pVirtIf->Name));
     }
@@ -527,7 +537,12 @@ int WanManager_StartDhcpv4Client(DML_VIRTUAL_IFACE* pVirtIf, char* baseInterface
         return 0;
     }
 #if FEATURE_RDKB_DHCP_MANAGER
-    if (ANSC_STATUS_SUCCESS == WanMgr_RdkBus_SetParamValues(DHCPMGR_COMPONENT_NAME, DHCPMGR_DBUS_PATH, pVirtIf->IP.DHCPv4Iface, "true", ccsp_boolean, TRUE))
+    char dmlName[256] = {0};
+    snprintf( dmlName, sizeof(dmlName), "%s.Interface", pVirtIf->IP.DHCPv4Iface );
+    WanMgr_RdkBus_SetParamValues(DHCPMGR_COMPONENT_NAME, DHCPMGR_DBUS_PATH, dmlName, pVirtIf->Name, ccsp_string, TRUE);
+    memset(dmlName, 0, sizeof(dmlName));
+    snprintf( dmlName, sizeof(dmlName), "%s.Enable", pVirtIf->IP.DHCPv4Iface );
+    if (ANSC_STATUS_SUCCESS == WanMgr_RdkBus_SetParamValues(DHCPMGR_COMPONENT_NAME, DHCPMGR_DBUS_PATH, dmlName, "true", ccsp_boolean, TRUE))
     {
         CcspTraceInfo(("%s %d - Successfully set [%s] to DHCP Manager \n", __FUNCTION__, __LINE__, pVirtIf->Name));
     }
@@ -570,8 +585,11 @@ ANSC_STATUS WanManager_StopDhcpv4Client(DML_VIRTUAL_IFACE* pVirtIf, DHCP_RELEASE
         return 0;
     }
     CcspTraceInfo (("%s %d: Stopping dhcpv4 client for %s %s\n", __FUNCTION__, __LINE__, pVirtIf->Name, (IsReleaseNeeded==STOP_DHCP_WITH_RELEASE)? "With release": "."));
-    #if FEATURE_RDKB_DHCP_MANAGER
-    if (ANSC_STATUS_SUCCESS == WanMgr_RdkBus_SetParamValues(DHCPMGR_COMPONENT_NAME, DHCPMGR_DBUS_PATH, pVirtIf->IP.DHCPv4Iface, "false", ccsp_boolean, TRUE))
+#if FEATURE_RDKB_DHCP_MANAGER
+    char dmlName[256] = {0};
+    snprintf( dmlName, sizeof(dmlName), "%s.Enable", pVirtIf->IP.DHCPv4Iface );
+    //TODO : trigger release DML
+    if (ANSC_STATUS_SUCCESS == WanMgr_RdkBus_SetParamValues(DHCPMGR_COMPONENT_NAME, DHCPMGR_DBUS_PATH, dmlName, "false", ccsp_boolean, TRUE))
     {
         CcspTraceInfo(("%s %d - Successfully set [%s] to DHCP Manager \n", __FUNCTION__, __LINE__, pVirtIf->Name));
     }
