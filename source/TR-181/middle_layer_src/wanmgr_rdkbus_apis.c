@@ -1931,6 +1931,10 @@ ANSC_STATUS Update_Interface_Status()
 #ifdef RBUS_BUILD_FLAG_ENABLE
                 publishCurrentActiveDNS = TRUE;
 #endif
+                CcspTraceInfo(("%s %d - SYS_INFO_DNS_updated - old : [%s] new : [%s]\n",__FUNCTION__,__LINE__,prevCurrentActiveDNS,CurrentActiveDNS));
+#ifdef ENABLE_FEATURE_TELEMETRY2_0
+                t2_event_d("SYS_INFO_DNS_updated", 1);
+#endif
             }
         }
 
