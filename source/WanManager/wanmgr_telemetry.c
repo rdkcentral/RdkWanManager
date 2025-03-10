@@ -62,12 +62,12 @@ void wanmgr_get_data_from_virt_interface_data(DML_VIRTUAL_IFACE *p_VirtIf, WanMg
 
 }
 
-void wanmgr_telemetry_event(void *pStruct, WanMgr_TelemetryEvent_t MarkerID)
+void wanmgr_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
 {
 #ifdef ENABLE_FEATURE_TELEMETRY2_0
         memset(buf,sizeof(buf),0);
 
-        switch(MarkerID)
+        switch(Marker->enTelemetryMarkerID)
         {
                 case WAN_INFO_PHY_UP:
                 case WAN_ERROR_PHY_DOWN:
@@ -79,7 +79,7 @@ void wanmgr_telemetry_event(void *pStruct, WanMgr_TelemetryEvent_t MarkerID)
                 case WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN:
                 case WAN_WARN_CONNECTIVITY_CHECK_STATUS_FAILED:
                 case WAN_INFO_IP_MODE:
-                        wanmgr_get_data_from_interface_data((DML_WAN_IFACE *)pStruct,MarkerID);
+                        wanmgr_get_data_from_interface_data((DML_WAN_IFACE *)Marker->pStruct_1,Marker->enTelemetryMarkerID);
                         break;
                 case WAN_INFO_IPv4_UP:
                 case WAN_ERROR_IPv4_DOWN:
@@ -92,7 +92,7 @@ void wanmgr_telemetry_event(void *pStruct, WanMgr_TelemetryEvent_t MarkerID)
                 case WAN_INFO_CONNECTIVITY_CHECK_TYPE:
                 case WAN_ERROR_VLAN_DOWN:
                 case WAN_ERROR_VLAN_CREATION_FAILED:
-                        wanmgr_get_data_from_virt_interface_data((DML_VIRTUAL_IFACE*)pStruct,MarkerID);
+                        wanmgr_get_data_from_virt_interface_data((DML_VIRTUAL_IFACE*)Marker->pStruct_1,Marker->enTelemetryMarkerID);
                         break;
                 default:
 

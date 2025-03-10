@@ -2093,7 +2093,7 @@ static eWanState_t wan_transition_physical_interface_down(WanMgr_IfaceSM_Control
             snprintf(Marker.acVirtualWANInterface,sizeof(Marker.acVirtualWANInterface),"%s",p_VirtIf->Name);
             wanmgr_telemetry_event_string(&Marker);
             CcspTraceInfo(("%s %d: KAVYA, WAN_ERROR_VLAN_DOWN..\n",__FUNCTION__, __LINE__));
-            //Telemetry end
+            //Telemetry end*/
             }
         }
     }

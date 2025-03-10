@@ -88,5 +88,12 @@ static const char * const WanMgr_Telemetry_ConnectivityTypeStr[] =
     [WAN_CONNECTIVITY_TYPE_TAD] = "TAD"
 };
 
-void wanmgr_telemetry_event(void *pStruct, WanMgr_TelemetryEvent_t enTelemetryMarkerID);
+typedef  struct _WANMGR_TELEMETRY_MARKER_
+{
+        WanMgr_TelemetryEvent_t enTelemetryMarkerID;
+        void *pStruct_1;
+        void *pStruct_2;
+} WanMgr_Telemetry_Marker_t;
+
+void wanmgr_telemetry_event(WanMgr_Telemetry_Marker_t *);
 #endif //_WAN_TELEMETRY_MARKER_H_

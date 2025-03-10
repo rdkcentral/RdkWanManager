@@ -886,10 +886,10 @@ ANSC_STATUS WanMgr_GetBaseInterfaceStatus (DML_WAN_IFACE *pWanIfaceData)
         if(strcmp(dmValue,"true") == 0)
         {
             pWanIfaceData->BaseInterfaceStatus = WAN_IFACE_PHY_STATUS_UP;
-            //Telemetry start
+            /*Telemetry start
 	    wanmgr_telemetry_event(pWanIfaceData,WAN_INFO_PHY_UP);
             CcspTraceInfo(("%s %d: KAVYA, WAN_INFO_PHY_UP..\n",__FUNCTION__, __LINE__));
-            //Telemetry end
+            //Telemetry end*/
         }
 
     }
@@ -905,10 +905,10 @@ ANSC_STATUS WanMgr_GetBaseInterfaceStatus (DML_WAN_IFACE *pWanIfaceData)
         if(strcmp(dmValue,"true") == 0)
         {
             pWanIfaceData->BaseInterfaceStatus = WAN_IFACE_PHY_STATUS_UP;
-            //Telemetry start
+            /*Telemetry start
 	    wanmgr_telemetry_event(pWanIfaceData,WAN_INFO_PHY_UP);
             CcspTraceInfo(("%s %d: KAVYA, WAN_INFO_PHY_UP..\n",__FUNCTION__, __LINE__));
-            //Telemetry end
+            //Telemetry end*/
         }
 
     }
@@ -924,10 +924,10 @@ ANSC_STATUS WanMgr_GetBaseInterfaceStatus (DML_WAN_IFACE *pWanIfaceData)
         if(strcmp(dmValue,"OPERATIONAL") == 0)
         {
             pWanIfaceData->BaseInterfaceStatus = WAN_IFACE_PHY_STATUS_UP;
-            //Telemetry start
+            /*Telemetry start
 	    wanmgr_telemetry_event(pWanIfaceData,WAN_INFO_PHY_UP);
             CcspTraceInfo(("%s %d: KAVYA, WAN_INFO_PHY_UP..\n",__FUNCTION__, __LINE__));
-            //Telemetry end
+            //Telemetry end*/
         }
 
     }
@@ -943,10 +943,10 @@ ANSC_STATUS WanMgr_GetBaseInterfaceStatus (DML_WAN_IFACE *pWanIfaceData)
         if(strcmp(dmValue,"Up") == 0)
         {
             pWanIfaceData->BaseInterfaceStatus = WAN_IFACE_PHY_STATUS_UP;
-            //Telemetry start
+            /*Telemetry start
 	    wanmgr_telemetry_event(pWanIfaceData,WAN_INFO_PHY_UP);
             CcspTraceInfo(("%s %d: KAVYA, WAN_INFO_PHY_UP..\n",__FUNCTION__, __LINE__));
-            //Telemetry end
+            //Telemetry end*/
         }
     }
     CcspTraceInfo(("%s %d  %s : %s \n", __FUNCTION__, __LINE__, dmQuery, dmValue));
