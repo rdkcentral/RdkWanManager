@@ -1524,8 +1524,10 @@ void *WanMgr_WanRemoteIfaceConfigure_thread(void *arg)
             WanMgr_Telemetry_Marker_t Marker;
 	    memset(&Marker, 0, sizeof(WanMgr_Telemetry_Marker_t));
             Mairker.enTelemetryMarkerID = WAN_ERROR_PHY_DOWN;
-	    Marker.pStruct_1 = pWanDmlIface ;
-	    wanmgr_telemetry_event(&Marker);
+	    Marker.pInterface = pWanDmlIface ;
+	    if(wanmgr_telemetry_event(&Marker) != ANSC_STATUS_SUCCESS)
+		    CcspTraceError(("%s %d: KAVYA, Error WAN_ERROR_PHY_DOWN..\n",__FUNCTION__, __LINE__));
+
             CcspTraceInfo(("%s %d: KAVYA, WAN_ERROR_PHY_DOWN..\n",__FUNCTION__, __LINE__));
             //Telemetry end
             free(pDeviceChangeEvent);

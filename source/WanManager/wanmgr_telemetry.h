@@ -90,10 +90,11 @@ static const char * const WanMgr_Telemetry_ConnectivityTypeStr[] =
 
 typedef  struct _WANMGR_TELEMETRY_MARKER_
 {
-        WanMgr_TelemetryEvent_t enTelemetryMarkerID;
-        void *pStruct_1;
-        void *pStruct_2;
+    WanMgr_TelemetryEvent_t enTelemetryMarkerID;
+    DML_WAN_IFACE *pInterface;
+    DML_VIRTUAL_IFACE *pVirtInterface;
 } WanMgr_Telemetry_Marker_t;
 
-void wanmgr_telemetry_event(WanMgr_Telemetry_Marker_t *);
+ANSC_STATUS wanmgr_telemetry_event(WanMgr_Telemetry_Marker_t *);
+
 #endif //_WAN_TELEMETRY_MARKER_H_
