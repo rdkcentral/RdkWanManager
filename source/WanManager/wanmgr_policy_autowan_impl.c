@@ -2372,15 +2372,16 @@ static WcFmobPolicyState_t Transition_WanInterfaceActive(WanMgr_AutoWan_SMInfo_t
     Update_Interface_Status();
 
     CcspTraceInfo(("%s %d - State changed to STATE_WAN_INTERFACE_ACTIVE if_name %s\n", __FUNCTION__, __LINE__,pFixedInterface->VirtIfList->Name));
-    /*Telemetry start
-            WanMgr_Telemetry_Marker_t Marker; 
-	    memset(&Marker, 0, sizeof(WanMgr_Telemetry_Marker_t));
-            Marker.enTelemetryMarkerID = WAN_INFO_WAN_UP;
-            snprintf(Marker.acPhysicalInterface,sizeof(Marker.acPhysicalInterface),"%s",pFixedInterface->DisplayName);
-            snprintf(Marker.acWANInterface,sizeof(Marker.acWANInterface),"%s",pFixedInterface->Name);
-            wanmgr_telemetry_event_string(&Marker);
-            CcspTraceInfo(("%s %d: KAVYA, WAN_INFO_WAN_UP..\n",__FUNCTION__, __LINE__));
-            //Telemetry end*/
+    //Telemetry start
+    WanMgr_Telemetry_Marker_t Marker;
+    memset(&Marker, 0, sizeof(WanMgr_Telemetry_Marker_t));
+    Marker.enTelemetryMarkerID = WAN_INFO_WAN_UP;
+    Marker.pInterface = pFixedInterface ;
+    if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
+        CcspTraceError(("%s %d: KAVYA,Error WAN_INFO_WAN_UP..\n",__FUNCTION__, __LINE__));;
+    }
+    CcspTraceInfo(("%s %d: KAVYA, WAN_INFO_WAN_UP..\n",__FUNCTION__, __LINE__));
+    //Telemetry end
     return STATE_WAN_INTERFACE_ACTIVE;
 }
 #ifdef WAN_FAILOVER_SUPPORTED

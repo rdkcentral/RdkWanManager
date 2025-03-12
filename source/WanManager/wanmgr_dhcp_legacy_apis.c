@@ -1413,23 +1413,16 @@ static int WanManager_CreateDHCPService(DML_VIRTUAL_IFACE* p_VirtIf)
             pid = atoi(pidStr);
             fclose(fp);
         }
-            /*Telemetry start
-            WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(p_VirtIf->baseIfIdx);
-            DML_WAN_IFACE* pWanDmlIface;
-            if(pWanDmlIfaceData != NULL)
-            {
-                pWanDmlIface = &(pWanDmlIfaceData->data);
-                WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
-            }
-            WanMgr_Telemetry_Marker_t Marker; 
-	    memset(&Marker, 0, sizeof(WanMgr_Telemetry_Marker_t));
+            //Telemetry start
+            WanMgr_Telemetry_Marker_t Marker;
+            memset(&Marker, 0, sizeof(WanMgr_Telemetry_Marker_t));
             Marker.enTelemetryMarkerID = WAN_INFO_IP_CONFIG_TYPE;
-            snprintf(Marker.acPhysicalInterface,sizeof(Marker.acPhysicalInterface),"%s",pWanDmlIface->DisplayName);
-            snprintf(Marker.acWANInterface,sizeof(Marker.acWANInterface),"%s",pWanDmlIface->Name);
-            snprintf(Marker.acSplitValue,sizeof(Marker.acSplitValue),"%s","STATIC");
-            wanmgr_telemetry_event_string(&Marker);
+            Marker.pVirtInterface = p_VirtIf ;
+            if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
+                    CcspTraceError(("%s %d: KAVYA,Error WAN_INFO_IP_CONFIG_TYPE..\n",__FUNCTION__, __LINE__));;
+            }
             CcspTraceInfo(("%s %d: KAVYA, WAN_INFO_IP_CONFIG_TYPE..\n",__FUNCTION__, __LINE__));
-            //Telemetry end*/
+            //Telemetry end
     }
 
     if ( pid < 0 || 0 != kill(pid, 0))
