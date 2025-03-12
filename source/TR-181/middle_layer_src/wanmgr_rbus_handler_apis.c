@@ -23,6 +23,7 @@
 #include "wanmgr_rbus_handler_apis.h"
 #include "wanmgr_rdkbus_apis.h"
 #include "dmsb_tr181_psm_definitions.h"
+
 enum {
 ENUM_PHY = 1,
 ENUM_WAN_STATUS,
@@ -2044,5 +2045,21 @@ void *WanMgr_Configure_WCC_Thread(void *arg)
     free(pTADEvent);
     pthread_exit(NULL);
     return NULL;
+}
+
+void WanMgr_SubscribeDhcpClientEvents(const char *DhcpInterface)
+{
+    rbusError_t rc = RBUS_ERROR_SUCCESS;
+    char eventName[64] = {0};
+    snprintf(eventName, sizeof(eventName), "%s.Events", DhcpInterface);
+    rc = RBUS_ERROR_SUCCESS;
+    rc = rbusEvent_Subscribe(rbusHandle, eventName, WanMgr_DhcpClientEventsHandler, NULL, 60);
+    if(rc != RBUS_ERROR_SUCCESS)
+    {
+        CcspTraceError(("%s %d - Failed to Subscribe %s, Error=%s \n", __FUNCTION__, __LINE__, eventName, rbusError_ToString(rc)));
+        return NULL;
+    }
+    
+    CcspTraceInfo(("%s %d: Subscribed to %s  n", __FUNCTION__, __LINE__, eventName));
 }
 

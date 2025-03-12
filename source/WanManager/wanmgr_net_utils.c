@@ -538,6 +538,7 @@ int WanManager_StartDhcpv4Client(DML_VIRTUAL_IFACE* pVirtIf, char* baseInterface
     }
 #if FEATURE_RDKB_DHCP_MANAGER
     char dmlName[256] = {0};
+    WanMgr_SubscribeDhcpClientEvents(pVirtIf->IP.DHCPv4Iface);
     snprintf( dmlName, sizeof(dmlName), "%s.Interface", pVirtIf->IP.DHCPv4Iface );
     WanMgr_RdkBus_SetParamValues(DHCPMGR_COMPONENT_NAME, DHCPMGR_DBUS_PATH, dmlName, pVirtIf->Name, ccsp_string, TRUE);
     memset(dmlName, 0, sizeof(dmlName));
@@ -597,6 +598,7 @@ ANSC_STATUS WanManager_StopDhcpv4Client(DML_VIRTUAL_IFACE* pVirtIf, DHCP_RELEASE
     {
         CcspTraceInfo(("%s %d - Failed setting [%s] to DHCP Manager \n", __FUNCTION__, __LINE__, pVirtIf->Name));
     }
+    //TODO: add unsub
     return ANSC_STATUS_SUCCESS;
 #else
 #if defined(_DT_WAN_Manager_Enable_)

@@ -193,4 +193,7 @@ ANSC_STATUS WanMgr_WanRemoteIfaceConfigure(WanMgr_DeviceChangeEvent * pDeviceCha
 void WanMgr_Rbus_SubscribeWanReady();
 /* WCC - Wan Connectivity Check*/
 ANSC_STATUS WanMgr_Configure_TAD_WCC(DML_VIRTUAL_IFACE *pVirtIf, WCC_EVENT Event);
+
+void WanMgr_SubscribeDhcpClientEvents(const char *DhcpInterface);
+void WanMgr_DhcpClientEventsHandler(rbusHandle_t handle, rbusEvent_t const* event, rbusEventSubscription_t* subscription);
 #endif
