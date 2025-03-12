@@ -8,27 +8,29 @@ static void wanmgr_telemetry_append_key_value(char* key, const char* value)
     if(value != NULL)
     {
         if(strlen(buf)>0)
-            strcat(buf,WANMGR_TELEMETRY_MARKER_ARG_DELIMITER);
+            strcat(buf,WANMGR_T2_TELEMETRY_MARKER_ARG_DELIMITER);
         
         strcat(buf,key);
-        strcat(buf,WANMGR_TELEMETRY_MARKER_KEY_VALUE_DELIMITER);
+        strcat(buf,WANMGR_T2_TELEMETRY_MARKER_KEY_VALUE_DELIMITER);
         strcat(buf,value);
     }
 }
-ANSC_STATUS wanmgr_send_T2_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
+/*This api processes the Marker struct,
+ * gets the data required to send to T2 marker*/
+ANSC_STATUS wanmgr_process_T2_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
 {
     DML_WAN_IFACE *pIntf = Marker->pInterface;
     DML_VIRTUAL_IFACE *pVirtIntf = Marker->pVirtInterface;
     
     if(pIntf == NULL && pVirtIntf == NULL)
-	{
+    {
         return ANSC_STATUS_FAILURE;
     }
     
     if(pIntf)
     {
-        wanmgr_telemetry_append_key_value(WANMGR_PHY_INTERFACE_STRING,pIntf->DisplayName);
-        wanmgr_telemetry_append_key_value(WANMGR_WAN_INTERFACE_STRING,pIntf->Name);
+        wanmgr_telemetry_append_key_value(WANMGR_T2_PHY_INTERFACE_STRING,pIntf->DisplayName);
+        wanmgr_telemetry_append_key_value(WANMGR_T2_WAN_INTERFACE_STRING,pIntf->Name);
     }
     if(pVirtIntf)
     {
@@ -40,8 +42,8 @@ ANSC_STATUS wanmgr_send_T2_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
                 pIntf = &(pWanDmlIfaceData->data);
                 WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
             }
-            wanmgr_telemetry_append_key_value(WANMGR_PHY_INTERFACE_STRING,pIntf->DisplayName);
-            wanmgr_telemetry_append_key_value(WANMGR_WAN_INTERFACE_STRING,pIntf->Name);
+            wanmgr_telemetry_append_key_value(WANMGR_T2_PHY_INTERFACE_STRING,pIntf->DisplayName);
+            wanmgr_telemetry_append_key_value(WANMGR_T2_WAN_INTERFACE_STRING,pIntf->Name);
         }
     }
     else
@@ -51,17 +53,17 @@ ANSC_STATUS wanmgr_send_T2_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
     switch(Marker->enTelemetryMarkerID)
     {
         case WAN_INFO_IP_MODE:
-            wanmgr_telemetry_append_key_value(WANMGR_WANMGR_SPLIT_VAL_STRING,WanMgr_Telemetry_IpModeStr[pVirtIntf->IP.Mode]);
+            wanmgr_telemetry_append_key_value(WANMGR_T2_WANMGR_SPLIT_VAL_STRING,WanMgr_Telemetry_IpModeStr[pVirtIntf->IP.Mode]);
             break;
         case WAN_INFO_IP_CONFIG_TYPE:
-            wanmgr_telemetry_append_key_value(WANMGR_WANMGR_SPLIT_VAL_STRING,WanMgr_Telemetry_IpSourceStr[pVirtIntf->IP.IPv4Source]);
+            wanmgr_telemetry_append_key_value(WANMGR_T2_WANMGR_SPLIT_VAL_STRING,WanMgr_Telemetry_IpSourceStr[pVirtIntf->IP.IPv4Source]);
             break;
         case WAN_ERROR_VLAN_DOWN:
         case WAN_ERROR_VLAN_CREATION_FAILED:
-            wanmgr_telemetry_append_key_value(WANMGR_VIRT_WAN_INTERFACE_STRING,pVirtIntf->Name);
+            wanmgr_telemetry_append_key_value(WANMGR_T2_VIRT_WAN_INTERFACE_STRING,pVirtIntf->Name);
             break;
         case WAN_INFO_CONNECTIVITY_CHECK_TYPE:
-            wanmgr_telemetry_append_key_value(WANMGR_WANMGR_SPLIT_VAL_STRING,WanMgr_Telemetry_ConnectivityTypeStr[pVirtIntf->IP.ConnectivityCheckType]);
+            wanmgr_telemetry_append_key_value(WANMGR_T2_WANMGR_SPLIT_VAL_STRING,WanMgr_Telemetry_ConnectivityTypeStr[pVirtIntf->IP.ConnectivityCheckType]);
             break;
         default:
     }
@@ -69,11 +71,15 @@ ANSC_STATUS wanmgr_send_T2_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
     return ANSC_STATUS_SUCCESS;
 }
 
+/*A generic api for telemetry marker,
+ * it gets the necessary parameter structs and
+ * sends them to appropriate api to be processed.*/
 
 ANSC_STATUS wanmgr_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
 {
 #ifdef ENABLE_FEATURE_TELEMETRY2_0
-    if(Marker == NULL){
+    if(Marker == NULL)
+    {
         return ANSC_STATUS_FAILURE; 
     }
     
@@ -101,7 +107,7 @@ ANSC_STATUS wanmgr_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
         case WAN_INFO_CONNECTIVITY_CHECK_TYPE:
         case WAN_ERROR_VLAN_DOWN:
         case WAN_ERROR_VLAN_CREATION_FAILED:
-            if(ANSC_STATUS_FAILURE == wanmgr_process_telemetry_event(Marker))
+            if(ANSC_STATUS_FAILURE == wanmgr_process_T2_telemetry_event(Marker))
             {
                 return ANSC_STATUS_FAILURE;
             }

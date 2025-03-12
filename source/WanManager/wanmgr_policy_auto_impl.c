@@ -1111,12 +1111,11 @@ static WcAwPolicyState_t State_WaitForInterface (WanMgr_Policy_Controller_t * pW
         CcspTraceInfo(("%s %d: Validation Timer expired for interface index:%d and there is another iface that can be possibly used as Wan interface\n", 
                     __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
         //Telemetry start
-        WanMgr_Telemetry_Marker_t Marker;
-        memset(&Marker, 0, sizeof(WanMgr_Telemetry_Marker_t));
+        WanMgr_Telemetry_Marker_t Marker = {0};         
         Marker.enTelemetryMarkerID = WAN_WARN_IP_OBTAIN_TIMER_EXPIRED;
         Marker.pInterface = pActiveInterface ;
         if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
-            CcspTraceError(("%s %d: KAVYA,Error WAN_WARN_IP_OBTAIN_TIMER_EXPIRED..\n",__FUNCTION__, __LINE__));;
+            CcspTraceError(("%s %d: Error sending Telemetry event WAN_WARN_IP_OBTAIN_TIMER_EXPIRED..\n",__FUNCTION__, __LINE__));
         }
         CcspTraceInfo(("%s %d: KAVYA, WAN_WARN_IP_OBTAIN_TIMER_EXPIRED..\n",__FUNCTION__, __LINE__));
         //Telemetry end
@@ -1204,12 +1203,11 @@ static WcAwPolicyState_t State_ScanningInterface (WanMgr_Policy_Controller_t * p
             CcspTraceInfo(("%s %d: Validation Timer expired for interface index:%d and there is another iface that can be possibly used as Wan interface\n", 
                         __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
             //Telemetry start
-            WanMgr_Telemetry_Marker_t Marker;
-            memset(&Marker, 0, sizeof(WanMgr_Telemetry_Marker_t));
+            WanMgr_Telemetry_Marker_t Marker = {0};             
             Marker.enTelemetryMarkerID = WAN_WARN_IP_OBTAIN_TIMER_EXPIRED;
             Marker.pInterface = pActiveInterface ;
             if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
-                    CcspTraceError(("%s %d: KAVYA,Error WAN_WARN_IP_OBTAIN_TIMER_EXPIRED..\n",__FUNCTION__, __LINE__));;
+                    CcspTraceError(("%s %d: Error sending Telemetry event WAN_WARN_IP_OBTAIN_TIMER_EXPIRED..\n",__FUNCTION__, __LINE__));
             }
             CcspTraceInfo(("%s %d: KAVYA, WAN_WARN_IP_OBTAIN_TIMER_EXPIRED..\n",__FUNCTION__, __LINE__));
             //Telemetry end

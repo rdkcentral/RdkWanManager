@@ -1414,12 +1414,11 @@ static int WanManager_CreateDHCPService(DML_VIRTUAL_IFACE* p_VirtIf)
             fclose(fp);
         }
             //Telemetry start
-            WanMgr_Telemetry_Marker_t Marker;
-            memset(&Marker, 0, sizeof(WanMgr_Telemetry_Marker_t));
+            WanMgr_Telemetry_Marker_t Marker = {0};             
             Marker.enTelemetryMarkerID = WAN_INFO_IP_CONFIG_TYPE;
             Marker.pVirtInterface = p_VirtIf ;
             if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
-                    CcspTraceError(("%s %d: KAVYA,Error WAN_INFO_IP_CONFIG_TYPE..\n",__FUNCTION__, __LINE__));;
+                    CcspTraceError(("%s %d: Error sending Telemetry event WAN_INFO_IP_CONFIG_TYPE..\n",__FUNCTION__, __LINE__));
             }
             CcspTraceInfo(("%s %d: KAVYA, WAN_INFO_IP_CONFIG_TYPE..\n",__FUNCTION__, __LINE__));
             //Telemetry end
