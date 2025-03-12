@@ -704,7 +704,9 @@ void WanManager_UpdateInterfaceStatus(DML_VIRTUAL_IFACE* pVirtIf, wanmgr_iface_s
             }
             CcspTraceInfo(("%s %d: KAVYA, WAN_INFO_IPv6_UP..\n",__FUNCTION__, __LINE__));
             //Telemetry end
-        case WANMGR_IFACE_CONNECTION_IPV6_DOWN:
+            break;
+        }
+ 	case WANMGR_IFACE_CONNECTION_IPV6_DOWN:
         {
             pVirtIf->IP.Ipv6Status = WAN_IFACE_IPV6_STATE_DOWN;
             pVirtIf->IP.Ipv6Changed = FALSE;
@@ -734,7 +736,8 @@ void WanManager_UpdateInterfaceStatus(DML_VIRTUAL_IFACE* pVirtIf, wanmgr_iface_s
             }
             CcspTraceInfo(("%s %d: KAVYA, WAN_ERROR_MAPT_STATUS_DOWN..\n",__FUNCTION__, __LINE__));
             //Telemetry end
-
+            break;
+        }
 #if defined(FEATURE_MAPT) || defined(FEATURE_SUPPORT_MAPT_NAT46)
         case WANMGR_IFACE_MAPT_START:
         {
@@ -752,7 +755,9 @@ void WanManager_UpdateInterfaceStatus(DML_VIRTUAL_IFACE* pVirtIf, wanmgr_iface_s
 
             CcspTraceInfo(("%s %d: KAVYA, WAN_INFO_MAPT_STATUS_UP..\n",__FUNCTION__, __LINE__));
             //Telemetry end
-        case WANMGR_IFACE_MAPT_STOP:
+            break;
+        }
+	case WANMGR_IFACE_MAPT_STOP:
         {
             pVirtIf->MAP.MaptStatus = WAN_IFACE_MAPT_STATE_DOWN;     // reset MAPT flag
             pVirtIf->MAP.MaptChanged = FALSE;                        // reset MAPT flag
