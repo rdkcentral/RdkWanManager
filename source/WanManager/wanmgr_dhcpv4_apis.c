@@ -790,7 +790,14 @@ WanMgr_DmlDhcpcGetInfo
         pInfo->DHCPServer.Value = inet_addr(p_VirtIf->IP.Ipv4Data.dhcpServerId);
 	pInfo->DHCPStatus = ((strcmp(p_VirtIf->IP.Ipv4Data.dhcpState, DHCP_STATE_BOUND) == 0) || 
                        (strcmp(p_VirtIf->IP.Ipv4Data.dhcpState, DHCP_STATE_RENEW) == 0)) ? DML_DHCPC_STATUS_Bound : DML_DHCPC_STATUS_Init;
-        pInfo->LeaseTimeRemaining  = (p_VirtIf->IP.Ipv4Data.leaseReceivedTime + p_VirtIf->IP.Ipv4Data.leaseTime) - WanManager_getUpTime();
+        if (pInfo->DHCPStatus == DML_DHCPC_STATUS_Bound)
+        {
+            pInfo->LeaseTimeRemaining  = (p_VirtIf->IP.Ipv4Data.leaseReceivedTime + p_VirtIf->IP.Ipv4Data.leaseTime) - WanManager_getUpTime();
+        }
+        else 
+        {
+            pInfo->LeaseTimeRemaining = 0;
+        }    
         WanMgrDml_GetIfaceData_release(NULL);
     }
 
@@ -833,7 +840,14 @@ WanMgr_DmlDhcpcGetInfo
     }
         for(i=0; i< pInfo->NumDnsServers;i++)
                 pInfo->DNSServers[i].Value = ad.addrs[i];
+    if (pInfo->DHCPStatus == DML_DHCPC_STATUS_Bound)
+    {
         dhcpv4c_get_ert_remain_lease_time((unsigned int*)&pInfo->LeaseTimeRemaining);
+    }
+    else 
+    {
+        pInfo->LeaseTimeRemaining = 0;
+    }   
         dhcpv4c_get_ert_dhcp_svr((unsigned int*)&pInfo->DHCPServer);
 
     return ANSC_STATUS_SUCCESS;

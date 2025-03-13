@@ -774,6 +774,24 @@ BOOL WanIf_Validate(ANSC_HANDLE hInsContext, char* pReturnParamName, ULONG* puLe
 **********************************************************************/
 ULONG WanIf_Commit(ANSC_HANDLE hInsContext)
 {
+    ANSC_STATUS result;
+    WanMgr_Iface_Data_t* pIfaceDmlEntry = (WanMgr_Iface_Data_t*) hInsContext;
+    if(pIfaceDmlEntry != NULL)
+    {
+        WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pIfaceDmlEntry->data.uiIfaceIdx);
+        if(pWanDmlIfaceData != NULL)
+        {
+            DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
+
+            result = DmlSetWanIfCfg( pWanDmlIface->uiInstanceNumber, pWanDmlIface );
+            if(result != ANSC_STATUS_SUCCESS)
+            {
+                CcspTraceError(("%s: Failed to write PSM \n", __FUNCTION__));
+            }
+            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+        }
+    }
+
     return 0;
 }
 
