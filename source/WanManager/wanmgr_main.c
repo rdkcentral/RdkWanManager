@@ -286,7 +286,8 @@ int main(int argc, char* argv[])
     init_capability();
     drop_root_caps(&appcaps);
     update_process_caps(&appcaps);
-    read_capability(&appcaps);    
+    read_capability(&appcaps);
+    clear_caps(&appcaps); 
 
     for (idx = 1; idx < argc; idx++)
     {
