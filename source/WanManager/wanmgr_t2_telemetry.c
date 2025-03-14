@@ -1,4 +1,4 @@
-#include "wanmgr_telemetry.h"
+#include "wanmgr_t2_telemetry.h"
 
 static char buf[128] = {0};
 /*append api appends key value in pairs, separated by DELIMITER*/

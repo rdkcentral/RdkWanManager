@@ -5,13 +5,7 @@
 #include <string.h>
 #include "wanmgr_rdkbus_utils.h"
 #include "wanmgr_dml.h"
-
-#define WANMGR_T2_TELEMETRY_MARKER_ARG_DELIMITER 	","
-#define WANMGR_T2_TELEMETRY_MARKER_KEY_VALUE_DELIMITER	":"
-#define WANMGR_T2_PHY_INTERFACE_STRING       		"PHY_NAME"
-#define WANMGR_T2_WAN_INTERFACE_STRING    		"WAN_NAME"
-#define WANMGR_T2_VIRT_WAN_INTERFACE_STRING		"VIRT_WAN_NAME"
-#define WANMGR_T2_WANMGR_SPLIT_VAL_STRING    		"SPLIT_VAL"
+#include "wanmgr_t2_telemetry.h"
 
 typedef enum WanMgr_TelemetryEvent
 {
