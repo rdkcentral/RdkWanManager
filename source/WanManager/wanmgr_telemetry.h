@@ -94,5 +94,6 @@ typedef  struct _WANMGR_TELEMETRY_MARKER_
 } WanMgr_Telemetry_Marker_t;
 
 ANSC_STATUS wanmgr_telemetry_event(WanMgr_Telemetry_Marker_t *);
+extern ANSC_STATUS wanmgr_process_T2_telemetry_event(WanMgr_Telemetry_Marker_t *Marker);
 
 #endif //_WAN_TELEMETRY_MARKER_H_
