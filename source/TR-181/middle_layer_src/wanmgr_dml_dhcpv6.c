@@ -3482,11 +3482,14 @@ dhcp6c_mapt_mape_GetParamStringValue
         sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_MAP_TRANSPORT_MODE, temp, sizeof(temp));
         if ( AnscSizeOfString(temp) < *pUlSize)
         {
-            AnscCopyString(pValue, temp);
             if ( !(*temp) )
             {
-                 AnscCopyString(pValue, "NONE");
+               AnscCopyString(pValue, "NONE");
             }
+	    else
+	    {
+	       AnscCopyString(pValue, temp);
+	    }
             return 0;
         }
         else
