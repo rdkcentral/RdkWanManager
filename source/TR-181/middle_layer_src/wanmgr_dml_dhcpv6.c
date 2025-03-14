@@ -3483,7 +3483,7 @@ dhcp6c_mapt_mape_GetParamStringValue
         if ( AnscSizeOfString(temp) < *pUlSize)
         {
             AnscCopyString(pValue, temp);
-#if defined (FEATURE_SUPPORT_MAPT_NAT46)
+#if defined (FEATURE_SUPPORT_MAPT_NAT46) || defined(FEATURE_MAPT)
             if ( !(*temp) )
             {
                  AnscCopyString(pValue, "NONE");
