@@ -35,6 +35,7 @@
 #include <pthread.h>
 #include "secure_wrapper.h"
 #include "platform_hal.h"
+#include "wanmgr_telemetry.h"
 #ifdef ENABLE_FEATURE_TELEMETRY2_0
 #include <telemetry_busmessage_sender.h>
 #endif
@@ -2371,7 +2372,15 @@ static WcFmobPolicyState_t Transition_WanInterfaceActive(WanMgr_AutoWan_SMInfo_t
     Update_Interface_Status();
 
     CcspTraceInfo(("%s %d - State changed to STATE_WAN_INTERFACE_ACTIVE if_name %s\n", __FUNCTION__, __LINE__,pFixedInterface->VirtIfList->Name));
-
+    //Telemetry start
+    WanMgr_Telemetry_Marker_t Marker = {0};     
+    Marker.enTelemetryMarkerID = WAN_INFO_WAN_UP;
+    Marker.pInterface = pFixedInterface ;
+    if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
+        CcspTraceError(("%s %d: Error sending Telemetry event WAN_INFO_WAN_UP..\n",__FUNCTION__, __LINE__));
+    }
+    CcspTraceInfo(("%s %d: KAVYA, WAN_INFO_WAN_UP..\n",__FUNCTION__, __LINE__));
+    //Telemetry end
     return STATE_WAN_INTERFACE_ACTIVE;
 }
 #ifdef WAN_FAILOVER_SUPPORTED

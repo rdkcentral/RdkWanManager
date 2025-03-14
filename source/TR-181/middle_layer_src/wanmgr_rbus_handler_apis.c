@@ -23,6 +23,8 @@
 #include "wanmgr_rbus_handler_apis.h"
 #include "wanmgr_rdkbus_apis.h"
 #include "dmsb_tr181_psm_definitions.h"
+#include "wanmgr_telemetry.h"
+
 enum {
 ENUM_PHY = 1,
 ENUM_WAN_STATUS,
@@ -1518,7 +1520,17 @@ void *WanMgr_WanRemoteIfaceConfigure_thread(void *arg)
                             __FUNCTION__, __LINE__, cpeInterfaceIndex));
             pWanDmlIface->Selection.Enable = FALSE;
             pWanDmlIface->BaseInterfaceStatus = WAN_IFACE_PHY_STATUS_DOWN;
+            //Telemetry start
+            WanMgr_Telemetry_Marker_t Marker = {0};             
+            Marker.enTelemetryMarkerID = WAN_ERROR_PHY_DOWN;
+            Marker.pInterface = pWanDmlIface ;
+            if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker))
+	    {
+                CcspTraceError(("%s %d: Error sending Telemetry event WAN_ERROR_PHY_DOWN..\n",__FUNCTION__, __LINE__));
+            }
 
+            CcspTraceInfo(("%s %d: KAVYA, WAN_ERROR_PHY_DOWN..\n",__FUNCTION__, __LINE__));
+            //Telemetry end
             free(pDeviceChangeEvent);
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
             pthread_mutex_unlock(&RemoteIfaceConfigure_mutex);

@@ -59,6 +59,7 @@
 #include "wanmgr_data.h"
 #include "wanmgr_dhcpv4_apis.h"
 #include "wanmgr_dhcpv6_apis.h"
+#include "wanmgr_telemetry.h"
 
 #define UPSTREAM_SET_MAX_RETRY_COUNT 10 // max. retry count for Upstream set requests
 #define DATAMODEL_PARAM_LENGTH 256
@@ -885,6 +886,16 @@ ANSC_STATUS WanMgr_GetBaseInterfaceStatus (DML_WAN_IFACE *pWanIfaceData)
         if(strcmp(dmValue,"true") == 0)
         {
             pWanIfaceData->BaseInterfaceStatus = WAN_IFACE_PHY_STATUS_UP;
+            //Telemetry start
+            WanMgr_Telemetry_Marker_t Marker = {0};             
+            Marker.enTelemetryMarkerID = WAN_INFO_PHY_UP;
+            Marker.pInterface = pWanIfaceData;
+            if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
+                    CcspTraceError(("%s %d: Error sending Telemetry event WAN_INFO_PHY_UP..\n",__FUNCTION__, __LINE__));
+            }
+
+            CcspTraceInfo(("%s %d: KAVYA, WAN_INFO_PHY_UP..\n",__FUNCTION__, __LINE__));
+            //Telemetry end
         }
 
     }
@@ -900,6 +911,15 @@ ANSC_STATUS WanMgr_GetBaseInterfaceStatus (DML_WAN_IFACE *pWanIfaceData)
         if(strcmp(dmValue,"true") == 0)
         {
             pWanIfaceData->BaseInterfaceStatus = WAN_IFACE_PHY_STATUS_UP;
+            //Telemetry start
+            WanMgr_Telemetry_Marker_t Marker = {0};             
+            Marker.enTelemetryMarkerID = WAN_INFO_PHY_UP;
+            Marker.pInterface = pWanIfaceData ;
+            if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
+                    CcspTraceError(("%s %d: Error sending Telemetry event WAN_INFO_PHY_UP..\n",__FUNCTION__, __LINE__));
+            }
+            CcspTraceInfo(("%s %d: KAVYA, WAN_INFO_PHY_UP..\n",__FUNCTION__, __LINE__));
+            //Telemetry end
         }
 
     }
@@ -915,6 +935,15 @@ ANSC_STATUS WanMgr_GetBaseInterfaceStatus (DML_WAN_IFACE *pWanIfaceData)
         if(strcmp(dmValue,"OPERATIONAL") == 0)
         {
             pWanIfaceData->BaseInterfaceStatus = WAN_IFACE_PHY_STATUS_UP;
+            //Telemetry start
+            WanMgr_Telemetry_Marker_t Marker = {0};             
+            Marker.enTelemetryMarkerID = WAN_INFO_PHY_UP;
+            Marker.pInterface = pWanIfaceData ;
+            if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
+                    CcspTraceError(("%s %d: Error sending Telemetry event WAN_INFO_PHY_UP..\n",__FUNCTION__, __LINE__));
+            }
+            CcspTraceInfo(("%s %d: KAVYA, WAN_INFO_PHY_UP..\n",__FUNCTION__, __LINE__));
+            //Telemetry end
         }
 
     }
@@ -930,6 +959,15 @@ ANSC_STATUS WanMgr_GetBaseInterfaceStatus (DML_WAN_IFACE *pWanIfaceData)
         if(strcmp(dmValue,"Up") == 0)
         {
             pWanIfaceData->BaseInterfaceStatus = WAN_IFACE_PHY_STATUS_UP;
+            //Telemetry start
+            WanMgr_Telemetry_Marker_t Marker = {0};             
+            Marker.enTelemetryMarkerID = WAN_INFO_PHY_UP;
+            Marker.pInterface = pWanIfaceData ;
+            if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
+                    CcspTraceError(("%s %d: Error sending Telemetry event WAN_INFO_PHY_UP..\n",__FUNCTION__, __LINE__));
+            }
+            CcspTraceInfo(("%s %d: KAVYA, WAN_INFO_PHY_UP..\n",__FUNCTION__, __LINE__));
+            //Telemetry end
         }
     }
     CcspTraceInfo(("%s %d  %s : %s \n", __FUNCTION__, __LINE__, dmQuery, dmValue));
