@@ -143,6 +143,32 @@ static ANSC_STATUS WanMgr_IpcNewIpv6Msg(ipc_dhcpv6_data_t* pNewIpv6Msg)
 
     return retStatus;
 }
+static ANSC_STATUS WanMgr_MaptStatusChanged(ipc_dhcpv6_data_t* pNewMaptMsg)
+{
+    ANSC_STATUS retStatus = ANSC_STATUS_FAILURE;
+
+    CcspTraceInfo(("%s %d - Received Ipc MAMPT-Msg for %s\n", __FUNCTION__, __LINE__, pNewMaptMsg->ifname));
+
+    DML_VIRTUAL_IFACE* pVirtIf = WanMgr_GetVirtualIfaceByName_locked(pNewMaptMsg->ifname);
+    if(pVirtIf != NULL)
+    {
+         if(pNewMaptMsg->mapt.maptState == MAPT_CONFIGURATION_FAILED)
+        {
+            //Telemetry start
+            WanMgr_Telemetry_Marker_t Marker = {0};
+            Marker.enTelemetryMarkerID = WAN_ERROR_MAPT_STATUS_FAILED;
+            Marker.pVirtInterface = pVirtIf ;
+            if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
+                CcspTraceError(("%s %d: Error sending Telemetry event WAN_ERROR_MAPT_STATUS_FAILED..\n",__FUNCTION__, __LINE__));
+            }
+            CcspTraceInfo(("%s %d: KAVYA, WAN_ERROR_MAPT_STATUS_FAILED..\n",__FUNCTION__, __LINE__));
+            //Telemetry end
+        }
+        WanMgr_VirtualIfaceData_release(pVirtIf);
+    }
+
+    return retStatus;
+}
 
 ANSC_STATUS WanMgr_SetInterfaceStatus(char *ifName, wanmgr_iface_status_t state)
 {
@@ -199,6 +225,16 @@ static ANSC_STATUS WanMgr_IpcNewIhcMsg(ipc_ihc_data_t *pIhcMsg)
                 CcspTraceInfo(("Setting IPV6 Connection state to UP \n"));
                 sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV6_CONNECTION_STATE, WAN_STATUS_UP, 0);
             }
+            //Telemetry start
+            DML_VIRTUAL_IFACE* pVirtIf = WanMgr_GetVirtualIfaceByName_locked(pIhcMsg->ifName);
+            WanMgr_Telemetry_Marker_t Marker = {0};
+            Marker.enTelemetryMarkerID = WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP;
+            Marker.pVirtInterface = pVirtIf ;
+            if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
+                CcspTraceError(("%s %d: Error sending Telemetry event WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP..\n",__FUNCTION__, __LINE__));
+            }
+            CcspTraceInfo(("%s %d: KAVYA, WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP..\n",__FUNCTION__, __LINE__));
+            //Telemetry end	    
             break;
         case IPOE_MSG_IHC_ECHO_IPV4_UP:
             /* Check if we get the IPv4 connection UP message from the
@@ -212,13 +248,41 @@ static ANSC_STATUS WanMgr_IpcNewIhcMsg(ipc_ihc_data_t *pIhcMsg)
                 CcspTraceInfo(("Setting IPv4 Connection state to UP \n"));
                 sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV4_CONNECTION_STATE, WAN_STATUS_UP, 0);
             }
+            //Telemetry start
+            DML_VIRTUAL_IFACE* pVirtIf = WanMgr_GetVirtualIfaceByName_locked(pIhcMsg->ifName);
+            WanMgr_Telemetry_Marker_t Marker = {0};
+            Marker.enTelemetryMarkerID = WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP;
+            Marker.pVirtInterface = pVirtIf ;
+            if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
+                CcspTraceError(("%s %d: Error sending Telemetry event WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP..\n",__FUNCTION__, __LINE__));
+            }
+            CcspTraceInfo(("%s %d: KAVYA, WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP..\n",__FUNCTION__, __LINE__));
+            //Telemetry end	    
             break;
         case IPOE_MSG_IHC_ECHO_FAIL_IPV4:
-            CcspTraceInfo(("[%s-%d] Received IPOE_MSG_IHC_ECHO_FAIL_IPV4 from IHC for intf: %s \n", __FUNCTION__, __LINE__, pIhcMsg->ifName));
+            CcspTraceInfo((i"[%s-%d] Received IPOE_MSG_IHC_ECHO_FAIL_IPV4 from IHC for intf: %s \n", __FUNCTION__, __LINE__, pIhcMsg->ifName));
+            //Telemetry start
+            WanMgr_Telemetry_Marker_t Marker = {0};
+            Marker.enTelemetryMarkerID = WAN_WARN_CONNECTIVITY_CHECK_STATUS_FAILED;
+            Marker.pVirtInterface = pVirtIf ;
+            if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
+                CcspTraceError(("%s %d: Error sending Telemetry event WAN_WARN_CONNECTIVITY_CHECK_STATUS_FAILED..\n",__FUNCTION__, __LINE__));
+            }
+            CcspTraceInfo(("%s %d: KAVYA, WAN_WARN_CONNECTIVITY_CHECK_STATUS_FAILED..\n",__FUNCTION__, __LINE__));
+            //Telemetry end	    
             return WanMgr_SetInterfaceStatus(pIhcMsg->ifName, WANMGR_IFACE_CONNECTION_DOWN);
             break;
         case IPOE_MSG_IHC_ECHO_FAIL_IPV6:
             CcspTraceInfo(("[%s-%d] Received IPOE_MSG_IHC_ECHO_FAIL_IPV6 from IHC for intf: %s \n", __FUNCTION__, __LINE__, pIhcMsg->ifName));
+            //Telemetry start
+            WanMgr_Telemetry_Marker_t Marker = {0};
+            Marker.enTelemetryMarkerID = WAN_WARN_CONNECTIVITY_CHECK_STATUS_FAILED;
+            Marker.pVirtInterface = pVirtIf ;
+            if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
+                CcspTraceError(("%s %d: Error sending Telemetry event WAN_WARN_CONNECTIVITY_CHECK_STATUS_FAILED..\n",__FUNCTION__, __LINE__));
+            }
+            CcspTraceInfo(("%s %d: KAVYA, WAN_WARN_CONNECTIVITY_CHECK_STATUS_FAILED..\n",__FUNCTION__, __LINE__));
+            //Telemetry end	    
             return WanMgr_SetInterfaceStatus(pIhcMsg->ifName, WANMGR_IFACE_CONNECTION_IPV6_DOWN);
             break;
         default:
@@ -323,6 +387,13 @@ static void* IpcServerThread( void *arg )
                     }
                     break;
 #endif
+                case MAPT_STATE_CHANGED:
+                    if (WanMgr_MaptStatusChanged(&(ipc_msg.data.dhcpv6)) != ANSC_STATUS_SUCCESS)
+                    {
+                        CcspTraceError(("[%s-%d] Failed to proccess MAPT state change message for %s \n", __FUNCTION__, __LINE__,ipc_msg.data.dhcpv6.ifname));
+                    }
+                    break;
+		    
                 default:
                         CcspTraceError(("[%s-%d] Invalid  Message sent to Wan Manager\n", __FUNCTION__, __LINE__));
             }
