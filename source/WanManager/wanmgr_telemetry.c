@@ -1,12 +1,15 @@
 #include "wanmgr_telemetry.h"
 
+#ifdef ENABLE_FEATURE_TELEMETRY2_0
+#include "wanmgr_t2_telemetry.h"
+#endif
+
 /*A generic api for telemetry marker,
  * it gets the necessary parameter structs and
  * sends them to appropriate api to be processed.*/
 
 ANSC_STATUS wanmgr_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
 {
-#ifdef ENABLE_FEATURE_TELEMETRY2_0
     if(Marker == NULL)
     {
         return ANSC_STATUS_FAILURE; 
@@ -35,19 +38,16 @@ ANSC_STATUS wanmgr_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
         case WAN_INFO_CONNECTIVITY_CHECK_TYPE:
         case WAN_ERROR_VLAN_DOWN:
         case WAN_ERROR_VLAN_CREATION_FAILED:
+#ifdef ENABLE_FEATURE_TELEMETRY2_0
             if(ANSC_STATUS_FAILURE == wanmgr_process_T2_telemetry_event(Marker))
             {
                 return ANSC_STATUS_FAILURE;
             }
+#endif	    
             break;
         //int type markers
         //float type markers
         default:
     }
-
-/*#else
- * Further Telemetry versions to be handled here
- */
-#endif
     return ANSC_STATUS_SUCCESS;
 }

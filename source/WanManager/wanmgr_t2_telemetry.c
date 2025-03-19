@@ -7,10 +7,10 @@ static void wanmgr_telemetry_append_key_value(char* key, const char* value)
         if(value != NULL)
         {
                 if(strlen(buf)>0)
-                        strcat(buf,WANMGR_TELEMETRY_MARKER_ARG_DELIMITER);
+                        strcat(buf,WANMGR_T2_TELEMETRY_MARKER_ARG_DELIMITER);
 
                 strcat(buf,key);
-                strcat(buf,WANMGR_TELEMETRY_MARKER_KEY_VALUE_DELIMITER);
+                strcat(buf,WANMGR_T2_TELEMETRY_MARKER_KEY_VALUE_DELIMITER);
                 strcat(buf,value);
         }
 }
