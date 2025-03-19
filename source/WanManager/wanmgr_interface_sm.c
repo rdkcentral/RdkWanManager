@@ -2821,6 +2821,15 @@ static eWanState_t wan_transition_mapt_up(WanMgr_IfaceSM_Controller_t* pWanIface
     if (ret != RETURN_OK)
     {
         CcspTraceError(("%s %d - Failed to configure MAP-T \n", __FUNCTION__, __LINE__));
+        //Telemetry start
+        WanMgr_Telemetry_Marker_t Marker = {0};
+        Marker.enTelemetryMarkerID = WAN_ERROR_MAPT_STATUS_FAILED;
+        Marker.pVirtInterface = p_VirtIf ;
+        if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
+            CcspTraceError(("%s %d: Error sending Telemetry event WAN_ERROR_MAPT_STATUS_FAILED..\n",__FUNCTION__, __LINE__));
+        }
+        CcspTraceInfo(("%s %d: KAVYA, WAN_ERROR_MAPT_STATUS_FAILED..\n",__FUNCTION__, __LINE__));
+        //Telemetry end	
     }
 
     if (p_VirtIf->IP.Dhcp4cPid > 0)
@@ -3939,16 +3948,43 @@ static eWanState_t wan_state_mapt_active(WanMgr_IfaceSM_Controller_t* pWanIfaceC
                     else
                     {
                         CcspTraceError(("%s %d - Failed to configure MAP-T for %s Interface \n", __FUNCTION__, __LINE__, p_VirtIf->Name));
+                        //Telemetry start
+                        WanMgr_Telemetry_Marker_t Marker = {0};
+                        Marker.enTelemetryMarkerID = WAN_ERROR_MAPT_STATUS_FAILED;
+                        Marker.pVirtInterface = p_VirtIf ;
+                        if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
+                            CcspTraceError(("%s %d: Error sending Telemetry event WAN_ERROR_MAPT_STATUS_FAILED..\n",__FUNCTION__, __LINE__));
+                        }
+                        CcspTraceInfo(("%s %d: KAVYA, WAN_ERROR_MAPT_STATUS_FAILED..\n",__FUNCTION__, __LINE__));
+                        //Telemetry end			
                     }
                 }
                 else
                 {
                     CcspTraceError(("%s %d - Failed to verify and configure MAP-T for %s Interface \n", __FUNCTION__, __LINE__, p_VirtIf->Name));
+                    //Telemetry start
+                    WanMgr_Telemetry_Marker_t Marker = {0};
+                    Marker.enTelemetryMarkerID = WAN_ERROR_MAPT_STATUS_FAILED;
+                    Marker.pVirtInterface = p_VirtIf ;
+                    if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
+                        CcspTraceError(("%s %d: Error sending Telemetry event WAN_ERROR_MAPT_STATUS_FAILED..\n",__FUNCTION__, __LINE__));
+                    }
+                    CcspTraceInfo(("%s %d: KAVYA, WAN_ERROR_MAPT_STATUS_FAILED..\n",__FUNCTION__, __LINE__));
+                    //Telemetry end		    
                 }
             }
             else
             {
                 CcspTraceError((" %s %d - Failed to configure  MAP-T for %s Interface \n", __FUNCTION__, __LINE__, p_VirtIf->Name));
+                //Telemetry start
+                WanMgr_Telemetry_Marker_t Marker = {0};
+                Marker.enTelemetryMarkerID = WAN_ERROR_MAPT_STATUS_FAILED;
+                Marker.pVirtInterface = p_VirtIf ;
+                if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
+                    CcspTraceError(("%s %d: Error sending Telemetry event WAN_ERROR_MAPT_STATUS_FAILED..\n",__FUNCTION__, __LINE__));
+                }
+                CcspTraceInfo(("%s %d: KAVYA, WAN_ERROR_MAPT_STATUS_FAILED..\n",__FUNCTION__, __LINE__));
+                //Telemetry end		
             }
         }
         else
