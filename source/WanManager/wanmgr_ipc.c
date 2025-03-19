@@ -143,32 +143,6 @@ static ANSC_STATUS WanMgr_IpcNewIpv6Msg(ipc_dhcpv6_data_t* pNewIpv6Msg)
 
     return retStatus;
 }
-static ANSC_STATUS WanMgr_MaptStatusChanged(ipc_dhcpv6_data_t* pNewMaptMsg)
-{
-    ANSC_STATUS retStatus = ANSC_STATUS_FAILURE;
-
-    CcspTraceInfo(("%s %d - Received Ipc MAMPT-Msg for %s\n", __FUNCTION__, __LINE__, pNewMaptMsg->ifname));
-
-    DML_VIRTUAL_IFACE* pVirtIf = WanMgr_GetVirtualIfaceByName_locked(pNewMaptMsg->ifname);
-    if(pVirtIf != NULL)
-    {
-         if(pNewMaptMsg->mapt.maptState == MAPT_CONFIGURATION_FAILED)
-        {
-            //Telemetry start
-            WanMgr_Telemetry_Marker_t Marker = {0};
-            Marker.enTelemetryMarkerID = WAN_ERROR_MAPT_STATUS_FAILED;
-            Marker.pVirtInterface = pVirtIf ;
-            if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
-                CcspTraceError(("%s %d: Error sending Telemetry event WAN_ERROR_MAPT_STATUS_FAILED..\n",__FUNCTION__, __LINE__));
-            }
-            CcspTraceInfo(("%s %d: KAVYA, WAN_ERROR_MAPT_STATUS_FAILED..\n",__FUNCTION__, __LINE__));
-            //Telemetry end
-        }
-        WanMgr_VirtualIfaceData_release(pVirtIf);
-    }
-
-    return retStatus;
-}
 
 ANSC_STATUS WanMgr_SetInterfaceStatus(char *ifName, wanmgr_iface_status_t state)
 {
@@ -387,13 +361,6 @@ static void* IpcServerThread( void *arg )
                     }
                     break;
 #endif
-                case MAPT_STATE_CHANGED:
-                    if (WanMgr_MaptStatusChanged(&(ipc_msg.data.dhcpv6)) != ANSC_STATUS_SUCCESS)
-                    {
-                        CcspTraceError(("[%s-%d] Failed to proccess MAPT state change message for %s \n", __FUNCTION__, __LINE__,ipc_msg.data.dhcpv6.ifname));
-                    }
-                    break;
-		    
                 default:
                         CcspTraceError(("[%s-%d] Invalid  Message sent to Wan Manager\n", __FUNCTION__, __LINE__));
             }
