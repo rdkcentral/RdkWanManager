@@ -214,7 +214,7 @@ static ANSC_STATUS WanMgr_IpcNewIhcMsg(ipc_ihc_data_t *pIhcMsg)
             }
             break;
         case IPOE_MSG_IHC_ECHO_FAIL_IPV4:
-            CcspTraceInfo((i"[%s-%d] Received IPOE_MSG_IHC_ECHO_FAIL_IPV4 from IHC for intf: %s \n", __FUNCTION__, __LINE__, pIhcMsg->ifName));
+            CcspTraceInfo(("[%s-%d] Received IPOE_MSG_IHC_ECHO_FAIL_IPV4 from IHC for intf: %s \n", __FUNCTION__, __LINE__, pIhcMsg->ifName));
             return WanMgr_SetInterfaceStatus(pIhcMsg->ifName, WANMGR_IFACE_CONNECTION_DOWN);
             break;
         case IPOE_MSG_IHC_ECHO_FAIL_IPV6:

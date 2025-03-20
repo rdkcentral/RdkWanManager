@@ -1663,30 +1663,12 @@ static ANSC_STATUS WanMgr_StartConnectivityCheck(WanMgr_IfaceSM_Controller_t* pW
 
     if(pVirtIf->IP.ConnectivityCheckType == WAN_CONNECTIVITY_TYPE_TAD)
     {
-            //Telemetry start
-            WanMgr_Telemetry_Marker_t Marker = {0};             
-            Marker.enTelemetryMarkerID = WAN_INFO_CONNECTIVITY_CHECK_TYPE;
-            Marker.pVirtInterface = pVirtIf ;
-            if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
-                    CcspTraceError(("%s %d: Error sending Telemetry event WAN_INFO_CONNECTIVITY_CHECK_TYPE..\n",__FUNCTION__, __LINE__));
-            }
-            CcspTraceInfo(("%s %d: KAVYA, WAN_INFO_CONNECTIVITY_CHECK_TYPE.\n",__FUNCTION__, __LINE__));
-            //Telemetry end
         CcspTraceInfo(("%s %d ConnectivityCheck Type is TAD \n", __FUNCTION__, __LINE__));
         WanMgr_Configure_TAD_WCC( pVirtIf, (pVirtIf->IP.ConnectivityCheckRunning && pVirtIf->IP.RestartConnectivityCheck) ? WCC_RESTART : WCC_START);
         pVirtIf->IP.ConnectivityCheckRunning = TRUE;    
     }
     else if(pVirtIf->IP.ConnectivityCheckType == WAN_CONNECTIVITY_TYPE_IHC)
     {
-            //Telemetry start
-            WanMgr_Telemetry_Marker_t Marker = {0};             
-            Marker.enTelemetryMarkerID = WAN_INFO_CONNECTIVITY_CHECK_TYPE;
-            Marker.pVirtInterface = pVirtIf ;
-            if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
-                    CcspTraceError(("%s %d: Error sending Telemetry event WAN_INFO_CONNECTIVITY_CHECK_TYPE..\n",__FUNCTION__, __LINE__));
-            }
-            CcspTraceInfo(("%s %d: KAVYA, WAN_INFO_CONNECTIVITY_CHECK_TYPE..\n",__FUNCTION__, __LINE__));
-            //Telemetry end
         CcspTraceInfo(("%s %d ConnectivityCheck Type is IHC \n", __FUNCTION__, __LINE__));
 #ifdef FEATURE_IPOE_HEALTH_CHECK
         if ( pVirtIf->Status == WAN_IFACE_STATUS_UP && pWanIfaceCtrl->IhcPid <= 0 )
@@ -1703,6 +1685,15 @@ static ANSC_STATUS WanMgr_StartConnectivityCheck(WanMgr_IfaceSM_Controller_t* pW
             else
             {
                 CcspTraceError(("%s %d - Failed to start IPoE Health Check for interface %s \n", __FUNCTION__, __LINE__, pVirtIf->Name));
+                //Telemetry start
+                WanMgr_Telemetry_Marker_t Marker = {0};
+                Marker.enTelemetryMarkerID = WAN_WARN_CONNECTIVITY_CHECK_STATUS_FAILED;
+                Marker.pVirtInterface = pVirtIf ;
+                if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
+                    CcspTraceError(("%s %d: Error sending Telemetry event WAN_WARN_CONNECTIVITY_CHECK_STATUS_FAILED..\n",__FUNCTION__, __LINE__));
+                }
+                CcspTraceInfo(("%s %d: KAVYA, WAN_WARN_CONNECTIVITY_CHECK_STATUS_FAILED.\n",__FUNCTION__, __LINE__));
+                //Telemetry end
             }
             pVirtIf->IP.ConnectivityCheckRunning = TRUE;    
         }
@@ -2031,15 +2022,15 @@ static eWanState_t wan_transition_physical_interface_down(WanMgr_IfaceSM_Control
             {
                 CcspTraceInfo(("%s %d: LinkStatus is still CONFIGURING. Set to down\n", __FUNCTION__, __LINE__));
                 p_VirtIf->VLAN.Status = WAN_IFACE_LINKSTATUS_DOWN;
-            //Telemetry start
-            WanMgr_Telemetry_Marker_t Marker = {0};             
-            Marker.enTelemetryMarkerID = WAN_ERROR_VLAN_DOWN;
-            Marker.pVirtInterface = p_VirtIf ;
-            if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
-                    CcspTraceError(("%s %d: Error sending Telemetry event WAN_ERROR_VLAN_DOWN..\n",__FUNCTION__, __LINE__));
-            }
-            CcspTraceInfo(("%s %d: KAVYA, WAN_ERROR_VLAN_DOWN..\n",__FUNCTION__, __LINE__));
-            //Telemetry end
+                //Telemetry start
+                WanMgr_Telemetry_Marker_t Marker = {0};             
+                Marker.enTelemetryMarkerID = WAN_ERROR_VLAN_DOWN;
+                Marker.pVirtInterface = p_VirtIf ;
+                if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
+                     CcspTraceError(("%s %d: Error sending Telemetry event WAN_ERROR_VLAN_DOWN..\n",__FUNCTION__, __LINE__));
+                }
+                CcspTraceInfo(("%s %d: KAVYA, WAN_ERROR_VLAN_DOWN..\n",__FUNCTION__, __LINE__));
+                //Telemetry end
             }
         }
     }

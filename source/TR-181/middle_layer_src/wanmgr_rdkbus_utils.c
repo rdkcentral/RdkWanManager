@@ -141,6 +141,15 @@ ANSC_STATUS  WanMgr_SetDnsConnectivityCheck(BOOL Enable)
                     if (WanMgr_SetConnectivityCheckTypeToPSM(p_VirtIf, type) == ANSC_STATUS_SUCCESS)
                     {
                         p_VirtIf->IP.ConnectivityCheckType = type;
+                        //Telemetry start
+                        WanMgr_Telemetry_Marker_t Marker = {0};
+                        Marker.enTelemetryMarkerID = WAN_INFO_CONNECTIVITY_CHECK_TYPE;
+                        Marker.pVirtInterface = p_VirtIf ;
+                        if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
+                            CcspTraceError(("%s %d: Error sending Telemetry event WAN_INFO_CONNECTIVITY_CHECK_TYPE..\n",__FUNCTION__, __LINE__));
+                        }
+                        CcspTraceInfo(("%s %d: KAVYA, WAN_INFO_CONNECTIVITY_CHECK_TYPE.\n",__FUNCTION__, __LINE__));
+                        //Telemetry end		
                         p_VirtIf->IP.WCC_TypeChanged = TRUE;
                         retStatus = ANSC_STATUS_SUCCESS;
                         CcspTraceInfo(("%s-%d: RFC- DNS Connectivity Check %s, Type=%s", __FUNCTION__, __LINE__,
