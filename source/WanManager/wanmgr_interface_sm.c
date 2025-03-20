@@ -512,6 +512,15 @@ static void WanMgr_MonitorDhcpApps (WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
             //Since we are stopping Connectivity Check, Reset ConnectivityStatus to UP.
             p_VirtIf->IP.Ipv4ConnectivityStatus = WAN_CONNECTIVITY_UP;
             p_VirtIf->IP.Ipv6ConnectivityStatus = WAN_CONNECTIVITY_UP;
+            //Telemetry start
+            WanMgr_Telemetry_Marker_t Marker = {0};
+            Marker.enTelemetryMarkerID = WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP;
+            Marker.pVirtInterface = p_VirtIf ;
+            if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
+                CcspTraceError(("%s %d: Error sending Telemetry event WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP..\n",__FUNCTION__, __LINE__));
+            }
+            CcspTraceInfo(("%s %d: KAVYA, WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP..\n",__FUNCTION__, __LINE__));
+            //Telemetry end	    
         }
 
         //Start the new connectivity check 
@@ -2095,6 +2104,16 @@ static eWanState_t wan_transition_wan_validated(WanMgr_IfaceSM_Controller_t* pWa
     //Init ConnectivityStatus to UP
     p_VirtIf->IP.Ipv4ConnectivityStatus = WAN_CONNECTIVITY_UP;
     p_VirtIf->IP.Ipv6ConnectivityStatus = WAN_CONNECTIVITY_UP;
+    
+    //Telemetry start
+    WanMgr_Telemetry_Marker_t Marker = {0};
+    Marker.enTelemetryMarkerID = WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP;
+    Marker.pVirtInterface = p_VirtIf ;
+    if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
+        CcspTraceError(("%s %d: Error sending Telemetry event WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP..\n",__FUNCTION__, __LINE__));
+    }
+    CcspTraceInfo(("%s %d: KAVYA, WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP..\n",__FUNCTION__, __LINE__));
+    //Telemetry end
 
     if(p_VirtIf->IP.SelectedMode == MAPT_MODE && p_VirtIf->IP.SelectedModeTimerStatus != EXPIRED)
     {
