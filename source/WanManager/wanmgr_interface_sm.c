@@ -1392,6 +1392,15 @@ static int wan_tearDownIPv4(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
         sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_WAN_STATUS, WAN_STATUS_STOPPED, 0);
         sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_WAN_SERVICE_STATUS, WAN_STATUS_STOPPED, 0);
         CcspTraceInfo(("%s %d - wan-status event set to stopped \n", __FUNCTION__, __LINE__));
+        //Telemetry start
+        WanMgr_Telemetry_Marker_t Marker = {0};
+        Marker.enTelemetryMarkerID = WAN_ERROR_WAN_DOWN;
+        Marker.pInterface = pInterface ;
+        if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
+            CcspTraceError(("%s %d: Error sending Telemetry event WAN_ERROR_WAN_DOWN..\n",__FUNCTION__, __LINE__));
+        }
+        CcspTraceInfo(("%s %d: KAVYA, WAN_ERROR_WAN_DOWN.\n",__FUNCTION__, __LINE__));
+        //Telemetry end	
     }
 
     return ret;
@@ -1603,6 +1612,15 @@ static int wan_tearDownIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
         sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_WAN_STATUS, WAN_STATUS_STOPPED, 0);
         sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_WAN_SERVICE_STATUS, WAN_STATUS_STOPPED, 0);
         CcspTraceInfo(("%s %d - wan-status , wan_service-status event set to stopped \n", __FUNCTION__, __LINE__));
+        //Telemetry start
+        WanMgr_Telemetry_Marker_t Marker = {0};
+        Marker.enTelemetryMarkerID = WAN_ERROR_WAN_DOWN;
+        Marker.pInterface = pInterface ;
+        if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
+            CcspTraceError(("%s %d: Error sending Telemetry event WAN_ERROR_WAN_DOWN..\n",__FUNCTION__, __LINE__));
+        }
+        CcspTraceInfo(("%s %d: KAVYA, WAN_ERROR_WAN_DOWN.\n",__FUNCTION__, __LINE__));
+        //Telemetry end	
     }
 
     return ret;
