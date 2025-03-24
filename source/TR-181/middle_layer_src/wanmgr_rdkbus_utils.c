@@ -1127,7 +1127,7 @@ void Wanmgr_TriggerReboot()
     }
 }
 
-#define PAM_LANMODE_DML "Device.X_CISCO_COM_DeviceControl.LanManagementEntry.1.LanMode"
+#define TR181_LANMODE_PARAM "Device.X_CISCO_COM_DeviceControl.LanManagementEntry.1.LanMode"
 
 /**
  * @brief Checks if the system is operating in Bridge Mode based on the 
@@ -1141,26 +1141,26 @@ void Wanmgr_TriggerReboot()
  *         - FALSE otherwise.
  */
 
-BOOL WanMgr_isBridgeModeFromPandM()
+BOOL WanMgr_isBridgeModeEnabled()
 {
     char dmlValue[64] = {0};
 
     //Query
-    if (ANSC_STATUS_FAILURE == WanMgr_RdkBus_GetParamValues(PAM_COMPONENT_NAME, PAM_DBUS_PATH, PAM_LANMODE_DML, dmlValue))
+    if (ANSC_STATUS_FAILURE == WanMgr_RdkBus_GetParamValues(PAM_COMPONENT_NAME, PAM_DBUS_PATH, TR181_LANMODE_PARAM, dmlValue))
     {
         CcspTraceError(("[%s][%d] Failed to get param value\n", __FUNCTION__, __LINE__));
         return FALSE;
     }
 
-    //Possible DML values  bridge-dhcp(1),bridge-static(2),router(3)
-    if(strncmp(dmlValue, "bridge-", strlen("bridge-")) == 0)
+    //Possible DML values  bridge-dhcp,bridge-static,router
+    if(strcmp(dmlValue, "bridge-dhcp") == 0 || strcmp(dmlValue, "bridge-static") == 0 || strcmp(dmlValue, "full-bridge-static") == 0)
     {
-        CcspTraceInfo(("%s %d - Bridge Mode is enabled\n", __FUNCTION__, __LINE__));
+        CcspTraceInfo(("%s %d - CPE is in Bridge Mode\n", __FUNCTION__, __LINE__));
         return TRUE;
     }
     else
     {
-        CcspTraceInfo(("%s %d - Bridge Mode is disabled\n", __FUNCTION__, __LINE__));
+        CcspTraceInfo(("%s %d - CPE is in Router Mode\n", __FUNCTION__, __LINE__));
         return FALSE;
     }
 

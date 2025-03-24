@@ -474,14 +474,14 @@ int WanManager_Ipv6AddrUtil(char *ifname, Ipv6OperType opr, int preflft, int val
             CcspTraceError(("%s-%d: bridge_mode sysevent get failed. \n", __FUNCTION__, __LINE__));
         }
         BridgeMode = atoi(Output);
-        CcspTraceInfo(("%s-%d: Bridge mode value set to BridgeMode=%d \n", __FUNCTION__, __LINE__,  BridgeMode));
+        CcspTraceInfo(("%s-%d: <<DEBUG>> bridge_mode sysevent value set to =%d \n", __FUNCTION__, __LINE__,  BridgeMode));
     }
 
     /*TODO:
      *Below Code should be removed once V6 Prefix/IP is assigned on erouter0 Instead of brlan0 for sky Devices. 
      */
     strcpy(IfaceName, LAN_BRIDGE_NAME);
-    if (WanMgr_isBridgeModeFromPandM() == TRUE)
+    if (WanMgr_isBridgeModeEnabled() == TRUE)
     {
         memset(IfaceName, 0, sizeof(IfaceName));
         strncpy(IfaceName, ifname, strlen(ifname));

@@ -1139,7 +1139,7 @@ static int CheckV6DefaultRule (char *wanInterface)
 
     if ((fp = v_secure_popen("r", "ip -6 ro")) == NULL)
     {
-        CcspTraceError(("Failed to open file descripter %d \n"));
+        CcspTraceError(("%s %d - Failed to open file descripter %d(%s) \n", __FUNCTION__, __LINE__, errno, strerror(errno)));
         return FALSE;
     }
 
@@ -1159,7 +1159,7 @@ static int CheckV6DefaultRule (char *wanInterface)
     {
         CcspTraceError(("Failed in closing the pipe ret %d \n",pclose_ret));
     }
-
+    CcspTraceInfo(("%s %d - Default route %sfound for interface %s\n", __FUNCTION__, __LINE__, (ret == TRUE) ? "" : "not ", wanInterface));
     return ret;
 }
 
