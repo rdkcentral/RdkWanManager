@@ -67,6 +67,7 @@ extern int WanMgr_TriggerPrimaryDnsConnectivityRestart(void);
 #endif
 #endif
 
+static int isDefaultGatewayAdded = 0; //global varibale for default route status.
 static int lan_wan_started = 0;
 static int ipv4_connection_up = 0;
 static int ipv6_connection_up = 0;
@@ -569,6 +570,7 @@ static void *WanManagerSyseventHandler(void *args)
 
     async_id_t wanamangr_status_asyncid;
     async_id_t lan_ula_address_event_asyncid;
+    async_id_t default_route_change_event_asyncid;
     async_id_t lan_ula_enable_asyncid;
     async_id_t lan_ipv6_enable_asyncid;
     async_id_t wan_status_asyncid;
@@ -603,6 +605,8 @@ static void *WanManagerSyseventHandler(void *args)
 #endif
 #endif
 
+    sysevent_set_options(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_IPV6_TOGGLE, TUPLE_FLAG_EVENT);
+    sysevent_setnotification(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_IPV6_TOGGLE, &default_route_change_event_asyncid);
 #if defined (_HUB4_PRODUCT_REQ_)
     sysevent_set_options(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_ULA_ADDRESS, TUPLE_FLAG_EVENT);
     sysevent_setnotification(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_ULA_ADDRESS, &lan_ula_address_event_asyncid);
@@ -730,6 +734,19 @@ static void *WanManagerSyseventHandler(void *args)
                     CcspTraceError(("%s %d failed set command: %s\n", __FUNCTION__, __LINE__, cmd_str));
                 }
 		#endif
+            }
+            else if ( strcmp(name, SYSEVENT_IPV6_TOGGLE) == 0 )
+            {
+                if(strcmp(val, "FALSE") == 0)
+                {
+                    isDefaultGatewayAdded = 1;
+                    CcspTraceWarning(("%s %d Netmonitor Update : IPv6 default route Added \n", __FUNCTION__, __LINE__ ));
+                }
+                else
+                {
+                    isDefaultGatewayAdded = 0;
+                    CcspTraceWarning(("%s %d Netmonitor Update : IPv6 default route Deleted \n", __FUNCTION__, __LINE__ ));
+                }
             }
             else if ( strcmp(name, SYSEVENT_ULA_ENABLE) == 0 )
             {
@@ -1122,6 +1139,7 @@ static int CheckV6DefaultRule (char *wanInterface)
 
     if ((fp = v_secure_popen("r", "ip -6 ro")) == NULL)
     {
+        CcspTraceError(("Failed to open file descripter %d \n"));
         return FALSE;
     }
 
@@ -1166,8 +1184,8 @@ int Force_IPv6_toggle (char* wanInterface)
         CcspTraceWarning(("%s-%d : Failure writing to /proc file\n", __FUNCTION__, __LINE__));
     }
 
-    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV6_TOGGLE, "FALSE", 0); //Reset toggle flag to false.
-
+    isDefaultGatewayAdded = 1; //Reset isDefaultGatewayAdded flag;
+    
     return ret;
 }
 
@@ -1178,17 +1196,13 @@ int Force_IPv6_toggle (char* wanInterface)
  */
 void WanMgr_CheckDefaultRA (DML_VIRTUAL_IFACE * pVirtIf)
 {
-    char v6Toggle[BUFLEN_128] = {0};
-    //TODO : Move router monitor to a WanManager thread ? to avoid continous sysevent get
-    sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_IPV6_TOGGLE, v6Toggle, sizeof(v6Toggle));
-
-    if((strlen(v6Toggle) == 0) || (!strcmp(v6Toggle,"TRUE")))
+    //TODO : Move router monitor to a WanManager thread ? 
+    if(!isDefaultGatewayAdded )
     {
-        CcspTraceInfo(("%s %d SYSEVENT_IPV6_TOGGLE[TRUE] \n", __FUNCTION__, __LINE__));
         //TODO: add check for remote device ( static ip )
         if (CheckV6DefaultRule(pVirtIf->Name) == TRUE ||  WanManager_send_and_receive_rs(pVirtIf) == 0)
         {
-            sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV6_TOGGLE, "FALSE", 0);
+            isDefaultGatewayAdded = 1; //Reset isDefaultGatewayAdded flag;
         }
     }
 }
