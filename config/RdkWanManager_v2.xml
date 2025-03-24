@@ -1,4 +1,39 @@
 <?xml version="1.0" encoding="utf-8" ?>
+<?define FEATURE_MAPT=True?>
+<?define RBUS_BUILD_FLAG_ENABLE=True?>
+<?define RBUS_BUILD_FLAG_ENABLE=True?>
+<?define RBUS_BUILD_FLAG_ENABLE=True?>
+<?define RBUS_BUILD_FLAG_ENABLE=True?>
+<?define FEATURE_MAPT=True?>
+<?define RBUS_BUILD_FLAG_ENABLE=True?>
+<?define RBUS_BUILD_FLAG_ENABLE=True?>
+<?define RBUS_BUILD_FLAG_ENABLE=True?>
+<?define RBUS_BUILD_FLAG_ENABLE=True?>
+<?define FEATURE_MAPT=True?>
+<?define RBUS_BUILD_FLAG_ENABLE=True?>
+<?define RBUS_BUILD_FLAG_ENABLE=True?>
+<?define RBUS_BUILD_FLAG_ENABLE=True?>
+<?define RBUS_BUILD_FLAG_ENABLE=True?>
+<?define FEATURE_MAPT=True?>
+<?define RBUS_BUILD_FLAG_ENABLE=True?>
+<?define RBUS_BUILD_FLAG_ENABLE=True?>
+<?define RBUS_BUILD_FLAG_ENABLE=True?>
+<?define RBUS_BUILD_FLAG_ENABLE=True?>
+<?define FEATURE_MAPT=True?>
+<?define RBUS_BUILD_FLAG_ENABLE=True?>
+<?define RBUS_BUILD_FLAG_ENABLE=True?>
+<?define RBUS_BUILD_FLAG_ENABLE=True?>
+<?define RBUS_BUILD_FLAG_ENABLE=True?>
+<?define FEATURE_MAPT=True?>
+<?define RBUS_BUILD_FLAG_ENABLE=True?>
+<?define RBUS_BUILD_FLAG_ENABLE=True?>
+<?define RBUS_BUILD_FLAG_ENABLE=True?>
+<?define RBUS_BUILD_FLAG_ENABLE=True?>
+<?define FEATURE_MAPT=True?>
+<?define RBUS_BUILD_FLAG_ENABLE=True?>
+<?define RBUS_BUILD_FLAG_ENABLE=True?>
+<?define RBUS_BUILD_FLAG_ENABLE=True?>
+<?define RBUS_BUILD_FLAG_ENABLE=True?>
 <!--
  If not stated otherwise in this file or this component's LICENSE file the
  following copyright and licenses apply:

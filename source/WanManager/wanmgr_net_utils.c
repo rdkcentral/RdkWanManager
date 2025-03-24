@@ -330,7 +330,6 @@ int WanManager_Ipv6AddrUtil(char *ifname, Ipv6OperType opr, int preflft, int val
     char cmdLine[128] = {0};
     char prefix[BUFLEN_48] = {0};
     char prefixAddr[BUFLEN_48] = {0};
-    char Output[BUFLEN_16] = {0};
     char IfaceName[BUFLEN_16] = {0};
     int BridgeMode = 0;
 
@@ -340,19 +339,27 @@ int WanManager_Ipv6AddrUtil(char *ifname, Ipv6OperType opr, int preflft, int val
     memset(prefixAddr, 0, sizeof(prefixAddr));
     sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_GLOBAL_IPV6_PREFIX_SET, prefixAddr, sizeof(prefixAddr));
 
+    { //TODO : temporary debug code to identify the bridgemode sysevent failure issue.
+        char Output[BUFLEN_16] = {0};
+        if (sysevent_get(sysevent_fd, sysevent_token, "bridge_mode", Output, sizeof(Output)) !=0)
+        {
+            CcspTraceError(("%s-%d: bridge_mode sysevent get failed. \n", __FUNCTION__, __LINE__));
+        }
+        BridgeMode = atoi(Output);
+        CcspTraceInfo(("%s-%d: Bridge mode value set to BridgeMode=%d \n", __FUNCTION__, __LINE__,  BridgeMode));
+    }
+
     /*TODO:
      *Below Code should be removed once V6 Prefix/IP is assigned on erouter0 Instead of brlan0 for sky Devices. 
      */
     strcpy(IfaceName, LAN_BRIDGE_NAME);
-    sysevent_get(sysevent_fd, sysevent_token, "bridge_mode", Output, sizeof(Output));
-    BridgeMode = atoi(Output);
-    if (BridgeMode != 0)
+    if (WanMgr_isBridgeModeFromPandM() == TRUE)
     {
         memset(IfaceName, 0, sizeof(IfaceName));
         strncpy(IfaceName, ifname, strlen(ifname));
     }
 
-    CcspTraceInfo(("%s-%d: IfaceName=%s, BridgeMode=%d \n", __FUNCTION__, __LINE__, IfaceName, BridgeMode));
+    CcspTraceInfo(("%s-%d: IfaceName=%s \n", __FUNCTION__, __LINE__, IfaceName));
 
     switch (opr)
     {
