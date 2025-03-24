@@ -236,5 +236,5 @@ void Wanmgr_TriggerReboot();
  *         - FALSE otherwise.
  */
 
- BOOL WanMgr_isBridgeModeFromPandM();
+ BOOL WanMgr_isBridgeModeEnabled();
 #endif /* _WANMGR_RDKBUS_UTILS_H_ */

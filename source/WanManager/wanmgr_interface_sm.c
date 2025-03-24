@@ -984,13 +984,13 @@ static int checkIpv6LanAddressIsReadyToUse(DML_VIRTUAL_IFACE* p_VirtIf)
             CcspTraceError(("%s-%d: bridge_mode sysevent get failed. \n", __FUNCTION__, __LINE__));
         }
         BridgeMode = atoi(Output);
-        CcspTraceInfo(("%s-%d: Bridge mode value set to BridgeMode=%d \n", __FUNCTION__, __LINE__,  BridgeMode));
+        CcspTraceInfo(("%s-%d: <<DEBUG>> bridge_mode sysevent value set to =%d \n", __FUNCTION__, __LINE__,  BridgeMode));
     }
      /*TODO:
      *Below Code should be removed once V6 Prefix/IP is assigned on erouter0 Instead of brlan0 for sky Devices.
      */
     strncpy(IfaceName, ETH_BRIDGE_NAME, sizeof(IfaceName)-1);
-    if (WanMgr_isBridgeModeFromPandM() == TRUE)
+    if (WanMgr_isBridgeModeEnabled() == TRUE)
     {
         CcspTraceInfo(("%s-%d: Device is in bridge mode. Assigning IPv6 address on WAN interface.\n", __FUNCTION__, __LINE__));
         memset(IfaceName, 0, sizeof(IfaceName));
