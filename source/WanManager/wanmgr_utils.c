@@ -1075,12 +1075,12 @@ int sysctl_iface_set(const char *path, const char *ifname, const char *content)
         filename = path;
 
     if ((fd = open(filename, O_WRONLY)) < 0) {
-        perror("Failed to open file");
+        CcspTraceError(("%s %d: Failed to open file %s, errno: %d (%s)\n", __FUNCTION__, __LINE__, filename, errno, strerror(errno)));
         return -1;
     }
-
     len = strlen(content);
     if (write(fd, content, len) != (ssize_t) len) {
+        CcspTraceError(("%s %d: Failed to open file %s, errno: %d (%s)\n", __FUNCTION__, __LINE__, filename, errno, strerror(errno)));
         perror("Failed to write to file");
         close(fd);
         return -1;
