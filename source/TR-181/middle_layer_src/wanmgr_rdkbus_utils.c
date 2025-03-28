@@ -1056,6 +1056,15 @@ ANSC_STATUS  WanMgr_RdkBus_ConfigureVlan(DML_VIRTUAL_IFACE* pVirtIf, BOOL VlanEn
     if(ret != ANSC_STATUS_SUCCESS)
     {
         CcspTraceError(("%s %d DM set %s %s failed\n", __FUNCTION__,__LINE__, acSetParamName, acSetParamValue));
+        //Telemetry start
+        WanMgr_Telemetry_Marker_t Marker = {0};
+        Marker.enTelemetryMarkerID = WAN_ERROR_VLAN_CREATION_FAILED;
+        Marker.pVirtInterface = pVirtIf ;
+        if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
+            CcspTraceError(("%s %d: Error sending Telemetry event WAN_ERROR_VLAN_CREATION_FAILED..\n",__FUNCTION__, __LINE__));
+        }
+        CcspTraceInfo(("%s %d: KAVYA, WAN_ERROR_VLAN_CREATION_FAILED.\n",__FUNCTION__, __LINE__));
+        //Telemetry end
         return ANSC_STATUS_FAILURE;
     }
 
