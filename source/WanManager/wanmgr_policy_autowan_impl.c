@@ -35,6 +35,7 @@
 #include <pthread.h>
 #include "secure_wrapper.h"
 #include "platform_hal.h"
+#include "wanmgr_telemetry.h"
 #ifdef ENABLE_FEATURE_TELEMETRY2_0
 #include <telemetry_busmessage_sender.h>
 #endif
@@ -1045,6 +1046,15 @@ static WcFmobPolicyState_t Transition_FixedWanInterfaceDown(WanMgr_Policy_Contro
             pFixedInterface->VirtIfList->IP.Ipv4ConnectivityStatus = WAN_CONNECTIVITY_DOWN;
             pFixedInterface->VirtIfList->IP.Ipv6ConnectivityStatus = WAN_CONNECTIVITY_DOWN;
             WanMgr_Sysevent_SetConnectivityCheckState(true, NET_CONNNECTIVITY_CHECK_STOPPED);
+            //Telemetry start
+            WanMgr_Telemetry_Marker_t Marker = {0};     
+            Marker.enTelemetryMarkerID = WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN;
+            Marker.pInterface = pFixedInterface ;
+            if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
+                CcspTraceError(("%s %d: Error sending Telemetry event WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN..\n",__FUNCTION__, __LINE__));
+            }
+            CcspTraceInfo(("%s %d: KAVYA, WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN..\n",__FUNCTION__, __LINE__));
+            //Telemetry end	    
         }
     }
 #endif
@@ -1094,6 +1104,15 @@ static WcFmobPolicyState_t Transition_FixedWanInterfaceUp(WanMgr_Policy_Controll
             WanMgr_disable_ra(pFixedInterface->VirtIfList->Name);
             pFixedInterface->VirtIfList->IP.Ipv4ConnectivityStatus = WAN_CONNECTIVITY_UP;
             pFixedInterface->VirtIfList->IP.Ipv6ConnectivityStatus = WAN_CONNECTIVITY_UP;
+            //Telemetry start
+            WanMgr_Telemetry_Marker_t Marker = {0};
+            Marker.enTelemetryMarkerID = WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP;
+            Marker.pInterface = pFixedInterface ;
+            if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
+                CcspTraceError(("%s %d: Error sending Telemetry event WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP..\n",__FUNCTION__, __LINE__));
+            }
+            CcspTraceInfo(("%s %d: KAVYA, WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP..\n",__FUNCTION__, __LINE__));
+            //Telemetry end	    
             WanMgr_Sysevent_SetConnectivityCheckState(true, NET_CONNNECTIVITY_CHECK_STARTING);
         }
     }
@@ -1378,6 +1397,15 @@ static WcFmobPolicyState_t State_FixedWanInterfaceUp(WanMgr_Policy_Controller_t*
                     pFixedInterface->VirtIfList->IP.Ipv6ConnectivityStatus = WAN_CONNECTIVITY_DOWN;
                     pFixedInterface->VirtIfList->IP.WCC_TypeChanged = FALSE;
                     pFixedInterface->VirtIfList->IP.RestartConnectivityCheck = FALSE;
+                    //Telemetry start
+                    WanMgr_Telemetry_Marker_t Marker = {0};     
+                    Marker.enTelemetryMarkerID = WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN;
+                    Marker.pInterface = pFixedInterface ;
+                    if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
+                        CcspTraceError(("%s %d: Error sending Telemetry event WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN..\n",__FUNCTION__, __LINE__));
+                    }
+                    CcspTraceInfo(("%s %d: KAVYA, WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN..\n",__FUNCTION__, __LINE__));
+                    //Telemetry end		    
                 }
             }
         }
@@ -1490,6 +1518,15 @@ static WcFmobPolicyState_t State_FixedWanInterfaceActive(WanMgr_Policy_Controlle
                     pFixedInterface->VirtIfList->IP.Ipv6ConnectivityStatus = WAN_CONNECTIVITY_DOWN;
                     pFixedInterface->VirtIfList->IP.WCC_TypeChanged = FALSE;
                     pFixedInterface->VirtIfList->IP.RestartConnectivityCheck = FALSE;
+                    //Telemetry start
+                    WanMgr_Telemetry_Marker_t Marker = {0};     
+                    Marker.enTelemetryMarkerID = WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN;
+                    Marker.pInterface = pFixedInterface ;
+                    if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
+                        CcspTraceError(("%s %d: Error sending Telemetry event WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN..\n",__FUNCTION__, __LINE__));
+                    }
+                    CcspTraceInfo(("%s %d: KAVYA, WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN..\n",__FUNCTION__, __LINE__));
+                    //Telemetry end		    
                 }
             }
         }
@@ -2210,6 +2247,15 @@ static WcFmobPolicyState_t Transition_WanInterfaceUp(WanMgr_AutoWan_SMInfo_t *pS
             WanMgr_disable_ra(pFixedInterface->VirtIfList->Name);
             pFixedInterface->VirtIfList->IP.Ipv4ConnectivityStatus = WAN_CONNECTIVITY_UP;
             pFixedInterface->VirtIfList->IP.Ipv6ConnectivityStatus = WAN_CONNECTIVITY_UP;
+            //Telemetry start
+            WanMgr_Telemetry_Marker_t Marker = {0};
+            Marker.enTelemetryMarkerID = WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP;
+            Marker.pInterface = pFixedInterface ;
+            if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
+                CcspTraceError(("%s %d: Error sending Telemetry event WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP..\n",__FUNCTION__, __LINE__));
+            }
+            CcspTraceInfo(("%s %d: KAVYA, WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP..\n",__FUNCTION__, __LINE__));
+            //Telemetry end	    
             WanMgr_Sysevent_SetConnectivityCheckState(true, NET_CONNNECTIVITY_CHECK_STARTING);
         }
     }
@@ -2371,7 +2417,15 @@ static WcFmobPolicyState_t Transition_WanInterfaceActive(WanMgr_AutoWan_SMInfo_t
     Update_Interface_Status();
 
     CcspTraceInfo(("%s %d - State changed to STATE_WAN_INTERFACE_ACTIVE if_name %s\n", __FUNCTION__, __LINE__,pFixedInterface->VirtIfList->Name));
-
+    //Telemetry start
+    WanMgr_Telemetry_Marker_t Marker = {0};     
+    Marker.enTelemetryMarkerID = WAN_INFO_WAN_UP;
+    Marker.pInterface = pFixedInterface ;
+    if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
+        CcspTraceError(("%s %d: Error sending Telemetry event WAN_INFO_WAN_UP..\n",__FUNCTION__, __LINE__));
+    }
+    CcspTraceInfo(("%s %d: KAVYA, WAN_INFO_WAN_UP..\n",__FUNCTION__, __LINE__));
+    //Telemetry end
     return STATE_WAN_INTERFACE_ACTIVE;
 }
 #ifdef WAN_FAILOVER_SUPPORTED
@@ -3182,6 +3236,15 @@ static WcFmobPolicyState_t State_WanInterfaceActive(WanMgr_AutoWan_SMInfo_t *pSm
                 pFixedInterface->VirtIfList->IP.Ipv6ConnectivityStatus = WAN_CONNECTIVITY_DOWN;
                 WanMgr_Trigger_TAD(pFixedInterface, WCC_STOP);
                 WanMgr_Sysevent_SetConnectivityCheckState(true, NET_CONNNECTIVITY_CHECK_STOPPED);
+                //Telemetry start
+                WanMgr_Telemetry_Marker_t Marker = {0};     
+                Marker.enTelemetryMarkerID = WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN;
+                Marker.pInterface = pFixedInterface ;
+                if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
+                    CcspTraceError(("%s %d: Error sending Telemetry event WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN..\n",__FUNCTION__, __LINE__));
+                }
+                CcspTraceInfo(("%s %d: KAVYA, WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN..\n",__FUNCTION__, __LINE__));
+                //Telemetry end		
             }
         }
 #endif
@@ -3240,6 +3303,15 @@ static WcFmobPolicyState_t State_WanInterfaceActive(WanMgr_AutoWan_SMInfo_t *pSm
                     pFixedInterface->VirtIfList->IP.Ipv6ConnectivityStatus = WAN_CONNECTIVITY_DOWN;
                     pFixedInterface->VirtIfList->IP.WCC_TypeChanged = FALSE;
                     pFixedInterface->VirtIfList->IP.RestartConnectivityCheck = FALSE;
+                    //Telemetry start
+                    WanMgr_Telemetry_Marker_t Marker = {0};     
+                    Marker.enTelemetryMarkerID = WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN;
+                    Marker.pInterface = pFixedInterface ;
+                    if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
+                        CcspTraceError(("%s %d: Error sending Telemetry event WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN..\n",__FUNCTION__, __LINE__));
+                    }
+                    CcspTraceInfo(("%s %d: KAVYA, WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN..\n",__FUNCTION__, __LINE__));
+                    //Telemetry end		    
                 }
             }
         }
@@ -3311,6 +3383,15 @@ static WcFmobPolicyState_t State_WanInterfaceUp(WanMgr_AutoWan_SMInfo_t *pSmInfo
                 pFixedInterface->VirtIfList->IP.Ipv6ConnectivityStatus = WAN_CONNECTIVITY_DOWN;
                 WanMgr_Trigger_TAD(pFixedInterface, WCC_STOP);
                 WanMgr_Sysevent_SetConnectivityCheckState(true, NET_CONNNECTIVITY_CHECK_STOPPED);
+                //Telemetry start
+                WanMgr_Telemetry_Marker_t Marker = {0};     
+                Marker.enTelemetryMarkerID = WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN;
+                Marker.pInterface = pFixedInterface ;
+                if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
+                    CcspTraceError(("%s %d: Error sending Telemetry event WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN..\n",__FUNCTION__, __LINE__));
+                }
+                CcspTraceInfo(("%s %d: KAVYA, WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN..\n",__FUNCTION__, __LINE__));
+                //Telemetry end		
             }
         }
 #endif
@@ -3367,6 +3448,15 @@ static WcFmobPolicyState_t State_WanInterfaceUp(WanMgr_AutoWan_SMInfo_t *pSmInfo
                     pFixedInterface->VirtIfList->IP.Ipv6ConnectivityStatus = WAN_CONNECTIVITY_DOWN;
                     pFixedInterface->VirtIfList->IP.WCC_TypeChanged = FALSE;
                     pFixedInterface->VirtIfList->IP.RestartConnectivityCheck = FALSE;
+                    //Telemetry start
+                    WanMgr_Telemetry_Marker_t Marker = {0};     
+                    Marker.enTelemetryMarkerID = WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN;
+                    Marker.pInterface = pFixedInterface ;
+                    if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
+                        CcspTraceError(("%s %d: Error sending Telemetry event WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN..\n",__FUNCTION__, __LINE__));
+                    }
+                    CcspTraceInfo(("%s %d: KAVYA, WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN..\n",__FUNCTION__, __LINE__));
+                    //Telemetry end		    
                 }
             }
         }
@@ -4314,6 +4404,15 @@ static WcBWanPolicyState_t Transition_BackupWanAvailable(WanMgr_Policy_Controlle
     {
         pFixedInterface->VirtIfList->IP.Ipv4ConnectivityStatus = WAN_CONNECTIVITY_UP;
         pFixedInterface->VirtIfList->IP.Ipv6ConnectivityStatus = WAN_CONNECTIVITY_UP;
+        //Telemetry start
+        WanMgr_Telemetry_Marker_t Marker = {0};
+        Marker.enTelemetryMarkerID = WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP;
+        Marker.pInterface = pFixedInterface ;
+        if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
+            CcspTraceError(("%s %d: Error sending Telemetry event WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP..\n",__FUNCTION__, __LINE__));
+        }
+        CcspTraceInfo(("%s %d: KAVYA, WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP..\n",__FUNCTION__, __LINE__));
+        //Telemetry end	
         pFixedInterface->VirtIfList->IP.RestartConnectivityCheck = TRUE;
         if (WanMgr_Trigger_Backup_TAD(pFixedInterface, WCC_START) == ANSC_STATUS_SUCCESS)
         {
@@ -4545,6 +4644,15 @@ static WcBWanPolicyState_t Transition_BackupWanInterfaceDown(WanMgr_Policy_Contr
         pFixedInterface->VirtIfList->IP.Ipv4ConnectivityStatus = WAN_CONNECTIVITY_DOWN;
         pFixedInterface->VirtIfList->IP.Ipv6ConnectivityStatus = WAN_CONNECTIVITY_DOWN;
         WanMgr_Trigger_Backup_TAD(pFixedInterface, WCC_STOP);
+        //Telemetry start
+        WanMgr_Telemetry_Marker_t Marker = {0};     
+        Marker.enTelemetryMarkerID = WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN;
+        Marker.pInterface = pFixedInterface ;
+        if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
+            CcspTraceError(("%s %d: Error sending Telemetry event WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN..\n",__FUNCTION__, __LINE__));
+        }
+        CcspTraceInfo(("%s %d: KAVYA, WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN..\n",__FUNCTION__, __LINE__));
+        //Telemetry end	
     }
 #endif
 
@@ -4762,6 +4870,15 @@ static WcBWanPolicyState_t State_BackupWanAvailable(WanMgr_Policy_Controller_t* 
                 pFixedInterface->VirtIfList->IP.Ipv6ConnectivityStatus = WAN_CONNECTIVITY_DOWN;
                 pFixedInterface->VirtIfList->IP.WCC_TypeChanged = FALSE;
                 pFixedInterface->VirtIfList->IP.RestartConnectivityCheck = FALSE;
+                //Telemetry start
+                WanMgr_Telemetry_Marker_t Marker = {0};     
+                Marker.enTelemetryMarkerID = WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN;
+                Marker.pInterface = pFixedInterface ;
+                if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
+                    CcspTraceError(("%s %d: Error sending Telemetry event WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN..\n",__FUNCTION__, __LINE__));
+                }
+                CcspTraceInfo(("%s %d: KAVYA, WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN..\n",__FUNCTION__, __LINE__));
+                //Telemetry end		
             }
         }
     }
@@ -4843,6 +4960,15 @@ static WcBWanPolicyState_t State_BackupWanInterfaceUp(WanMgr_Policy_Controller_t
                 pFixedInterface->VirtIfList->IP.Ipv6ConnectivityStatus = WAN_CONNECTIVITY_DOWN;
                 pFixedInterface->VirtIfList->IP.WCC_TypeChanged = FALSE;
                 pFixedInterface->VirtIfList->IP.RestartConnectivityCheck = FALSE;
+                //Telemetry start
+                WanMgr_Telemetry_Marker_t Marker = {0};     
+                Marker.enTelemetryMarkerID = WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN;
+                Marker.pInterface = pFixedInterface ;
+                if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
+                    CcspTraceError(("%s %d: Error sending Telemetry event WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN..\n",__FUNCTION__, __LINE__));
+                }
+                CcspTraceInfo(("%s %d: KAVYA, WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN..\n",__FUNCTION__, __LINE__));
+                //Telemetry end		
             }
         }
     }
@@ -4930,6 +5056,15 @@ static WcBWanPolicyState_t State_BackupWanInterfaceActive(WanMgr_Policy_Controll
                 pFixedInterface->VirtIfList->IP.Ipv6ConnectivityStatus = WAN_CONNECTIVITY_DOWN;
                 pFixedInterface->VirtIfList->IP.WCC_TypeChanged = FALSE;
                 pFixedInterface->VirtIfList->IP.RestartConnectivityCheck = FALSE;
+                //Telemetry start
+                WanMgr_Telemetry_Marker_t Marker = {0};     
+                Marker.enTelemetryMarkerID = WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN;
+                Marker.pInterface = pFixedInterface ;
+                if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
+                    CcspTraceError(("%s %d: Error sending Telemetry event WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN..\n",__FUNCTION__, __LINE__));
+                }
+                CcspTraceInfo(("%s %d: KAVYA, WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN..\n",__FUNCTION__, __LINE__));
+                //Telemetry end		
             }
         }
     }
@@ -5051,6 +5186,15 @@ static WcBWanPolicyState_t State_BackupWanInterfaceInActive(WanMgr_Policy_Contro
                 pFixedInterface->VirtIfList->IP.Ipv6ConnectivityStatus = WAN_CONNECTIVITY_DOWN;
                 pFixedInterface->VirtIfList->IP.WCC_TypeChanged = FALSE;
                 pFixedInterface->VirtIfList->IP.RestartConnectivityCheck = FALSE;
+                //Telemetry start
+                WanMgr_Telemetry_Marker_t Marker = {0};     
+                Marker.enTelemetryMarkerID = WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN;
+                Marker.pInterface = pFixedInterface ;
+                if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
+                    CcspTraceError(("%s %d: Error sending Telemetry event WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN..\n",__FUNCTION__, __LINE__));
+                }
+                CcspTraceInfo(("%s %d: KAVYA, WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN..\n",__FUNCTION__, __LINE__));
+                //Telemetry end		
             }
         }
     }
@@ -5141,6 +5285,15 @@ static WcBWanPolicyState_t State_BackupWanInterfaceWaitingPrimaryUp(WanMgr_Polic
                 pFixedInterface->VirtIfList->IP.Ipv6ConnectivityStatus = WAN_CONNECTIVITY_DOWN;
                 pFixedInterface->VirtIfList->IP.WCC_TypeChanged = FALSE;
                 pFixedInterface->VirtIfList->IP.RestartConnectivityCheck = FALSE;
+                //Telemetry start
+                WanMgr_Telemetry_Marker_t Marker = {0};     
+                Marker.enTelemetryMarkerID = WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN;
+                Marker.pInterface = pFixedInterface ;
+                if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
+                    CcspTraceError(("%s %d: Error sending Telemetry event WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN..\n",__FUNCTION__, __LINE__));
+                }
+                CcspTraceInfo(("%s %d: KAVYA, WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN..\n",__FUNCTION__, __LINE__));
+                //Telemetry end		
             }
         }
     }
