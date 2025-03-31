@@ -1,18 +1,21 @@
 #include "wanmgr_t2_telemetry.h"
 
 static char buf[128] = {0};
+
 /*append api appends key value in pairs, separated by DELIMITER*/
 static void wanmgr_telemetry_append_key_value(char* key, const char* value)
 {
-        if(value != NULL)
-        {
-                if(strlen(buf)>0)
-                        strcat(buf,WANMGR_T2_TELEMETRY_MARKER_ARG_DELIMITER);
+    if(value != NULL)
+    {
+        if(strlen(buf)>0)
+	{
+            strcat(buf,WANMGR_T2_TELEMETRY_MARKER_ARG_DELIMITER);
+	}
 
-                strcat(buf,key);
-                strcat(buf,WANMGR_T2_TELEMETRY_MARKER_KEY_VALUE_DELIMITER);
-                strcat(buf,value);
-        }
+        strcat(buf,key);
+        strcat(buf,WANMGR_T2_TELEMETRY_MARKER_KEY_VALUE_DELIMITER);
+        strcat(buf,value);
+    }
 }
 
 /*This api processes the Marker struct,
@@ -51,6 +54,7 @@ ANSC_STATUS wanmgr_process_T2_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
     {
         pVirtIntf = pIntf->VirtIfList ;
     }
+
     switch(Marker->enTelemetryMarkerID)
     {
         case WAN_INFO_IP_MODE:

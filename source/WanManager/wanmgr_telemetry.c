@@ -1,5 +1,5 @@
 #include "wanmgr_telemetry.h"
-
+#include "wanmgr_rdkbus_utils.h"
 #ifdef ENABLE_FEATURE_TELEMETRY2_0
 #include "wanmgr_t2_telemetry.h"
 #endif
@@ -8,7 +8,7 @@
  * it gets the necessary parameter structs and
  * sends them to appropriate api to be processed.*/
 
-ANSC_STATUS wanmgr_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
+void wanmgr_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
 {
     if(Marker == NULL)
     {
@@ -41,13 +41,10 @@ ANSC_STATUS wanmgr_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
 #ifdef ENABLE_FEATURE_TELEMETRY2_0
             if(ANSC_STATUS_FAILURE == wanmgr_process_T2_telemetry_event(Marker))
             {
-                return ANSC_STATUS_FAILURE;
+		CcspTraceError(("%s %d: Error sending Telemetry event %s.\n",__FUNCTION__, __LINE__,WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID]));
             }
 #endif	    
             break;
-        //int type markers
-        //float type markers
         default:
     }
-    return ANSC_STATUS_SUCCESS;
 }

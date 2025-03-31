@@ -1604,10 +1604,7 @@ BOOL WanVirtualIf_SetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BO
                 WanMgr_Telemetry_Marker_t Marker = {0};
                 Marker.enTelemetryMarkerID = WAN_INFO_CONNECTIVITY_CHECK_TYPE;
                 Marker.pVirtInterface = p_VirtIf ;
-                if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
-                    CcspTraceError(("%s %d: Error sending Telemetry event WAN_INFO_CONNECTIVITY_CHECK_TYPE..\n",__FUNCTION__, __LINE__));
-                }
-                CcspTraceInfo(("%s %d: KAVYA, WAN_INFO_CONNECTIVITY_CHECK_TYPE.\n",__FUNCTION__, __LINE__));
+                wanmgr_telemetry_event(&Marker);
                 //Telemetry end		
                 ret = TRUE;
             }
@@ -2083,10 +2080,7 @@ BOOL WanIfIpCfg_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULO
                 WanMgr_Telemetry_Marker_t Marker = {0};
                 Marker.enTelemetryMarkerID = WAN_INFO_IP_MODE;
                 Marker.pVirtInterface = p_VirtIf ;
-                if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
-                    CcspTraceError(("%s %d: Error sending Telemetry event WAN_INFO_IP_MODE..\n",__FUNCTION__, __LINE__));
-                }
-                CcspTraceInfo(("%s %d: KAVYA, WAN_INFO_IP_MODE..\n",__FUNCTION__, __LINE__));
+                wanmgr_telemetry_event(&Marker);
                 //Telemetry end		
             }
             ret = TRUE;
@@ -2101,10 +2095,7 @@ BOOL WanIfIpCfg_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULO
                 WanMgr_Telemetry_Marker_t Marker = {0};
                 Marker.enTelemetryMarkerID = WAN_INFO_IP_CONFIG_TYPE;
                 Marker.pVirtInterface = p_VirtIf ;
-                if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
-                    CcspTraceError(("%s %d: Error sending Telemetry event WAN_INFO_IP_CONFIG_TYPE..\n",__FUNCTION__, __LINE__));
-                }
-                CcspTraceInfo(("%s %d: KAVYA, WAN_INFO_IP_CONFIG_TYPE.\n",__FUNCTION__, __LINE__));
+                wanmgr_telemetry_event(&Marker);
                 //Telemetry end		
                 CcspTraceInfo(("%s %d IP.%s changed for %s to %d. Refreshing DHCP \n", __FUNCTION__, __LINE__, ParamName, p_VirtIf->Name,p_VirtIf->IP.IPv4Source));
             }
@@ -2120,10 +2111,7 @@ BOOL WanIfIpCfg_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULO
                 WanMgr_Telemetry_Marker_t Marker = {0};
                 Marker.enTelemetryMarkerID = WAN_INFO_IP_CONFIG_TYPE;
                 Marker.pVirtInterface = p_VirtIf ;
-                if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
-                    CcspTraceError(("%s %d: Error sending Telemetry event WAN_INFO_IP_CONFIG_TYPE..\n",__FUNCTION__, __LINE__));
-                }
-                CcspTraceInfo(("%s %d: KAVYA, WAN_INFO_IP_CONFIG_TYPE.\n",__FUNCTION__, __LINE__));
+                wanmgr_telemetry_event(&Marker);
                 //Telemetry end		
                 CcspTraceInfo(("%s %d IP.%s changed for %s to %d. Refreshing DHCP \n", __FUNCTION__, __LINE__, ParamName, p_VirtIf->Name,p_VirtIf->IP.IPv4Source));
             }

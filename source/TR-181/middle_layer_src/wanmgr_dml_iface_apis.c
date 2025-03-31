@@ -1064,10 +1064,7 @@ BOOL WanIfCfg_SetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL b
                     WanMgr_Telemetry_Marker_t Marker = {0};
                     Marker.enTelemetryMarkerID = WAN_INFO_CONNECTIVITY_CHECK_TYPE;
                     Marker.pInterface = pWanDmlIface ;
-                    if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
-                        CcspTraceError(("%s %d: Error sending Telemetry event WAN_INFO_CONNECTIVITY_CHECK_TYPE..\n",__FUNCTION__, __LINE__));
-                    }
-                    CcspTraceInfo(("%s %d: KAVYA, WAN_INFO_CONNECTIVITY_CHECK_TYPE.\n",__FUNCTION__, __LINE__));
+                    wanmgr_telemetry_event(&Marker);
                     //Telemetry end
 		    
                     ret = TRUE;

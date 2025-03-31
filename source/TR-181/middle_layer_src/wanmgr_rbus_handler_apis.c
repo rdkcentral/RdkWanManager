@@ -1524,12 +1524,7 @@ void *WanMgr_WanRemoteIfaceConfigure_thread(void *arg)
             WanMgr_Telemetry_Marker_t Marker = {0};             
             Marker.enTelemetryMarkerID = WAN_ERROR_PHY_DOWN;
             Marker.pInterface = pWanDmlIface ;
-            if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker))
-	    {
-                CcspTraceError(("%s %d: Error sending Telemetry event WAN_ERROR_PHY_DOWN..\n",__FUNCTION__, __LINE__));
-            }
-
-            CcspTraceInfo(("%s %d: KAVYA, WAN_ERROR_PHY_DOWN..\n",__FUNCTION__, __LINE__));
+            wanmgr_telemetry_event(&Marker);
             //Telemetry end
             free(pDeviceChangeEvent);
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
@@ -1884,10 +1879,7 @@ static void WanMgr_TandD_EventHandler(rbusHandle_t handle, rbusEvent_t const* ev
             WanMgr_Telemetry_Marker_t Marker = {0};
             Marker.enTelemetryMarkerID = (res==1)?WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP:WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN;
             Marker.pVirtInterface = p_VirtIf ;
-            if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
-                CcspTraceError(("%s %d: Error sending Telemetry event %s..\n",__FUNCTION__, __LINE__,(res==1)?"WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP":"WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN"));
-            }
-            CcspTraceInfo(("%s %d: KAVYA, %s..\n",__FUNCTION__, __LINE__,(res==1)?"WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP":"WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN"));
+            wanmgr_telemetry_event(&Marker);
             //Telemetry end	    
             WanMgr_VirtualIfaceData_release(p_VirtIf);
             CcspTraceInfo(("%s %d: Successfully assigned Connectivity Result %s for interface %s\n", __FUNCTION__, __LINE__, (res==1)?"WAN_CONNECTIVITY_UP":"WAN_CONNECTIVITY_DOWN", Alias));

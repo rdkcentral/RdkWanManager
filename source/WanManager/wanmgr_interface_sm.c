@@ -516,10 +516,7 @@ static void WanMgr_MonitorDhcpApps (WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
             WanMgr_Telemetry_Marker_t Marker = {0};
             Marker.enTelemetryMarkerID = WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP;
             Marker.pVirtInterface = p_VirtIf ;
-            if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
-                CcspTraceError(("%s %d: Error sending Telemetry event WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP..\n",__FUNCTION__, __LINE__));
-            }
-            CcspTraceInfo(("%s %d: KAVYA, WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP..\n",__FUNCTION__, __LINE__));
+            wanmgr_telemetry_event(&Marker);
             //Telemetry end	    
         }
 
@@ -674,10 +671,7 @@ void WanManager_UpdateInterfaceStatus(DML_VIRTUAL_IFACE* pVirtIf, wanmgr_iface_s
             WanMgr_Telemetry_Marker_t Marker = {0};             
             Marker.enTelemetryMarkerID = WAN_INFO_IPv4_UP;
             Marker.pVirtInterface = pVirtIf;
-            if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
-                    CcspTraceError(("%s %d: Error sending Telemetry event WAN_INFO_IPv4_UP..\n",__FUNCTION__, __LINE__));
-            }
-            CcspTraceInfo(("%s %d: KAVYA, WAN_INFO_IPv4_UP..\n",__FUNCTION__, __LINE__));
+            wanmgr_telemetry_event(&Marker);
             //Telemetry end
             break;
         }
@@ -691,10 +685,7 @@ void WanManager_UpdateInterfaceStatus(DML_VIRTUAL_IFACE* pVirtIf, wanmgr_iface_s
             WanMgr_Telemetry_Marker_t Marker = {0};             
             Marker.enTelemetryMarkerID = WAN_ERROR_IPv4_DOWN;
             Marker.pVirtInterface = pVirtIf ;
-            if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
-                    CcspTraceError(("%s %d: Error sending Telemetry event WAN_ERROR_IPv4_DOWN..\n",__FUNCTION__, __LINE__));
-            }
-            CcspTraceInfo(("%s %d: KAVYA, WAN_ERROR_IPv4_DOWN..\n",__FUNCTION__, __LINE__));
+            wanmgr_telemetry_event(&Marker);
             //Telemetry end
             break;
         }
@@ -705,10 +696,7 @@ void WanManager_UpdateInterfaceStatus(DML_VIRTUAL_IFACE* pVirtIf, wanmgr_iface_s
             WanMgr_Telemetry_Marker_t Marker = {0};             
             Marker.enTelemetryMarkerID = WAN_INFO_IPv6_UP;
             Marker.pVirtInterface = pVirtIf ;
-            if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
-                    CcspTraceError(("%s %d: Error sending Telemetry event WAN_INFO_IPv6_UP..\n",__FUNCTION__, __LINE__));
-            }
-            CcspTraceInfo(("%s %d: KAVYA, WAN_INFO_IPv6_UP..\n",__FUNCTION__, __LINE__));
+            wanmgr_telemetry_event(&Marker);
             //Telemetry end
             break;
         }
@@ -729,17 +717,10 @@ void WanManager_UpdateInterfaceStatus(DML_VIRTUAL_IFACE* pVirtIf, wanmgr_iface_s
             WanMgr_Telemetry_Marker_t Marker = {0};             
             Marker.enTelemetryMarkerID = WAN_ERROR_IPv6_DOWN;
             Marker.pVirtInterface = pVirtIf ;
-
-            if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
-                    CcspTraceError(("%s %d: Error sending Telemetry event WAN_ERROR_IPv6_DOWN..\n",__FUNCTION__, __LINE__));
-            }
-            CcspTraceInfo(("%s %d: KAVYA, WAN_ERROR_IPv6_DOWN..\n",__FUNCTION__, __LINE__));
+            wanmgr_telemetry_event(&Marker);
 
             Marker.enTelemetryMarkerID = WAN_ERROR_MAPT_STATUS_DOWN;
-            if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
-                    CcspTraceError(("%s %d: Error sending Telemetry event WAN_ERROR_MAPT_STATUS_DOWN..\n",__FUNCTION__, __LINE__));
-            }
-            CcspTraceInfo(("%s %d: KAVYA, WAN_ERROR_MAPT_STATUS_DOWN..\n",__FUNCTION__, __LINE__));
+            wanmgr_telemetry_event(&Marker);
             //Telemetry end
             break;
         }
@@ -753,11 +734,7 @@ void WanManager_UpdateInterfaceStatus(DML_VIRTUAL_IFACE* pVirtIf, wanmgr_iface_s
             WanMgr_Telemetry_Marker_t Marker = {0};             
             Marker.enTelemetryMarkerID = WAN_INFO_MAPT_STATUS_UP;
             Marker.pVirtInterface = pVirtIf ;
-            if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
-                    CcspTraceError(("%s %d: Error sending Telemetry event WAN_INFO_MAPT_STATUS_UP..\n",__FUNCTION__, __LINE__));
-            }
-
-            CcspTraceInfo(("%s %d: KAVYA, WAN_INFO_MAPT_STATUS_UP..\n",__FUNCTION__, __LINE__));
+            wanmgr_telemetry_event(&Marker);
             //Telemetry end
             break;
         }
@@ -771,10 +748,7 @@ void WanManager_UpdateInterfaceStatus(DML_VIRTUAL_IFACE* pVirtIf, wanmgr_iface_s
             WanMgr_Telemetry_Marker_t Marker = {0};             
             Marker.enTelemetryMarkerID = WAN_ERROR_MAPT_STATUS_DOWN;
             Marker.pVirtInterface = pVirtIf ;
-            if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
-                    CcspTraceError(("%s %d: Error sending Telemetry event WAN_ERROR_MAPT_STATUS_DOWN..\n",__FUNCTION__, __LINE__));
-            }
-            CcspTraceInfo(("%s %d: KAVYA, WAN_ERROR_MAPT_STATUS_DOWN..\n",__FUNCTION__, __LINE__));
+            wanmgr_telemetry_event(&Marker);
             //Telemetry end
             break;
         }
@@ -1396,10 +1370,7 @@ static int wan_tearDownIPv4(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
         WanMgr_Telemetry_Marker_t Marker = {0};
         Marker.enTelemetryMarkerID = WAN_ERROR_WAN_DOWN;
         Marker.pInterface = pInterface ;
-        if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
-            CcspTraceError(("%s %d: Error sending Telemetry event WAN_ERROR_WAN_DOWN..\n",__FUNCTION__, __LINE__));
-        }
-        CcspTraceInfo(("%s %d: KAVYA, WAN_ERROR_WAN_DOWN.\n",__FUNCTION__, __LINE__));
+        wanmgr_telemetry_event(&Marker);
         //Telemetry end	
     }
 
@@ -1616,10 +1587,7 @@ static int wan_tearDownIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
         WanMgr_Telemetry_Marker_t Marker = {0};
         Marker.enTelemetryMarkerID = WAN_ERROR_WAN_DOWN;
         Marker.pInterface = pInterface ;
-        if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
-            CcspTraceError(("%s %d: Error sending Telemetry event WAN_ERROR_WAN_DOWN..\n",__FUNCTION__, __LINE__));
-        }
-        CcspTraceInfo(("%s %d: KAVYA, WAN_ERROR_WAN_DOWN.\n",__FUNCTION__, __LINE__));
+        wanmgr_telemetry_event(&Marker);
         //Telemetry end	
     }
 
@@ -1707,10 +1675,7 @@ static ANSC_STATUS WanMgr_StartConnectivityCheck(WanMgr_IfaceSM_Controller_t* pW
                 WanMgr_Telemetry_Marker_t Marker = {0};
                 Marker.enTelemetryMarkerID = WAN_WARN_CONNECTIVITY_CHECK_STATUS_FAILED;
                 Marker.pVirtInterface = pVirtIf ;
-                if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
-                    CcspTraceError(("%s %d: Error sending Telemetry event WAN_WARN_CONNECTIVITY_CHECK_STATUS_FAILED..\n",__FUNCTION__, __LINE__));
-                }
-                CcspTraceInfo(("%s %d: KAVYA, WAN_WARN_CONNECTIVITY_CHECK_STATUS_FAILED.\n",__FUNCTION__, __LINE__));
+                wanmgr_telemetry_event(&Marker);
                 //Telemetry end
             }
             pVirtIf->IP.ConnectivityCheckRunning = TRUE;    
@@ -2044,10 +2009,7 @@ static eWanState_t wan_transition_physical_interface_down(WanMgr_IfaceSM_Control
                 WanMgr_Telemetry_Marker_t Marker = {0};             
                 Marker.enTelemetryMarkerID = WAN_ERROR_VLAN_DOWN;
                 Marker.pVirtInterface = p_VirtIf ;
-                if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
-                     CcspTraceError(("%s %d: Error sending Telemetry event WAN_ERROR_VLAN_DOWN..\n",__FUNCTION__, __LINE__));
-                }
-                CcspTraceInfo(("%s %d: KAVYA, WAN_ERROR_VLAN_DOWN..\n",__FUNCTION__, __LINE__));
+                wanmgr_telemetry_event(&Marker);
                 //Telemetry end
             }
         }
@@ -2118,10 +2080,7 @@ static eWanState_t wan_transition_wan_validated(WanMgr_IfaceSM_Controller_t* pWa
     WanMgr_Telemetry_Marker_t Marker = {0};
     Marker.enTelemetryMarkerID = WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP;
     Marker.pVirtInterface = p_VirtIf ;
-    if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
-        CcspTraceError(("%s %d: Error sending Telemetry event WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP..\n",__FUNCTION__, __LINE__));
-    }
-    CcspTraceInfo(("%s %d: KAVYA, WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP..\n",__FUNCTION__, __LINE__));
+    wanmgr_telemetry_event(&Marker);
     //Telemetry end
 
     if(p_VirtIf->IP.SelectedMode == MAPT_MODE && p_VirtIf->IP.SelectedModeTimerStatus != EXPIRED)
@@ -2853,10 +2812,7 @@ static eWanState_t wan_transition_mapt_up(WanMgr_IfaceSM_Controller_t* pWanIface
         WanMgr_Telemetry_Marker_t Marker = {0};
         Marker.enTelemetryMarkerID = WAN_ERROR_MAPT_STATUS_FAILED;
         Marker.pVirtInterface = p_VirtIf ;
-        if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
-            CcspTraceError(("%s %d: Error sending Telemetry event WAN_ERROR_MAPT_STATUS_FAILED..\n",__FUNCTION__, __LINE__));
-        }
-        CcspTraceInfo(("%s %d: KAVYA, WAN_ERROR_MAPT_STATUS_FAILED..\n",__FUNCTION__, __LINE__));
+        wanmgr_telemetry_event(&Marker);
         //Telemetry end	
     }
 
@@ -3030,10 +2986,7 @@ static eWanState_t wan_transition_standby(WanMgr_IfaceSM_Controller_t* pWanIface
     WanMgr_Telemetry_Marker_t Marker = {0};     
     Marker.enTelemetryMarkerID = WAN_INFO_WAN_STANDBY;
     Marker.pInterface = pInterface ;
-    if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
-        CcspTraceError(("%s %d: Error sending Telemetry event WAN_INFO_WAN_STANDBY..\n",__FUNCTION__, __LINE__));
-    }
-    CcspTraceInfo(("%s %d: KAVYA, WAN_INFO_WAN_STANDBY..\n",__FUNCTION__, __LINE__));
+    wanmgr_telemetry_event(&Marker);
     //Telemetry end
     return WAN_STATE_STANDBY;
 }
@@ -3980,10 +3933,7 @@ static eWanState_t wan_state_mapt_active(WanMgr_IfaceSM_Controller_t* pWanIfaceC
                         WanMgr_Telemetry_Marker_t Marker = {0};
                         Marker.enTelemetryMarkerID = WAN_ERROR_MAPT_STATUS_FAILED;
                         Marker.pVirtInterface = p_VirtIf ;
-                        if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
-                            CcspTraceError(("%s %d: Error sending Telemetry event WAN_ERROR_MAPT_STATUS_FAILED..\n",__FUNCTION__, __LINE__));
-                        }
-                        CcspTraceInfo(("%s %d: KAVYA, WAN_ERROR_MAPT_STATUS_FAILED..\n",__FUNCTION__, __LINE__));
+                        wanmgr_telemetry_event(&Marker);
                         //Telemetry end			
                     }
                 }
@@ -3994,10 +3944,7 @@ static eWanState_t wan_state_mapt_active(WanMgr_IfaceSM_Controller_t* pWanIfaceC
                     WanMgr_Telemetry_Marker_t Marker = {0};
                     Marker.enTelemetryMarkerID = WAN_ERROR_MAPT_STATUS_FAILED;
                     Marker.pVirtInterface = p_VirtIf ;
-                    if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
-                        CcspTraceError(("%s %d: Error sending Telemetry event WAN_ERROR_MAPT_STATUS_FAILED..\n",__FUNCTION__, __LINE__));
-                    }
-                    CcspTraceInfo(("%s %d: KAVYA, WAN_ERROR_MAPT_STATUS_FAILED..\n",__FUNCTION__, __LINE__));
+                    wanmgr_telemetry_event(&Marker);
                     //Telemetry end		    
                 }
             }
@@ -4008,10 +3955,7 @@ static eWanState_t wan_state_mapt_active(WanMgr_IfaceSM_Controller_t* pWanIfaceC
                 WanMgr_Telemetry_Marker_t Marker = {0};
                 Marker.enTelemetryMarkerID = WAN_ERROR_MAPT_STATUS_FAILED;
                 Marker.pVirtInterface = p_VirtIf ;
-                if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
-                    CcspTraceError(("%s %d: Error sending Telemetry event WAN_ERROR_MAPT_STATUS_FAILED..\n",__FUNCTION__, __LINE__));
-                }
-                CcspTraceInfo(("%s %d: KAVYA, WAN_ERROR_MAPT_STATUS_FAILED..\n",__FUNCTION__, __LINE__));
+                wanmgr_telemetry_event(&Marker);
                 //Telemetry end		
             }
         }

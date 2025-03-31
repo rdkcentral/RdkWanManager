@@ -1114,10 +1114,7 @@ static WcAwPolicyState_t State_WaitForInterface (WanMgr_Policy_Controller_t * pW
         WanMgr_Telemetry_Marker_t Marker = {0};         
         Marker.enTelemetryMarkerID = WAN_WARN_IP_OBTAIN_TIMER_EXPIRED;
         Marker.pInterface = pActiveInterface ;
-        if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
-            CcspTraceError(("%s %d: Error sending Telemetry event WAN_WARN_IP_OBTAIN_TIMER_EXPIRED..\n",__FUNCTION__, __LINE__));
-        }
-        CcspTraceInfo(("%s %d: KAVYA, WAN_WARN_IP_OBTAIN_TIMER_EXPIRED..\n",__FUNCTION__, __LINE__));
+        wanmgr_telemetry_event(&Marker);
         //Telemetry end
         return Transition_InterfaceInvalid(pWanController);
     }
@@ -1206,10 +1203,7 @@ static WcAwPolicyState_t State_ScanningInterface (WanMgr_Policy_Controller_t * p
             WanMgr_Telemetry_Marker_t Marker = {0};             
             Marker.enTelemetryMarkerID = WAN_WARN_IP_OBTAIN_TIMER_EXPIRED;
             Marker.pInterface = pActiveInterface ;
-            if(ANSC_STATUS_FAILURE == wanmgr_telemetry_event(&Marker)){
-                    CcspTraceError(("%s %d: Error sending Telemetry event WAN_WARN_IP_OBTAIN_TIMER_EXPIRED..\n",__FUNCTION__, __LINE__));
-            }
-            CcspTraceInfo(("%s %d: KAVYA, WAN_WARN_IP_OBTAIN_TIMER_EXPIRED..\n",__FUNCTION__, __LINE__));
+            wanmgr_telemetry_event(&Marker);
             //Telemetry end
             return Transition_InterfaceDeselect(pWanController);
         }
