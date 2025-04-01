@@ -1692,11 +1692,23 @@ BOOL WanIfIpCfg_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULO
             if (strcmp(ParamName, "IPv4Status") == 0)
             {
                 pWanDmlIface->VirtIfList->IP.Ipv4Status = uValue;
+                //Telemetry start
+                WanMgr_Telemetry_Marker_t Marker = {0};             
+                Marker.enTelemetryMarkerID = (pWanDmlIface->VirtIfList->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_UP) ? WAN_INFO_IPv4_UP : WAN_ERROR_IPv4_DOWN;
+                Marker.pInterface = pWanDmlIface;
+                wanmgr_telemetry_event(&Marker);
+                //Telemetry end	    
                 ret = TRUE;
             }
             if (strcmp(ParamName, "IPv6Status") == 0)
             {
                 pWanDmlIface->VirtIfList->IP.Ipv6Status = uValue;
+                //Telemetry start
+                WanMgr_Telemetry_Marker_t Marker = {0};
+                Marker.enTelemetryMarkerID = (pWanDmlIface->VirtIfList->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_UP) ? WAN_INFO_IPv6_UP : WAN_ERROR_IPv6_DOWN;
+                Marker.pInterface = pWanDmlIface;
+                wanmgr_telemetry_event(&Marker);
+                //Telemetry end		
                 ret = TRUE;
             }
 
@@ -1999,6 +2011,12 @@ BOOL WanIfMapt_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULON
             {
 #ifdef FEATURE_MAPT
                 pWanDmlIface->VirtIfList->MAP.MaptStatus = uValue;
+                //Telemetry start
+                WanMgr_Telemetry_Marker_t Marker = {0};             
+                Marker.enTelemetryMarkerID = (pWanDmlIface->VirtIfList->MAP.MaptStatus == WAN_IFACE_MAPT_STATE_UP) ? WAN_INFO_MAPT_STATUS_UP : WAN_ERROR_MAPT_STATUS_DOWN;
+                Marker.pInterface = pWanDmlIface ;
+                wanmgr_telemetry_event(&Marker);
+                //Telemetry end		
                 ret = TRUE;
 #endif /* * FEATURE_MAPT */
             }

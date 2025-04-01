@@ -457,6 +457,10 @@ rbusError_t WanMgr_Interface_SetHandler(rbusHandle_t handle, rbusProperty_t prop
                 strncpy(String , rbusValue_GetString(value, NULL),sizeof(String)-1);
                 CcspTraceInfo(("%s-%d : %s BaseInterfaceStatus changed to %s\n", __FUNCTION__, __LINE__, pWanDmlIface->Name, String));
                 WanMgr_StringToEnum(&pWanDmlIface->BaseInterfaceStatus, ENUM_PHY, String);
+                if(pWanDmlIface->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_DOWN)
+		{
+		    
+		}
                 if (pWanDmlIface->Sub.BaseInterfaceStatusSub)
                 {
                     CcspTraceInfo(("%s-%d : BaseInterfaceStatus Publish Event, SubCount(%d)\n", __FUNCTION__, __LINE__, pWanDmlIface->Sub.BaseInterfaceStatusSub));
