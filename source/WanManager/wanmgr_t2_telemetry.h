@@ -8,6 +8,7 @@
 #define WANMGR_T2_PHY_INTERFACE_STRING                  "PHY_TYPE"
 #define WANMGR_T2_WAN_INTERFACE_STRING                  "WAN_NAME"
 #define WANMGR_T2_VIRT_WAN_INTERFACE_STRING             "VIRT_WAN_NAME"
+#define WANMGR_T2_SELECTION_STATUS_STRING               "SELECTION_STATUS"
 #define WANMGR_T2_WANMGR_SPLIT_VAL_STRING               "SPLIT_VAL"
 
 static const char * const WanMgr_TelemetryEventStr[] =
