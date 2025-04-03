@@ -388,6 +388,7 @@ typedef struct _DML_WANIFACE_IP
     int                         Dhcp4cPid;
     WANMGR_DHCPC_STATUS         Dhcp4cStatus; //Status of DHCPv4 client
     int                         Dhcp6cPid;
+    WANMGR_DHCPC_STATUS         Dhcp6cStatus; //Status of DHCPv6 client
 } DML_WANIFACE_IP;
 
 #ifdef FEATURE_MAPT

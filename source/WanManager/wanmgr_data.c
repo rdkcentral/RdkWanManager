@@ -859,6 +859,8 @@ void WanMgr_VirtIface_Init(DML_VIRTUAL_IFACE * pVirtIf, UINT iface_index)
     memset(&(pVirtIf->IP.SelectedModeTimerStart), 0, sizeof(struct timespec));
     pVirtIf->IP.Ipv4Renewed = FALSE;
     pVirtIf->IP.Ipv6Renewed = FALSE;
+    pVirtIf->IP.Dhcp4cStatus = DHCPC_STATUS_UNKNOWN;
+    pVirtIf->IP.Dhcp6cStatus = DHCPC_STATUS_UNKNOWN;
     memset(&(pVirtIf->IP.Ipv4Data), 0, sizeof(WANMGR_IPV4_DATA));
     memset(&(pVirtIf->IP.Ipv6Data), 0, sizeof(WANMGR_IPV6_DATA));
     pVirtIf->IP.pIpcIpv4Data = NULL;
