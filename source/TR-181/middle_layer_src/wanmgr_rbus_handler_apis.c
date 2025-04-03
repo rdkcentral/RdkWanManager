@@ -2052,7 +2052,6 @@ void WanMgr_SubscribeDhcpClientEvents(const char *DhcpInterface)
     rbusError_t rc = RBUS_ERROR_SUCCESS;
     char eventName[64] = {0};
     snprintf(eventName, sizeof(eventName), "%s.Events", DhcpInterface);
-    rc = RBUS_ERROR_SUCCESS;
     rc = rbusEvent_Subscribe(rbusHandle, eventName, WanMgr_DhcpClientEventsHandler, NULL, 60);
     if(rc != RBUS_ERROR_SUCCESS)
     {
@@ -2063,3 +2062,17 @@ void WanMgr_SubscribeDhcpClientEvents(const char *DhcpInterface)
     CcspTraceInfo(("%s %d: Subscribed to %s  n", __FUNCTION__, __LINE__, eventName));
 }
 
+void WanMgr_UnSubscribeDhcpClientEvents(const char *DhcpInterface)
+{
+    rbusError_t rc = RBUS_ERROR_SUCCESS;
+    char eventName[64] = {0};
+    snprintf(eventName, sizeof(eventName), "%s.Events", DhcpInterface);
+    rc = rbusEvent_Unsubscribe(rbusHandle, eventName);
+    if(rc != RBUS_ERROR_SUCCESS)
+    {
+        CcspTraceError(("%s %d - Failed to UnSubscribe %s, Error=%s \n", __FUNCTION__, __LINE__, eventName, rbusError_ToString(rc)));
+        return NULL;
+    }
+    
+    CcspTraceInfo(("%s %d: UnSubscribed to %s  n", __FUNCTION__, __LINE__, eventName));
+}

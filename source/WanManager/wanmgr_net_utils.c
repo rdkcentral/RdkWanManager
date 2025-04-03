@@ -514,6 +514,7 @@ ANSC_STATUS WanManager_StopDhcpv6Client(DML_VIRTUAL_IFACE* pVirtIf, DHCP_RELEASE
     {
         CcspTraceInfo(("%s %d - Failed setting [%s] to DHCP Manager \n", __FUNCTION__, __LINE__, pVirtIf->Name));
     }
+    WanMgr_UnSubscribeDhcpClientEvents(pVirtIf->IP.DHCPv6Iface);
     return ANSC_STATUS_SUCCESS;
 #else
     if (is_release_required == STOP_DHCP_WITH_RELEASE)
@@ -620,7 +621,7 @@ ANSC_STATUS WanManager_StopDhcpv4Client(DML_VIRTUAL_IFACE* pVirtIf, DHCP_RELEASE
     {
         CcspTraceInfo(("%s %d - Failed setting [%s] to DHCP Manager \n", __FUNCTION__, __LINE__, pVirtIf->Name));
     }
-    //TODO: add unsub
+    WanMgr_UnSubscribeDhcpClientEvents(pVirtIf->IP.DHCPv4Iface);
     return ANSC_STATUS_SUCCESS;
 #else
 #if defined(_DT_WAN_Manager_Enable_)
