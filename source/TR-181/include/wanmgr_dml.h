@@ -188,6 +188,14 @@ typedef enum _DML_WAN_IP_PREFERRED_MODE
     DSLITE_MODE
 } DML_WAN_IP_PREFERRED_MODE;
 
+typedef enum _WANMGR_DHCPC_STATUS
+{
+    DHCPC_STATUS_UNKNOWN = 1,
+    DHCPC_STATUS_STARTED,
+    DHCPC_STATUS_STOPPED,
+    DHCPC_STATUS_FAILED,
+} WANMGR_DHCPC_STATUS;
+
 typedef enum _TIMER_STATUS
 {
     NOTSTARTED = 1,
@@ -378,6 +386,7 @@ typedef struct _DML_WANIFACE_IP
     ipc_dhcpv4_data_t*          pIpcIpv4Data;
     ipc_dhcpv6_data_t*          pIpcIpv6Data;
     int                         Dhcp4cPid;
+    WANMGR_DHCPC_STATUS         Dhcp4cStatus; //Status of DHCPv4 client
     int                         Dhcp6cPid;
 } DML_WANIFACE_IP;
 

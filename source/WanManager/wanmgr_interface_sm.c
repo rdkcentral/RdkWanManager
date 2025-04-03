@@ -440,10 +440,10 @@ static void WanMgr_MonitorDhcpApps (WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
         // let the caller state handle RefreshDHCP=TRUE scenario
         CcspTraceError(("%s %d: IP Mode change detected, handle RefreshDHCP & later monitor DHCP apps\n", __FUNCTION__, __LINE__));
         //reset flag here, if the IP mode and source changes are addressed.
-        if(((p_VirtIf->IP.IPv6Source != DML_WAN_IP_SOURCE_DHCP || p_VirtIf->IP.Mode == DML_WAN_IP_MODE_NO_IP) && p_VirtIf->IP.Dhcp4cPid == 0 && p_VirtIf->IP.Dhcp6cPid == 0)||
-            (p_VirtIf->IP.Mode == DML_WAN_IP_MODE_IPV6_ONLY && p_VirtIf->IP.Dhcp4cPid == 0 && p_VirtIf->IP.Dhcp6cPid > 0) ||
-            (p_VirtIf->IP.Mode == DML_WAN_IP_MODE_IPV4_ONLY && p_VirtIf->IP.Dhcp4cPid > 0 && p_VirtIf->IP.Dhcp6cPid == 0) ||
-            (p_VirtIf->IP.Mode == DML_WAN_IP_MODE_DUAL_STACK && p_VirtIf->IP.Dhcp4cPid > 0 && p_VirtIf->IP.Dhcp6cPid > 0))
+        if(((p_VirtIf->IP.IPv6Source != DML_WAN_IP_SOURCE_DHCP || p_VirtIf->IP.Mode == DML_WAN_IP_MODE_NO_IP) && p_VirtIf->IP.Dhcp4cStatus != DHCPC_STATUS_STARTED && p_VirtIf->IP.Dhcp6cPid == 0)|| //TODO : check whu only IP.IPv6Source checjked?
+            (p_VirtIf->IP.Mode == DML_WAN_IP_MODE_IPV6_ONLY && p_VirtIf->IP.Dhcp4cStatus != DHCPC_STATUS_STARTED && p_VirtIf->IP.Dhcp6cPid > 0) || //IPv6 only mode, reset if DHCPv4 not running and v6 running
+            (p_VirtIf->IP.Mode == DML_WAN_IP_MODE_IPV4_ONLY && p_VirtIf->IP.Dhcp4cStatus == DHCPC_STATUS_STARTED&& p_VirtIf->IP.Dhcp6cPid == 0) || //IPv4 only mode, reset if DHCPv4 running and v6 not running
+            (p_VirtIf->IP.Mode == DML_WAN_IP_MODE_DUAL_STACK && p_VirtIf->IP.Dhcp4cStatus == DHCPC_STATUS_STARTED && p_VirtIf->IP.Dhcp6cPid > 0))  //Dual stack mode, reset if DHCPv4 running and v6 running
         {
             CcspTraceInfo(("%s %d: IP Mode change processed. Resetting flag. \n", __FUNCTION__, __LINE__));
             p_VirtIf->IP.RefreshDHCP = FALSE;
@@ -461,8 +461,8 @@ static void WanMgr_MonitorDhcpApps (WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
         (p_VirtIf->IP.Dhcp4cPid > 0 &&                                                                          // dhcp started by ISM
         WanMgr_IsPIDRunning(p_VirtIf->IP.Dhcp4cPid) != TRUE)))                                                  // but DHCP client not running
     {
-        p_VirtIf->IP.Dhcp4cPid = WanManager_StartDhcpv4Client(p_VirtIf, pInterface->Name, pInterface->IfaceType);
-        CcspTraceInfo(("%s %d - SELFHEAL - Started dhcpc on interface %s, dhcpv4_pid %d \n", __FUNCTION__, __LINE__, p_VirtIf->Name, p_VirtIf->IP.Dhcp4cPid));
+        WanManager_StartDhcpv4Client(p_VirtIf, pInterface->Name, pInterface->IfaceType);
+        CcspTraceInfo(("%s %d - SELFHEAL - Started dhcpc on interface %s\n", __FUNCTION__, __LINE__, p_VirtIf->Name));
 #ifdef ENABLE_FEATURE_TELEMETRY2_0
         t2_event_d("SYS_ERROR_DHCPV4Client_notrunning", 1);
 #endif
@@ -1767,6 +1767,7 @@ static ANSC_STATUS WanManager_ClearDHCPData(DML_VIRTUAL_IFACE * pVirtIf)
     pVirtIf->IP.Ipv4Renewed = FALSE;
     memset(&(pVirtIf->IP.Ipv4Data), 0, sizeof(WANMGR_IPV4_DATA));
     pVirtIf->IP.Dhcp4cPid = 0;
+    pVirtIf->IP.Dhcp4cStatus = DHCPC_STATUS_STOPPED;
     if(pVirtIf->IP.pIpcIpv4Data != NULL)
     {
         free(pVirtIf->IP.pIpcIpv4Data);
@@ -1904,12 +1905,11 @@ static eWanState_t wan_transition_physical_interface_down(WanMgr_IfaceSM_Control
     }
 
     /* Stops DHCPv4 client */
-    if(p_VirtIf->IP.Dhcp4cPid > 0)
+    if(p_VirtIf->IP.Dhcp4cStatus == DHCPC_STATUS_STARTED)
     {
         // v4 config is teared down if already configured, stop DHCPv4 client if running without RELEASE
         CcspTraceInfo(("%s %d: Stopping DHCP v4\n", __FUNCTION__, __LINE__));
-        WanManager_StopDhcpv4Client(p_VirtIf, STOP_DHCP_WITHOUT_RELEASE);
-        p_VirtIf->IP.Dhcp4cPid = 0;
+        WanManager_StopDhcpv4Client(p_VirtIf, STOP_DHCP_WITHOUT_RELEASE); 
     }
 
     /* Stops DHCPv6 client */
@@ -2029,8 +2029,7 @@ static eWanState_t wan_transition_wan_validated(WanMgr_IfaceSM_Controller_t* pWa
             (p_VirtIf->IP.Mode == DML_WAN_IP_MODE_DUAL_STACK || p_VirtIf->IP.Mode == DML_WAN_IP_MODE_IPV4_ONLY))
         {
             /* Start DHCPv4 client */
-            p_VirtIf->IP.Dhcp4cPid = WanManager_StartDhcpv4Client(p_VirtIf,pInterface->Name, pInterface->IfaceType);
-            CcspTraceInfo(("%s %d - Started dhcpc on interface %s, dhcpv4_pid %d \n", __FUNCTION__, __LINE__, p_VirtIf->Name, p_VirtIf->IP.Dhcp4cPid));
+            WanManager_StartDhcpv4Client(p_VirtIf,pInterface->Name, pInterface->IfaceType);
         }
 
         if(p_VirtIf->IP.IPv6Source == DML_WAN_IP_SOURCE_DHCP && (p_VirtIf->IP.Dhcp6cPid == 0) &&
@@ -2257,7 +2256,7 @@ static eWanState_t wan_transition_ipv4_down(WanMgr_IfaceSM_Controller_t* pWanIfa
         (p_VirtIf->IP.Mode != DML_WAN_IP_MODE_IPV4_ONLY && p_VirtIf->IP.Mode != DML_WAN_IP_MODE_DUAL_STACK))))
     {
         // Stopping DHCPv4 client, so we can send a unicast DHCP Release packet
-        if(p_VirtIf->IP.Dhcp4cPid > 0)
+        if(p_VirtIf->IP.Dhcp4cStatus == DHCPC_STATUS_STARTED)
         {
             CcspTraceInfo(("%s %d: Stopping DHCP v4\n", __FUNCTION__, __LINE__));
             DHCP_RELEASE_BEHAVIOUR release_action = STOP_DHCP_WITH_RELEASE;  // STOP_DHCP_WITH_RELEASE by default, v4 config available
@@ -2270,19 +2269,18 @@ static eWanState_t wan_transition_ipv4_down(WanMgr_IfaceSM_Controller_t* pWanIfa
                 release_action = STOP_DHCP_WITHOUT_RELEASE;
             }
             WanManager_StopDhcpv4Client(p_VirtIf, release_action);
-            p_VirtIf->IP.Dhcp4cPid = 0;
         }
     }
     else
     {
         // start DHCPv4 client if it is not running, MAP-T not configured and PPP Disable scenario.
-        if(p_VirtIf->IP.Dhcp4cPid > 0 && WanMgr_IsPIDRunning(p_VirtIf->IP.Dhcp4cPid) != TRUE &&
+        if(p_VirtIf->IP.Dhcp4cStatus != DHCPC_STATUS_STARTED &&
             (p_VirtIf->PPP.Enable == FALSE) &&
             (!(p_VirtIf->EnableMAPT == TRUE && (pInterface->Selection.Status == WAN_IFACE_ACTIVE) && 
             (p_VirtIf->MAP.MaptStatus == WAN_IFACE_MAPT_STATE_UP))))
         {
-            p_VirtIf->IP.Dhcp4cPid = WanManager_StartDhcpv4Client(p_VirtIf, pInterface->Name, pInterface->IfaceType);
-            CcspTraceInfo(("%s %d - SELFHEAL - Started dhcpc on interface %s, dhcpv4_pid %d \n", __FUNCTION__, __LINE__, p_VirtIf->Name, p_VirtIf->IP.Dhcp4cPid));
+            WanManager_StartDhcpv4Client(p_VirtIf, pInterface->Name, pInterface->IfaceType);
+            CcspTraceInfo(("%s %d - SELFHEAL - Started dhcpc on interface %s\n", __FUNCTION__, __LINE__, p_VirtIf->Name));
         }
     }
     WanManager_UpdateInterfaceStatus (p_VirtIf, WANMGR_IFACE_CONNECTION_DOWN);
@@ -2737,12 +2735,11 @@ static eWanState_t wan_transition_mapt_up(WanMgr_IfaceSM_Controller_t* pWanIface
         CcspTraceError(("%s %d - Failed to configure MAP-T \n", __FUNCTION__, __LINE__));
     }
 
-    if (p_VirtIf->IP.Dhcp4cPid > 0)
+    if (p_VirtIf->IP.Dhcp4cStatus == DHCPC_STATUS_STARTED)
     {
         // MAPT is configured, stop DHCPv4 client with RELEASE if v4 configured
         CcspTraceInfo(("%s %d: Stopping DHCP v4\n", __FUNCTION__, __LINE__));
         WanManager_StopDhcpv4Client(p_VirtIf, STOP_DHCP_WITH_RELEASE);
-        p_VirtIf->IP.Dhcp4cPid = 0;
     }
 
     /* if V4 already configured, let it teardown */
@@ -2818,7 +2815,6 @@ static eWanState_t wan_transition_mapt_down(WanMgr_IfaceSM_Controller_t* pWanIfa
     /* Clear DHCPv4 client */
     WanManager_UpdateInterfaceStatus (p_VirtIf, WANMGR_IFACE_CONNECTION_DOWN);
     memset(&(p_VirtIf->IP.Ipv4Data), 0, sizeof(WANMGR_IPV4_DATA));
-    //p_VirtIf->IP.Dhcp4cPid = 0;
 
     if(p_VirtIf->IP.pIpcIpv4Data != NULL)
     {
@@ -2836,8 +2832,8 @@ static eWanState_t wan_transition_mapt_down(WanMgr_IfaceSM_Controller_t* pWanIfa
     {
         if( p_VirtIf->PPP.Enable == FALSE )
         {
-            p_VirtIf->IP.Dhcp4cPid = WanManager_StartDhcpv4Client(p_VirtIf, pInterface->Name, pInterface->IfaceType);
-            CcspTraceInfo(("%s %d - Started dhcpc on interface %s, pid %d \n", __FUNCTION__, __LINE__, p_VirtIf->Name, p_VirtIf->IP.Dhcp4cPid));
+            WanManager_StartDhcpv4Client(p_VirtIf, pInterface->Name, pInterface->IfaceType);
+            CcspTraceInfo(("%s %d - Started dhcpc on interface %s\n", __FUNCTION__, __LINE__, p_VirtIf->Name));
         }
         else
         {
@@ -3200,17 +3196,16 @@ static eWanState_t wan_state_obtaining_ip_addresses(WanMgr_IfaceSM_Controller_t*
         if(p_VirtIf->IP.IPv4Source == DML_WAN_IP_SOURCE_DHCP &&
            (p_VirtIf->IP.Mode == DML_WAN_IP_MODE_IPV4_ONLY || p_VirtIf->IP.Mode == DML_WAN_IP_MODE_DUAL_STACK))
         {
-            if(p_VirtIf->IP.Dhcp4cPid <= 0)
+            if(p_VirtIf->IP.Dhcp4cStatus != DHCPC_STATUS_STARTED)
             {
-                p_VirtIf->IP.Dhcp4cPid = WanManager_StartDhcpv4Client(p_VirtIf, pInterface->Name, pInterface->IfaceType);
-                CcspTraceInfo(("%s %d - Started dhcpc on interface %s, dhcpv4_pid %d \n", __FUNCTION__, __LINE__, p_VirtIf->Name, p_VirtIf->IP.Dhcp4cPid));
+                WanManager_StartDhcpv4Client(p_VirtIf, pInterface->Name, pInterface->IfaceType);
+                CcspTraceInfo(("%s %d - Started dhcpc on interface %s\n", __FUNCTION__, __LINE__, p_VirtIf->Name));
             }
-        }else if(p_VirtIf->IP.Dhcp4cPid > 0)
+        }else if(p_VirtIf->IP.Dhcp4cStatus == DHCPC_STATUS_STARTED)
         {
             // DHCP config changed, if we got a v4 lease at this stage, send a v4 RELEASE
             CcspTraceInfo(("%s %d: Stopping DHCP v4\n", __FUNCTION__, __LINE__));
             WanManager_StopDhcpv4Client(p_VirtIf, STOP_DHCP_WITH_RELEASE);
-            p_VirtIf->IP.Dhcp4cPid = 0;
         }
 
         if(p_VirtIf->IP.IPv6Source == DML_WAN_IP_SOURCE_DHCP && 
@@ -3230,7 +3225,7 @@ static eWanState_t wan_state_obtaining_ip_addresses(WanMgr_IfaceSM_Controller_t*
             p_VirtIf->IP.Dhcp6cPid = 0;
         }
 
-        if ((p_VirtIf->IP.Dhcp4cPid == 0) && (p_VirtIf->IP.Dhcp6cPid == 0))
+        if ((p_VirtIf->IP.Dhcp4cStatus != DHCPC_STATUS_STARTED) && (p_VirtIf->IP.Dhcp6cPid == 0))
         {
             p_VirtIf->Status = WAN_IFACE_STATUS_VALIDATING;
             if (pWanIfaceCtrl->interfaceIdx != -1)
@@ -3488,10 +3483,10 @@ static eWanState_t wan_state_ipv6_leased(WanMgr_IfaceSM_Controller_t* pWanIfaceC
       p_VirtIf->IP.IPv4Source == DML_WAN_IP_SOURCE_DHCP &&
       p_VirtIf->IP.Mode == DML_WAN_IP_MODE_DUAL_STACK &&
       p_VirtIf->IP.SelectedModeTimerStatus != COMPLETE &&
-      p_VirtIf->IP.Dhcp4cPid <= 0)
+      p_VirtIf->IP.Dhcp4cStatus != DHCPC_STATUS_STARTED)
     {
-        p_VirtIf->IP.Dhcp4cPid = WanManager_StartDhcpv4Client(p_VirtIf, pInterface->Name, pInterface->IfaceType);
-        CcspTraceInfo(("%s %d - Started dhcpc on interface %s, dhcpv4_pid %d \n", __FUNCTION__, __LINE__, p_VirtIf->Name, p_VirtIf->IP.Dhcp4cPid));
+        WanManager_StartDhcpv4Client(p_VirtIf, pInterface->Name, pInterface->IfaceType);
+        CcspTraceInfo(("%s %d - Started dhcpc on interface %s\n", __FUNCTION__, __LINE__, p_VirtIf->Name));
         CcspTraceInfo(("%s %d - Interface '%s' - Running in Dual Stack IP Mode\n", __FUNCTION__, __LINE__, pInterface->Name));
     }
 

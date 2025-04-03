@@ -546,12 +546,15 @@ int WanManager_StartDhcpv4Client(DML_VIRTUAL_IFACE* pVirtIf, char* baseInterface
     if (ANSC_STATUS_SUCCESS == WanMgr_RdkBus_SetParamValues(DHCPMGR_COMPONENT_NAME, DHCPMGR_DBUS_PATH, dmlName, "true", ccsp_boolean, TRUE))
     {
         CcspTraceInfo(("%s %d - Successfully set [%s] to DHCP Manager \n", __FUNCTION__, __LINE__, pVirtIf->Name));
+        pVirtIf->IP.Dhcp4cStatus = DHCP_CLIENT_STARTED;
     }
     else
     {
+        pVirtIf->IP.Dhcp4cStatus = DHCP_CLIENT_FAILED;
         CcspTraceInfo(("%s %d - Failed setting [%s] to DHCP Manager \n", __FUNCTION__, __LINE__, pVirtIf->Name));
     }
-    return 1;//TODO:fix pid
+    pVirtIf->IP.Dhcp4cPid = 1; //Set a dummy value to indicate dhcp client is started
+    return 0;
 #else
 #if defined(_DT_WAN_Manager_Enable_)
     WanManager_CreateDHCPService(pVirtIf);
@@ -567,14 +570,19 @@ int WanManager_StartDhcpv4Client(DML_VIRTUAL_IFACE* pVirtIf, char* baseInterface
 
     CcspTraceInfo(("Starting DHCPv4 Client for iface: %s \n", params.ifname));
     pid = start_dhcpv4_client(&params);
-
-    if (pid == 0) 
+    
+    if (pid == 0)  
     {
         CcspTraceError(("%s %d: dhcpv4 client failed to start. Returing pid -1.\n", __FUNCTION__, __LINE__));
-        pid = -1;
+        pVirtIf->IP.Dhcp4cPid = -1;
+        pVirtIf->IP.Dhcp4cStatus = DHCP_CLIENT_FAILED;
+        return -1;
     }
+
+    pVirtIf->IP.Dhcp4cStatus = DHCP_CLIENT_STARTED;
     pVirtIf->IP.Dhcp4cPid = pid;
-    return pid;
+    CcspTraceInfo(("%s %d - Started dhcpc on interface %s, dhcpv4_pid %d \n", __FUNCTION__, __LINE__, p_VirtIf->Name, p_VirtIf->IP.Dhcp4cPid));
+    return 0;
 #endif
 }
 
@@ -593,6 +601,8 @@ ANSC_STATUS WanManager_StopDhcpv4Client(DML_VIRTUAL_IFACE* pVirtIf, DHCP_RELEASE
     if (ANSC_STATUS_SUCCESS == WanMgr_RdkBus_SetParamValues(DHCPMGR_COMPONENT_NAME, DHCPMGR_DBUS_PATH, dmlName, "false", ccsp_boolean, TRUE))
     {
         CcspTraceInfo(("%s %d - Successfully set [%s] to DHCP Manager \n", __FUNCTION__, __LINE__, pVirtIf->Name));
+        pVirtIf->IP.Dhcp4cStatus = DHCP_CLIENT_STOPPED;
+        pVirtIf->IP.Dhcp4cPid = 0;
     }
     else
     {
@@ -621,7 +631,8 @@ ANSC_STATUS WanManager_StopDhcpv4Client(DML_VIRTUAL_IFACE* pVirtIf, DHCP_RELEASE
         CcspTraceInfo(("%s %d - sleep 2 seconds for dhcpv4 client to send release \n", __FUNCTION__, __LINE__));
         sleep(2);
     }
-
+    pVirtIf->IP.Dhcp4cStatus = DHCP_CLIENT_STOPPED;
+    pVirtIf->IP.Dhcp4cPid = 0;
     return ret;
 #endif
 }
