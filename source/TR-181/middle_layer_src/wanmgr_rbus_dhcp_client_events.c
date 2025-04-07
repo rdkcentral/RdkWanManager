@@ -180,8 +180,8 @@ void WanMgr_DhcpClientEventsHandler(rbusHandle_t handle, rbusEvent_t const* even
             {
                 pVirtIf->IP.Ipv6Renewed = TRUE;
                 //TODO: Check for sysevents
-                //TODO: radvd restart
-                //TODO: prefix delegation lifetime change
+                //TODO: radvd restart ?
+                //TODO: prefix delegation lifetime change ?
                 CcspTraceInfo(("%s-%d : DHCPv6 lease renewed for %s\n", __FUNCTION__, __LINE__, pVirtIf->Name));
                 WanManager_UpdateInterfaceStatus(pVirtIf, WANMGR_IFACE_CONNECTION_IPV6_UP);
             }
@@ -207,6 +207,7 @@ void WanMgr_DhcpClientEventsHandler(rbusHandle_t handle, rbusEvent_t const* even
                     memcpy(&leaseInfo, ptr, bytes_len);
                     copyDhcpv6Data(&(pVirtIf->IP.Ipv6Data), &leaseInfo);
                     pVirtIf->IP.Ipv6Changed = TRUE;
+                    //TODO : WAN ip creation from IA_PD if required. address assignment on LAN bridge.
                     WanManager_UpdateInterfaceStatus(pVirtIf, WANMGR_IFACE_CONNECTION_IPV6_UP);
                     char param_name[256] = {0};
                     snprintf(param_name, sizeof(param_name), "Device.X_RDK_WanManager.Interface.%d.VirtualInterface.%d.IP.IPv6Address",  pVirtIf->baseIfIdx+1, pVirtIf->VirIfIdx+1);
