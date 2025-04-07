@@ -1375,12 +1375,6 @@ static int wan_tearDownIPv4(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
         sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_WAN_STATUS, WAN_STATUS_STOPPED, 0);
         sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_WAN_SERVICE_STATUS, WAN_STATUS_STOPPED, 0);
         CcspTraceInfo(("%s %d - wan-status event set to stopped \n", __FUNCTION__, __LINE__));
-        //Telemetry start
-        WanMgr_Telemetry_Marker_t Marker = {0};
-        Marker.enTelemetryMarkerID = WAN_ERROR_WAN_DOWN;
-        Marker.pInterface = pInterface ;
-        wanmgr_telemetry_event(&Marker);
-        //Telemetry end	
     }
     if( ret != RETURN_ERR)
     {
@@ -1609,12 +1603,6 @@ static int wan_tearDownIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
         sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_WAN_STATUS, WAN_STATUS_STOPPED, 0);
         sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_WAN_SERVICE_STATUS, WAN_STATUS_STOPPED, 0);
         CcspTraceInfo(("%s %d - wan-status , wan_service-status event set to stopped \n", __FUNCTION__, __LINE__));
-        //Telemetry start
-        WanMgr_Telemetry_Marker_t Marker = {0};
-        Marker.enTelemetryMarkerID = WAN_ERROR_WAN_DOWN;
-        Marker.pInterface = pInterface ;
-        wanmgr_telemetry_event(&Marker);
-        //Telemetry end	
     }
     if(ret != RETURN_ERR)
     {
@@ -4107,6 +4095,12 @@ static eWanState_t wan_state_deconfiguring_wan(WanMgr_IfaceSM_Controller_t* pWan
         if (p_VirtIf->VLAN.Status != WAN_IFACE_LINKSTATUS_DOWN )
             return WAN_STATE_DECONFIGURING_WAN;
     }
+    //Telemetry start
+    WanMgr_Telemetry_Marker_t Marker = {0};
+    Marker.enTelemetryMarkerID = WAN_ERROR_WAN_DOWN;
+    Marker.pInterface = pInterface ;
+    wanmgr_telemetry_event(&Marker);
+    //Telemetry end
 
     return wan_transition_exit(pWanIfaceCtrl);
 }
