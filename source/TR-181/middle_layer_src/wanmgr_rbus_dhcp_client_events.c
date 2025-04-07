@@ -60,6 +60,7 @@ static void copyDhcpv6Data(WANMGR_IPV6_DATA* pDhcpv6Data, const DHCP_MGR_IPV6_MS
     pDhcpv6Data->prefixAssigned = leaseInfo->prefixAssigned;
     pDhcpv6Data->domainNameAssigned = leaseInfo->domainNameAssigned;
 }
+
 void WanMgr_DhcpClientEventsHandler(rbusHandle_t handle, rbusEvent_t const* event, rbusEventSubscription_t* subscription)
 {
     (void)handle;
@@ -136,7 +137,12 @@ void WanMgr_DhcpClientEventsHandler(rbusHandle_t handle, rbusEvent_t const* even
                     copyDhcpv4Data(&(pVirtIf->IP.Ipv4Data), &leaseInfo);
                     pVirtIf->IP.Ipv4Changed = TRUE;
                     WanManager_UpdateInterfaceStatus(pVirtIf, WANMGR_IFACE_CONNECTION_UP);
+                    
+                    char param_name[256] = {0};
+                    snprintf(param_name, sizeof(param_name), "Device.X_RDK_WanManager.Interface.%d.VirtualInterface.%d.IP.IPv4Address",  pVirtIf->baseIfIdx+1, pVirtIf->VirIfIdx+1);
+                    WanMgr_Rbus_EventPublishHandler(param_name, pVirtIf->IP.Ipv4Data.ip, RBUS_STRING);
                 } 
+                //TODO: Check for sysevents
             }
             WanMgr_VirtualIfaceData_release(pVirtIf);
         }
@@ -173,6 +179,9 @@ void WanMgr_DhcpClientEventsHandler(rbusHandle_t handle, rbusEvent_t const* even
             else if (type == DHCP_LEASE_RENEW)
             {
                 pVirtIf->IP.Ipv6Renewed = TRUE;
+                //TODO: Check for sysevents
+                //TODO: radvd restart
+                //TODO: prefix delegation lifetime change
                 CcspTraceInfo(("%s-%d : DHCPv6 lease renewed for %s\n", __FUNCTION__, __LINE__, pVirtIf->Name));
                 WanManager_UpdateInterfaceStatus(pVirtIf, WANMGR_IFACE_CONNECTION_IPV6_UP);
             }
@@ -199,7 +208,13 @@ void WanMgr_DhcpClientEventsHandler(rbusHandle_t handle, rbusEvent_t const* even
                     copyDhcpv6Data(&(pVirtIf->IP.Ipv6Data), &leaseInfo);
                     pVirtIf->IP.Ipv6Changed = TRUE;
                     WanManager_UpdateInterfaceStatus(pVirtIf, WANMGR_IFACE_CONNECTION_IPV6_UP);
+                    char param_name[256] = {0};
+                    snprintf(param_name, sizeof(param_name), "Device.X_RDK_WanManager.Interface.%d.VirtualInterface.%d.IP.IPv6Address",  pVirtIf->baseIfIdx+1, pVirtIf->VirIfIdx+1);
+                    WanMgr_Rbus_EventPublishHandler(param_name, pVirtIf->IP.Ipv6Data.address,RBUS_STRING);
+                    snprintf(param_name, sizeof(param_name), "Device.X_RDK_WanManager.Interface.%d.VirtualInterface.%d.IP.IPv6Prefix",  pVirtIf->baseIfIdx+1, pVirtIf->VirIfIdx+1);
+                    WanMgr_Rbus_EventPublishHandler(param_name, pVirtIf->IP.Ipv6Data.sitePrefix,RBUS_STRING);
                 }
+                //TODO: Check for sysevents
             }
             WanMgr_VirtualIfaceData_release(pVirtIf);
         }
