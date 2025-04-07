@@ -1289,6 +1289,15 @@ static int wan_setUpIPv4(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
     /* Firewall restart. */
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, NULL, 0);
     WanMgr_StartConnectivityCheck(pWanIfaceCtrl);
+    if(ret != RETURN_ERR)
+    {
+        //Telemetry start
+        WanMgr_Telemetry_Marker_t Marker = {0};
+        Marker.enTelemetryMarkerID = WAN_INFO_IPv4_UP;
+        Marker.pInterface = pWanDmlIface;
+        wanmgr_telemetry_event(&Marker);
+        //Telemetry end    
+    }
     return ret;
 }
 
@@ -1373,7 +1382,15 @@ static int wan_tearDownIPv4(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
         wanmgr_telemetry_event(&Marker);
         //Telemetry end	
     }
-
+    if( ret != RETURN_ERR)
+    {
+        //Telemetry start
+        WanMgr_Telemetry_Marker_t Marker = {0};
+        Marker.enTelemetryMarkerID = WAN_ERROR_IPv4_DOWN;
+        Marker.pInterface = pWanDmlIface;
+        wanmgr_telemetry_event(&Marker);
+        //Telemetry end
+    }
     return ret;
 }
 
@@ -1474,6 +1491,15 @@ static int wan_setUpIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
     }
   
     WanMgr_StartConnectivityCheck(pWanIfaceCtrl);
+    if(ret != RETURN_ERR)
+    {
+        //Telemetry start
+        WanMgr_Telemetry_Marker_t Marker = {0};
+        Marker.enTelemetryMarkerID = WAN_INFO_IPv6_UP;
+        Marker.pVirtInterface = pVirtIf ;
+        wanmgr_telemetry_event(&Marker);
+        //Telemetry end
+    }
     return ret;
 }
 
@@ -1590,7 +1616,15 @@ static int wan_tearDownIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
         wanmgr_telemetry_event(&Marker);
         //Telemetry end	
     }
-
+    if(ret != RETURN_ERR)
+    {
+        //Telemetry start
+        WanMgr_Telemetry_Marker_t Marker = {0};
+        Marker.enTelemetryMarkerID = WAN_ERROR_IPv6_DOWN;
+        Marker.pInterface = pWanDmlIface;
+        wanmgr_telemetry_event(&Marker);
+        //Telemetry end
+    }
     return ret;
 }
 
@@ -2027,6 +2061,12 @@ static eWanState_t wan_transition_physical_interface_down(WanMgr_IfaceSM_Control
     Enable_CaptivePortal(TRUE);
 #endif
     CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION DECONFIGURING WAN\n", __FUNCTION__, __LINE__, pInterface->Name));
+    //Telemetry start
+    WanMgr_Telemetry_Marker_t Marker = {0};             
+    Marker.enTelemetryMarkerID = WAN_ERROR_PHY_DOWN;
+    Marker.pInterface = pInterface ;
+    wanmgr_telemetry_event(&Marker);
+    //Telemetry end
 
     return WAN_STATE_DECONFIGURING_WAN;
 }
@@ -2051,7 +2091,12 @@ static eWanState_t wan_transition_wan_up(WanMgr_IfaceSM_Controller_t* pWanIfaceC
     }
 
     CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION VALIDATING WAN\n", __FUNCTION__, __LINE__, pInterface->Name));
-
+    //Telemetry start
+    WanMgr_Telemetry_Marker_t Marker = {0};     
+    Marker.enTelemetryMarkerID = WAN_INFO_WAN_UP;
+    Marker.pInterface = pInterface ;
+    wanmgr_telemetry_event(&Marker);
+    //Telemetry end
     return WAN_STATE_VALIDATING_WAN;
 }
 
@@ -2301,7 +2346,6 @@ static eWanState_t wan_transition_ipv4_up(WanMgr_IfaceSM_Controller_t* pWanIface
 
     DmlSetVLANInUseToPSMDB(p_VirtIf);
     CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION IPV4 LEASED\n", __FUNCTION__, __LINE__, pInterface->Name));
-
     return WAN_STATE_IPV4_LEASED;
 }
 
@@ -3054,6 +3098,13 @@ static eWanState_t wan_transition_standby_deconfig_ips(WanMgr_IfaceSM_Controller
 
     Update_Interface_Status();
      CcspTraceInfo(("%s %d - TRANSITION WAN_STATE_STANDBY\n", __FUNCTION__, __LINE__));
+    //Telemetry start
+    WanMgr_Telemetry_Marker_t Marker = {0};
+    Marker.enTelemetryMarkerID = WAN_INFO_WAN_STANDBY;
+    Marker.pInterface = pInterface ;
+    wanmgr_telemetry_event(&Marker);
+    //Telemetry end
+     
     return WAN_STATE_STANDBY;
 }
 
@@ -3447,6 +3498,13 @@ static eWanState_t wan_state_standby(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
         WanMgr_StartConnectivityCheck(pWanIfaceCtrl);
     }
 
+    //Telemetry start
+    WanMgr_Telemetry_Marker_t Marker = {0};
+    Marker.enTelemetryMarkerID = WAN_INFO_WAN_STANDBY;
+    Marker.pInterface = pInterface ;
+    wanmgr_telemetry_event(&Marker);
+    //Telemetry end
+    
     return WAN_STATE_STANDBY;
 }
 
