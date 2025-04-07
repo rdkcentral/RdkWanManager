@@ -93,14 +93,17 @@ void WanMgr_DhcpClientEventsHandler(rbusHandle_t handle, rbusEvent_t const* even
             if(type == DHCP_CLIENT_STARTED)
             {
                 CcspTraceInfo(("%s-%d : DHCPv4 client started for  %s\n", __FUNCTION__, __LINE__,  pVirtIf->Name));
+                pVirtIf->IP.Dhcp4cStatus = DHCPC_STARTED;
             }
             else if(type == DHCP_CLIENT_STOPPED)
             {
                 CcspTraceInfo(("%s-%d : DHCPv4 client Stopped for  %s\n", __FUNCTION__, __LINE__,  pVirtIf->Name));
+                pVirtIf->IP.Dhcp4cStatus = DHCPC_STOPPED;
             }
             else if(type == DHCP_CLIENT_FAILED)
             {
                 CcspTraceInfo(("%s-%d : DHCPv4 client Stopped for  %s\n", __FUNCTION__, __LINE__,  pVirtIf->Name));
+                pVirtIf->IP.Dhcp4cStatus = DHCPC_FAILED;
             }
             else if(type == DHCP_LEASE_RENEW)
             {
@@ -155,14 +158,17 @@ void WanMgr_DhcpClientEventsHandler(rbusHandle_t handle, rbusEvent_t const* even
             if (type == DHCP_CLIENT_STARTED)
             {
                 CcspTraceInfo(("%s-%d : DHCPv6 client started for %s\n", __FUNCTION__, __LINE__, pVirtIf->Name));
+                pVirtIf->IP.Dhcp6cStatus = DHCPC_STARTED;
             }
             else if (type == DHCP_CLIENT_STOPPED)
             {
                 CcspTraceInfo(("%s-%d : DHCPv6 client stopped for %s\n", __FUNCTION__, __LINE__, pVirtIf->Name));
+                pVirtIf->IP.Dhcp6cStatus = DHCPC_STOPPED;
             }
             else if (type == DHCP_CLIENT_FAILED)
             {
                 CcspTraceInfo(("%s-%d : DHCPv6 client failed for %s\n", __FUNCTION__, __LINE__, pVirtIf->Name));
+                pVirtIf->IP.Dhcp6cStatus = DHCPC_FAILED;
             }
             else if (type == DHCP_LEASE_RENEW)
             {
