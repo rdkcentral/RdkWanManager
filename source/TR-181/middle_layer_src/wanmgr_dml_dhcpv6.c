@@ -3482,13 +3482,14 @@ dhcp6c_mapt_mape_GetParamStringValue
         sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_MAP_TRANSPORT_MODE, temp, sizeof(temp));
         if ( AnscSizeOfString(temp) < *pUlSize)
         {
-            AnscCopyString(pValue, temp);
-#if defined (FEATURE_SUPPORT_MAPT_NAT46)
             if ( !(*temp) )
             {
-                 AnscCopyString(pValue, "NONE");
+               AnscCopyString(pValue, "NONE");
             }
-#endif
+	    else
+	    {
+	       AnscCopyString(pValue, temp);
+	    }
             return 0;
         }
         else

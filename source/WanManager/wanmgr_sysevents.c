@@ -67,6 +67,7 @@ extern int WanMgr_TriggerPrimaryDnsConnectivityRestart(void);
 #endif
 #endif
 
+static int isDefaultGatewayAdded = 0; //global varibale for default route status.
 static int lan_wan_started = 0;
 static int ipv4_connection_up = 0;
 static int ipv6_connection_up = 0;
@@ -582,6 +583,7 @@ static void *WanManagerSyseventHandler(void *args)
 
     async_id_t wanamangr_status_asyncid;
     async_id_t lan_ula_address_event_asyncid;
+    async_id_t default_route_change_event_asyncid;
     async_id_t lan_ula_enable_asyncid;
     async_id_t lan_ipv6_enable_asyncid;
     async_id_t wan_status_asyncid;
@@ -616,6 +618,8 @@ static void *WanManagerSyseventHandler(void *args)
 #endif
 #endif
 
+    sysevent_set_options(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_IPV6_TOGGLE, TUPLE_FLAG_EVENT);
+    sysevent_setnotification(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_IPV6_TOGGLE, &default_route_change_event_asyncid);
 #if defined (_HUB4_PRODUCT_REQ_) || defined(_RDKB_GLOBAL_PRODUCT_REQ_)
     sysevent_set_options(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_ULA_ADDRESS, TUPLE_FLAG_EVENT);
     sysevent_setnotification(sysevent_msg_fd, sysevent_msg_token, SYSEVENT_ULA_ADDRESS, &lan_ula_address_event_asyncid);
@@ -743,6 +747,19 @@ static void *WanManagerSyseventHandler(void *args)
                     CcspTraceError(("%s %d failed set command: %s\n", __FUNCTION__, __LINE__, cmd_str));
                 }
 		#endif
+            }
+            else if ( strcmp(name, SYSEVENT_IPV6_TOGGLE) == 0 )
+            {
+                if(strcmp(val, "FALSE") == 0)
+                {
+                    isDefaultGatewayAdded = 1;
+                    CcspTraceWarning(("%s %d Netmonitor Update : IPv6 default route Added \n", __FUNCTION__, __LINE__ ));
+                }
+                else
+                {
+                    isDefaultGatewayAdded = 0;
+                    CcspTraceWarning(("%s %d Netmonitor Update : IPv6 default route Deleted \n", __FUNCTION__, __LINE__ ));
+                }
             }
             else if ( strcmp(name, SYSEVENT_ULA_ENABLE) == 0 )
             {
@@ -1135,6 +1152,7 @@ static int CheckV6DefaultRule (char *wanInterface)
 
     if ((fp = v_secure_popen("r", "ip -6 ro")) == NULL)
     {
+        CcspTraceError(("%s %d - Failed to open file descripter %d(%s) \n", __FUNCTION__, __LINE__, errno, strerror(errno)));
         return FALSE;
     }
 
@@ -1154,7 +1172,7 @@ static int CheckV6DefaultRule (char *wanInterface)
     {
         CcspTraceError(("Failed in closing the pipe ret %d \n",pclose_ret));
     }
-
+    CcspTraceInfo(("%s %d - Default route %sfound for interface %s\n", __FUNCTION__, __LINE__, (ret == TRUE) ? "" : "not ", wanInterface));
     return ret;
 }
 
@@ -1179,8 +1197,8 @@ int Force_IPv6_toggle (char* wanInterface)
         CcspTraceWarning(("%s-%d : Failure writing to /proc file\n", __FUNCTION__, __LINE__));
     }
 
-    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV6_TOGGLE, "FALSE", 0); //Reset toggle flag to false.
-
+    isDefaultGatewayAdded = 1; //Reset isDefaultGatewayAdded flag;
+    
     return ret;
 }
 
@@ -1191,17 +1209,13 @@ int Force_IPv6_toggle (char* wanInterface)
  */
 void WanMgr_CheckDefaultRA (DML_VIRTUAL_IFACE * pVirtIf)
 {
-    char v6Toggle[BUFLEN_128] = {0};
-    //TODO : Move router monitor to a WanManager thread ? to avoid continous sysevent get
-    sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_IPV6_TOGGLE, v6Toggle, sizeof(v6Toggle));
-
-    if((strlen(v6Toggle) == 0) || (!strcmp(v6Toggle,"TRUE")))
+    //TODO : Move router monitor to a WanManager thread ? 
+    if(!isDefaultGatewayAdded )
     {
-        CcspTraceInfo(("%s %d SYSEVENT_IPV6_TOGGLE[TRUE] \n", __FUNCTION__, __LINE__));
         //TODO: add check for remote device ( static ip )
         if (CheckV6DefaultRule(pVirtIf->Name) == TRUE ||  WanManager_send_and_receive_rs(pVirtIf) == 0)
         {
-            sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV6_TOGGLE, "FALSE", 0);
+            isDefaultGatewayAdded = 1; //Reset isDefaultGatewayAdded flag;
         }
     }
 }
@@ -1226,11 +1240,11 @@ void WanMgr_Configure_accept_ra(DML_VIRTUAL_IFACE * pVirtIf, BOOL EnableRa)
     CcspTraceInfo(("%s %d %s accept_ra for interface %s\n", __FUNCTION__, __LINE__,EnableRa?"Enabling":"Disabling", pVirtIf->Name));
     //Enable accept_ra to allow receiving RA all the time. This funtion  only blocks learning defult route from RA.
     v_secure_system("sysctl -w net.ipv6.conf.%s.accept_ra=2",pVirtIf->Name);
+    v_secure_system("sysctl -w net.ipv6.conf.%s.accept_ra_pinfo=0",pVirtIf->Name);
     if(EnableRa)
     {
         v_secure_system("sysctl -w net.ipv6.conf.%s.router_solicitations=3",pVirtIf->Name);
         v_secure_system("sysctl -w net.ipv6.conf.%s.forwarding=1",pVirtIf->Name);
-        v_secure_system("sysctl -w net.ipv6.conf.%s.accept_ra_pinfo=0",pVirtIf->Name);
         v_secure_system("sysctl -w net.ipv6.conf.%s.accept_ra_defrtr=1",pVirtIf->Name); //Learn defult route from the RA.
         v_secure_system("sysctl -w net.ipv6.conf.all.forwarding=1");
         CcspTraceInfo(("%s %d Enabling forwarding for interface %s\n", __FUNCTION__, __LINE__,pVirtIf->Name));
@@ -1386,6 +1400,15 @@ static ANSC_STATUS wanmgr_snmpv3_restart()
 
 ANSC_STATUS wanmgr_services_restart()
 {
+    /** 
+     * Below WAN services will be refreshed during below use cases
+     * 1. WAN refresh
+     * 2. MAP-T to DualStack migration and vice versa
+     * 
+     * We need to ensure below WAN services restart may affect slow service distruption which were already 
+     * in progress. Like snmpv3 query may happen from outside of CPE and may reconnect,
+     * Someone trying to connect CPE via reversessh and it may delay or reconnect
+     */
     wanmgr_sshd_restart();
 #ifdef SNMPV3_ENABLED
     wanmgr_snmpv3_restart();

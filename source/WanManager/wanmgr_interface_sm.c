@@ -40,7 +40,6 @@
 #endif
 
 #define IF_SIZE      32
-#define DEFAULT_IFNAME    "erouter0"
 #define LOOP_TIMEOUT 50000 // timeout in microseconds. This is the state machine loop interval
 #define RESOLV_CONF_FILE "/etc/resolv.conf"
 #define LOOPBACK "127.0.0.1"
@@ -946,6 +945,16 @@ int wan_updateDNS(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl, BOOL addIPv4, BOOL
 
     if(resolv_conf_changed)
     {
+#if (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_))
+        //TODO: this is a workaround for the devices using the primary DNS for the backup interfaces. CurrentActiveDNS may not have the right value. 
+        WanMgr_Config_Data_t*   pWanConfigData = WanMgr_GetConfigData_locked();
+        if (pWanConfigData != NULL)
+        {
+            DML_WANMGR_CONFIG* pWanDmlData = &(pWanConfigData->data);
+            memset(pWanDmlData->CurrentActiveDNS, 0, sizeof(pWanDmlData->CurrentActiveDNS));
+            WanMgrDml_GetConfigData_release(pWanConfigData);
+        }
+#endif
         Update_Interface_Status();
     }
 
@@ -967,19 +976,25 @@ static int checkIpv6LanAddressIsReadyToUse(DML_VIRTUAL_IFACE* p_VirtIf)
     int dad_flag       = 0;
     int route_flag     = 0;
     int i;
-    char Output[BUFLEN_16] = {0};
     char IfaceName[BUFLEN_16] = {0};
     int BridgeMode = 0;
 
-
+    { //TODO : temporary debug code to identify the bridgemode sysevent failure issue.
+        char Output[BUFLEN_16] = {0};
+        if (sysevent_get(sysevent_fd, sysevent_token, "bridge_mode", Output, sizeof(Output)) !=0)
+        {
+            CcspTraceError(("%s-%d: bridge_mode sysevent get failed. \n", __FUNCTION__, __LINE__));
+        }
+        BridgeMode = atoi(Output);
+        CcspTraceInfo(("%s-%d: <<DEBUG>> bridge_mode sysevent value set to =%d \n", __FUNCTION__, __LINE__,  BridgeMode));
+    }
      /*TODO:
      *Below Code should be removed once V6 Prefix/IP is assigned on erouter0 Instead of brlan0 for sky Devices.
      */
     strncpy(IfaceName, ETH_BRIDGE_NAME, sizeof(IfaceName)-1);
-    sysevent_get(sysevent_fd, sysevent_token, "bridge_mode", Output, sizeof(Output));
-    BridgeMode = atoi(Output);
-    if (BridgeMode != 0)
+    if (WanMgr_isBridgeModeEnabled() == TRUE)
     {
+        CcspTraceInfo(("%s-%d: Device is in bridge mode. Assigning IPv6 address on WAN interface.\n", __FUNCTION__, __LINE__));
         memset(IfaceName, 0, sizeof(IfaceName));
         strncpy(IfaceName, p_VirtIf->Name, sizeof(IfaceName)-1);
     }
@@ -1079,7 +1094,7 @@ static void updateInterfaceToVoiceManager(WanMgr_IfaceSM_Controller_t* pWanIface
         // Update the Interface name after auto wan sesning is complete.
         // When interface is down (due to cable removal etc) set Interface name to empty string
         if (voip_started)
-            strncpy(voipIfName, DEFAULT_IFNAME, sizeof(voipIfName));
+            strncpy(voipIfName, p_VirtIf->Name, sizeof(voipIfName));
 
         /* If there is a VOIP interface present, then do not update DATA vlan name to TelecoVoiceManager. */
         for(int virIf_id=0; virIf_id< pWanIfaceData->NoOfVirtIfs; virIf_id++)
@@ -2761,6 +2776,7 @@ static eWanState_t wan_transition_mapt_up(WanMgr_IfaceSM_Controller_t* pWanIface
     }
 
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, NULL, 0);
+    wanmgr_services_restart();
 
     CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION WAN_STATE_MAPT_ACTIVE\n", __FUNCTION__, __LINE__, pInterface->Name));
     return WAN_STATE_MAPT_ACTIVE;
