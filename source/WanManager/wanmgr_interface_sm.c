@@ -2675,12 +2675,8 @@ static eWanState_t wan_transition_mapt_feature_refresh(WanMgr_IfaceSM_Controller
         int i = 0;
 
         // MAPT config changed, if we got a v6 lease at this stage, send a v6 RELEASE
-        CcspTraceInfo(("%s %d: Stopping DHCPv6 with Release\n", __FUNCTION__, __LINE__));
-        WanManager_StopDhcpv6Client(p_VirtIf, STOP_DHCP_WITH_RELEASE);
-        //TODO: Do we need restart DHCPv6 client function to  make sure previous lease is released and request is sent?
-        /* Start DHCPv6 Client */
-        CcspTraceInfo(("%s %d - Staring dibbler-client on interface %s \n", __FUNCTION__, __LINE__, p_VirtIf->Name));
-        WanManager_StartDhcpv6Client(p_VirtIf, pInterface->IfaceType);
+        
+        WanManager_RestartDhcpv6Client(p_VirtIf, pInterface->IfaceType);
     }
 
     CcspTraceInfo(("%s %d - TRANSITION OBTAINING IP ADDRESSES\n", __FUNCTION__, __LINE__));
