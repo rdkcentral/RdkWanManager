@@ -35,6 +35,7 @@
 #include "wanmgr_dhcpv4_apis.h"
 #include "wanmgr_dhcpv6_apis.h"
 #include "secure_wrapper.h"
+#include "wanmgr_telemetry.h"
 #ifdef ENABLE_FEATURE_TELEMETRY2_0
 #include <telemetry_busmessage_sender.h>
 #endif
@@ -510,6 +511,12 @@ static void WanMgr_MonitorDhcpApps (WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
             //Since we are stopping Connectivity Check, Reset ConnectivityStatus to UP.
             p_VirtIf->IP.Ipv4ConnectivityStatus = WAN_CONNECTIVITY_UP;
             p_VirtIf->IP.Ipv6ConnectivityStatus = WAN_CONNECTIVITY_UP;
+            //Telemetry start
+            WanMgr_Telemetry_Marker_t Marker = {0};
+            Marker.enTelemetryMarkerID = WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP;
+            Marker.pVirtInterface = p_VirtIf ;
+            wanmgr_telemetry_event(&Marker);
+            //Telemetry end	    
         }
 
         //Start the new connectivity check 
@@ -659,6 +666,12 @@ void WanManager_UpdateInterfaceStatus(DML_VIRTUAL_IFACE* pVirtIf, wanmgr_iface_s
             }
 #endif
             pVirtIf->IP.Ipv4Status = WAN_IFACE_IPV4_STATE_UP;
+            //Telemetry start
+            WanMgr_Telemetry_Marker_t Marker = {0};             
+            Marker.enTelemetryMarkerID = WAN_INFO_IPv4_UP;
+            Marker.pVirtInterface = pVirtIf;
+            wanmgr_telemetry_event(&Marker);
+            //Telemetry end
             break;
         }
         case WANMGR_IFACE_CONNECTION_DOWN:
@@ -667,14 +680,26 @@ void WanManager_UpdateInterfaceStatus(DML_VIRTUAL_IFACE* pVirtIf, wanmgr_iface_s
             pVirtIf->IP.Ipv4Changed = FALSE;
             pVirtIf->IP.Ipv4Renewed = FALSE;
             strncpy(pVirtIf->IP.Ipv4Data.ip, "", sizeof(pVirtIf->IP.Ipv4Data.ip));
+            //Telemetry start
+            WanMgr_Telemetry_Marker_t Marker = {0};             
+            Marker.enTelemetryMarkerID = WAN_ERROR_IPv4_DOWN;
+            Marker.pVirtInterface = pVirtIf ;
+            wanmgr_telemetry_event(&Marker);
+            //Telemetry end
             break;
         }
         case WANMGR_IFACE_CONNECTION_IPV6_UP:
         {
             pVirtIf->IP.Ipv6Status = WAN_IFACE_IPV6_STATE_UP;
+            //Telemetry start
+            WanMgr_Telemetry_Marker_t Marker = {0};             
+            Marker.enTelemetryMarkerID = WAN_INFO_IPv6_UP;
+            Marker.pVirtInterface = pVirtIf ;
+            wanmgr_telemetry_event(&Marker);
+            //Telemetry end
             break;
         }
-        case WANMGR_IFACE_CONNECTION_IPV6_DOWN:
+ 	case WANMGR_IFACE_CONNECTION_IPV6_DOWN:
         {
             pVirtIf->IP.Ipv6Status = WAN_IFACE_IPV6_STATE_DOWN;
             pVirtIf->IP.Ipv6Changed = FALSE;
@@ -687,6 +712,15 @@ void WanManager_UpdateInterfaceStatus(DML_VIRTUAL_IFACE* pVirtIf, wanmgr_iface_s
             strncpy(pVirtIf->IP.Ipv6Data.nameserver, "", sizeof(pVirtIf->IP.Ipv6Data.nameserver));
             strncpy(pVirtIf->IP.Ipv6Data.nameserver1, "", sizeof(pVirtIf->IP.Ipv6Data.nameserver1));
             wanmgr_sysevents_ipv6Info_init(); // reset the sysvent/syscfg fields
+            //Telemetry start
+            WanMgr_Telemetry_Marker_t Marker = {0};             
+            Marker.enTelemetryMarkerID = WAN_ERROR_IPv6_DOWN;
+            Marker.pVirtInterface = pVirtIf ;
+            wanmgr_telemetry_event(&Marker);
+
+            Marker.enTelemetryMarkerID = WAN_ERROR_MAPT_STATUS_DOWN;
+            wanmgr_telemetry_event(&Marker);
+            //Telemetry end
             break;
         }
 #if defined(FEATURE_MAPT) || defined(FEATURE_SUPPORT_MAPT_NAT46)
@@ -695,16 +729,26 @@ void WanManager_UpdateInterfaceStatus(DML_VIRTUAL_IFACE* pVirtIf, wanmgr_iface_s
             pVirtIf->MAP.MaptStatus = WAN_IFACE_MAPT_STATE_UP;
             CcspTraceInfo(("mapt: %s \n",
                    ((iface_status == WANMGR_IFACE_MAPT_START) ? "UP" : (iface_status == WANMGR_IFACE_MAPT_STOP) ? "DOWN" : "N/A")));
-
+            //Telemetry start
+            WanMgr_Telemetry_Marker_t Marker = {0};             
+            Marker.enTelemetryMarkerID = WAN_INFO_MAPT_STATUS_UP;
+            Marker.pVirtInterface = pVirtIf ;
+            wanmgr_telemetry_event(&Marker);
+            //Telemetry end
             break;
         }
-        case WANMGR_IFACE_MAPT_STOP:
+	case WANMGR_IFACE_MAPT_STOP:
         {
             pVirtIf->MAP.MaptStatus = WAN_IFACE_MAPT_STATE_DOWN;     // reset MAPT flag
             pVirtIf->MAP.MaptChanged = FALSE;                        // reset MAPT flag
             CcspTraceInfo(("mapt: %s \n",
                    ((iface_status == WANMGR_IFACE_MAPT_START) ? "UP" : (iface_status == WANMGR_IFACE_MAPT_STOP) ? "DOWN" : "N/A")));
-
+            //Telemetry start
+            WanMgr_Telemetry_Marker_t Marker = {0};             
+            Marker.enTelemetryMarkerID = WAN_ERROR_MAPT_STATUS_DOWN;
+            Marker.pVirtInterface = pVirtIf ;
+            wanmgr_telemetry_event(&Marker);
+            //Telemetry end
             break;
         }
 #endif
@@ -1260,6 +1304,15 @@ static int wan_setUpIPv4(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
     /* Firewall restart. */
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, NULL, 0);
     WanMgr_StartConnectivityCheck(pWanIfaceCtrl);
+    if(ret != RETURN_ERR)
+    {
+        //Telemetry start
+        WanMgr_Telemetry_Marker_t Marker = {0};
+        Marker.enTelemetryMarkerID = WAN_INFO_IPv4_UP;
+        Marker.pInterface = pWanDmlIface;
+        wanmgr_telemetry_event(&Marker);
+        //Telemetry end    
+    }
     return ret;
 }
 
@@ -1338,7 +1391,15 @@ static int wan_tearDownIPv4(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
         sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_WAN_SERVICE_STATUS, WAN_STATUS_STOPPED, 0);
         CcspTraceInfo(("%s %d - wan-status event set to stopped \n", __FUNCTION__, __LINE__));
     }
-
+    if( ret != RETURN_ERR)
+    {
+        //Telemetry start
+        WanMgr_Telemetry_Marker_t Marker = {0};
+        Marker.enTelemetryMarkerID = WAN_ERROR_IPv4_DOWN;
+        Marker.pInterface = pWanDmlIface;
+        wanmgr_telemetry_event(&Marker);
+        //Telemetry end
+    }
     return ret;
 }
 
@@ -1439,6 +1500,15 @@ static int wan_setUpIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
     }
   
     WanMgr_StartConnectivityCheck(pWanIfaceCtrl);
+    if(ret != RETURN_ERR)
+    {
+        //Telemetry start
+        WanMgr_Telemetry_Marker_t Marker = {0};
+        Marker.enTelemetryMarkerID = WAN_INFO_IPv6_UP;
+        Marker.pVirtInterface = pVirtIf ;
+        wanmgr_telemetry_event(&Marker);
+        //Telemetry end
+    }
     return ret;
 }
 
@@ -1549,7 +1619,15 @@ static int wan_tearDownIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
         sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_WAN_SERVICE_STATUS, WAN_STATUS_STOPPED, 0);
         CcspTraceInfo(("%s %d - wan-status , wan_service-status event set to stopped \n", __FUNCTION__, __LINE__));
     }
-
+    if(ret != RETURN_ERR)
+    {
+        //Telemetry start
+        WanMgr_Telemetry_Marker_t Marker = {0};
+        Marker.enTelemetryMarkerID = WAN_ERROR_IPv6_DOWN;
+        Marker.pInterface = pWanDmlIface;
+        wanmgr_telemetry_event(&Marker);
+        //Telemetry end
+    }
     return ret;
 }
 
@@ -1630,6 +1708,12 @@ static ANSC_STATUS WanMgr_StartConnectivityCheck(WanMgr_IfaceSM_Controller_t* pW
             else
             {
                 CcspTraceError(("%s %d - Failed to start IPoE Health Check for interface %s \n", __FUNCTION__, __LINE__, pVirtIf->Name));
+                //Telemetry start
+                WanMgr_Telemetry_Marker_t Marker = {0};
+                Marker.enTelemetryMarkerID = WAN_WARN_CONNECTIVITY_CHECK_STATUS_FAILED;
+                Marker.pVirtInterface = pVirtIf ;
+                wanmgr_telemetry_event(&Marker);
+                //Telemetry end
             }
             pVirtIf->IP.ConnectivityCheckRunning = TRUE;    
         }
@@ -1958,6 +2042,12 @@ static eWanState_t wan_transition_physical_interface_down(WanMgr_IfaceSM_Control
             {
                 CcspTraceInfo(("%s %d: LinkStatus is still CONFIGURING. Set to down\n", __FUNCTION__, __LINE__));
                 p_VirtIf->VLAN.Status = WAN_IFACE_LINKSTATUS_DOWN;
+                //Telemetry start
+                WanMgr_Telemetry_Marker_t Marker = {0};             
+                Marker.enTelemetryMarkerID = WAN_ERROR_VLAN_DOWN;
+                Marker.pVirtInterface = p_VirtIf ;
+                wanmgr_telemetry_event(&Marker);
+                //Telemetry end
             }
         }
     }
@@ -1974,6 +2064,12 @@ static eWanState_t wan_transition_physical_interface_down(WanMgr_IfaceSM_Control
     Enable_CaptivePortal(TRUE);
 #endif
     CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION DECONFIGURING WAN\n", __FUNCTION__, __LINE__, pInterface->Name));
+    //Telemetry start
+    WanMgr_Telemetry_Marker_t Marker = {0};             
+    Marker.enTelemetryMarkerID = WAN_ERROR_PHY_DOWN;
+    Marker.pInterface = pInterface ;
+    wanmgr_telemetry_event(&Marker);
+    //Telemetry end
 
     return WAN_STATE_DECONFIGURING_WAN;
 }
@@ -1998,7 +2094,12 @@ static eWanState_t wan_transition_wan_up(WanMgr_IfaceSM_Controller_t* pWanIfaceC
     }
 
     CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION VALIDATING WAN\n", __FUNCTION__, __LINE__, pInterface->Name));
-
+    //Telemetry start
+    WanMgr_Telemetry_Marker_t Marker = {0};     
+    Marker.enTelemetryMarkerID = WAN_INFO_WAN_UP;
+    Marker.pInterface = pInterface ;
+    wanmgr_telemetry_event(&Marker);
+    //Telemetry end
     return WAN_STATE_VALIDATING_WAN;
 }
 
@@ -2022,6 +2123,13 @@ static eWanState_t wan_transition_wan_validated(WanMgr_IfaceSM_Controller_t* pWa
     //Init ConnectivityStatus to UP
     p_VirtIf->IP.Ipv4ConnectivityStatus = WAN_CONNECTIVITY_UP;
     p_VirtIf->IP.Ipv6ConnectivityStatus = WAN_CONNECTIVITY_UP;
+    
+    //Telemetry start
+    WanMgr_Telemetry_Marker_t Marker = {0};
+    Marker.enTelemetryMarkerID = WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP;
+    Marker.pVirtInterface = p_VirtIf ;
+    wanmgr_telemetry_event(&Marker);
+    //Telemetry end
 
     if(p_VirtIf->IP.SelectedMode == MAPT_MODE && p_VirtIf->IP.SelectedModeTimerStatus != EXPIRED)
     {
@@ -2241,7 +2349,6 @@ static eWanState_t wan_transition_ipv4_up(WanMgr_IfaceSM_Controller_t* pWanIface
 
     DmlSetVLANInUseToPSMDB(p_VirtIf);
     CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION IPV4 LEASED\n", __FUNCTION__, __LINE__, pInterface->Name));
-
     return WAN_STATE_IPV4_LEASED;
 }
 
@@ -2748,6 +2855,12 @@ static eWanState_t wan_transition_mapt_up(WanMgr_IfaceSM_Controller_t* pWanIface
     if (ret != RETURN_OK)
     {
         CcspTraceError(("%s %d - Failed to configure MAP-T \n", __FUNCTION__, __LINE__));
+        //Telemetry start
+        WanMgr_Telemetry_Marker_t Marker = {0};
+        Marker.enTelemetryMarkerID = WAN_ERROR_MAPT_STATUS_FAILED;
+        Marker.pVirtInterface = p_VirtIf ;
+        wanmgr_telemetry_event(&Marker);
+        //Telemetry end	
     }
 
     if (p_VirtIf->IP.Dhcp4cPid > 0)
@@ -2917,6 +3030,12 @@ static eWanState_t wan_transition_standby(WanMgr_IfaceSM_Controller_t* pWanIface
     Update_Interface_Status();
     DmlSetVLANInUseToPSMDB(p_VirtIf);
     CcspTraceInfo(("%s %d - TRANSITION WAN_STATE_STANDBY\n", __FUNCTION__, __LINE__));
+    //Telemetry start
+    WanMgr_Telemetry_Marker_t Marker = {0};     
+    Marker.enTelemetryMarkerID = WAN_INFO_WAN_STANDBY;
+    Marker.pInterface = pInterface ;
+    wanmgr_telemetry_event(&Marker);
+    //Telemetry end
     return WAN_STATE_STANDBY;
 }
 
@@ -2983,6 +3102,13 @@ static eWanState_t wan_transition_standby_deconfig_ips(WanMgr_IfaceSM_Controller
 
     Update_Interface_Status();
      CcspTraceInfo(("%s %d - TRANSITION WAN_STATE_STANDBY\n", __FUNCTION__, __LINE__));
+    //Telemetry start
+    WanMgr_Telemetry_Marker_t Marker = {0};
+    Marker.enTelemetryMarkerID = WAN_INFO_WAN_STANDBY;
+    Marker.pInterface = pInterface ;
+    wanmgr_telemetry_event(&Marker);
+    //Telemetry end
+     
     return WAN_STATE_STANDBY;
 }
 
@@ -3376,6 +3502,13 @@ static eWanState_t wan_state_standby(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
         WanMgr_StartConnectivityCheck(pWanIfaceCtrl);
     }
 
+    //Telemetry start
+    WanMgr_Telemetry_Marker_t Marker = {0};
+    Marker.enTelemetryMarkerID = WAN_INFO_WAN_STANDBY;
+    Marker.pInterface = pInterface ;
+    wanmgr_telemetry_event(&Marker);
+    //Telemetry end
+    
     return WAN_STATE_STANDBY;
 }
 
@@ -3858,16 +3991,34 @@ static eWanState_t wan_state_mapt_active(WanMgr_IfaceSM_Controller_t* pWanIfaceC
                     else
                     {
                         CcspTraceError(("%s %d - Failed to configure MAP-T for %s Interface \n", __FUNCTION__, __LINE__, p_VirtIf->Name));
+                        //Telemetry start
+                        WanMgr_Telemetry_Marker_t Marker = {0};
+                        Marker.enTelemetryMarkerID = WAN_ERROR_MAPT_STATUS_FAILED;
+                        Marker.pVirtInterface = p_VirtIf ;
+                        wanmgr_telemetry_event(&Marker);
+                        //Telemetry end			
                     }
                 }
                 else
                 {
                     CcspTraceError(("%s %d - Failed to verify and configure MAP-T for %s Interface \n", __FUNCTION__, __LINE__, p_VirtIf->Name));
+                    //Telemetry start
+                    WanMgr_Telemetry_Marker_t Marker = {0};
+                    Marker.enTelemetryMarkerID = WAN_ERROR_MAPT_STATUS_FAILED;
+                    Marker.pVirtInterface = p_VirtIf ;
+                    wanmgr_telemetry_event(&Marker);
+                    //Telemetry end		    
                 }
             }
             else
             {
                 CcspTraceError((" %s %d - Failed to configure  MAP-T for %s Interface \n", __FUNCTION__, __LINE__, p_VirtIf->Name));
+                //Telemetry start
+                WanMgr_Telemetry_Marker_t Marker = {0};
+                Marker.enTelemetryMarkerID = WAN_ERROR_MAPT_STATUS_FAILED;
+                Marker.pVirtInterface = p_VirtIf ;
+                wanmgr_telemetry_event(&Marker);
+                //Telemetry end		
             }
         }
         else
@@ -3960,6 +4111,12 @@ static eWanState_t wan_state_deconfiguring_wan(WanMgr_IfaceSM_Controller_t* pWan
         if (p_VirtIf->VLAN.Status != WAN_IFACE_LINKSTATUS_DOWN )
             return WAN_STATE_DECONFIGURING_WAN;
     }
+    //Telemetry start
+    WanMgr_Telemetry_Marker_t Marker = {0};
+    Marker.enTelemetryMarkerID = WAN_ERROR_WAN_DOWN;
+    Marker.pInterface = pInterface ;
+    wanmgr_telemetry_event(&Marker);
+    //Telemetry end
 
     return wan_transition_exit(pWanIfaceCtrl);
 }
