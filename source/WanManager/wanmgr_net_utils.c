@@ -525,7 +525,7 @@ int WanManager_StartDhcpv6Client(DML_VIRTUAL_IFACE* pVirtIf, IFACE_TYPE IfaceTyp
     if (pid == 0) 
     {
         CcspTraceError(("%s %d: dhcpv6 client failed to start. Returing pid -1.\n", __FUNCTION__, __LINE__));
-        p_VirtIf->IP.Dhcp6cStatus = DHCPC_FAILED;
+        pVirtIf->IP.Dhcp6cStatus = DHCPC_FAILED;
         pVirtIf->IP.Dhcp6cPid = -1;
         return -1;
     }
@@ -582,7 +582,7 @@ ANSC_STATUS WanManager_StopDhcpv6Client(DML_VIRTUAL_IFACE* pVirtIf, DHCP_RELEASE
     dhcp_params params;
 
     memset (&params, 0, sizeof(dhcp_params));
-    params.ifname = iface_name;
+    params.ifname = pVirtIf->Name;
 
     ret = stop_dhcpv6_client(&params);
     pVirtIf->IP.Dhcp6cStatus = DHCPC_STOPPED;
@@ -683,7 +683,7 @@ ANSC_STATUS WanManager_StopDhcpv4Client(DML_VIRTUAL_IFACE* pVirtIf, DHCP_RELEASE
     ANSC_STATUS ret;
 
     memset (&params, 0, sizeof(dhcp_params));
-    params.ifname = iface_name;
+    params.ifname = pVirtIf->Name;
     params.is_release_required = (IsReleaseNeeded==STOP_DHCP_WITH_RELEASE)?true:false;
 
     ret = stop_dhcpv4_client(&params);
