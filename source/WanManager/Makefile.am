@@ -37,9 +37,11 @@ wanmanager_LDADD = $(wanmanager_DEPENDENCIES) -lccsp_common -lrdkloggers $(DBUS_
 if WAN_UNIFICATION_ENABLED 
 if !DHCPMANAGER_ENABLED
 wanmanager_SOURCES +=  DHCPv6cMsgHandler/dhcpv6c_msg_apis.c
-wanmanager_LDADD += -ldhcp_client_utils
 endif
 else 
 wanmanager_SOURCES += wanmgr_policy_autowan_impl.c
 endif
 
+if !DHCPMANAGER_ENABLED
+wanmanager_LDADD += -ldhcp_client_utils
+endif
