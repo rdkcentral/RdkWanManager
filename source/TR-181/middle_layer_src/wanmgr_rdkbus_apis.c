@@ -345,7 +345,7 @@ int get_Virtual_Interface_FromPSM(ULONG instancenum, ULONG virtInsNum ,DML_VIRTU
         //Telemetry start
         WanMgr_Telemetry_Marker_t Marker = {0};
         Marker.enTelemetryMarkerID = WAN_INFO_IP_CONFIG_TYPE;
-        Marker.pVirtInterface = p_VirtIf ;
+        Marker.pVirtInterface = pVirtIf;
         wanmgr_telemetry_event(&Marker);		
     }
 

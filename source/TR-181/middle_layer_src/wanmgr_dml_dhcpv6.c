@@ -3360,7 +3360,8 @@ dhcp6c_mapt_mape_GetParamUlongValue
     )
 {
     UNREFERENCED_PARAMETER(hInsContext);
-#ifdef FEATURE_MAPT
+#if defined(FEATURE_SUPPORT_MAPT_NAT46) || defined(FEATURE_MAPT)    
+//#ifdef FEATURE_MAPT
     char temp[64] = {0};
 #endif
     /* check the parameter name and return the corresponding value */
