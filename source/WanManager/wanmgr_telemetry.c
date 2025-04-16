@@ -43,6 +43,10 @@ void wanmgr_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
             {
                 CcspTraceError(("%s %d: Error sending Telemetry event %s.\n",__FUNCTION__, __LINE__,WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID]));
             }
+	    else
+	    {
+                CcspTraceInfo(("%s %d: Success sending Telemetry event %s.\n",__FUNCTION__, __LINE__,WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID]));
+	    }
 #endif	    
             break;
         default:
