@@ -62,6 +62,143 @@ static void copyDhcpv6Data(WANMGR_IPV6_DATA* pDhcpv6Data, const DHCP_MGR_IPV6_MS
     pDhcpv6Data->domainNameAssigned = leaseInfo->domainNameAssigned;
 }
 
+typedef enum _DHCP_VERSION
+{
+    DHCPV4 = 0,
+    DHCPV6
+}DHCP_VERSION;
+typedef struct _DhcpEventThreadArgs 
+{
+    char ifName[20];
+    DHCP_MESSAGE_TYPE type;
+    DHCP_VERSION version;
+    union 
+    {
+        DHCP_MGR_IPV4_MSG v4;
+        DHCP_MGR_IPV6_MSG v6;
+    }lease;
+}DhcpEventThreadArgs;
+
+pthread_mutex_t DhcpClientEvents_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+void* WanMgr_DhcpClientEventsHandler_Thread(void *arg)
+{
+    DhcpEventThreadArgs *eventData = (DhcpEventThreadArgs *)arg;
+    pthread_mutex_lock(&DhcpClientEvents_mutex);
+    pthread_detach(pthread_self());
+
+    DML_VIRTUAL_IFACE* pVirtIf = WanMgr_GetVIfByName_VISM_running_locked(eventData->ifName);
+    if(pVirtIf != NULL)
+    {
+
+        if(eventData->version == DHCPV4)
+        {    
+            switch (eventData->type)
+            {
+                case DHCP_CLIENT_STARTED:
+                    CcspTraceInfo(("%s-%d : DHCPv4 client started for %s\n", __FUNCTION__, __LINE__, pVirtIf->Name));
+                    pVirtIf->IP.Dhcp4cStatus = DHCPC_STARTED;
+                    break;
+
+                case DHCP_CLIENT_STOPPED:
+                    CcspTraceInfo(("%s-%d : DHCPv4 client stopped for %s\n", __FUNCTION__, __LINE__, pVirtIf->Name));
+                    pVirtIf->IP.Dhcp4cStatus = DHCPC_STOPPED;
+                    break;
+
+                case DHCP_CLIENT_FAILED:
+                    CcspTraceInfo(("%s-%d : DHCPv4 client failed for %s\n", __FUNCTION__, __LINE__, pVirtIf->Name));
+                    pVirtIf->IP.Dhcp4cStatus = DHCPC_FAILED;
+                    break;
+
+                case DHCP_LEASE_RENEW:
+                    // TODO: Check for sysevents
+                    pVirtIf->IP.Ipv4Renewed = TRUE;
+                    CcspTraceInfo(("%s-%d : DHCPv4 lease renewed for %s\n", __FUNCTION__, __LINE__, pVirtIf->Name));
+                    WanManager_UpdateInterfaceStatus(pVirtIf, WANMGR_IFACE_CONNECTION_UP);
+                    break;
+
+                case DHCP_LEASE_DEL:
+                    CcspTraceInfo(("%s-%d : DHCPv4 lease expired for %s\n", __FUNCTION__, __LINE__, pVirtIf->Name));
+                    WanManager_UpdateInterfaceStatus(pVirtIf, WANMGR_IFACE_CONNECTION_DOWN);
+                    break;
+
+                case DHCP_LEASE_UPDATE:
+                    CcspTraceInfo(("%s-%d : DHCPv4 lease updated for %s\n", __FUNCTION__, __LINE__, pVirtIf->Name));
+                    copyDhcpv4Data(&(pVirtIf->IP.Ipv4Data), &(eventData->lease.v4));
+                    pVirtIf->IP.Ipv4Changed = TRUE;
+                    WanManager_UpdateInterfaceStatus(pVirtIf, WANMGR_IFACE_CONNECTION_UP);
+
+                    char param_name[256] = {0};
+                    snprintf(param_name, sizeof(param_name), "Device.X_RDK_WanManager.Interface.%d.VirtualInterface.%d.IP.IPv4Address", pVirtIf->baseIfIdx + 1, pVirtIf->VirIfIdx + 1);
+                    WanMgr_Rbus_EventPublishHandler(param_name, pVirtIf->IP.Ipv4Data.ip, RBUS_STRING);
+                    // TODO: Check for sysevents
+                    break;
+
+                default:
+                    CcspTraceError(("%s-%d : Unknown DHCPv4 event type %d for %s\n", __FUNCTION__, __LINE__, eventData->type, pVirtIf->Name));
+                    break;
+            }
+        }
+        else if(eventData->version == DHCPV6)
+        {
+            switch (eventData->type)
+            {
+                case DHCP_CLIENT_STARTED:
+                    CcspTraceInfo(("%s-%d : DHCPv6 client started for %s\n", __FUNCTION__, __LINE__, pVirtIf->Name));
+                    pVirtIf->IP.Dhcp6cStatus = DHCPC_STARTED;
+                    break;
+
+                case DHCP_CLIENT_STOPPED:
+                    CcspTraceInfo(("%s-%d : DHCPv6 client stopped for %s\n", __FUNCTION__, __LINE__, pVirtIf->Name));
+                    pVirtIf->IP.Dhcp6cStatus = DHCPC_STOPPED;
+                    break;
+
+                case DHCP_CLIENT_FAILED:
+                    CcspTraceInfo(("%s-%d : DHCPv6 client failed for %s\n", __FUNCTION__, __LINE__, pVirtIf->Name));
+                    pVirtIf->IP.Dhcp6cStatus = DHCPC_FAILED;
+                    break;
+
+                case DHCP_LEASE_RENEW:
+                    pVirtIf->IP.Ipv6Renewed = TRUE;
+                    //TODO: Check for sysevents
+                    //TODO: radvd restart ?
+                    //TODO: prefix delegation lifetime change ?
+                    CcspTraceInfo(("%s-%d : DHCPv6 lease renewed for %s\n", __FUNCTION__, __LINE__, pVirtIf->Name));
+                    WanManager_UpdateInterfaceStatus(pVirtIf, WANMGR_IFACE_CONNECTION_IPV6_UP);
+                    break;
+
+                case DHCP_LEASE_DEL:
+                    CcspTraceInfo(("%s-%d : DHCPv6 lease expired for %s\n", __FUNCTION__, __LINE__, pVirtIf->Name));
+                    WanManager_UpdateInterfaceStatus(pVirtIf, WANMGR_IFACE_CONNECTION_IPV6_DOWN);
+                    break;
+
+                case DHCP_LEASE_UPDATE:
+                    CcspTraceInfo(("%s-%d : DHCPv6 lease updated for %s\n", __FUNCTION__, __LINE__, pVirtIf->Name));
+                    copyDhcpv6Data(&(pVirtIf->IP.Ipv6Data), &(eventData->lease.v6));
+                    pVirtIf->IP.Ipv6Changed = TRUE;
+                    //TODO : WAN ip creation from IA_PD if required. address assignment on LAN bridge.
+                    WanManager_UpdateInterfaceStatus(pVirtIf, WANMGR_IFACE_CONNECTION_IPV6_UP);
+                    char param_name[256] = {0};
+                    snprintf(param_name, sizeof(param_name), "Device.X_RDK_WanManager.Interface.%d.VirtualInterface.%d.IP.IPv6Address",  pVirtIf->baseIfIdx+1, pVirtIf->VirIfIdx+1);
+                    WanMgr_Rbus_EventPublishHandler(param_name, pVirtIf->IP.Ipv6Data.address,RBUS_STRING);
+                    snprintf(param_name, sizeof(param_name), "Device.X_RDK_WanManager.Interface.%d.VirtualInterface.%d.IP.IPv6Prefix",  pVirtIf->baseIfIdx+1, pVirtIf->VirIfIdx+1);
+                    WanMgr_Rbus_EventPublishHandler(param_name, pVirtIf->IP.Ipv6Data.sitePrefix,RBUS_STRING);
+                    //TODO: Check for sysevents
+                    break;
+
+                default:
+                    CcspTraceError(("%s-%d : Unknown DHCPv6 event type %d for %s\n", __FUNCTION__, __LINE__, eventData->type, pVirtIf->Name));
+                    break;
+            }
+        } 
+        WanMgr_VirtualIfaceData_release(pVirtIf);
+    }
+    free(eventData);
+    pthread_mutex_unlock(&DhcpClientEvents_mutex);
+    pthread_exit(NULL);
+    return NULL;
+}
+
 static void WanMgr_DhcpClientEventsHandler(rbusHandle_t handle, rbusEvent_t const* event, rbusEventSubscription_t* subscription)
 {
     (void)handle;
@@ -75,151 +212,59 @@ static void WanMgr_DhcpClientEventsHandler(rbusHandle_t handle, rbusEvent_t cons
         return;
     }
 
+    pthread_t dhcpEvent_thread;
+
     CcspTraceInfo(("%s %d: Received %s\n", __FUNCTION__, __LINE__, eventName));
-    if (strstr(eventName, DHCP_MGR_DHCPv4_TABLE))
+    if (strstr(eventName, DHCP_MGR_DHCPv4_TABLE) || strstr(eventName, DHCP_MGR_DHCPv6_TABLE) )
     {
+        DhcpEventThreadArgs *eventData = malloc(sizeof(DhcpEventThreadArgs));
+        memset(eventData, 0, sizeof(DhcpEventThreadArgs));
+        eventData->version = strstr(eventName, DHCP_MGR_DHCPv4_TABLE) ? DHCPV4 : DHCPV6;
         rbusValue_t value;
         value = rbusObject_GetValue(event->data, "IfName");
-        char virtIfName[20] = {0};
-        strncpy(virtIfName , rbusValue_GetString(value, NULL),sizeof(virtIfName)-1);
-        CcspTraceInfo(("%s-%d : DHCP client event received for  %s\n", __FUNCTION__, __LINE__,  virtIfName));
+        strncpy(eventData->ifName , rbusValue_GetString(value, NULL), sizeof(eventData->ifName)-1);
+        CcspTraceInfo(("%s-%d : DHCP client event received for  %s\n", __FUNCTION__, __LINE__,  eventData->ifName));
 
         value = rbusObject_GetValue(event->data, "MsgType");
-        DHCP_MESSAGE_TYPE type = rbusValue_GetUInt32(value);
+        eventData->type = rbusValue_GetUInt32(value);
 
-
-        DML_VIRTUAL_IFACE* pVirtIf = WanMgr_GetVIfByName_VISM_running_locked(virtIfName);
-        if(pVirtIf != NULL)
+        if(eventData->type == DHCP_LEASE_UPDATE)
         {
-
-            if(type == DHCP_CLIENT_STARTED)
+            int bytes_len=0;
+            value = rbusObject_GetValue(event->data, "LeaseInfo");
+            uint8_t const* ptr = rbusValue_GetBytes(value, &bytes_len);
+            if(eventData->version == DHCPV4)
             {
-                CcspTraceInfo(("%s-%d : DHCPv4 client started for  %s\n", __FUNCTION__, __LINE__,  pVirtIf->Name));
-                pVirtIf->IP.Dhcp4cStatus = DHCPC_STARTED;
-            }
-            else if(type == DHCP_CLIENT_STOPPED)
-            {
-                CcspTraceInfo(("%s-%d : DHCPv4 client Stopped for  %s\n", __FUNCTION__, __LINE__,  pVirtIf->Name));
-                pVirtIf->IP.Dhcp4cStatus = DHCPC_STOPPED;
-            }
-            else if(type == DHCP_CLIENT_FAILED)
-            {
-                CcspTraceInfo(("%s-%d : DHCPv4 client Stopped for  %s\n", __FUNCTION__, __LINE__,  pVirtIf->Name));
-                pVirtIf->IP.Dhcp4cStatus = DHCPC_FAILED;
-            }
-            else if(type == DHCP_LEASE_RENEW)
-            {
-                //TODO: Check for syevents
-                pVirtIf->IP.Ipv4Renewed = TRUE;
-                CcspTraceInfo(("%s-%d : DHCPv4 lease renewed for  %s\n", __FUNCTION__, __LINE__,  pVirtIf->Name));
-                WanManager_UpdateInterfaceStatus(pVirtIf, WANMGR_IFACE_CONNECTION_UP);
-            }
-            else if(type == DHCP_LEASE_DEL)
-            {
-
-                CcspTraceInfo(("%s-%d : DHCPv4 lease expired for  %s\n", __FUNCTION__, __LINE__,  pVirtIf->Name));   
-                WanManager_UpdateInterfaceStatus(pVirtIf, WANMGR_IFACE_CONNECTION_DOWN);
-            }
-            else if(type == DHCP_LEASE_UPDATE)
-            {
-                CcspTraceInfo(("%s-%d : DHCPv4 lease updated  for  %s\n", __FUNCTION__, __LINE__,  pVirtIf->Name));   
-                value = rbusObject_GetValue(event->data, "LeaseInfo");
-                int bytes_len=0;
-                uint8_t byteArray[sizeof(DHCP_MGR_IPV4_MSG)];
-                DHCP_MGR_IPV4_MSG leaseInfo;
-
-                uint8_t const* ptr = rbusValue_GetBytes(value, &bytes_len);
-                memset(&leaseInfo, 0, sizeof(leaseInfo));
-                CcspTraceInfo(("%s-%d : DHCPv4 lease length %d and expected %d\n", __FUNCTION__, __LINE__,  bytes_len,sizeof(DHCP_MGR_IPV4_MSG) ));   
-
                 if((size_t)bytes_len == sizeof(DHCP_MGR_IPV4_MSG))
                 {
-                    memcpy(&leaseInfo, ptr, bytes_len);
-                    copyDhcpv4Data(&(pVirtIf->IP.Ipv4Data), &leaseInfo);
-                    pVirtIf->IP.Ipv4Changed = TRUE;
-                    WanManager_UpdateInterfaceStatus(pVirtIf, WANMGR_IFACE_CONNECTION_UP);
-                    
-                    char param_name[256] = {0};
-                    snprintf(param_name, sizeof(param_name), "Device.X_RDK_WanManager.Interface.%d.VirtualInterface.%d.IP.IPv4Address",  pVirtIf->baseIfIdx+1, pVirtIf->VirIfIdx+1);
-                    WanMgr_Rbus_EventPublishHandler(param_name, pVirtIf->IP.Ipv4Data.ip, RBUS_STRING);
-                } 
-                //TODO: Check for sysevents
-            }
-            WanMgr_VirtualIfaceData_release(pVirtIf);
-        }
-    }
-    else if (strstr(eventName, DHCP_MGR_DHCPv6_TABLE)) // Handle DHCPv6 events
-    {
-        rbusValue_t value;
-        value = rbusObject_GetValue(event->data, "IfName");
-        char virtIfName[20] = {0};
-        strncpy(virtIfName, rbusValue_GetString(value, NULL), sizeof(virtIfName) - 1);
-        CcspTraceInfo(("%s-%d : DHCPv6 client event received for %s\n", __FUNCTION__, __LINE__, virtIfName));
-
-        value = rbusObject_GetValue(event->data, "MsgType");
-        DHCP_MESSAGE_TYPE type = rbusValue_GetUInt32(value);
-
-        DML_VIRTUAL_IFACE* pVirtIf = WanMgr_GetVIfByName_VISM_running_locked(virtIfName);
-        if (pVirtIf != NULL)
-        {
-            if (type == DHCP_CLIENT_STARTED)
-            {
-                CcspTraceInfo(("%s-%d : DHCPv6 client started for %s\n", __FUNCTION__, __LINE__, pVirtIf->Name));
-                pVirtIf->IP.Dhcp6cStatus = DHCPC_STARTED;
-            }
-            else if (type == DHCP_CLIENT_STOPPED)
-            {
-                CcspTraceInfo(("%s-%d : DHCPv6 client stopped for %s\n", __FUNCTION__, __LINE__, pVirtIf->Name));
-                pVirtIf->IP.Dhcp6cStatus = DHCPC_STOPPED;
-            }
-            else if (type == DHCP_CLIENT_FAILED)
-            {
-                CcspTraceInfo(("%s-%d : DHCPv6 client failed for %s\n", __FUNCTION__, __LINE__, pVirtIf->Name));
-                pVirtIf->IP.Dhcp6cStatus = DHCPC_FAILED;
-            }
-            else if (type == DHCP_LEASE_RENEW)
-            {
-                pVirtIf->IP.Ipv6Renewed = TRUE;
-                //TODO: Check for sysevents
-                //TODO: radvd restart ?
-                //TODO: prefix delegation lifetime change ?
-                CcspTraceInfo(("%s-%d : DHCPv6 lease renewed for %s\n", __FUNCTION__, __LINE__, pVirtIf->Name));
-                WanManager_UpdateInterfaceStatus(pVirtIf, WANMGR_IFACE_CONNECTION_IPV6_UP);
-            }
-            else if (type == DHCP_LEASE_DEL)
-            {
-                CcspTraceInfo(("%s-%d : DHCPv6 lease expired for %s\n", __FUNCTION__, __LINE__, pVirtIf->Name));
-                WanManager_UpdateInterfaceStatus(pVirtIf, WANMGR_IFACE_CONNECTION_IPV6_DOWN);
-            }
-            else if (type == DHCP_LEASE_UPDATE)
-            {
-                CcspTraceInfo(("%s-%d : DHCPv6 lease updated for %s\n", __FUNCTION__, __LINE__, pVirtIf->Name));
-                value = rbusObject_GetValue(event->data, "LeaseInfo");
-                int bytes_len = 0;
-                uint8_t byteArray[sizeof(DHCP_MGR_IPV6_MSG)];
-                DHCP_MGR_IPV6_MSG leaseInfo;
-
-                uint8_t const* ptr = rbusValue_GetBytes(value, &bytes_len);
-                memset(&leaseInfo, 0, sizeof(leaseInfo));
-                CcspTraceInfo(("%s-%d : DHCPv6 lease length %d and expected %d\n", __FUNCTION__, __LINE__, bytes_len, sizeof(DHCP_MGR_IPV6_MSG)));
-
-                if ((size_t)bytes_len == sizeof(DHCP_MGR_IPV6_MSG))
-                {
-                    memcpy(&leaseInfo, ptr, bytes_len);
-                    copyDhcpv6Data(&(pVirtIf->IP.Ipv6Data), &leaseInfo);
-                    pVirtIf->IP.Ipv6Changed = TRUE;
-                    //TODO : WAN ip creation from IA_PD if required. address assignment on LAN bridge.
-                    WanManager_UpdateInterfaceStatus(pVirtIf, WANMGR_IFACE_CONNECTION_IPV6_UP);
-                    char param_name[256] = {0};
-                    snprintf(param_name, sizeof(param_name), "Device.X_RDK_WanManager.Interface.%d.VirtualInterface.%d.IP.IPv6Address",  pVirtIf->baseIfIdx+1, pVirtIf->VirIfIdx+1);
-                    WanMgr_Rbus_EventPublishHandler(param_name, pVirtIf->IP.Ipv6Data.address,RBUS_STRING);
-                    snprintf(param_name, sizeof(param_name), "Device.X_RDK_WanManager.Interface.%d.VirtualInterface.%d.IP.IPv6Prefix",  pVirtIf->baseIfIdx+1, pVirtIf->VirIfIdx+1);
-                    WanMgr_Rbus_EventPublishHandler(param_name, pVirtIf->IP.Ipv6Data.sitePrefix,RBUS_STRING);
+                    memcpy(&(eventData->lease.v4), ptr, bytes_len);
                 }
-                //TODO: Check for sysevents
+                else 
+                {
+                    CcspTraceError(("%s-%d : DHCPv4 lease length %d and expected %d\n", __FUNCTION__, __LINE__, bytes_len,sizeof(DHCP_MGR_IPV4_MSG) ));   
+                }
             }
-            WanMgr_VirtualIfaceData_release(pVirtIf);
+            else
+            {
+                if((size_t)bytes_len == sizeof(DHCP_MGR_IPV6_MSG))
+                {
+                    memcpy(&(eventData->lease.v6), ptr, bytes_len);
+                }
+                else
+                {
+                    CcspTraceError(("%s-%d : DHCPv6 lease length %d and expected %d\n", __FUNCTION__, __LINE__, bytes_len,sizeof(DHCP_MGR_IPV6_MSG) ));   
+                }
+            }
         }
+
+        if(pthread_create(&dhcpEvent_thread, NULL, WanMgr_DhcpClientEventsHandler_Thread, eventData) != 0)
+        {
+            CcspTraceError(("%s %d: Failed to create thread for DHCPv4 event\n", __FUNCTION__, __LINE__));
+            free(eventData);
+            return;
+        }
+        /* Adding sleep to make sure the thread locks the DhcpClientEvents_mutex */
+        usleep(10000);
     }
 }
 
