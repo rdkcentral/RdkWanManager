@@ -43,7 +43,7 @@ static void WanMgr_DhcpClientEventsHandler(rbusHandle_t handle, rbusEvent_t cons
 
     pthread_t dhcpEvent_thread;
 
-    CcspTraceInfo(("%s %d: Received %s\n", __FUNCTION__, __LINE__, eventName));
+    //CcspTraceInfo(("%s %d: Received %s\n", __FUNCTION__, __LINE__, eventName));
     if (strstr(eventName, DHCP_MGR_DHCPv4_TABLE) || strstr(eventName, DHCP_MGR_DHCPv6_TABLE) )
     {
         DhcpEventThreadArgs *eventData = malloc(sizeof(DhcpEventThreadArgs));
@@ -52,7 +52,7 @@ static void WanMgr_DhcpClientEventsHandler(rbusHandle_t handle, rbusEvent_t cons
         rbusValue_t value;
         value = rbusObject_GetValue(event->data, "IfName");
         strncpy(eventData->ifName , rbusValue_GetString(value, NULL), sizeof(eventData->ifName)-1);
-        CcspTraceInfo(("%s-%d : DHCP client event received for  %s\n", __FUNCTION__, __LINE__,  eventData->ifName));
+        CcspTraceInfo(("%s-%d : DHCP client event %s received for  %s\n", __FUNCTION__, __LINE__, eventName, eventData->ifName));
 
         value = rbusObject_GetValue(event->data, "MsgType");
         eventData->type = rbusValue_GetUInt32(value);

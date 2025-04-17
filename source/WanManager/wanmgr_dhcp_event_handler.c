@@ -22,11 +22,33 @@
 #include "ipc_msg.h"
 #include "wanmgr_interface_sm.h"
 #include "wanmgr_dhcp_client_events.h"
+#include "wanmgr_net_utils.h"
+
 
 
 
 static void copyDhcpv4Data(WANMGR_IPV4_DATA* pDhcpv4Data, const DHCP_MGR_IPV4_MSG* leaseInfo) 
 {
+    CcspTraceInfo(("\n"
+        "=========================================\n"
+        "|       New IPv4 Lease Information      |\n"
+        "=========================================\n"
+        "| ifname              : %-15s |\n"
+        "| ip                  : %-15s |\n"
+        "| mask                : %-15s |\n"
+        "| gateway             : %-15s |\n"
+        "| dnsServer           : %-15s |\n"
+        "| dnsServer1          : %-15s |\n"
+        "| timeZone            : %-15s |\n"
+        "| mtuSize             : %-15u |\n"
+        "| timeOffset          : %-15d |\n"
+        "| isTimeOffsetAssigned: %-15d |\n"
+        "| upstreamCurrRate    : %-15u |\n"
+        "=========================================\n",
+        leaseInfo->ifname, leaseInfo->address, leaseInfo->netmask, leaseInfo->gateway,
+        leaseInfo->dnsServer, leaseInfo->dnsServer1, leaseInfo->timeZone, leaseInfo->mtuSize, leaseInfo->timeOffset,
+        leaseInfo->isTimeOffsetAssigned, leaseInfo->upstreamCurrRate));
+
     strncpy(pDhcpv4Data->ifname, leaseInfo->ifname, sizeof(pDhcpv4Data->ifname) - 1);
     strncpy(pDhcpv4Data->ip, leaseInfo->address, sizeof(pDhcpv4Data->ip) - 1);
     strncpy(pDhcpv4Data->mask, leaseInfo->netmask, sizeof(pDhcpv4Data->mask) - 1);
@@ -42,9 +64,23 @@ static void copyDhcpv4Data(WANMGR_IPV4_DATA* pDhcpv4Data, const DHCP_MGR_IPV4_MS
 
 static void copyDhcpv6Data(WANMGR_IPV6_DATA* pDhcpv6Data, const DHCP_MGR_IPV6_MSG* leaseInfo) 
 {
-    CcspTraceInfo(("%s %d :new IPv6 lease Info:\n"
-        "ifname=%s\n"  "address=%s\n"  "nameserver=%s\n"  "nameserver1=%s\n" "domainName=%s\n"  "sitePrefix=%s\n"  "prefixPltime=%u\n"  "prefixVltime=%u\n"  "addrAssigned=%d\n"   "prefixAssigned=%d\n"   "domainNameAssigned=%d\n",
-        __FUNCTION__, __LINE__, leaseInfo->ifname, leaseInfo->address, leaseInfo->nameserver, leaseInfo->nameserver1,
+    CcspTraceInfo(("\n"
+        "==================================================================\n"
+        "|                New IPv6 Lease Information                      |\n"
+        "==================================================================\n"
+        "| ifname              : %-40s |\n"
+        "| address             : %-40s |\n"
+        "| nameserver          : %-40s |\n"
+        "| nameserver1         : %-40s |\n"
+        "| domainName          : %-40s |\n"
+        "| sitePrefix          : %-40s |\n"
+        "| prefixPltime        : %-40u |\n"
+        "| prefixVltime        : %-40u |\n"
+        "| addrAssigned        : %-40d |\n"
+        "| prefixAssigned      : %-40d |\n"
+        "| domainNameAssigned  : %-40d |\n"
+        "=================================================================\n",
+        leaseInfo->ifname, leaseInfo->address, leaseInfo->nameserver, leaseInfo->nameserver1,
         leaseInfo->domainName, leaseInfo->sitePrefix, leaseInfo->prefixPltime, leaseInfo->prefixVltime,
         leaseInfo->addrAssigned, leaseInfo->prefixAssigned, leaseInfo->domainNameAssigned));
 
@@ -72,7 +108,6 @@ void* WanMgr_DhcpClientEventsHandler_Thread(void *arg)
     DML_VIRTUAL_IFACE* pVirtIf = WanMgr_GetVIfByName_VISM_running_locked(eventData->ifName);
     if(pVirtIf != NULL)
     {
-
         if(eventData->version == DHCPV4)
         {    
             switch (eventData->type)
@@ -143,8 +178,11 @@ void* WanMgr_DhcpClientEventsHandler_Thread(void *arg)
                 case DHCP_LEASE_RENEW:
                     pVirtIf->IP.Ipv6Renewed = TRUE;
                     //TODO: Check for sysevents
-                    //TODO: radvd restart ?
-                    //TODO: prefix delegation lifetime change ?
+                    if(pVirtIf->IP.Ipv6Data.prefixAssigned == TRUE)
+                    {
+                        WanManager_Ipv6PrefixUtil(pVirtIf->Name, SET_LFT, pVirtIf->IP.Ipv6Data.prefixPltime, pVirtIf->IP.Ipv6Data.prefixVltime);
+                        sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_RADVD_RESTART, NULL, 0);
+                    }
                     CcspTraceInfo(("%s-%d : DHCPv6 lease renewed for %s\n", __FUNCTION__, __LINE__, pVirtIf->Name));
                     WanManager_UpdateInterfaceStatus(pVirtIf, WANMGR_IFACE_CONNECTION_IPV6_UP);
                     break;

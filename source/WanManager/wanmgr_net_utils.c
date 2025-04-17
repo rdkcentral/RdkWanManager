@@ -325,7 +325,7 @@ int isModuleLoaded(char *moduleName)
  ****************************************************************************/
 static INT IsIPObtained(char *pInterfaceName);
 
-int WanManager_Ipv6AddrUtil(char *ifname, Ipv6OperType opr, int preflft, int vallft)
+int WanManager_Ipv6PrefixUtil(char *ifname, Ipv6OperType opr, int preflft, int vallft)
 {
     char cmdLine[128] = {0};
     char prefix[BUFLEN_48] = {0};

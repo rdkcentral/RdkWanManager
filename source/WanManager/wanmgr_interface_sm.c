@@ -1491,7 +1491,7 @@ static int wan_tearDownIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
     }
 #endif
     /** Unconfig IPv6. */
-    if ( WanManager_Ipv6AddrUtil(p_VirtIf->Name, DEL_ADDR,0,0) < 0)
+    if ( WanManager_Ipv6PrefixUtil(p_VirtIf->Name, DEL_ADDR,0,0) < 0)
     {
         AnscTraceError(("%s %d -  Failed to remove inactive address \n", __FUNCTION__,__LINE__));
     }

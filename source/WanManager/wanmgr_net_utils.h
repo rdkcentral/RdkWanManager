@@ -160,7 +160,7 @@ BOOL WanManager_IsApplicationRunning(const char *appName, const char * args);
  * @param vallft indicates valid lifetime
  * @return 0 upon success else -1 returned
  ***************************************************************************/
-int WanManager_Ipv6AddrUtil(char *ifname,Ipv6OperType opr,int preflft,int vallft);
+int WanManager_Ipv6PrefixUtil(char *ifname,Ipv6OperType opr,int preflft,int vallft);
 
 /***************************************************************************
  * @brief Utility function used to check a process is running using PID
