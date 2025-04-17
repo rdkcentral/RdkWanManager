@@ -449,7 +449,7 @@ int WanManager_RestartDhcpv6Client(DML_VIRTUAL_IFACE* pVirtIf, IFACE_TYPE IfaceT
 #if FEATURE_RDKB_DHCP_MANAGER
     char dmlName[256] = {0};
 
-    snprintf( dmlName, sizeof(dmlName), "%s.Restart", pVirtIf->IP.DHCPv4Iface );
+    snprintf( dmlName, sizeof(dmlName), "%s.X_RDK_Restart", pVirtIf->IP.DHCPv4Iface );
     if (ANSC_STATUS_SUCCESS == WanMgr_RdkBus_SetParamValues(DHCPMGR_COMPONENT_NAME, DHCPMGR_DBUS_PATH, dmlName, "true", ccsp_boolean, TRUE))
     {
         CcspTraceInfo(("%s %d - Successfully set [%s] to DHCP Manager \n", __FUNCTION__, __LINE__, pVirtIf->Name));
