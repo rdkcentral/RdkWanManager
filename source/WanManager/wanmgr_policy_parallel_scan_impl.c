@@ -28,6 +28,7 @@
 #include "wanmgr_rdkbus_apis.h"
 #include "wanmgr_wan_failover.h"
 #include "wanmgr_net_utils.h"
+#include "wanmgr_telemetry.h"
 
 #define ETH_HW_CONFIGURATION_DM     "Device.Ethernet.Interface.%d.Upstream"
 #define ETH_PHY_PATH_DM             "Device.Ethernet.X_RDK_Interface.%d"
@@ -807,6 +808,19 @@ static WcPsPolicyState_t State_ScanningInterface (WanMgr_Policy_Controller_t * p
         {
             /*If timer expired select the highest priority active interface */
             CcspTraceInfo(("%s %d  SelectionTimeOut expired. Selecting Highest(available) priority interface id(%d)\n", __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
+            //Telemetry start
+            WanMgr_Iface_Data_t*   pWanDmlIfaceData = WanMgr_GetIfaceData_locked(highPriorityValidIface);
+            if(pWanDmlIfaceData != NULL)
+            {
+                DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
+                WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+	
+                WanMgr_Telemetry_Marker_t Marker = {0};
+                Marker.enTelemetryMarkerID = WAN_WARN_IP_OBTAIN_TIMER_EXPIRED;
+                Marker.pInterface = pWanIfaceData ;
+                wanmgr_telemetry_event(&Marker);
+            }
+            //Telemetry end
             return Transition_SelectingInterface(pWanController);
         }else
         {
