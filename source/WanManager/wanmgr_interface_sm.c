@@ -1309,7 +1309,7 @@ static int wan_setUpIPv4(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
         //Telemetry start
         WanMgr_Telemetry_Marker_t Marker = {0};
         Marker.enTelemetryMarkerID = WAN_INFO_IPv4_UP;
-        Marker.pInterface = pWanDmlIface;
+        Marker.pInterface = pInterface;
         wanmgr_telemetry_event(&Marker);
         //Telemetry end    
     }
@@ -1396,7 +1396,7 @@ static int wan_tearDownIPv4(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
         //Telemetry start
         WanMgr_Telemetry_Marker_t Marker = {0};
         Marker.enTelemetryMarkerID = WAN_ERROR_IPv4_DOWN;
-        Marker.pInterface = pWanDmlIface;
+        Marker.pInterface = pInterface;
         wanmgr_telemetry_event(&Marker);
         //Telemetry end
     }
@@ -1505,7 +1505,7 @@ static int wan_setUpIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
         //Telemetry start
         WanMgr_Telemetry_Marker_t Marker = {0};
         Marker.enTelemetryMarkerID = WAN_INFO_IPv6_UP;
-        Marker.pVirtInterface = pVirtIf ;
+        Marker.pInterface = pInterface ;
         wanmgr_telemetry_event(&Marker);
         //Telemetry end
     }    
@@ -1624,7 +1624,7 @@ static int wan_tearDownIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
         //Telemetry start
         WanMgr_Telemetry_Marker_t Marker = {0};
         Marker.enTelemetryMarkerID = WAN_ERROR_IPv6_DOWN;
-        Marker.pInterface = pWanDmlIface;
+        Marker.pInterface = pInterface;
         wanmgr_telemetry_event(&Marker);
         //Telemetry end
     }
@@ -1711,7 +1711,7 @@ static ANSC_STATUS WanMgr_StartConnectivityCheck(WanMgr_IfaceSM_Controller_t* pW
                 //Telemetry start
                 WanMgr_Telemetry_Marker_t Marker = {0};
                 Marker.enTelemetryMarkerID = WAN_WARN_CONNECTIVITY_CHECK_STATUS_FAILED;
-                Marker.pVirtInterface = pVirtIf ;
+                Marker.pInterface = pInterface ;
                 wanmgr_telemetry_event(&Marker);
                 //Telemetry end		
             }
@@ -2045,7 +2045,7 @@ static eWanState_t wan_transition_physical_interface_down(WanMgr_IfaceSM_Control
                 //Telemetry start
                 WanMgr_Telemetry_Marker_t Marker = {0};             
                 Marker.enTelemetryMarkerID = WAN_ERROR_VLAN_DOWN;
-                Marker.pVirtInterface = p_VirtIf ;
+                Marker.pInterface = pInterface ;
                 wanmgr_telemetry_event(&Marker);
                 //Telemetry end		
             }
@@ -2128,7 +2128,7 @@ static eWanState_t wan_transition_wan_validated(WanMgr_IfaceSM_Controller_t* pWa
     //Telemetry start
     WanMgr_Telemetry_Marker_t Marker = {0};
     Marker.enTelemetryMarkerID = WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP;
-    Marker.pVirtInterface = p_VirtIf ;
+    Marker.pInterface = pInterface ;
     wanmgr_telemetry_event(&Marker);
     //Telemetry end
     if(p_VirtIf->IP.SelectedMode == MAPT_MODE && p_VirtIf->IP.SelectedModeTimerStatus != EXPIRED)
@@ -2859,7 +2859,7 @@ static eWanState_t wan_transition_mapt_up(WanMgr_IfaceSM_Controller_t* pWanIface
         //Telemetry start
         WanMgr_Telemetry_Marker_t Marker = {0};
         Marker.enTelemetryMarkerID = WAN_ERROR_MAPT_STATUS_FAILED;
-        Marker.pVirtInterface = p_VirtIf ;
+        Marker.pInterface = pInterface ;
         wanmgr_telemetry_event(&Marker);
         //Telemetry end		
     }
@@ -3992,7 +3992,7 @@ static eWanState_t wan_state_mapt_active(WanMgr_IfaceSM_Controller_t* pWanIfaceC
                         //Telemetry start
                         WanMgr_Telemetry_Marker_t Marker = {0};
                         Marker.enTelemetryMarkerID = WAN_ERROR_MAPT_STATUS_FAILED;
-                        Marker.pVirtInterface = p_VirtIf ;
+                        Marker.pInterface = pInterface;
                         wanmgr_telemetry_event(&Marker);
                         //Telemetry end				
                     }
@@ -4003,7 +4003,7 @@ static eWanState_t wan_state_mapt_active(WanMgr_IfaceSM_Controller_t* pWanIfaceC
                     //Telemetry start
                     WanMgr_Telemetry_Marker_t Marker = {0};
                     Marker.enTelemetryMarkerID = WAN_ERROR_MAPT_STATUS_FAILED;
-                    Marker.pVirtInterface = p_VirtIf ;
+                    Marker.pInterface = pInterface ;
                     wanmgr_telemetry_event(&Marker);
                     //Telemetry end			    
                 }
@@ -4014,7 +4014,7 @@ static eWanState_t wan_state_mapt_active(WanMgr_IfaceSM_Controller_t* pWanIfaceC
                 //Telemetry start
                 WanMgr_Telemetry_Marker_t Marker = {0};
                 Marker.enTelemetryMarkerID = WAN_ERROR_MAPT_STATUS_FAILED;
-                Marker.pVirtInterface = p_VirtIf ;
+                Marker.pInterface = pInterface ;
                 wanmgr_telemetry_event(&Marker);
                 //Telemetry end				
             }
