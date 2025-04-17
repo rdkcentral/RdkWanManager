@@ -32,6 +32,7 @@
 #include <ctype.h>
 #include <syscfg/syscfg.h>
 #include "secure_wrapper.h"
+#include "wanmgr_telemetry.h"
 
 extern int sysevent_fd;
 extern token_t sysevent_token;
