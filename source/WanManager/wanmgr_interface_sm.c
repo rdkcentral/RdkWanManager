@@ -34,6 +34,7 @@
 #include "wanmgr_net_utils.h"
 #include "wanmgr_dhcpv4_apis.h"
 #include "wanmgr_dhcpv6_apis.h"
+#include "wanmgr_map_apis.h"
 #include "secure_wrapper.h"
 #ifdef ENABLE_FEATURE_TELEMETRY2_0
 #include <telemetry_busmessage_sender.h>
@@ -66,7 +67,6 @@ typedef enum
 static XLAT_State_t xlat_state_get(void);
 #endif
 
-
 /*WAN Manager States*/
 static eWanState_t wan_state_vlan_configuring(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
 static eWanState_t wan_state_ppp_configuring(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
@@ -79,6 +79,9 @@ static eWanState_t wan_state_dual_stack_active(WanMgr_IfaceSM_Controller_t* pWan
 #if defined(FEATURE_MAPT) || defined(FEATURE_SUPPORT_MAPT_NAT46)
 static eWanState_t wan_state_mapt_active(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
 #endif //FEATURE_MAPT
+static eWanState_t wan_state_map_active(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
+static eWanState_t wan_state_map_up(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
+
 static eWanState_t wan_state_refreshing_wan(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
 static eWanState_t wan_state_deconfiguring_wan(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
 static eWanState_t wan_state_exit(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
@@ -104,6 +107,10 @@ static eWanState_t wan_transition_mapt_up(WanMgr_IfaceSM_Controller_t* pWanIface
 static eWanState_t wan_transition_mapt_down(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
 extern int mapt_feature_enable_changed;
 #endif //FEATURE_MAPT
+static eWanState_t wan_transition_map_up(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
+static eWanState_t wan_transition_map_active(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
+static void WanMgr_tearDownMap (WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
+
 static eWanState_t wan_transition_exit(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
 
 static ANSC_STATUS WanMgr_StartConnectivityCheck(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
@@ -2893,6 +2900,130 @@ static eWanState_t wan_transition_exit(WanMgr_IfaceSM_Controller_t* pWanIfaceCtr
     
     return WAN_STATE_EXIT;
 }
+static eWanState_t wan_transition_map_up(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
+{
+    int ret                             = ANSC_STATUS_FAILURE;
+    DML_WAN_IFACE* pInterface           = NULL;
+    DML_VIRTUAL_IFACE* p_VirtIf         = NULL;
+    char curr_router_mtu[64]            = {0};
+    char acSetParamName[256]            = {0};
+    char acSetParamValue[256]           = {0};
+
+    if((pWanIfaceCtrl == NULL) || (pWanIfaceCtrl->pIfaceData == NULL))
+    {
+        return ANSC_STATUS_FAILURE;
+    }
+
+    pInterface = pWanIfaceCtrl->pIfaceData;
+    p_VirtIf = WanMgr_getVirtualIfaceById(pInterface->VirtIfList, pWanIfaceCtrl->VirIfIdx);
+
+    ret = WanManager_MAPEConfiguration();
+    if (ret == ANSC_STATUS_SUCCESS)
+    {
+        syscfg_get(NULL, "router_mtu", curr_router_mtu, sizeof(curr_router_mtu));
+        if(strcmp(curr_router_mtu, "1540") != 0)
+        {
+            FILE *fp = NULL;
+            fp = fopen("/tmp/opt94_flag.txt", "a+");
+            if(fp != NULL)
+            {
+                fclose(fp);
+                snprintf( acSetParamName, sizeof(acSetParamName), "%s.Reset", p_VirtIf->PPP.Interface);
+                snprintf( acSetParamValue, sizeof(acSetParamValue), "%s", "true");
+                ret = WanMgr_RdkBus_SetParamValues( PPPMGR_COMPONENT_NAME, PPPMGR_DBUS_PATH, acSetParamName, acSetParamValue, ccsp_boolean, TRUE );
+
+                if(ret != ANSC_STATUS_SUCCESS)
+	        {
+	            CcspTraceError(("%s %d DM set %s %s failed\n", __FUNCTION__,__LINE__, acSetParamName, acSetParamValue));
+                    return ANSC_STATUS_FAILURE;
+		}
+
+                p_VirtIf->Status = WAN_IFACE_STATUS_INVALID;
+            }
+        }
+
+        CcspTraceInfo(("%s %d: Transition To WAN_STATE_MAP_UP", __FUNCTION__, __LINE__));
+        return WAN_STATE_MAP_UP;
+    }
+    else
+    {
+        CcspTraceWarning(("%s %d : Failed to configure MAP!", __FUNCTION__, __LINE__));
+        return WAN_STATE_OBTAINING_IP_ADDRESSES;
+    }
+}
+
+static eWanState_t wan_transition_map_active(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
+{
+    DML_WAN_IFACE* pInterface           = NULL;
+    DML_VIRTUAL_IFACE* p_VirtIf        = NULL;
+    PWAN_DML_DOMAIN_INFO pMapDomainInfo = NULL;
+    PWAN_DML_DOMAIN_CFG pMapDomainCfg   = NULL;
+
+    if((pWanIfaceCtrl == NULL) || (pWanIfaceCtrl->pIfaceData == NULL))
+    {
+        return ANSC_STATUS_FAILURE;
+    }
+
+    pInterface = pWanIfaceCtrl->pIfaceData;
+    p_VirtIf = WanMgr_getVirtualIfaceById(pInterface->VirtIfList, pWanIfaceCtrl->VirIfIdx);
+
+    pMapDomainInfo = WanDmlMapDomGetInfo_Data(DOM_MAPE_INS_NO);
+    pMapDomainInfo->IfaceStatus = WAN_DML_INTERFACE_STATUS_Up;
+    pMapDomainCfg  = WanDmlMapDomGetCfg_Data(DOM_MAPE_INS_NO);
+    if(p_VirtIf->PPP.Enable == TRUE && (strlen(p_VirtIf->PPP.Interface) > 0))
+    {
+        AnscCopyString(pMapDomainCfg->WANInterface, p_VirtIf->PPP.Interface);
+    }
+    else
+    {
+        AnscCopyString(pMapDomainCfg->WANInterface, p_VirtIf->IP.Interface);
+    }
+    CcspTraceInfo(("%s %d : Transition To WAN_STATE_MAP_ACTIVE", __FUNCTION__, __LINE__));
+    return WAN_STATE_MAP_ACTIVE;
+
+}
+static void WanMgr_tearDownMap(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
+{
+    char cmd[BUFLEN_64] = {0};
+    char wan_interface[BUFLEN_64]={0};
+    PWAN_DML_DOMAIN_CFG  pMapDomainCfg  = WanDmlMapDomGetCfg_Data(DOM_MAPE_INS_NO);
+    PWAN_DML_DOMAIN_INFO pMapDomainInfo = WanDmlMapDomGetInfo_Data(DOM_MAPE_INS_NO);
+    PWAN_DML_MAP_RULE    pDomainRule    = WanDmlMapDomGetRule_Data(DOM_MAPE_INS_NO, DOM_MAPE_INS_NO-1);
+
+    CcspTraceInfo(("%s %d - stop MAP-E\n", __FUNCTION__, __LINE__));
+    if (syscfg_get(NULL, SYSCFG_WAN_INTERFACE, wan_interface, sizeof(wan_interface)) != ANSC_STATUS_SUCCESS)
+    {
+        CcspTraceInfo(("%s %d - Failed to get %s\n", __FUNCTION__, __LINE__,SYSCFG_WAN_INTERFACE));
+    }
+
+    snprintf(cmd, sizeof(cmd), "iproute del default dev %s", wan_interface);
+    system(cmd);
+
+    system("ip link set dev ip6tnl down");
+    system("ip -6 tunnel del ip6tnl");
+
+    syscfg_set(NULL, "mape_config_flag", "false");
+
+    if ((NULL != pMapDomainCfg) && (NULL != pMapDomainInfo) && (NULL != pDomainRule))
+    {
+        /* Clear MAP-E data */
+        pDomainRule->EABitsLength   = 0;
+        pDomainRule->PSIDOffset     = 0;
+        pDomainRule->Status         = WAN_DML_RULE_STATUS_Disabled;
+        pDomainRule->PSIDLength     = 0;
+        pDomainRule->PSID           = 0;
+        pMapDomainInfo->Status      = WAN_DML_DOMAIN_STATUS_Disabled;
+        pMapDomainInfo->IfaceStatus = WAN_DML_INTERFACE_STATUS_Down;
+        strcpy(pDomainRule->IPv4Prefix, "");
+        strcpy(pDomainRule->IPv6Prefix, "");
+        strcpy(pMapDomainCfg->BRIPv6Prefix, "");
+    }
+    else
+    {
+        CcspTraceWarning(("%s %d - NULL Parameter!\n", __FUNCTION__, __LINE__));
+    }
+
+}
 
 static eWanState_t wan_transition_standby(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
 {
@@ -3204,6 +3335,18 @@ static eWanState_t wan_state_obtaining_ip_addresses(WanMgr_IfaceSM_Controller_t*
                     return wan_transition_wan_validated(pWanIfaceCtrl);
                 }
                 return WAN_STATE_OBTAINING_IP_ADDRESSES;
+            }
+        }
+    }
+    if(p_VirtIf->PPP.Enable == TRUE && (strlen(p_VirtIf->PPP.Interface) > 0))
+    {
+        if ( p_VirtIf->Status == WAN_IFACE_STATUS_UP )
+        {
+            PWAN_DML_DOMAIN_INFO pMapDomainInfo = WanDmlMapDomGetInfo_Data(DOM_MAPE_INS_NO);
+            if (pMapDomainInfo->IfaceStatus != WAN_DML_INTERFACE_STATUS_Up && pMapDomainInfo->Status == WAN_DML_DOMAIN_STATUS_Enabled)
+            {
+                CcspTraceInfo((" %s %d - calling wan_transition_map_up \n", __FUNCTION__, __LINE__));
+                return wan_transition_map_up(pWanIfaceCtrl);
             }
         }
     }
@@ -3902,6 +4045,70 @@ static eWanState_t wan_state_mapt_active(WanMgr_IfaceSM_Controller_t* pWanIfaceC
 }
 #endif //FEATURE_MAPT
 
+static eWanState_t wan_state_map_up(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
+{
+    DML_WAN_IFACE* pInterface           = NULL;
+    DML_VIRTUAL_IFACE* p_VirtIf        = NULL;
+    PWAN_DML_DOMAIN_INFO pMapDomainInfo = NULL;
+    PWAN_DML_DOMAIN_CFG pMapDomainCfg   = NULL;
+
+    if((pWanIfaceCtrl == NULL) || (pWanIfaceCtrl->pIfaceData == NULL))
+    {
+        CcspTraceError(("%s %d \n", __FUNCTION__, __LINE__));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    pInterface = pWanIfaceCtrl->pIfaceData;
+    p_VirtIf = WanMgr_getVirtualIfaceById(pInterface->VirtIfList, pWanIfaceCtrl->VirIfIdx);
+
+
+    /*check for L1 failure*/
+    if ( (pWanIfaceCtrl->WanEnable == FALSE) || (pInterface->BaseInterfaceStatus !=  WAN_IFACE_PHY_STATUS_UP) || (pInterface->Selection.Status == WAN_IFACE_NOT_SELECTED) || (p_VirtIf->Reset == TRUE) )
+    {
+        WanMgr_tearDownMap(pWanIfaceCtrl);
+        return WAN_STATE_OBTAINING_IP_ADDRESSES;
+    }
+
+    if ( p_VirtIf->Status == WAN_IFACE_STATUS_UP )
+    {
+        return wan_transition_map_active(pWanIfaceCtrl);
+    }
+
+    return WAN_STATE_MAP_UP;
+}
+
+static eWanState_t wan_state_map_active(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
+{
+    DML_WAN_IFACE* pInterface           = NULL;
+    DML_VIRTUAL_IFACE* p_VirtIf        = NULL;
+
+    if((pWanIfaceCtrl == NULL) || (pWanIfaceCtrl->pIfaceData == NULL))
+    {
+        CcspTraceError(("%s %d \n", __FUNCTION__, __LINE__));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    pInterface = pWanIfaceCtrl->pIfaceData;
+    p_VirtIf = WanMgr_getVirtualIfaceById(pInterface->VirtIfList, pWanIfaceCtrl->VirIfIdx);
+
+    /*check for L1 failure*/
+    if ( (pWanIfaceCtrl->WanEnable == FALSE) || (pInterface->BaseInterfaceStatus !=  WAN_IFACE_PHY_STATUS_UP) || (pInterface->Selection.Status == WAN_IFACE_NOT_SELECTED) || (p_VirtIf->Reset == TRUE) )
+    {
+        WanMgr_tearDownMap(pWanIfaceCtrl);
+        return WAN_STATE_OBTAINING_IP_ADDRESSES;
+    }
+
+    /* check for l3 down in ppp*/
+    if(p_VirtIf->PPP.Enable == TRUE && (strlen(p_VirtIf->PPP.Interface) > 0))
+    {
+        if (WAN_IFACE_STATUS_DISABLED == p_VirtIf->Status)
+        {
+           WanMgr_tearDownMap(pWanIfaceCtrl);
+           return WAN_STATE_OBTAINING_IP_ADDRESSES;
+        }
+    }
+    return WAN_STATE_MAP_ACTIVE;
+}
 static eWanState_t wan_state_refreshing_wan(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
 {
     if((pWanIfaceCtrl == NULL) || (pWanIfaceCtrl->pIfaceData == NULL))
@@ -4171,6 +4378,16 @@ static void* WanMgr_InterfaceSMThread( void *arg )
                     break;
                 }
 #endif //FEATURE_MAPT
+                case WAN_STATE_MAP_UP:
+                {
+                    iface_sm_state = wan_state_map_up(pWanIfaceCtrl);
+                    break;
+                }
+                case WAN_STATE_MAP_ACTIVE:
+                {
+                    iface_sm_state = wan_state_map_active(pWanIfaceCtrl);
+                    break;
+                }
             case WAN_STATE_REFRESHING_WAN:
                 {
                     iface_sm_state = wan_state_refreshing_wan(pWanIfaceCtrl);
