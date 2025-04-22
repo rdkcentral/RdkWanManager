@@ -1,8 +1,8 @@
 #ifndef _WAN_TELEMETRY_MARKER_H_
 #define _WAN_TELEMETRY_MARKER_H_
-#include "wanmgr_dml.h"
 #include "ansc_platform.h"
 #include "ansc_string_util.h"
+#include "wanmgr_dml.h"
 
 typedef enum WanMgr_TelemetryEvent
 {
