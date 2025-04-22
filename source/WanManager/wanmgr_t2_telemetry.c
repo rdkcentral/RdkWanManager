@@ -1,4 +1,5 @@
 #include "wanmgr_t2_telemetry.h"
+#include "wanmgr_rdkbus_utils.h"
 
 static char buf[128] = {0};
 
