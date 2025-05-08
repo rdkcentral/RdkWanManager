@@ -82,6 +82,6 @@ ANSC_STATUS wanmgr_process_T2_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
         default:
     }
     strcat(buf,"\0");
-    t2_event_s(WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID],buf);
+//    t2_event_s(WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID],buf);
     return ANSC_STATUS_SUCCESS;
 }
