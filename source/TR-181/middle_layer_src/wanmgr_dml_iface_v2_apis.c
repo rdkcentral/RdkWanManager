@@ -994,6 +994,13 @@ BOOL WanIfSelectionCfg_GetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamNa
                 *puLong = pWanDmlIface->Selection.Timeout;
                 ret = TRUE;
             }
+
+            if (strcmp(ParamName, "LastActiveInterfaceRetries") == 0)
+            {
+                *puLong = pWanDmlIface->Selection.LastActiveInterfaceRetries;
+                ret = TRUE;
+            }
+
             if (strcmp(ParamName, "Status") == 0)
             {
                 if( ( pWanDmlIface->Selection.Status == WAN_IFACE_SELECTED ) ||
@@ -1076,6 +1083,13 @@ BOOL WanIfSelectionCfg_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamNa
                 pWanDmlIface->Selection.Timeout = uValue;
                 ret = TRUE;
             }
+
+            if (strcmp(ParamName, "LastActiveInterfaceRetries") == 0)
+            {
+                pWanDmlIface->Selection.LastActiveInterfaceRetries = uValue;
+                ret = TRUE;
+            }
+
             if( strcmp(ParamName, "Group") == 0)
             {
                 //TODO: MAX_INTERFACE_GROUP  check should be removed after implementing dynamic group table. 
