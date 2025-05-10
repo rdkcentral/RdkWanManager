@@ -28,6 +28,7 @@
 #include "wanmgr_rdkbus_apis.h"
 #include "wanmgr_wan_failover.h"
 #include "wanmgr_net_utils.h"
+#include "wanmgr_telemetry.h"
 
 /* ---- Global Constants -------------------------- */
 #define SELECTION_PROCESS_LOOP_TIMEOUT 250000 // timeout in microseconds. This is the state machine loop interval
@@ -1110,6 +1111,12 @@ static WcAwPolicyState_t State_WaitForInterface (WanMgr_Policy_Controller_t * pW
         // timer expired for selected iface but there is another interface that can be used
         CcspTraceInfo(("%s %d: Validation Timer expired for interface index:%d and there is another iface that can be possibly used as Wan interface\n", 
                     __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
+        //Telemetry start
+        WanMgr_Telemetry_Marker_t Marker = {0};         
+        Marker.enTelemetryMarkerID = WAN_WARN_IP_OBTAIN_TIMER_EXPIRED;
+        Marker.pInterface = pActiveInterface ;
+        wanmgr_telemetry_event(&Marker);
+        //Telemetry end		
         return Transition_InterfaceInvalid(pWanController);
     }
 
@@ -1193,6 +1200,12 @@ static WcAwPolicyState_t State_ScanningInterface (WanMgr_Policy_Controller_t * p
         {
             CcspTraceInfo(("%s %d: Validation Timer expired for interface index:%d and there is another iface that can be possibly used as Wan interface\n", 
                         __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
+            //Telemetry start
+            WanMgr_Telemetry_Marker_t Marker = {0};             
+            Marker.enTelemetryMarkerID = WAN_WARN_IP_OBTAIN_TIMER_EXPIRED;
+            Marker.pInterface = pActiveInterface ;
+            wanmgr_telemetry_event(&Marker);
+            //Telemetry end		    
             return Transition_InterfaceDeselect(pWanController);
         }
     }
