@@ -25,7 +25,7 @@ ANSC_STATUS wanmgr_process_T2_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
 {
     DML_WAN_IFACE *pIntf = Marker->pInterface;
     DML_VIRTUAL_IFACE *pVirtIntf = Marker->pVirtInterface;
-    memset(buf,sizeof(buf),0);
+    memset(buf,0,sizeof(buf));
 
     if(pIntf == NULL && pVirtIntf == NULL)
     {
@@ -82,6 +82,6 @@ ANSC_STATUS wanmgr_process_T2_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
         default:
     }
     strcat(buf,"\0");
-//    t2_event_s(WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID],buf);
+    t2_event_s(WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID],buf);
     return ANSC_STATUS_SUCCESS;
 }

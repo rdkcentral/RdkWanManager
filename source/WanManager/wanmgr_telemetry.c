@@ -41,7 +41,7 @@ void wanmgr_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
 #ifdef ENABLE_FEATURE_TELEMETRY2_0
             if(ANSC_STATUS_FAILURE == wanmgr_process_T2_telemetry_event(Marker))
             {
-//                CcspTraceError(("%s %d: Error sending Telemetry event %s.\n",__FUNCTION__, __LINE__,WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID]));
+                CcspTraceError(("%s %d: Error sending Telemetry event %s.\n",__FUNCTION__, __LINE__,WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID]));
             }
 	    else
 	    {
