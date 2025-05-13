@@ -2065,10 +2065,11 @@ static eWanState_t wan_transition_physical_interface_down(WanMgr_IfaceSM_Control
 #endif
     CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION DECONFIGURING WAN\n", __FUNCTION__, __LINE__, pInterface->Name));
     //Telemetry start
-    WanMgr_Telemetry_Marker_t Marker = {0};
+    /*WanMgr_Telemetry_Marker_t Marker = {0};
     Marker.enTelemetryMarkerID = WAN_ERROR_PHY_DOWN;
     Marker.pInterface = pInterface ;
     wanmgr_telemetry_event(&Marker);
+    */
     //Telemetry end
     return WAN_STATE_DECONFIGURING_WAN;
 }
@@ -2094,10 +2095,11 @@ static eWanState_t wan_transition_wan_up(WanMgr_IfaceSM_Controller_t* pWanIfaceC
 
     CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION VALIDATING WAN\n", __FUNCTION__, __LINE__, pInterface->Name));
     //Telemetry start
-    WanMgr_Telemetry_Marker_t Marker = {0};     
+    /*WanMgr_Telemetry_Marker_t Marker = {0};     
     Marker.enTelemetryMarkerID = WAN_INFO_WAN_UP;
     Marker.pInterface = pInterface ;
     wanmgr_telemetry_event(&Marker);
+    */
     //Telemetry end
     return WAN_STATE_VALIDATING_WAN;
 }
@@ -3499,10 +3501,11 @@ static eWanState_t wan_state_standby(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
         WanMgr_StartConnectivityCheck(pWanIfaceCtrl);
     }
     //Telemetry start
-    WanMgr_Telemetry_Marker_t Marker = {0};
+    /*WanMgr_Telemetry_Marker_t Marker = {0};
     Marker.enTelemetryMarkerID = WAN_INFO_WAN_STANDBY;
     Marker.pInterface = pInterface ;
     wanmgr_telemetry_event(&Marker);
+    */
     //Telemetry end
     return WAN_STATE_STANDBY;
 }
@@ -3987,10 +3990,12 @@ static eWanState_t wan_state_mapt_active(WanMgr_IfaceSM_Controller_t* pWanIfaceC
                     {
                         CcspTraceError(("%s %d - Failed to configure MAP-T for %s Interface \n", __FUNCTION__, __LINE__, p_VirtIf->Name));
                         //Telemetry start
+			/*
                         WanMgr_Telemetry_Marker_t Marker = {0};
                         Marker.enTelemetryMarkerID = WAN_ERROR_MAPT_STATUS_FAILED;
                         Marker.pInterface = pInterface;
                         wanmgr_telemetry_event(&Marker);
+			*/
                         //Telemetry end				
                     }
                 }
@@ -3998,10 +4003,12 @@ static eWanState_t wan_state_mapt_active(WanMgr_IfaceSM_Controller_t* pWanIfaceC
                 {
                     CcspTraceError(("%s %d - Failed to verify and configure MAP-T for %s Interface \n", __FUNCTION__, __LINE__, p_VirtIf->Name));
                     //Telemetry start
+		    /*
                     WanMgr_Telemetry_Marker_t Marker = {0};
                     Marker.enTelemetryMarkerID = WAN_ERROR_MAPT_STATUS_FAILED;
                     Marker.pInterface = pInterface ;
                     wanmgr_telemetry_event(&Marker);
+		    */
                     //Telemetry end			    
                 }
             }
@@ -4009,10 +4016,12 @@ static eWanState_t wan_state_mapt_active(WanMgr_IfaceSM_Controller_t* pWanIfaceC
             {
                 CcspTraceError((" %s %d - Failed to configure  MAP-T for %s Interface \n", __FUNCTION__, __LINE__, p_VirtIf->Name));
                 //Telemetry start
+		/*
                 WanMgr_Telemetry_Marker_t Marker = {0};
                 Marker.enTelemetryMarkerID = WAN_ERROR_MAPT_STATUS_FAILED;
                 Marker.pInterface = pInterface ;
                 wanmgr_telemetry_event(&Marker);
+		*/
                 //Telemetry end			
             }
         }
@@ -4106,12 +4115,15 @@ static eWanState_t wan_state_deconfiguring_wan(WanMgr_IfaceSM_Controller_t* pWan
         if (p_VirtIf->VLAN.Status != WAN_IFACE_LINKSTATUS_DOWN )
             return WAN_STATE_DECONFIGURING_WAN;
     }
-    //Telemetry start
-    WanMgr_Telemetry_Marker_t Marker = {0};
-    Marker.enTelemetryMarkerID = WAN_ERROR_WAN_DOWN;
-    Marker.pInterface = pInterface ;
-    wanmgr_telemetry_event(&Marker);
-    //Telemetry end
+    if(pInterface->Selection.Status == WAN_IFACE_ACTIVE)
+    {
+        //Telemetry start
+        WanMgr_Telemetry_Marker_t Marker = {0};
+        Marker.enTelemetryMarkerID = WAN_ERROR_WAN_DOWN;
+        Marker.pInterface = pInterface ;
+        wanmgr_telemetry_event(&Marker);
+        //Telemetry end
+    }
     return wan_transition_exit(pWanIfaceCtrl);
 }
 
