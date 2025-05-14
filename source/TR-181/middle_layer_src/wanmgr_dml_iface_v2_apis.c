@@ -43,7 +43,7 @@
 #if defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_)
 #include "wanmgr_utils.h"
 #endif
-
+#include "wanmgr_telemetry.h"
 extern WANMGR_DATA_ST gWanMgrDataBase;
 /***********************************************************************
 
@@ -1618,6 +1618,12 @@ BOOL WanVirtualIf_SetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BO
                 WanMgr_SetConnectivityCheckTypeToPSM(p_VirtIf, type);
                 p_VirtIf->IP.WCC_TypeChanged = TRUE;
                 p_VirtIf->IP.ConnectivityCheckType = type;
+                //Telemetry start
+                WanMgr_Telemetry_Marker_t Marker = {0};
+                Marker.enTelemetryMarkerID = WAN_INFO_CONNECTIVITY_CHECK_TYPE;
+                Marker.pVirtInterface = p_VirtIf ;
+                wanmgr_telemetry_event(&Marker);
+                //Telemetry end			
                 ret = TRUE;
             }
         }
@@ -2073,11 +2079,23 @@ BOOL WanIfIpCfg_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULO
         if (strcmp(ParamName, "IPv4Status") == 0)
         {
             p_VirtIf->IP.Ipv4Status = uValue;
+            //Telemetry start
+            WanMgr_Telemetry_Marker_t Marker = {0};
+            Marker.enTelemetryMarkerID = (p_VirtIf->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_UP) ? WAN_INFO_IPv4_UP : WAN_ERROR_IPv4_DOWN;
+            Marker.pVirtInterface = p_VirtIf;
+            wanmgr_telemetry_event(&Marker);
+            //Telemetry end		    
             ret = TRUE;
         }
         if (strcmp(ParamName, "IPv6Status") == 0)
         {
             p_VirtIf->IP.Ipv6Status = uValue;
+            //Telemetry start
+            WanMgr_Telemetry_Marker_t Marker = {0};
+            Marker.enTelemetryMarkerID = (p_VirtIf->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_UP) ? WAN_INFO_IPv6_UP : WAN_ERROR_IPv6_DOWN;
+            Marker.pVirtInterface = p_VirtIf;
+            wanmgr_telemetry_event(&Marker);
+            //Telemetry end		    
             ret = TRUE;
         }
         if (strcmp(ParamName, "Mode") == 0)
@@ -2088,6 +2106,12 @@ BOOL WanIfIpCfg_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULO
                 p_VirtIf->IP.RefreshDHCP = TRUE;
                 p_VirtIf->IP.ModeForceEnable = TRUE;
                 CcspTraceInfo(("%s %d IP.%s changed for %s to %d. ModeForceEnable set and Refreshing DHCP \n", __FUNCTION__, __LINE__, ParamName, p_VirtIf->Name, p_VirtIf->IP.Mode));
+                //Telemetry start
+                WanMgr_Telemetry_Marker_t Marker = {0};
+                Marker.enTelemetryMarkerID = WAN_INFO_IP_MODE;
+                Marker.pVirtInterface = p_VirtIf ;
+                wanmgr_telemetry_event(&Marker);
+                //Telemetry end			
             }
             ret = TRUE;
         }
@@ -2098,6 +2122,12 @@ BOOL WanIfIpCfg_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULO
                 p_VirtIf->IP.IPv4Source = uValue;
                 p_VirtIf->IP.RefreshDHCP = TRUE;
                 CcspTraceInfo(("%s %d IP.%s changed for %s to %d. Refreshing DHCP \n", __FUNCTION__, __LINE__, ParamName, p_VirtIf->Name,p_VirtIf->IP.IPv4Source));
+                //Telemetry start
+                WanMgr_Telemetry_Marker_t Marker = {0};
+                Marker.enTelemetryMarkerID = WAN_INFO_IP_CONFIG_TYPE;
+                Marker.pVirtInterface = p_VirtIf ;
+                wanmgr_telemetry_event(&Marker);
+                //Telemetry end			
             }
             ret = TRUE;
         }
@@ -2108,6 +2138,12 @@ BOOL WanIfIpCfg_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULO
                 p_VirtIf->IP.IPv6Source = uValue;
                 p_VirtIf->IP.RefreshDHCP = TRUE;
                 CcspTraceInfo(("%s %d IP.%s changed for %s to %d. Refreshing DHCP \n", __FUNCTION__, __LINE__, ParamName, p_VirtIf->Name,p_VirtIf->IP.IPv4Source));
+                //Telemetry start
+                WanMgr_Telemetry_Marker_t Marker = {0};
+                Marker.enTelemetryMarkerID = WAN_INFO_IP_CONFIG_TYPE;
+                Marker.pVirtInterface = p_VirtIf ;
+                wanmgr_telemetry_event(&Marker);
+                //Telemetry end			
             }
             ret = TRUE;
         }
@@ -2399,6 +2435,12 @@ BOOL WanIfMapt_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULON
         {
 #if defined(FEATURE_MAPT) || defined(FEATURE_SUPPORT_MAPT_NAT46)
             p_VirtIf->MAP.MaptStatus = uValue;
+            //Telemetry start
+            WanMgr_Telemetry_Marker_t Marker = {0};
+            Marker.enTelemetryMarkerID = (p_VirtIf->MAP.MaptStatus == WAN_IFACE_MAPT_STATE_UP) ? WAN_INFO_MAPT_STATUS_UP : WAN_ERROR_MAPT_STATUS_DOWN;
+            Marker.pVirtInterface = p_VirtIf ;
+            wanmgr_telemetry_event(&Marker);
+            //Telemetry end		    
             ret = TRUE;
 #endif /* * FEATURE_MAPT */
         }
