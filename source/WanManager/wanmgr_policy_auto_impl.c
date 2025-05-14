@@ -1222,12 +1222,6 @@ static WcAwPolicyState_t State_InterfaceReconfiguration (WanMgr_Policy_Controlle
         return STATE_AUTO_WAN_ERROR;
     }
 
-#if (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_))
-    // HW configuration already done using SelectedOperationalMode for XB platforms. Skipping this state.
-    CcspTraceInfo(("%s %d: HW configuration already done using SelectedOperationalMode.\n", __FUNCTION__, __LINE__));
-    return Transition_ActivatingInterface (pWanController);
-#endif
-
     // add interface that is not selected in LAN bridge
     UINT uiLoopCount;
     int ret = 0;
@@ -1265,7 +1259,14 @@ static WcAwPolicyState_t State_InterfaceReconfiguration (WanMgr_Policy_Controlle
             }
         }
     }
-    // check if Hardware Configuration is required
+
+#if (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_))
+    // HW configuration already done using SelectedOperationalMode for XB platforms. Skipping this state.
+    CcspTraceInfo(("%s %d: HW configuration already done using SelectedOperationalMode.\n", __FUNCTION__, __LINE__));
+    return Transition_ActivatingInterface (pWanController);
+#endif
+
+// check if Hardware Configuration is required
     bool ConfigChanged = FALSE;
     bool CurrIntfHwRebootConfig = FALSE;
     bool RebootRequired = FALSE;

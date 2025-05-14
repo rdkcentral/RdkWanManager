@@ -1472,7 +1472,9 @@ ANSC_STATUS WanMgr_Read_GroupConf_FromPSM(WANMGR_IFACE_GROUP *pGroup, UINT group
     retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
     if (retPsmGet == CCSP_SUCCESS && strcmp(param_value, PSM_ENABLE_STRING_TRUE) == 0)
     {
-             pGroup->PersistSelectedIface = TRUE;
+        //TODO : cleanup. No longer a requirement.
+        CcspTraceInfo(("%s %d - PSM entry for PersistSelectedIface is not used.\n", __FUNCTION__, __LINE__));
+        //pGroup->PersistSelectedIface = TRUE;
     }
 
     return result;
