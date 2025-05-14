@@ -938,7 +938,7 @@ static void *WanManagerSyseventHandler(void *args)
                         WanManager_StopIpoeHealthCheckService(atoi(output));
 #endif /* FEATURE_IPOE_HEALTH_CHECK */
                         CcspTraceInfo(("%s %d - Stopping DHCPv6 client for WAN IfName:%s\n", __FUNCTION__, __LINE__, ifName ));
-                        WanManager_StopDhcpv6Client(ifName, TRUE);
+                        //WanManager_StopDhcpv6Client(ifName, TRUE);
                     }
                 }
             }

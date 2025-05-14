@@ -37,6 +37,10 @@
 #define PPPMGR_COMPONENT_NAME       "eRT.com.cisco.spvtg.ccsp.pppmanager"
 #define PPPMGR_DBUS_PATH            "/com/cisco/spvtg/ccsp/pppmanager"
 
+// DHCP Manager
+#define DHCPMGR_COMPONENT_NAME       "eRT.com.cisco.spvtg.ccsp.dhcpmgr"
+#define DHCPMGR_DBUS_PATH            "/com/cisco/spvtg/ccsp/dhcpmgr"
+
 #define PPP_INTERFACE_TABLE          "Device.PPP.Interface."
 #define PPP_INTERFACE_INSTANCE       "Device.PPP.Interface.%d."
 #define PPP_INTERFACE_ENABLE         "Device.PPP.Interface.%d.Enable"

@@ -23,6 +23,7 @@
 #include "wanmgr_rbus_handler_apis.h"
 #include "wanmgr_rdkbus_apis.h"
 #include "dmsb_tr181_psm_definitions.h"
+
 enum {
 ENUM_PHY = 1,
 ENUM_WAN_STATUS,
@@ -31,7 +32,7 @@ ENUM_WAN_LINKSTATUS
 
 #define  ARRAY_SZ(x) (sizeof(x) / sizeof((x)[0]))
 #define  MAC_ADDR_SIZE 18
-static rbusHandle_t rbusHandle;
+rbusHandle_t rbusHandle;
 
 char componentName[32] = "WANMANAGER";
 
@@ -2045,4 +2046,3 @@ void *WanMgr_Configure_WCC_Thread(void *arg)
     pthread_exit(NULL);
     return NULL;
 }
-

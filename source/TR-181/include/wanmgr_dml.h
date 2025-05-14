@@ -188,6 +188,14 @@ typedef enum _DML_WAN_IP_PREFERRED_MODE
     DSLITE_MODE
 } DML_WAN_IP_PREFERRED_MODE;
 
+typedef enum _WANMGR_DHCPC_STATUS
+{
+    DHCPC_STATE_UNKNOWN = 1,
+    DHCPC_STARTED,
+    DHCPC_STOPPED,
+    DHCPC_FAILED,
+} WANMGR_DHCPC_STATUS;
+
 typedef enum _TIMER_STATUS
 {
     NOTSTARTED = 1,
@@ -349,6 +357,8 @@ typedef struct _WANMGR_IPV6_RA_DATA
 typedef struct _DML_WANIFACE_IP
 {
     CHAR                        Interface[BUFLEN_64];
+    CHAR                        DHCPv4Iface[BUFLEN_128];
+    CHAR                        DHCPv6Iface[BUFLEN_128];
     DML_WAN_IFACE_IPV4_STATUS   Ipv4Status;
     DML_WAN_IFACE_IPV6_STATUS   Ipv6Status;
     CONNECTIVITY_CHECK_TYPE     ConnectivityCheckType;
@@ -376,7 +386,9 @@ typedef struct _DML_WANIFACE_IP
     ipc_dhcpv4_data_t*          pIpcIpv4Data;
     ipc_dhcpv6_data_t*          pIpcIpv6Data;
     int                         Dhcp4cPid;
+    WANMGR_DHCPC_STATUS         Dhcp4cStatus; //Status of DHCPv4 client
     int                         Dhcp6cPid;
+    WANMGR_DHCPC_STATUS         Dhcp6cStatus; //Status of DHCPv6 client
 } DML_WANIFACE_IP;
 
 #ifdef FEATURE_MAPT
