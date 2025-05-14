@@ -50,5 +50,6 @@ void wanmgr_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
 #endif	    
             break;
         default:
+	    ;
     }
 }

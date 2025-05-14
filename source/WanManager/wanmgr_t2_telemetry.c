@@ -80,6 +80,7 @@ ANSC_STATUS wanmgr_process_T2_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
             wanmgr_telemetry_append_key_value(WANMGR_T2_SELECTION_STATUS_STRING,(pIntf->Selection.Status == WAN_IFACE_ACTIVE) ? "Active" : (pIntf->Selection.Status == WAN_IFACE_SELECTED) ? "Selected":"Standby");
             break;
         default:
+	    ;
     }
     strcat(buf,"\0");
     t2_event_s(WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID],buf);
