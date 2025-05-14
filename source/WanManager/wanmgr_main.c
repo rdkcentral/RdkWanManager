@@ -64,9 +64,7 @@
 #include "ccsp_dm_api.h"
 
 #include "webconfig_framework.h"
-#if defined (_HUB4_PRODUCT_REQ_)
-#include "wanmgr_rbus_handler_apis.h"
-#endif
+
 #define DEBUG_INI_NAME "/etc/debug.ini"
 
 #ifdef ENABLE_SD_NOTIFY
@@ -284,20 +282,12 @@ int main(int argc, char* argv[])
     char *subSys            = NULL;
     DmErr_t    err;
 
-    bool blocklist_ret = false;
-    blocklist_ret = isBlocklisted();
-    if(blocklist_ret)
-    {
-        CcspTraceInfo(("NonRoot feature is disabled\n"));
-    }
-    else
-    {
-        CcspTraceInfo(("NonRoot feature is enabled, dropping root privileges for RdkWanManager Process\n"));
-        init_capability();
-        drop_root_caps(&appcaps);
-        update_process_caps(&appcaps);
-        read_capability(&appcaps);
-    }
+    CcspTraceInfo(("NonRoot feature is enabled, dropping root privileges for RdkWanManager Process\n"));
+    init_capability();
+    drop_root_caps(&appcaps);
+    update_process_caps(&appcaps);
+    read_capability(&appcaps);
+    clear_caps(&appcaps); 
 
     for (idx = 1; idx < argc; idx++)
     {

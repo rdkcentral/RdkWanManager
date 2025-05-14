@@ -719,7 +719,7 @@ DmlWanDeletePSMRecordValue
 
 #ifdef FEATURE_802_1P_COS_MARKING
 
-#ifdef _HUB4_PRODUCT_REQ_
+#if defined(_HUB4_PRODUCT_REQ_) || defined(_RDKB_GLOBAL_PRODUCT_REQ_)
 static void AddSkbMarkingToConfFile(UINT data_skb_mark)
 {
    FILE * fp = fopen(DATA_SKB_MARKING_LOCATION, "w+");
@@ -798,6 +798,14 @@ ANSC_STATUS WanMgr_WanIfaceMarkingInit ()
         CcspTraceError(("%s %d - Invalid buffer\n", __FUNCTION__, __LINE__));
         return ANSC_STATUS_FAILURE;
     }
+
+#if defined(_RDKB_GLOBAL_PRODUCT_REQ_)
+    if( FALSE == gWanMgrDataBase.Config.data.InterfaceVLANMarkingSupport )
+    {
+        CcspTraceInfo(("%s %d - Interface VLAN Marking Not Supported\n", __FUNCTION__, __LINE__));
+        return ANSC_STATUS_SUCCESS;  
+    }
+#endif /** _RDKB_GLOBAL_PRODUCT_REQ_ */
 
     //Initialise Marking Params
     for( iLoopCount = 0; iLoopCount < pWanIfaceCtrl->ulTotalNumbWanInterfaces; iLoopCount++ )
@@ -954,7 +962,7 @@ ANSC_STATUS WanMgr_WanIfaceMarkingInit ()
                         CcspTraceInfo(("%s - Name[%s] Data[%s,%u,%u,%d]\n", __FUNCTION__, acTmpMarkingData, p_Marking->Alias, p_Marking->SKBPort, p_Marking->SKBMark, p_Marking->EthernetPriorityMark));
                             
                             Marking_UpdateInitValue(pWanIfaceCtrl->pIface,ulIfInstanceNumber-1,ulInstanceNumber,p_Marking);
-#ifdef _HUB4_PRODUCT_REQ_
+#if defined(_HUB4_PRODUCT_REQ_) || defined(_RDKB_GLOBAL_PRODUCT_REQ_)
                             /* Adding skb mark to config file if alis is 'DATA', so that udhcpc could use it to mark dhcp packets */
                             if(0 == strncmp(p_Marking->Alias, "DATA", 4))
                             {
@@ -1030,6 +1038,23 @@ DmlCheckAndProceedMarkingOperations
         CcspTraceError(("%s %d Invalid Buffer\n", __FUNCTION__,__LINE__));
         return ANSC_STATUS_FAILURE;
     }
+
+#if defined(_RDKB_GLOBAL_PRODUCT_REQ_)
+    WanMgr_Config_Data_t    *pWanConfigData = WanMgr_GetConfigData_locked();
+    unsigned char           InterfaceVLANMarkingSupport = FALSE;
+
+    if( NULL != pWanConfigData )
+    {
+        InterfaceVLANMarkingSupport = pWanConfigData->data.InterfaceVLANMarkingSupport;
+        WanMgrDml_GetConfigData_release(pWanConfigData);
+    }
+
+    if( FALSE == InterfaceVLANMarkingSupport )
+    {
+        CcspTraceError(("%s %d - Interface VLAN Marking Not Supported. So ignoring %d request\n", __FUNCTION__, __LINE__, enMarkingOp));
+        return ANSC_STATUS_FAILURE;  
+    }
+#endif /** _RDKB_GLOBAL_PRODUCT_REQ_ */
 
     //Find the Marking entry in PSM
     ulIfInstanceNumber = pMarking->ulWANIfInstanceNumber;
@@ -1562,6 +1587,41 @@ ANSC_STATUS WanMgr_WanConfInit (DML_WANMGR_CONFIG* pWanConfig)
 
     pWanConfig->RestorationDelay = wan_restoration_delay;
 
+    memset(param_name, 0, sizeof(param_name));
+    memset(param_value, 0, sizeof(param_value));
+    _ansc_sprintf(param_name, PSM_WANMANAGER_BACKUPWANDNS_SUPPORT);
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
+    if ((retPsmGet == CCSP_SUCCESS) && (param_value[0] != '\0') && (0 == strncmp(param_value, "FALSE", 5)))
+        pWanConfig->BackupWanDnsSupport = FALSE;
+
+    memset(param_name, 0, sizeof(param_name));
+    memset(param_value, 0, sizeof(param_value));
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IPV6EUI64FORMAT_SUPPPORT);
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
+    if ((retPsmGet == CCSP_SUCCESS) && (param_value[0] != '\0') && (0 == strncmp(param_value, "FALSE", 5)))
+        pWanConfig->IPv6EUI64FormatSupport = FALSE;
+
+    memset(param_name, 0, sizeof(param_name));
+    memset(param_value, 0, sizeof(param_value));
+    _ansc_sprintf(param_name, PSM_WANMANAGER_CONFIGUREWANIPV6ON_LANBRIDGE_SUPPPORT);
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
+    if ((retPsmGet == CCSP_SUCCESS) && (param_value[0] != '\0') && (0 == strncmp(param_value, "TRUE", 4)))
+        pWanConfig->ConfigureWANIPv6OnLANBridgeSupport = TRUE;
+
+    memset(param_name, 0, sizeof(param_name));
+    memset(param_value, 0, sizeof(param_value));
+    _ansc_sprintf(param_name, PSM_WANMANAGER_USEWANMAC_FOR_MGMT_SERVICES);
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
+    if ((retPsmGet == CCSP_SUCCESS) && (param_value[0] != '\0') && (0 == strncmp(param_value, "TRUE", 4)))
+        pWanConfig->UseWANMACForManagementServices = TRUE;
+
+    memset(param_name, 0, sizeof(param_name));
+    memset(param_value, 0, sizeof(param_value));
+    _ansc_sprintf(param_name, PSM_WANMANAGER_INTERFACE_VLAN_MARKING_SUPPORT);
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
+    if ((retPsmGet == CCSP_SUCCESS) && (param_value[0] != '\0') && (0 == strncmp(param_value, "TRUE", 4)))
+        pWanConfig->InterfaceVLANMarkingSupport = TRUE;
+
     return ret_val;
 }
 
@@ -1832,29 +1892,30 @@ ANSC_STATUS Update_Interface_Status()
                 }else
                     snprintf(newIface->ActiveStatus, sizeof(newIface->ActiveStatus), "%s,0", pWanIfaceData->DisplayName);
 
-                if(devMode  == GATEWAY_MODE)
+                /*
+                 * In Gateway Mode, CurrentActiveInterface should be an actual virtual Interface Name
+                 * In Modem/Extender Mode, CurrentActiveInterface should be always Mesh Interface Name
+                 */
+
+                if(pWanIfaceData->Selection.Status == WAN_IFACE_ACTIVE)
                 {
-                    if(pWanIfaceData->Selection.Status == WAN_IFACE_ACTIVE)
-                    {
-                        snprintf(newIface->CurrentActive, sizeof(newIface->CurrentActive), "%s", p_VirtIf->Name);
+                    snprintf(newIface->CurrentActive, sizeof(newIface->CurrentActive), "%s", (devMode == GATEWAY_MODE) ? p_VirtIf->Name : MESH_IFNAME);
 #ifdef RBUS_BUILD_FLAG_ENABLE
-                        snprintf(CurrentWanStatus,sizeof(CurrentWanStatus), "%s", (p_VirtIf->Status == WAN_IFACE_STATUS_UP)?"Up":"Down");
+                    snprintf(CurrentWanStatus,sizeof(CurrentWanStatus), "%s", (p_VirtIf->Status == WAN_IFACE_STATUS_UP)?"Up":"Down");
 #endif
 #if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
+                    if (devMode == GATEWAY_MODE)
+                    {
                         /* Update Only for Gateway mode. Wan IP Interface entry not added in PAM for MODEM_MODE */
                         WanMgr_RdkBus_setWanIpInterfaceData(p_VirtIf);
+                    }
 #endif
-                    }
-                    else if(pWanIfaceData->Selection.Status == WAN_IFACE_SELECTED)
-                    {
-                        snprintf(newIface->CurrentStandby, sizeof(newIface->CurrentStandby), "%s", p_VirtIf->Name);
-                    }
                 }
-                else // MODEM_MODE
+                else if(pWanIfaceData->Selection.Status == WAN_IFACE_SELECTED)
                 {
-                    /*In Modem/Extender Mode, CurrentActiveInterface should be always Mesh Interface Name*/
-                    strncpy(newIface->CurrentActive, MESH_IFNAME, sizeof(MESH_IFNAME));
+                    snprintf(newIface->CurrentStandby, sizeof(newIface->CurrentStandby), "%s", p_VirtIf->Name);
                 }
+
                 /* Sort the link list based on priority */
                 SortedInsert(&head, newIface);
             }
@@ -1928,6 +1989,10 @@ ANSC_STATUS Update_Interface_Status()
                 strncpy(pWanDmlData->CurrentActiveDNS,CurrentActiveDNS, sizeof(pWanDmlData->CurrentActiveDNS) - 1);
 #ifdef RBUS_BUILD_FLAG_ENABLE
                 publishCurrentActiveDNS = TRUE;
+#endif
+                CcspTraceInfo(("%s %d - SYS_INFO_DNS_updated - old : [%s] new : [%s]\n",__FUNCTION__,__LINE__,prevCurrentActiveDNS,CurrentActiveDNS));
+#ifdef ENABLE_FEATURE_TELEMETRY2_0
+                t2_event_d("SYS_INFO_DNS_updated", 1);
 #endif
             }
         }

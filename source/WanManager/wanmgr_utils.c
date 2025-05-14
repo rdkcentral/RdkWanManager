@@ -704,7 +704,7 @@ void WanManager_DoSystemAction(const char *from, char *cmd)
  * @param pid PID of the process to be checked
  * @return TRUE upon success else FALSE returned
  ***************************************************************************/
-BOOL WanMgr_IsPIDRunning(UINT pid)
+BOOL WanMgr_IsPIDRunning(int pid)
 {
     /* If sig is 0 (the null signal), error checking is performed but no signal is actually sent. 
        The null signal can be used to check the validity of pid. */
@@ -874,46 +874,6 @@ ANSC_STATUS WanManager_StopIpoeHealthCheckService(UINT IhcPid)
     util_signalProcess(IhcPid, SIGTERM);
     CollectApp(IhcPid);
     return ANSC_STATUS_SUCCESS;
-}
-
-static ANSC_STATUS readIAPDPrefixFromFile(char *prefix, int buflen, int *plen, int *pltime, int *vltime)
-{
-    FILE *fp = NULL;
-    char *conffile = DHCP6C_RENEW_PREFIX_FILE;
-    ANSC_STATUS ret = ANSC_STATUS_SUCCESS;
-    char prefixAddr[128];
-    int prefixLen = 0;
-    int prefLifeTime = 0;
-    int validLifeTime = 0;
-
-    if ((fp = fopen(conffile,"r")) == NULL)
-    {
-        CcspTraceError(("Unable to open renew prefix file \n"));
-        ret = ANSC_STATUS_FAILURE;
-    }
-    else
-    {
-        /* Read the IA_PD information in the variable */
-        (void)fscanf(fp, "%127s %d %d %d",prefixAddr, &prefixLen, &prefLifeTime, &validLifeTime);
-        CcspTraceInfo(("prefixAddr:%s buflen:%d prefixLen:%d prefLifeTime:%d validLifeTime:%d",
-            prefixAddr, buflen, prefixLen, prefLifeTime, validLifeTime));
-        /* Copy the IA_PD prefix and delete the prefix file */
-        if((prefix != NULL) && (strlen(prefixAddr) <= buflen))
-        {
-            strncpy(prefix, prefixAddr, strlen(prefixAddr));
-            *plen = prefixLen;
-            *pltime = prefLifeTime;
-            *vltime = validLifeTime;
-        }
-        else
-        {
-            ret = ANSC_STATUS_FAILURE;
-        }
-        fclose(fp);
-        unlink(conffile);
-    }
-
-    return ret;
 }
 #endif
 
@@ -1115,12 +1075,12 @@ int sysctl_iface_set(const char *path, const char *ifname, const char *content)
         filename = path;
 
     if ((fd = open(filename, O_WRONLY)) < 0) {
-        perror("Failed to open file");
+        CcspTraceError(("%s %d: Failed to open file %s, errno: %d (%s)\n", __FUNCTION__, __LINE__, filename, errno, strerror(errno)));
         return -1;
     }
-
     len = strlen(content);
     if (write(fd, content, len) != (ssize_t) len) {
+        CcspTraceError(("%s %d: Failed to open file %s, errno: %d (%s)\n", __FUNCTION__, __LINE__, filename, errno, strerror(errno)));
         perror("Failed to write to file");
         close(fd);
         return -1;

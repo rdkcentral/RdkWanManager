@@ -3304,7 +3304,7 @@ dhcp6c_mapt_mape_GetParamBoolValue
     /* check the parameter name and return the corresponding value */
     if (strcmp(ParamName, "MapIsFMR") == 0)
     {
-#if defined(_HUB4_PRODUCT_REQ_) || defined(FEATURE_SUPPORT_MAPT_NAT46)
+#ifdef FEATURE_MAPT
         char temp[32] = {0};
         sysevent_get(sysevent_fd, sysevent_token,SYSEVENT_MAP_IS_FMR, temp, sizeof(temp));
         if (strcmp(temp, "TRUE") == 0)
@@ -3360,13 +3360,13 @@ dhcp6c_mapt_mape_GetParamUlongValue
     )
 {
     UNREFERENCED_PARAMETER(hInsContext);
-#if defined(_HUB4_PRODUCT_REQ_) || defined(FEATURE_SUPPORT_MAPT_NAT46)
+#ifdef FEATURE_MAPT
     char temp[64] = {0};
 #endif
     /* check the parameter name and return the corresponding value */
     if (strcmp(ParamName, "MapEALen") == 0)
     {
-#if defined(_HUB4_PRODUCT_REQ_) || defined(FEATURE_SUPPORT_MAPT_NAT46)
+#ifdef FEATURE_MAPT
         sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_MAP_EA_LEN, temp, sizeof(temp));
         *puLong  = strtoul(temp, NULL, 10);
 #else
@@ -3377,7 +3377,7 @@ dhcp6c_mapt_mape_GetParamUlongValue
 
     if (strcmp(ParamName, "MapPSIDOffset") == 0)
     {
-#if defined(_HUB4_PRODUCT_REQ_) || defined(FEATURE_SUPPORT_MAPT_NAT46)
+#ifdef FEATURE_MAPT
         sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_MAPT_PSID_OFFSET, temp, sizeof(temp));
         *puLong  = strtoul(temp, NULL, 10);
 #else
@@ -3388,7 +3388,7 @@ dhcp6c_mapt_mape_GetParamUlongValue
 
     if (strcmp(ParamName, "MapPSIDLen") == 0)
     {
-#if defined(_HUB4_PRODUCT_REQ_) || defined(FEATURE_SUPPORT_MAPT_NAT46)
+#ifdef FEATURE_MAPT
         sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_MAPT_PSID_LENGTH, temp, sizeof(temp));
         *puLong  = strtoul(temp, NULL, 10);
 #else
@@ -3399,7 +3399,7 @@ dhcp6c_mapt_mape_GetParamUlongValue
 
     if (strcmp(ParamName, "MapPSID") == 0)
     {
-#if defined(_HUB4_PRODUCT_REQ_) || defined(FEATURE_SUPPORT_MAPT_NAT46)
+#ifdef FEATURE_MAPT
         sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_MAPT_PSID_VALUE, temp, sizeof(temp));
         *puLong  = strtoul(temp, NULL, 10);
 #else
@@ -3471,24 +3471,25 @@ dhcp6c_mapt_mape_GetParamStringValue
     )
 {
     UNREFERENCED_PARAMETER(hInsContext);
-#if defined(_HUB4_PRODUCT_REQ_) || defined(FEATURE_SUPPORT_MAPT_NAT46)
+#ifdef FEATURE_MAPT
     char temp[64] = {0};
 #endif
     UNREFERENCED_PARAMETER(pUlSize);
     /* check the parameter name and return the corresponding value */
     if (strcmp(ParamName, "MapTransportMode") == 0)
     {
-#if defined(_HUB4_PRODUCT_REQ_) || defined(FEATURE_SUPPORT_MAPT_NAT46)
+#ifdef FEATURE_MAPT
         sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_MAP_TRANSPORT_MODE, temp, sizeof(temp));
         if ( AnscSizeOfString(temp) < *pUlSize)
         {
-            AnscCopyString(pValue, temp);
-#if defined (FEATURE_SUPPORT_MAPT_NAT46)
             if ( !(*temp) )
             {
-                 AnscCopyString(pValue, "NONE");
+               AnscCopyString(pValue, "NONE");
             }
-#endif
+	    else
+	    {
+	       AnscCopyString(pValue, temp);
+	    }
             return 0;
         }
         else
@@ -3504,7 +3505,7 @@ dhcp6c_mapt_mape_GetParamStringValue
 
     if (strcmp(ParamName, "MapBRPrefix") == 0)
     {
-#if defined(_HUB4_PRODUCT_REQ_) || defined(FEATURE_SUPPORT_MAPT_NAT46)
+#ifdef FEATURE_MAPT
         sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_MAP_BR_IPV6_PREFIX, temp, sizeof(temp));
         if ( AnscSizeOfString(temp) < *pUlSize)
         {
@@ -3524,7 +3525,7 @@ dhcp6c_mapt_mape_GetParamStringValue
 
     if (strcmp(ParamName, "MapRuleIPv4Prefix") == 0)
     {
-#if defined(_HUB4_PRODUCT_REQ_) || defined(FEATURE_SUPPORT_MAPT_NAT46)
+#ifdef FEATURE_MAPT
          sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_MAP_RULE_IPADDRESS, temp, sizeof(temp));
         if ( AnscSizeOfString(temp) < *pUlSize)
         {
@@ -3544,7 +3545,7 @@ dhcp6c_mapt_mape_GetParamStringValue
 
     if (strcmp(ParamName, "MapRuleIPv6Prefix") == 0)
     {
-#if defined(_HUB4_PRODUCT_REQ_) || defined(FEATURE_SUPPORT_MAPT_NAT46)
+#ifdef FEATURE_MAPT
         sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_MAP_RULE_IPV6_ADDRESS, temp, sizeof(temp));
         if ( AnscSizeOfString(temp) < *pUlSize)
         {
@@ -3564,7 +3565,7 @@ dhcp6c_mapt_mape_GetParamStringValue
 
     if (strcmp(ParamName, "MapIpv4Address") == 0)
     {
-#if defined(_HUB4_PRODUCT_REQ_) || defined(FEATURE_SUPPORT_MAPT_NAT46)
+#ifdef FEATURE_MAPT
         sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_MAPT_IPADDRESS, temp, sizeof(temp));
         if ( AnscSizeOfString(temp) < *pUlSize)
         {

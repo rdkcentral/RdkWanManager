@@ -29,6 +29,12 @@
 #define PSM_WANMANAGER_FAILOVER_TYPE                        "dmsb.wanmanager.FailOverType"
 #define PSM_WANMANAGER_RESTORATION_DELAY                    "dmsb.wanmanager.RestorationDelay"
 #define PSM_WANMANAGER_ALLOW_REMOTE_IFACE                   "dmsb.wanmanager.allowremoteinterfaces"
+#define PSM_WANMANAGER_BACKUPWANDNS_SUPPORT                 "dmsb.wanmanager.BackupWanDnsSupport"
+#define PSM_WANMANAGER_IPV6EUI64FORMAT_SUPPPORT             "dmsb.wanmanager.IPv6EUI64FormatSupport"
+#define PSM_WANMANAGER_CONFIGUREWANIPV6ON_LANBRIDGE_SUPPPORT  "dmsb.wanmanager.ConfigureWANIPv6OnLANBridgeSupport"
+#define PSM_WANMANAGER_USEWANMAC_FOR_MGMT_SERVICES            "dmsb.wanmanager.UseWANMACForManagementServices"
+#define PSM_WANMANAGER_INTERFACE_VLAN_MARKING_SUPPORT       "dmsb.wanmanager.InterfaceVLANMarkingSupport"
+
 #define PSM_WANMANAGER_GROUP_COUNT                          "dmsb.wanmanager.group.Count"
 #define PSM_WANMANAGER_GROUP_PERSIST_SELECTED_IFACE         "dmsb.wanmanager.group.%d.PersistSelectedInterface"
 #define PSM_WANMANAGER_IF_NAME                              "dmsb.wanmanager.if.%d.Name"

@@ -40,7 +40,6 @@
 #endif
 
 #define IF_SIZE      32
-#define DEFAULT_IFNAME    "erouter0"
 #define LOOP_TIMEOUT 50000 // timeout in microseconds. This is the state machine loop interval
 #define RESOLV_CONF_FILE "/etc/resolv.conf"
 #define LOOPBACK "127.0.0.1"
@@ -447,7 +446,7 @@ static void WanMgr_MonitorDhcpApps (WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
         {
             CcspTraceInfo(("%s %d: IP Mode change processed. Resetting flag. \n", __FUNCTION__, __LINE__));
             p_VirtIf->IP.RefreshDHCP = FALSE;
-	}	
+	    }	
         return;
     }
 
@@ -455,9 +454,10 @@ static void WanMgr_MonitorDhcpApps (WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
     if ((p_VirtIf->IP.Mode == DML_WAN_IP_MODE_IPV4_ONLY || p_VirtIf->IP.Mode == DML_WAN_IP_MODE_DUAL_STACK) &&  // IP.Mode supports V4
         p_VirtIf->IP.IPv4Source == DML_WAN_IP_SOURCE_DHCP && (p_VirtIf->PPP.Enable == FALSE) &&                 // uses DHCP client
         p_VirtIf->MAP.MaptStatus == WAN_IFACE_MAPT_STATE_DOWN &&                                                // MAPT status is DOWN
-        p_VirtIf->IP.SelectedModeTimerStatus != RUNNING  &&
-        p_VirtIf->IP.Dhcp4cPid > 0 &&                                                                           // dhcp started by ISM
-        (WanMgr_IsPIDRunning(p_VirtIf->IP.Dhcp4cPid) != TRUE))                                                  // but DHCP client not running
+        p_VirtIf->IP.SelectedModeTimerStatus != RUNNING  &&                                                     // Prefered mode timer Running. Wait for it to expire.
+        (p_VirtIf->IP.Dhcp4cPid == -1 ||                                                                        // DHCP cleint failed to start OR
+        (p_VirtIf->IP.Dhcp4cPid > 0 &&                                                                          // dhcp started by ISM
+        WanMgr_IsPIDRunning(p_VirtIf->IP.Dhcp4cPid) != TRUE)))                                                  // but DHCP client not running
     {
         p_VirtIf->IP.Dhcp4cPid = WanManager_StartDhcpv4Client(p_VirtIf, pInterface->Name, pInterface->IfaceType);
         CcspTraceInfo(("%s %d - SELFHEAL - Started dhcpc on interface %s, dhcpv4_pid %d \n", __FUNCTION__, __LINE__, p_VirtIf->Name, p_VirtIf->IP.Dhcp4cPid));
@@ -469,9 +469,18 @@ static void WanMgr_MonitorDhcpApps (WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
     //Check if IPv6 dhcp client is still running - handling runtime crash of dhcp client
     if ((p_VirtIf->IP.Mode == DML_WAN_IP_MODE_IPV6_ONLY || p_VirtIf->IP.Mode == DML_WAN_IP_MODE_DUAL_STACK) &&  // IP.Mode supports V6
         p_VirtIf->IP.IPv6Source == DML_WAN_IP_SOURCE_DHCP &&                                                    // uses DHCP client
-        p_VirtIf->IP.Dhcp6cPid > 0 &&                                                                           // dhcp started by ISM
-        (WanMgr_IsPIDRunning(p_VirtIf->IP.Dhcp6cPid) != TRUE))                                                  // but DHCP client not running
+        (p_VirtIf->IP.Dhcp6cPid == -1 ||                                                                           // DHCP cleint failed to start
+        (p_VirtIf->IP.Dhcp6cPid > 0 &&                                                                          // dhcp started by ISM
+        WanMgr_IsPIDRunning(p_VirtIf->IP.Dhcp6cPid) != TRUE)))                                                   // but DHCP client not running
     {
+        if (p_VirtIf->IP.Dhcp6cPid == -1 )
+        {
+            /* DHCPv6c client can fail to start due to DAD failuer on the link local address. 
+             * This could happen if multiple WAN interfaces are up with same MAC address. Toggling will restart the DAD again.
+             */
+            CcspTraceInfo(("%s %d - DHCPv6c client failed to start on interface %s. Toggeling Ipv6 before retry... \n", __FUNCTION__, __LINE__, p_VirtIf->Name));
+            Force_IPv6_toggle(p_VirtIf->Name); 
+        }
         p_VirtIf->IP.Dhcp6cPid = WanManager_StartDhcpv6Client(p_VirtIf, pInterface->IfaceType);
         CcspTraceInfo(("%s %d - SELFHEAL - Started dhcp6c on interface %s, dhcpv6_pid %d \n", __FUNCTION__, __LINE__, p_VirtIf->Name, p_VirtIf->IP.Dhcp6cPid));
 #ifdef ENABLE_FEATURE_TELEMETRY2_0
@@ -934,6 +943,16 @@ int wan_updateDNS(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl, BOOL addIPv4, BOOL
 
     if(resolv_conf_changed)
     {
+#if (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_))
+        //TODO: this is a workaround for the devices using the primary DNS for the backup interfaces. CurrentActiveDNS may not have the right value. 
+        WanMgr_Config_Data_t*   pWanConfigData = WanMgr_GetConfigData_locked();
+        if (pWanConfigData != NULL)
+        {
+            DML_WANMGR_CONFIG* pWanDmlData = &(pWanConfigData->data);
+            memset(pWanDmlData->CurrentActiveDNS, 0, sizeof(pWanDmlData->CurrentActiveDNS));
+            WanMgrDml_GetConfigData_release(pWanConfigData);
+        }
+#endif
         Update_Interface_Status();
     }
 
@@ -955,19 +974,25 @@ static int checkIpv6LanAddressIsReadyToUse(DML_VIRTUAL_IFACE* p_VirtIf)
     int dad_flag       = 0;
     int route_flag     = 0;
     int i;
-    char Output[BUFLEN_16] = {0};
     char IfaceName[BUFLEN_16] = {0};
     int BridgeMode = 0;
 
-
+    { //TODO : temporary debug code to identify the bridgemode sysevent failure issue.
+        char Output[BUFLEN_16] = {0};
+        if (sysevent_get(sysevent_fd, sysevent_token, "bridge_mode", Output, sizeof(Output)) !=0)
+        {
+            CcspTraceError(("%s-%d: bridge_mode sysevent get failed. \n", __FUNCTION__, __LINE__));
+        }
+        BridgeMode = atoi(Output);
+        CcspTraceInfo(("%s-%d: <<DEBUG>> bridge_mode sysevent value set to =%d \n", __FUNCTION__, __LINE__,  BridgeMode));
+    }
      /*TODO:
      *Below Code should be removed once V6 Prefix/IP is assigned on erouter0 Instead of brlan0 for sky Devices.
      */
     strncpy(IfaceName, ETH_BRIDGE_NAME, sizeof(IfaceName)-1);
-    sysevent_get(sysevent_fd, sysevent_token, "bridge_mode", Output, sizeof(Output));
-    BridgeMode = atoi(Output);
-    if (BridgeMode != 0)
+    if (WanMgr_isBridgeModeEnabled() == TRUE)
     {
+        CcspTraceInfo(("%s-%d: Device is in bridge mode. Assigning IPv6 address on WAN interface.\n", __FUNCTION__, __LINE__));
         memset(IfaceName, 0, sizeof(IfaceName));
         strncpy(IfaceName, p_VirtIf->Name, sizeof(IfaceName)-1);
     }
@@ -1019,15 +1044,16 @@ static int checkIpv6LanAddressIsReadyToUse(DML_VIRTUAL_IFACE* p_VirtIf)
         }
     }
 
+    //if DAD failed on LAN bridge, log an ERROR message and continue with the WAN process.
+    if(dad_flag == 0 || route_flag == 0) 
+    {
+        CcspTraceError(("%s %d dad_flag[%d] route_flag[%d] Failed \n", __FUNCTION__, __LINE__,dad_flag,route_flag));
+    }
+
     if(route_flag == 0)
     {
         //If the default route is not present, Send a router solicit.
         WanManager_send_and_receive_rs(p_VirtIf);
-    }
-
-    if(dad_flag == 0 || route_flag == 0) 
-    {
-        CcspTraceError(("%s %d dad_flag[%d] route_flag[%d] Failed \n", __FUNCTION__, __LINE__,dad_flag,route_flag));
         return -1;
     }
 
@@ -1066,7 +1092,7 @@ static void updateInterfaceToVoiceManager(WanMgr_IfaceSM_Controller_t* pWanIface
         // Update the Interface name after auto wan sesning is complete.
         // When interface is down (due to cable removal etc) set Interface name to empty string
         if (voip_started)
-            strncpy(voipIfName, DEFAULT_IFNAME, sizeof(voipIfName));
+            strncpy(voipIfName, p_VirtIf->Name, sizeof(voipIfName));
 
         /* If there is a VOIP interface present, then do not update DATA vlan name to TelecoVoiceManager. */
         for(int virIf_id=0; virIf_id< pWanIfaceData->NoOfVirtIfs; virIf_id++)
@@ -1255,19 +1281,35 @@ static int wan_tearDownIPv4(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
     DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIfaceById(pInterface->VirtIfList, pWanIfaceCtrl->VirIfIdx);
 
     /** Reset IPv4 DNS configuration. */
-#if (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_)) 
+#if (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_) || defined (_RDKB_GLOBAL_PRODUCT_REQ_))
+#if defined (_RDKB_GLOBAL_PRODUCT_REQ_)
+    WanMgr_Config_Data_t    *pWanConfigData = WanMgr_GetConfigData_locked();
+    unsigned char           BackupWanDnsSupport = TRUE;
+
+    if( NULL != pWanConfigData )
+    {
+        BackupWanDnsSupport = pWanConfigData->data.BackupWanDnsSupport;
+        WanMgrDml_GetConfigData_release(pWanConfigData);
+    }
+
+    if ( ( FALSE == BackupWanDnsSupport ) && 
+         (p_VirtIf->MAP.MaptStatus == WAN_IFACE_MAPT_STATE_UP && strstr(pInterface->BaseInterface, "Ethernet") == NULL) )
+#else
     //TODO:  XB devices use the DNS of primary for backup interfaces. Clear V4 DNS only if MAPT is up
     /* FIXME: Issue in DNS ipv6 resolution when ethwan enabled *//* Workaround: We keep the ipv4 entries for name resolution */
     if(p_VirtIf->MAP.MaptStatus == WAN_IFACE_MAPT_STATE_UP && strstr(pInterface->BaseInterface, "Ethernet") == NULL)
+#endif /** _RDKB_GLOBAL_PRODUCT_REQ_ */ 
 #endif
-    if (RETURN_OK != wan_updateDNS(pWanIfaceCtrl, FALSE, (p_VirtIf->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_UP)))
     {
-        CcspTraceError(("%s %d - Failed to unconfig IPv4 DNS servers \n", __FUNCTION__, __LINE__));
-        ret = RETURN_ERR;
-    }
-    else
-    {
-        CcspTraceInfo(("%s %d -  IPv4 DNS servers unconfig successfully \n", __FUNCTION__, __LINE__));
+        if (RETURN_OK != wan_updateDNS(pWanIfaceCtrl, FALSE, (p_VirtIf->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_UP)))
+        {
+            CcspTraceError(("%s %d - Failed to unconfig IPv4 DNS servers \n", __FUNCTION__, __LINE__));
+            ret = RETURN_ERR;
+        }
+        else
+        {
+            CcspTraceInfo(("%s %d -  IPv4 DNS servers unconfig successfully \n", __FUNCTION__, __LINE__));
+        }   
     }
 
     if (WanManager_DelDefaultGatewayRoute(DeviceNwMode, pWanIfaceCtrl->DeviceNwModeChanged, &p_VirtIf->IP.Ipv4Data) != RETURN_OK)
@@ -1372,13 +1414,27 @@ static int wan_setUpIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
         }
         wanmgr_services_restart();
 
-#if !defined (_XB6_PRODUCT_REQ_) && !defined (_CBR2_PRODUCT_REQ_) && !defined(_PLATFORM_RASPBERRYPI_) //parodus uses cmac for xb platforms
+#if (!defined (_XB6_PRODUCT_REQ_) && !defined (_CBR2_PRODUCT_REQ_) && !defined(_PLATFORM_RASPBERRYPI_)) || defined (_RDKB_GLOBAL_PRODUCT_REQ_) //parodus uses cmac for xb platforms
+#if defined(_RDKB_GLOBAL_PRODUCT_REQ_)
+    WanMgr_Config_Data_t    *pWanConfigData = WanMgr_GetConfigData_locked();
+    unsigned char           UseWANMACForManagementServices = FALSE;
+
+    if( NULL != pWanConfigData )
+    {
+        UseWANMACForManagementServices = pWanConfigData->data.UseWANMACForManagementServices;
+        WanMgrDml_GetConfigData_release(pWanConfigData);
+    }
+
+    if ( TRUE == UseWANMACForManagementServices )
+#endif /** _RDKB_GLOBAL_PRODUCT_REQ_ */
+    {
         // set wan mac because parodus depends on it to start.
         if(ANSC_STATUS_SUCCESS == WanManager_get_interface_mac(p_VirtIf->IP.Ipv6Data.ifname, ifaceMacAddress, sizeof(ifaceMacAddress)))
         {
             CcspTraceInfo(("%s %d - setting sysevent eth_wan_mac = [%s]  \n", __FUNCTION__, __LINE__, ifaceMacAddress));
             sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_ETH_WAN_MAC, ifaceMacAddress, 0);
         }
+    }
 #endif
     }
   
@@ -1397,23 +1453,40 @@ static int wan_tearDownIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
 
     int ret = RETURN_OK;
     char buf[BUFLEN_32] = {0};
+#if defined (_RDKB_GLOBAL_PRODUCT_REQ_)
+    WanMgr_Config_Data_t    *pWanConfigData = NULL;
+#endif /** _RDKB_GLOBAL_PRODUCT_REQ_ */
 
     DML_WAN_IFACE * pInterface = pWanIfaceCtrl->pIfaceData;
     DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIfaceById(pInterface->VirtIfList, pWanIfaceCtrl->VirIfIdx);
 
     //TODO: FIXME: XB devices use the DNS of primary for backup and doesn't deconfigure the primary ipv6 prefix from the LAN interface. 
-#if !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_)) 
-    /** Reset IPv6 DNS configuration. */
-    if (RETURN_OK == wan_updateDNS(pWanIfaceCtrl, (p_VirtIf->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_UP), FALSE))
+#if (!(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_))) || defined (_RDKB_GLOBAL_PRODUCT_REQ_)
+#if defined (_RDKB_GLOBAL_PRODUCT_REQ_)
+    unsigned char BackupWanDnsSupport = TRUE;
+
+    pWanConfigData = WanMgr_GetConfigData_locked();
+    if( NULL != pWanConfigData )
     {
-        CcspTraceInfo(("%s %d -  IPv6 DNS servers unconfig successfully \n", __FUNCTION__, __LINE__));
-    }
-    else
-    {
-        CcspTraceError(("%s %d - Failed to unconfig IPv6 DNS servers \n", __FUNCTION__, __LINE__));
-        ret = RETURN_ERR;
+        BackupWanDnsSupport = pWanConfigData->data.BackupWanDnsSupport;
+        WanMgrDml_GetConfigData_release(pWanConfigData);
+        pWanConfigData = NULL;
     }
 
+    if ( FALSE == BackupWanDnsSupport ) 
+#endif /** _RDKB_GLOBAL_PRODUCT_REQ_ */
+    {
+        /** Reset IPv6 DNS configuration. */
+        if (RETURN_OK == wan_updateDNS(pWanIfaceCtrl, (p_VirtIf->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_UP), FALSE))
+        {
+            CcspTraceInfo(("%s %d -  IPv6 DNS servers unconfig successfully \n", __FUNCTION__, __LINE__));
+        }
+        else
+        {
+            CcspTraceError(("%s %d - Failed to unconfig IPv6 DNS servers \n", __FUNCTION__, __LINE__));
+            ret = RETURN_ERR;
+        }
+    }
 #endif
     /** Unconfig IPv6. */
     if ( WanManager_Ipv6AddrUtil(p_VirtIf->Name, DEL_ADDR,0,0) < 0)
@@ -1443,7 +1516,26 @@ static int wan_tearDownIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
 
 //RBUS_WAN_IP
 #if defined (RBUS_WAN_IP)
-#if defined (_HUB4_PRODUCT_REQ_) || defined (_SR213_PRODUCT_REQ_)
+#if defined(_RDKB_GLOBAL_PRODUCT_REQ_)
+    unsigned char ConfigureWANIPv6OnLANBridgeSupport = FALSE;
+
+    pWanConfigData = WanMgr_GetConfigData_locked();
+    if( NULL != pWanConfigData )
+    {
+        ConfigureWANIPv6OnLANBridgeSupport = pWanConfigData->data.ConfigureWANIPv6OnLANBridgeSupport;
+        WanMgrDml_GetConfigData_release(pWanConfigData);
+        pWanConfigData = NULL;
+    }
+
+    if ( TRUE == ConfigureWANIPv6OnLANBridgeSupport )
+    {   
+        sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_LAN_IPV6_ADDRESS, "::", 0);
+    }
+    else
+    {
+        sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV6_WAN_ADDRESS, "::", 0);
+    }
+#elif defined (_HUB4_PRODUCT_REQ_) || defined (_SR213_PRODUCT_REQ_)
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_LAN_IPV6_ADDRESS, "::", 0);
 #else
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV6_WAN_ADDRESS, "::", 0);
@@ -2703,6 +2795,7 @@ static eWanState_t wan_transition_mapt_up(WanMgr_IfaceSM_Controller_t* pWanIface
     }
 
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, NULL, 0);
+    wanmgr_services_restart();
 
     CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION WAN_STATE_MAPT_ACTIVE\n", __FUNCTION__, __LINE__, pInterface->Name));
     return WAN_STATE_MAPT_ACTIVE;
@@ -2877,6 +2970,7 @@ static eWanState_t wan_transition_standby_deconfig_ips(WanMgr_IfaceSM_Controller
         {
             CcspTraceError(("%s %d - Failed to tear down IPv6 for %s Interface \n", __FUNCTION__, __LINE__, p_VirtIf->Name));
         }
+        p_VirtIf->IP.Ipv6Changed = TRUE; //We have deconfigured Ipv6 from the device. set this flag to configure again when moves back to active.
     }
 
     WanMgr_Configure_accept_ra(p_VirtIf, FALSE);

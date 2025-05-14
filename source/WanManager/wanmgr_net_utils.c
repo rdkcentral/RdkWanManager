@@ -138,25 +138,6 @@ static BOOL IsZeroIpvxAddress(uint32_t ipvx, const char *addr);
  ****************************************************************************/
 static int ParsePrefixAddress(const char *prefixAddr, char *address, uint32_t *plen);
 
-
-/***************************************************************************
- * @brief API used to enable/disable dibbler client
- * @param enable boolean contains enable flag
- * @return ANSC_STATUS_SUCCESS if the operation is successful
- * @return ANSC_STATUS_FAILURE if the operation is failure
- ****************************************************************************/
-static ANSC_STATUS setDibblerClientEnable(BOOL * enable);
-
-#ifdef _HUB4_PRODUCT_REQ_
-/***************************************************************************
- * @brief API used to get ADSL username and password
- * @param Username: ADSL username
- * @param Password: ADSL Password
- * @return TRUE if ADSL Username and Password is read from file else returned false.
- ****************************************************************************/
-#define SERIALIZATION_DATA "/tmp/serial.txt"
-static ANSC_STATUS GetAdslUsernameAndPassword(char *Username, char *Password);
-#endif
 static int WanManager_CalculatePsidAndV4Index(char *pdIPv6Prefix, int v6PrefixLen, int iapdPrefixLen, int v4PrefixLen, int *psidValue, int *ipv4IndexValue, int *psidLen);
 
 #if defined(FEATURE_464XLAT)
@@ -342,123 +323,13 @@ int isModuleLoaded(char *moduleName)
  * @brief Thread that sets enable/disable data model of dhcpv6 client
  * @param arg: enable/disable flag to start and stop dhcp6c client
  ****************************************************************************/
-static void* Dhcpv6HandlingThread( void *arg );
-static int get_index_from_path(const char *path);
-static void* DmlHandlePPPCreateRequestThread( void *arg );
-static void createDummyWanBridge(char * iface_name);
 static INT IsIPObtained(char *pInterfaceName);
-
-static ANSC_STATUS SetDataModelParamValues( char *pComponent, char *pBus, char *pParamName, char *pParamVal, enum dataType_e type, BOOLEAN bCommit )
-{
-    CCSP_MESSAGE_BUS_INFO *bus_info              = (CCSP_MESSAGE_BUS_INFO *)bus_handle;
-    parameterValStruct_t   param_val[1]          = { 0 };
-    char                  *faultParam            = NULL;
-    int                    ret                   = 0;
-
-    //Copy Name
-    param_val[0].parameterName  = pParamName;
-    //Copy Value
-    param_val[0].parameterValue = pParamVal;
-
-    //Copy Type
-    param_val[0].type           = type;
-        ret = CcspBaseIf_setParameterValues(
-                                        bus_handle,
-                                        pComponent,
-                                        pBus,
-                                        0,
-                                        0,
-                                        param_val,
-                                        1,
-                                        bCommit,
-                                        &faultParam
-                                       );
-
-    if( ( ret != CCSP_SUCCESS ) && ( faultParam != NULL ) )
-    {
-        CcspTraceError(("%s-%d Failed to set %s\n",__FUNCTION__,__LINE__,pParamName));
-        bus_info->freefunc( faultParam );
-        return ANSC_STATUS_FAILURE;
-    }
-
-    return ANSC_STATUS_SUCCESS;
-}
-
-
-static ANSC_STATUS setDibblerClientEnable(BOOL *enable)
-{
-    INT              index               = 0;
-    pthread_t        dibblerThreadId;
-    INT              iErrorCode          = -1;
-
-    if (NULL == enable)
-    {
-        CcspTraceError(("%s %d - Invalid memory \n", __FUNCTION__, __LINE__));
-        return ANSC_STATUS_FAILURE;
-    }
-
-    BOOL *enable_client = NULL;
-    enable_client = (BOOL *) malloc (sizeof(BOOL));
-    if (NULL == enable_client)
-    {
-        CcspTraceError(("%s %d - Failed to reserve memory \n", __FUNCTION__, __LINE__));
-        return ANSC_STATUS_FAILURE;
-    }
-
-    *enable_client = *enable;
-
-    iErrorCode = pthread_create( &dibblerThreadId, NULL, &Dhcpv6HandlingThread, (void*)enable_client );
-    if( 0 != iErrorCode )
-    {
-        CcspTraceInfo(("%s %d - Dhcpv6HandlingThread thread failed. EC:%d\n", __FUNCTION__, __LINE__, iErrorCode ));
-        return ANSC_STATUS_FAILURE;
-    }
-
-    return ANSC_STATUS_SUCCESS;
-}
-
-static void* Dhcpv6HandlingThread( void *arg )
-{
-    char ParamName[BUFLEN_256] = {0};
-    char ParamValue[BUFLEN_256] = {0};
-
-    //detach thread from caller stack
-    pthread_detach(pthread_self());
-
-    if( NULL == arg)
-    {
-        CcspTraceError(("%s Invalid Memory\n", __FUNCTION__));
-        pthread_exit(NULL);
-    }
-
-    BOOL enable_client = *(BOOL *) arg;
-    snprintf( ParamName, BUFLEN_256, DIBBLER_IPV6_CLIENT_ENABLE, 1 );
-    if(enable_client)
-        snprintf( ParamValue, BUFLEN_256, "%s", "true");
-    else
-        snprintf( ParamValue, BUFLEN_256, "%s", "false");
-
-    SetDataModelParamValues( WAN_COMPONENT_NAME, COMPONENT_PATH_WANMANAGER, ParamName, ParamValue, ccsp_boolean, TRUE );
-
-    CcspTraceInfo(("%s %d Successfully set %d value to %s data model \n", __FUNCTION__, __LINE__, enable_client, ParamName));
-
-    //free memory.
-    if (arg)
-    {
-        free (arg);
-        arg = NULL;
-    }
-
-    pthread_exit(NULL);
-}
-
 
 int WanManager_Ipv6AddrUtil(char *ifname, Ipv6OperType opr, int preflft, int vallft)
 {
     char cmdLine[128] = {0};
     char prefix[BUFLEN_48] = {0};
     char prefixAddr[BUFLEN_48] = {0};
-    char Output[BUFLEN_16] = {0};
     char IfaceName[BUFLEN_16] = {0};
     int BridgeMode = 0;
 
@@ -468,19 +339,27 @@ int WanManager_Ipv6AddrUtil(char *ifname, Ipv6OperType opr, int preflft, int val
     memset(prefixAddr, 0, sizeof(prefixAddr));
     sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_GLOBAL_IPV6_PREFIX_SET, prefixAddr, sizeof(prefixAddr));
 
+    { //TODO : temporary debug code to identify the bridgemode sysevent failure issue.
+        char Output[BUFLEN_16] = {0};
+        if (sysevent_get(sysevent_fd, sysevent_token, "bridge_mode", Output, sizeof(Output)) !=0)
+        {
+            CcspTraceError(("%s-%d: bridge_mode sysevent get failed. \n", __FUNCTION__, __LINE__));
+        }
+        BridgeMode = atoi(Output);
+        CcspTraceInfo(("%s-%d: <<DEBUG>> bridge_mode sysevent value set to =%d \n", __FUNCTION__, __LINE__,  BridgeMode));
+    }
+
     /*TODO:
      *Below Code should be removed once V6 Prefix/IP is assigned on erouter0 Instead of brlan0 for sky Devices. 
      */
     strcpy(IfaceName, LAN_BRIDGE_NAME);
-    sysevent_get(sysevent_fd, sysevent_token, "bridge_mode", Output, sizeof(Output));
-    BridgeMode = atoi(Output);
-    if (BridgeMode != 0)
+    if (WanMgr_isBridgeModeEnabled() == TRUE)
     {
         memset(IfaceName, 0, sizeof(IfaceName));
         strncpy(IfaceName, ifname, strlen(ifname));
     }
 
-    CcspTraceInfo(("%s-%d: IfaceName=%s, BridgeMode=%d \n", __FUNCTION__, __LINE__, IfaceName, BridgeMode));
+    CcspTraceInfo(("%s-%d: IfaceName=%s \n", __FUNCTION__, __LINE__, IfaceName));
 
     switch (opr)
     {
@@ -488,11 +367,25 @@ int WanManager_Ipv6AddrUtil(char *ifname, Ipv6OperType opr, int preflft, int val
         {
             if (strlen(prefix) > 0)
             {
-#if !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_))  //Do not delete prefix from LAn bridge for the comcast platforms.
-                memset(cmdLine, 0, sizeof(cmdLine));
-                snprintf(cmdLine, sizeof(cmdLine), "ip -6 addr del %s/64 dev %s", prefixAddr, IfaceName);
-                if (WanManager_DoSystemActionWithStatus("ip -6 addr del ADDR dev xxxx", cmdLine) != 0)
-                    CcspTraceError(("failed to run cmd: %s", cmdLine));
+#if !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_)) || defined(_RDKB_GLOBAL_PRODUCT_REQ_) //Do not delete prefix from LAn bridge for the comcast platforms.
+#if defined(_RDKB_GLOBAL_PRODUCT_REQ_)
+                WanMgr_Config_Data_t    *pWanConfigData = WanMgr_GetConfigData_locked();
+                unsigned char           ConfigureWANIPv6OnLANBridgeSupport = FALSE;
+
+                if( NULL != pWanConfigData )
+                {
+                    ConfigureWANIPv6OnLANBridgeSupport = pWanConfigData->data.ConfigureWANIPv6OnLANBridgeSupport;
+                    WanMgrDml_GetConfigData_release(pWanConfigData);
+                }
+
+                if ( TRUE == ConfigureWANIPv6OnLANBridgeSupport )
+#endif /** _RDKB_GLOBAL_PRODUCT_REQ_ */
+                {
+                    memset(cmdLine, 0, sizeof(cmdLine));
+                    snprintf(cmdLine, sizeof(cmdLine), "ip -6 addr del %s/64 dev %s", prefixAddr, IfaceName);
+                    if (WanManager_DoSystemActionWithStatus("ip -6 addr del ADDR dev xxxx", cmdLine) != 0)
+                        CcspTraceError(("failed to run cmd: %s", cmdLine));
+                }
 #endif
                 memset(cmdLine, 0, sizeof(cmdLine));
 #if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
@@ -543,7 +436,7 @@ int WanManager_Ipv6AddrUtil(char *ifname, Ipv6OperType opr, int preflft, int val
     return 0;
 }
 
-uint32_t WanManager_StartDhcpv6Client(DML_VIRTUAL_IFACE* pVirtIf, IFACE_TYPE IfaceType)
+int WanManager_StartDhcpv6Client(DML_VIRTUAL_IFACE* pVirtIf, IFACE_TYPE IfaceType)
 {
     if (pVirtIf == NULL)
     {
@@ -551,7 +444,7 @@ uint32_t WanManager_StartDhcpv6Client(DML_VIRTUAL_IFACE* pVirtIf, IFACE_TYPE Ifa
         return 0;
     }
 
-    uint32_t pid = 0;
+    int pid = 0;
     dhcp_params params;
     memset (&params, 0, sizeof(dhcp_params));
     params.ifname = pVirtIf->Name;
@@ -560,6 +453,11 @@ uint32_t WanManager_StartDhcpv6Client(DML_VIRTUAL_IFACE* pVirtIf, IFACE_TYPE Ifa
     CcspTraceInfo(("Enter WanManager_StartDhcpv6Client for  %s \n", pVirtIf->Name));
     WanManager_send_and_receive_rs(pVirtIf);
     pid = start_dhcpv6_client(&params);
+    if (pid == 0) 
+    {
+        CcspTraceError(("%s %d: dhcpv6 client failed to start. Returing pid -1.\n", __FUNCTION__, __LINE__));
+        pid = -1;
+    }
     pVirtIf->IP.Dhcp6cPid = pid;
 
     return pid;
@@ -604,7 +502,7 @@ ANSC_STATUS WanManager_StopDhcpv6Client(char * iface_name, DHCP_RELEASE_BEHAVIOU
 }
 
 
-uint32_t WanManager_StartDhcpv4Client(DML_VIRTUAL_IFACE* pVirtIf, char* baseInterface, IFACE_TYPE IfaceType)
+int WanManager_StartDhcpv4Client(DML_VIRTUAL_IFACE* pVirtIf, char* baseInterface, IFACE_TYPE IfaceType)
 {
     if (pVirtIf == NULL)
     {
@@ -617,7 +515,7 @@ uint32_t WanManager_StartDhcpv4Client(DML_VIRTUAL_IFACE* pVirtIf, char* baseInte
     return 0;//TODO:Read and return PID
 #endif
     dhcp_params params;
-    uint32_t pid = 0;
+    int pid = 0;
 
     memset (&params, 0, sizeof(dhcp_params));
     params.ifname = pVirtIf->Name;
@@ -626,6 +524,12 @@ uint32_t WanManager_StartDhcpv4Client(DML_VIRTUAL_IFACE* pVirtIf, char* baseInte
 
     CcspTraceInfo(("Starting DHCPv4 Client for iface: %s \n", params.ifname));
     pid = start_dhcpv4_client(&params);
+
+    if (pid == 0) 
+    {
+        CcspTraceError(("%s %d: dhcpv4 client failed to start. Returing pid -1.\n", __FUNCTION__, __LINE__));
+        pid = -1;
+    }
     pVirtIf->IP.Dhcp4cPid = pid;
     return pid;
 }
@@ -2195,94 +2099,6 @@ int WanManager_AddGatewayRoute(const WANMGR_IPV4_DATA* pIpv4Info)
     }
 
     return ret;
-}
-
-static int get_index_from_path(const char *path)
-{
-    int index = -1;
-
-    if(path == NULL)
-    {
-        return -1;
-    }
-
-    sscanf(path, "%*[^0-9]%d", &index);
-    return index;
-}
-
-#ifdef _HUB4_PRODUCT_REQ_
-static ANSC_STATUS GetAdslUsernameAndPassword(char *Username, char *Password)
-{
-    int ret= ANSC_STATUS_SUCCESS;
-    FILE *fp = NULL;
-    char line[BUFLEN_128] = {0};
-
-    if (Username == NULL || Password == NULL)
-    {
-        return ANSC_STATUS_FAILURE;
-    }
-    if (fp = fopen(SERIALIZATION_DATA, "r"))
-    {
-        while(fgets(line, sizeof(line), fp)!=NULL)
-        {
-            if(strstr(line,"ADSLUSER"))
-            {
-                char * ch = strrchr(line,'=');
-                strncpy(Username, ch+1, BUFLEN_64);
-                Username[strcspn(Username, "\n\r")] = 0;
-            }
-            if(strstr(line,"ADSLPASS"))
-            {
-                char * ch = strrchr(line,'=');
-                strncpy(Password, ch+1, BUFLEN_64);
-                Password[strcspn(Password, "\n\r")] = 0;
-            }
-        }
-        if(fp != NULL)
-        {
-            fclose(fp);
-            fp = NULL;
-        }
-    }
-    else
-    {
-        ret = ANSC_STATUS_FAILURE;
-    }
-
-    return ret;
-}
-#endif
-
-static void createDummyWanBridge(char * iface_name)
-{
-    char wan_mac[64] = {'\0'};
-    char file_path[64] = {0};
-    FILE *fp_mac_addr_table = NULL;
-    int ret = 0;
-
-    snprintf(file_path, sizeof(file_path)-1, "/sys/class/net/%s/address", iface_name);
-    fp_mac_addr_table = fopen(file_path, "r");
-    if(fp_mac_addr_table == NULL)
-    {
-        CcspTraceError(("Failed to open mac address table"));
-    }
-    else
-    {
-        ret = fread(wan_mac, sizeof(wan_mac),1, fp_mac_addr_table);
-        fclose(fp_mac_addr_table);
-    }
-
-    ret = v_secure_system("brctl addbr %s", iface_name);
-    if(ret != 0) {
-          CcspTraceWarning(("%s: Failure in executing command via v_secure_system. ret:[%d] \n", __FUNCTION__,ret));
-    }
-
-    ret = v_secure_system("ip link set dev %s address %s", iface_name, wan_mac);
-    if(ret != 0) {
-          CcspTraceWarning(("%s:Failure in executing command via v_secure_system. ret:[%d] \n",__FUNCTION__,ret));
-    }
-
-    return;
 }
 
 ANSC_STATUS WanManager_CheckGivenPriorityExists(INT IfIndex, UINT uiTotalIfaces, INT priority, BOOL *Status)

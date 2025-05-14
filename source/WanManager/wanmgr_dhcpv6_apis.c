@@ -38,15 +38,6 @@ extern token_t sysevent_token;
 extern ANSC_HANDLE bus_handle;
 extern char g_Subsystem[32];
 
-#ifdef _HUB4_PRODUCT_REQ_
-#include "wanmgr_ipc.h"
-#if defined SUCCESS
-#undef SUCCESS
-#endif
-#define SYSEVENT_FIELD_IPV6_DNS_SERVER    "wan6_ns"
-#define SYSEVENT_FIELD_IPV6_ULA_ADDRESS   "ula_address"
-#endif
-
 #if defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) && defined(_COSA_BCM_MIPS_)
 #include <netinet/in.h>
 #endif
@@ -72,7 +63,6 @@ static struct {
 }gDhcpv6c_ctx;
 
 extern WANMGR_BACKEND_OBJ* g_pWanMgrBE;
-static void * dhcpv6c_dbg_thrd(void * in);
 
 /*erouter topology mode*/
 enum tp_mod {
@@ -115,10 +105,8 @@ static int _dibbler_client_operation(char * arg);
 
 static DML_DHCPCV6_FULL  g_dhcpv6_client;
 
-static int _dibbler_server_operation(char * arg);
 void _cosa_dhcpsv6_refresh_config();
 
-static int DHCPv6sDmlTriggerRestart(BOOL OnlyTrigger);
 
 void _get_shell_output(FILE *fp, char * out, int len)
 {
@@ -482,7 +470,7 @@ static int _dibbler_client_operation(char * arg)
             CcspTraceInfo(("%s-%d [%s] is already running, killing it \n", __FUNCTION__,__LINE__,CLIENT_BIN));
             v_secure_system("killall " CLIENT_BIN);
             sleep(2);
-#ifdef _HUB4_PRODUCT_REQ_
+#ifdef _HUB4_PRODUCT_REQ_ //TODO : clean up ?
             fp = v_secure_popen("r", "ps | grep "CLIENT_BIN " | grep -v grep");
 #else
             fp = v_secure_popen("r", "ps -A|grep "CLIENT_BIN);
@@ -1407,31 +1395,6 @@ WanMgr_DmlDhcpv6cGetReceivedOptionCfg
     return ANSC_STATUS_SUCCESS;
 }
 
-static int DHCPv6sDmlTriggerRestart(BOOL OnlyTrigger)
-{
-    int fd = 0;
-    char str[32] = "restart";
-
-  #if defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) && ! defined(DHCPV6_PREFIX_FIX)
-    sysevent_set(sysevent_fd, sysevent_token, "dhcpv6_server-restart", "" , 0);
-  #else
-
-    //not restart really.we only need trigger pthread to check whether there is pending action.
-
-    fd= open(DHCPS6V_SERVER_RESTART_FIFO, O_RDWR);
-
-    if (fd < 0)
-    {
-        fprintf(stderr, "open dhcpv6 server restart fifo when writing.\n");
-        return 1;
-    }
-    write( fd, str, sizeof(str) );
-    close(fd);
-
-  #endif
-    return 0;
-}
-
 void
 WanMgr_DmlDhcpv6Remove(ANSC_HANDLE hContext)
 {
@@ -1484,12 +1447,26 @@ int dhcpv6_assign_global_ip(char * prefix, char * intfName, char * ipAddr)
         CcspTraceError(("error, there is not '::' in prefix:%s\n", prefix));
         return 1;
     }
-#ifdef _HUB4_PRODUCT_REQ_
-    if(strncmp(intfName, COSA_DML_DHCPV6_SERVER_IFNAME, strlen(intfName)) == 0)
+#if defined(_HUB4_PRODUCT_REQ_) || defined(_RDKB_GLOBAL_PRODUCT_REQ_)
+#if defined(_RDKB_GLOBAL_PRODUCT_REQ_)
+    WanMgr_Config_Data_t    *pWanConfigData = WanMgr_GetConfigData_locked();
+    unsigned char           IPv6EUI64FormatSupport = TRUE;
+
+    if( NULL != pWanConfigData )
     {
-        snprintf(ipAddr, 128, "%s1", globalIP);
-        CcspTraceInfo(("the full part is:%s\n", ipAddr));
-        return 0;
+        IPv6EUI64FormatSupport = pWanConfigData->data.IPv6EUI64FormatSupport;
+        WanMgrDml_GetConfigData_release(pWanConfigData);
+    }
+
+    if ( FALSE == IPv6EUI64FormatSupport )
+#endif /** _RDKB_GLOBAL_PRODUCT_REQ_ */
+    {
+        if(strncmp(intfName, COSA_DML_DHCPV6_SERVER_IFNAME, strlen(intfName)) == 0)
+        {
+            snprintf(ipAddr, 128, "%s1", globalIP);
+            CcspTraceInfo(("the full part is:%s\n", ipAddr));
+            return 0;
+        }
     }
 #endif
 
@@ -1890,13 +1867,27 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
         {
             if(pVirtIf->Status == WAN_IFACE_STATUS_UP &&  pNewIpcMsg->prefixPltime > 0 && pNewIpcMsg->prefixVltime > 0 ) //Update life time only if the interface is active.
             {
-#if !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_))  //Do not add prefix on LAN bridge for the Comcast platforms.
+#if !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_)) || defined(_RDKB_GLOBAL_PRODUCT_REQ_) //Do not add prefix on LAN bridge for the Comcast platforms.
+#if defined(_RDKB_GLOBAL_PRODUCT_REQ_)
+            WanMgr_Config_Data_t    *pWanConfigData = WanMgr_GetConfigData_locked();
+            unsigned char           ConfigureWANIPv6OnLANBridgeSupport = FALSE;
+
+            if( NULL != pWanConfigData )
+            {
+                ConfigureWANIPv6OnLANBridgeSupport = pWanConfigData->data.ConfigureWANIPv6OnLANBridgeSupport;
+                WanMgrDml_GetConfigData_release(pWanConfigData);
+            }
+
+            if ( TRUE == ConfigureWANIPv6OnLANBridgeSupport )
+#endif /** _RDKB_GLOBAL_PRODUCT_REQ_ */
+            {
                 //call function for changing the prlft and vallft
                 if ((WanManager_Ipv6AddrUtil(pVirtIf->Name, SET_LFT, pNewIpcMsg->prefixPltime, pNewIpcMsg->prefixVltime) < 0))
                 {
                     CcspTraceError(("Life Time Setting Failed"));
                 }
                 sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_RADVD_RESTART, NULL, 0);
+            }
 #endif
             }
             pVirtIf->IP.Ipv6Renewed = TRUE;

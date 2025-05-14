@@ -1025,6 +1025,32 @@ ANSC_STATUS WanManager_ConfigurePPPSession(DML_VIRTUAL_IFACE* pVirtIf, BOOL PPPE
 
     syscfg_set_commit(NULL, SYSCFG_WAN_INTERFACE_NAME, pVirtIf->Name);
 
+#ifdef DYNAMIC_CONFIGURE_PPP_LOWERLAYER
+    snprintf( acSetParamName, sizeof(acSetParamName), "%s.Name", pVirtIf->VLAN.VLANInUse);
+
+    ret = WanMgr_RdkBus_GetParamValues( VLAN_COMPONENT_NAME, VLAN_DBUS_PATH, acSetParamName, acSetParamValue );
+    if(ret != ANSC_STATUS_SUCCESS)
+    {
+        CcspTraceError(("%s %d DM get %s %s failed\n", __FUNCTION__,__LINE__, acSetParamName, acSetParamValue));
+        return ANSC_STATUS_FAILURE;
+    }
+    strncpy(pVirtIf->Name, acSetParamValue, sizeof(pVirtIf->Name));
+
+    memset(acSetParamName, 0, sizeof(acSetParamName));
+    memset(acSetParamValue, 0, sizeof(acSetParamValue));
+    snprintf( acSetParamName, sizeof(acSetParamName), "%s.LowerLayers", pVirtIf->PPP.Interface);
+    snprintf( acSetParamValue, sizeof(acSetParamValue), WAN_INTERFACE_TABLE, (pVirtIf->baseIfIdx + 1), (pVirtIf->VirIfIdx + 1));
+    ret = WanMgr_RdkBus_SetParamValues( PPPMGR_COMPONENT_NAME, PPPMGR_DBUS_PATH, acSetParamName, acSetParamValue, ccsp_string, TRUE );
+
+    if(ret != ANSC_STATUS_SUCCESS)
+    {
+        CcspTraceError(("%s %d DM set %s %s failed\n", __FUNCTION__,__LINE__, acSetParamName, acSetParamValue));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    CcspTraceInfo(("%s %d DM set %s %s Successful\n", __FUNCTION__,__LINE__, acSetParamName, acSetParamValue));
+#endif
+
     //Set PPP Enable
     CcspTraceInfo(("%s %d %s PPP %s\n", __FUNCTION__,__LINE__, PPPEnable? "Enabling":"Disabling",pVirtIf->PPP.Interface));
     snprintf( acSetParamName, DATAMODEL_PARAM_LENGTH, "%s.Enable", pVirtIf->PPP.Interface );
@@ -1069,4 +1095,100 @@ ANSC_STATUS WanMgr_GetSelectedIPMode(DML_VIRTUAL_IFACE * pVirtIf)
     }
     CcspTraceInfo(("%s %d - IP SelectedMode=[%d] IP ModeForceEnable=[%d]\n", __FUNCTION__, __LINE__, pVirtIf->IP.SelectedMode, pVirtIf->IP.ModeForceEnable));
     return ANSC_STATUS_SUCCESS;
+}
+
+/**
+ * @brief Wanmgr_TriggerReboot() - Initiates a device reboot.
+ * 
+ * This API is invoked when the platform needs to reboot to apply new WAN configurations. 
+ * 
+ * @note This function retains the last reboot reason for the current reboot due to dependencies 
+ * from WebPA and Webconfig on various reboot scenarios (e.g., factory reset, reboot command, etc.).
+ * 
+ * @param void
+ * @return void
+ */
+
+void Wanmgr_TriggerReboot()
+{
+    char lastRebootReason[64] = {'\0'};
+    // set reboot reason as previous reboot reason because of webPA and Webconfig dependency on various reboot scenarios.
+    if(syscfg_get( NULL, "X_RDKCENTRAL-COM_LastRebootReason", lastRebootReason, sizeof(lastRebootReason)) == 0)
+    {
+        if(lastRebootReason[0] != '\0')
+        {
+            CcspTraceInfo(("%s %d: X_RDKCENTRAL-COM_LastRebootReason = [%s]\n", __FUNCTION__, __LINE__, lastRebootReason));
+            CcspTraceInfo(("%s %d: WanManager is triggering the reboot and setting the reboot reason as last reboot reason \n", __FUNCTION__, __LINE__));
+
+            if (syscfg_set_commit(NULL, "X_RDKCENTRAL-COM_LastRebootReason", lastRebootReason) != 0)
+            {
+                CcspTraceInfo(("%s %d: Failed to set LastRebootReason\n", __FUNCTION__, __LINE__));
+            }
+            if (syscfg_set_commit(NULL, "X_RDKCENTRAL-COM_LastRebootCounter", "1") != 0)
+            {
+                CcspTraceInfo(("%s %d: Failed to set LastRebootCounter\n", __FUNCTION__, __LINE__));
+            }
+        }
+        else
+        {
+            CcspTraceInfo(("%s %d: lastRebootReason is empty \n", __FUNCTION__, __LINE__));
+        }
+    }
+    else
+    {
+        CcspTraceInfo(("%s %d: Failed to get LastRebootReason\n", __FUNCTION__, __LINE__));
+    }
+
+    // work around if the CPE fails to reboot from the below call and gets stuck.
+    wanmgr_sysevent_hw_reconfig_reboot();
+
+    // Call Device Reboot and Exit from state machine.
+    if((WanMgr_RdkBus_SetParamValues(PAM_COMPONENT_NAME, PAM_DBUS_PATH, "Device.X_CISCO_COM_DeviceControl.RebootDevice", "Device", ccsp_string, TRUE) == ANSC_STATUS_SUCCESS))
+    {
+        CcspTraceInfo(("%s %d: WanManager triggered a reboot successfully \n", __FUNCTION__, __LINE__));
+    }
+    else
+    {
+        CcspTraceError(("%s %d: WanManager Failed to trigger reboot \n", __FUNCTION__, __LINE__));
+    }
+}
+
+#define TR181_LANMODE_PARAM "Device.X_CISCO_COM_DeviceControl.LanManagementEntry.1.LanMode"
+
+/**
+ * @brief Checks if the system is operating in Bridge Mode based on the 
+ *        configuration from the PandM module.
+ *
+ * This function determines whether the current LAN bridge configuration
+ * is set to Bridge Mode by querying the PandM  module.
+ *
+ * @return BOOL
+ *         - TRUE if the system is in Bridge Mode.
+ *         - FALSE otherwise.
+ */
+
+BOOL WanMgr_isBridgeModeEnabled()
+{
+    char dmlValue[64] = {0};
+
+    //Query
+    if (ANSC_STATUS_FAILURE == WanMgr_RdkBus_GetParamValues(PAM_COMPONENT_NAME, PAM_DBUS_PATH, TR181_LANMODE_PARAM, dmlValue))
+    {
+        CcspTraceError(("[%s][%d] Failed to get param value\n", __FUNCTION__, __LINE__));
+        return FALSE;
+    }
+
+    //Possible DML values  bridge-dhcp,bridge-static,router
+    if(strcmp(dmlValue, "bridge-dhcp") == 0 || strcmp(dmlValue, "bridge-static") == 0 || strcmp(dmlValue, "full-bridge-static") == 0)
+    {
+        CcspTraceInfo(("%s %d - CPE is in Bridge Mode\n", __FUNCTION__, __LINE__));
+        return TRUE;
+    }
+    else
+    {
+        CcspTraceInfo(("%s %d - CPE is in Router Mode\n", __FUNCTION__, __LINE__));
+        return FALSE;
+    }
+
+    return FALSE;
 }
