@@ -83,5 +83,6 @@ ANSC_STATUS wanmgr_process_T2_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
     }
     strcat(buf,"\0");
     t2_event_s(WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID],buf);
+    CcspTraceInfo(("%s %d: Sent Telemetry event [%s] with arguments = [%s].\n",__FUNCTION__, __LINE__,WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID],buf));
     return ANSC_STATUS_SUCCESS;
 }
