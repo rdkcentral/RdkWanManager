@@ -48,6 +48,7 @@ ANSC_STATUS wanmgr_process_T2_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
     DML_WAN_IFACE *pIntf = Marker->pInterface;
     DML_VIRTUAL_IFACE *pVirtIntf = Marker->pVirtInterface;
     memset(buf,0,sizeof(buf));
+    char tempStr[64] = {0};
 
     if(pIntf == NULL && pVirtIntf == NULL)
     {
@@ -86,14 +87,13 @@ ANSC_STATUS wanmgr_process_T2_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
             wanmgr_telemetry_append_key_value(WANMGR_T2_WANMGR_SPLIT_VAL_STRING,WanMgr_Telemetry_IpModeStr[pVirtIntf->IP.Mode]);
             break;
         case WAN_INFO_IPv4_CONFIG_TYPE:
-	    char tempStr[64] = {0};
 	    strcat(tempStr,"IPv4Source-");
 	    strcat(tempStr,WanMgr_Telemetry_IpSourceStr[pVirtIntf->IP.IPv4Source]);
             wanmgr_telemetry_append_key_value(WANMGR_T2_WANMGR_SPLIT_VAL_STRING, tempStr);
 	    break;
         case WAN_INFO_IPv6_CONFIG_TYPE:
-	    char tempStr[64] = {0};
             strcat(tempStr,"IPv6Source-");
+	    strcat(tempStr,WanMgr_Telemetry_IpSourceStr[pVirtIntf->IP.IPv6Source]);
             wanmgr_telemetry_append_key_value(WANMGR_T2_WANMGR_SPLIT_VAL_STRING,tempStr);
             break;
         case WAN_ERROR_VLAN_DOWN:
