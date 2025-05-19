@@ -975,7 +975,7 @@ ANSC_STATUS WanMgr_Remote_IfaceData_configure(char *remoteCPEMac, int  *iface_in
                 p_VirtIf->IP.IPv6Source = DML_WAN_IP_SOURCE_STATIC;
                 //Telemetry start
                 WanMgr_Telemetry_Marker_t Marker = {0};
-                Marker.enTelemetryMarkerID = WAN_INFO_IP_CONFIG_TYPE;
+                Marker.enTelemetryMarkerID = WAN_INFO_IPv6_CONFIG_TYPE;
                 Marker.pVirtInterface = p_VirtIf ;
                 wanmgr_telemetry_event(&Marker);			
                 strncpy(p_VirtIf->Name, REMOTE_INTERFACE_NAME, sizeof(p_VirtIf->Name));

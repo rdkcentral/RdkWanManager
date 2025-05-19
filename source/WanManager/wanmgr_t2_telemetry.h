@@ -8,7 +8,7 @@
 #define WANMGR_T2_PHY_INTERFACE_STRING                  "PHY_TYPE"
 #define WANMGR_T2_WAN_INTERFACE_STRING                  "WAN_NAME"
 #define WANMGR_T2_VIRT_WAN_INTERFACE_STRING             "VIRT_WAN_NAME"
-#define WANMGR_T2_SELECTION_STATUS_STRING               "SELECTION_STATUS"
+#define WANMGR_T2_SELECTION_STATUS_STRING               "INTERFACE_SELECTION_STATUS"
 #define WANMGR_T2_WANMGR_SPLIT_VAL_STRING               "SPLIT_VAL"
 
 static const char * const WanMgr_TelemetryEventStr[] =
@@ -20,7 +20,8 @@ static const char * const WanMgr_TelemetryEventStr[] =
     [WAN_INFO_WAN_UP] = "WAN_INFO_WAN_UP_split",
     [WAN_INFO_WAN_STANDBY] = "WAN_INFO_WAN_STANDBY_split",
     [WAN_ERROR_WAN_DOWN] = "WAN_ERROR_WAN_DOWN_split",
-    [WAN_INFO_IP_CONFIG_TYPE] = "WAN_INFO_IP_CONFIG_TYPE_split",
+    [WAN_INFO_IPv4_CONFIG_TYPE] = "WAN_INFO_IP_CONFIG_TYPE_split",
+    [WAN_INFO_IPv6_CONFIG_TYPE] = "WAN_INFO_IP_CONFIG_TYPE_split",
     [WAN_INFO_IPv4_UP] = "WAN_INFO_IPv4_UP_split",
     [WAN_ERROR_IPv4_DOWN] = "WAN_ERROR_IPv4_DOWN_split",
     [WAN_INFO_IPv6_UP] = "WAN_INFO_IPv6_UP_split",

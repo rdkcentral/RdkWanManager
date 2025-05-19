@@ -1898,10 +1898,10 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
         pVirtIf->IP.Ipv6Status = WAN_IFACE_IPV6_STATE_UP;
 
         //Telemetry start
-        WanMgr_Telemetry_Marker_t Marker = {0};             
+    /*    WanMgr_Telemetry_Marker_t Marker = {0};             
         Marker.enTelemetryMarkerID = WAN_INFO_IPv6_UP;
         Marker.pVirtInterface = pVirtIf ;
-        wanmgr_telemetry_event(&Marker);
+        wanmgr_telemetry_event(&Marker);*/
         //Telemetry end		
     }
 

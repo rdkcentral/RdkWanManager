@@ -2,6 +2,7 @@
 #include "wanmgr_rdkbus_utils.h"
 
 static char buf[128] = {0};
+static int sendEventOnActiveOnly;
 
 /*append api appends key value in pairs, separated by DELIMITER*/
 static void wanmgr_telemetry_append_key_value(char* key, const char* value)
@@ -18,7 +19,28 @@ static void wanmgr_telemetry_append_key_value(char* key, const char* value)
         strcat(buf,value);
     }
 }
-
+/* Send Telemetry event based on interface is active or not*/
+void wanmgr_send_T2_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
+{
+    DML_WAN_IFACE *pIntf = Marker->pInterface;
+    if(sendEventOnActiveOnly)
+    {
+        if(pIntf->Selection.Status == WAN_IFACE_ACTIVE)
+	{
+            t2_event_s(WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID],buf);
+            CcspTraceInfo(("%s %d: Sent Telemetry event [%s] with arguments = [%s].\n",__FUNCTION__, __LINE__,WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID],buf));		
+	}
+	else
+	{
+            CcspTraceInfo(("%s %d: Interface not active, not sending telemetry event for [%s].\n",__FUNCTION__, __LINE__,WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID]));
+	}
+    }
+    else
+    {
+        t2_event_s(WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID],buf);
+        CcspTraceInfo(("%s %d: Sent Telemetry event [%s] with arguments = [%s].\n",__FUNCTION__, __LINE__,WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID],buf));	    
+    }
+}
 /*This api processes the Marker struct,
  * gets the data required to send to T2 marker*/
 ANSC_STATUS wanmgr_process_T2_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
@@ -55,14 +77,24 @@ ANSC_STATUS wanmgr_process_T2_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
     {
         pVirtIntf = pIntf->VirtIfList ;
     }
+    //By default, send T2 event for active interface only.
+    sendEventOnActiveOnly = 1;
 
     switch(Marker->enTelemetryMarkerID)
     {
         case WAN_INFO_IP_MODE:
             wanmgr_telemetry_append_key_value(WANMGR_T2_WANMGR_SPLIT_VAL_STRING,WanMgr_Telemetry_IpModeStr[pVirtIntf->IP.Mode]);
             break;
-        case WAN_INFO_IP_CONFIG_TYPE:
-            wanmgr_telemetry_append_key_value(WANMGR_T2_WANMGR_SPLIT_VAL_STRING,WanMgr_Telemetry_IpSourceStr[pVirtIntf->IP.IPv4Source]);
+        case WAN_INFO_IPv4_CONFIG_TYPE:
+	    char tempStr[64] = {0};
+	    strcat(tempStr,"IPv4Source-");
+	    strcat(tempStr,WanMgr_Telemetry_IpSourceStr[pVirtIntf->IP.IPv4Source]);
+            wanmgr_telemetry_append_key_value(WANMGR_T2_WANMGR_SPLIT_VAL_STRING, tempStr);
+	    break;
+        case WAN_INFO_IPv6_CONFIG_TYPE:
+	    char tempStr[64] = {0};
+            strcat(tempStr,"IPv6Source-");
+            wanmgr_telemetry_append_key_value(WANMGR_T2_WANMGR_SPLIT_VAL_STRING,tempStr);
             break;
         case WAN_ERROR_VLAN_DOWN:
         case WAN_ERROR_VLAN_CREATION_FAILED:
@@ -78,12 +110,12 @@ ANSC_STATUS wanmgr_process_T2_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
         case WAN_INFO_MAPT_STATUS_UP:
         case WAN_ERROR_MAPT_STATUS_DOWN:
             wanmgr_telemetry_append_key_value(WANMGR_T2_SELECTION_STATUS_STRING,(pIntf->Selection.Status == WAN_IFACE_ACTIVE) ? "Active" : (pIntf->Selection.Status == WAN_IFACE_SELECTED) ? "Selected":"Standby");
+	    sendEventOnActiveOnly = 0;
             break;
         default:
 	    ;
     }
     strcat(buf,"\0");
-    t2_event_s(WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID],buf);
-    CcspTraceInfo(("%s %d: Sent Telemetry event [%s] with arguments = [%s].\n",__FUNCTION__, __LINE__,WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID],buf));
+    wanmgr_send_T2_telemetry_event(Marker);
     return ANSC_STATUS_SUCCESS;
 }

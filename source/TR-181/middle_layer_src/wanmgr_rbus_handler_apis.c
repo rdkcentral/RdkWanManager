@@ -474,6 +474,7 @@ rbusError_t WanMgr_Interface_SetHandler(rbusHandle_t handle, rbusProperty_t prop
                     wanmgr_telemetry_event(&Marker);
                     //Telemetry end		    
 		}				
+		
                 if (pWanDmlIface->Sub.BaseInterfaceStatusSub)
                 {
                     CcspTraceInfo(("%s-%d : BaseInterfaceStatus Publish Event, SubCount(%d)\n", __FUNCTION__, __LINE__, pWanDmlIface->Sub.BaseInterfaceStatusSub));
@@ -832,6 +833,7 @@ static void WanMgr_Rbus_EventReceiveHandler(rbusHandle_t handle, rbusEvent_t con
                         wanmgr_telemetry_event(&Marker);
                         //Telemetry end		
 		    }		    		    
+		    
                 }
                 else if( strstr(pParamName, WANMGR_INFACE_WAN_LINKSTATUS_SUFFIX) != NULL )
                 {
@@ -1938,11 +1940,11 @@ static void WanMgr_TandD_EventHandler(rbusHandle_t handle, rbusEvent_t const* ev
             p_VirtIf->IP.Ipv4ConnectivityStatus = res;
             p_VirtIf->IP.Ipv6ConnectivityStatus = res;
             //Telemetry start
-            WanMgr_Telemetry_Marker_t Marker = {0};
+            /*WanMgr_Telemetry_Marker_t Marker = {0};
             Marker.enTelemetryMarkerID = (res==1)?WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP:WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN;
             Marker.pVirtInterface = p_VirtIf ;
             wanmgr_telemetry_event(&Marker);
-            //Telemetry end		    
+            //Telemetry end		    */
             WanMgr_VirtualIfaceData_release(p_VirtIf);
             CcspTraceInfo(("%s %d: Successfully assigned Connectivity Result %s for interface %s\n", __FUNCTION__, __LINE__, (res==1)?"WAN_CONNECTIVITY_UP":"WAN_CONNECTIVITY_DOWN", Alias));
         }

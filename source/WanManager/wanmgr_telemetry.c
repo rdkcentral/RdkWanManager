@@ -34,7 +34,8 @@ void wanmgr_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
         case WAN_ERROR_MAPT_STATUS_DOWN:
         case WAN_INFO_MAPT_STATUS_UP:
         case WAN_ERROR_MAPT_STATUS_FAILED:
-        case WAN_INFO_IP_CONFIG_TYPE:
+        case WAN_INFO_IPv4_CONFIG_TYPE:
+        case WAN_INFO_IPv6_CONFIG_TYPE:
         case WAN_INFO_CONNECTIVITY_CHECK_TYPE:
         case WAN_ERROR_VLAN_DOWN:
         case WAN_ERROR_VLAN_CREATION_FAILED:
