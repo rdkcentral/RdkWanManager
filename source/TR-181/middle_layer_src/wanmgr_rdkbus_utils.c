@@ -892,7 +892,7 @@ ANSC_STATUS WanMgr_GetBaseInterfaceStatus (DML_WAN_IFACE *pWanIfaceData)
         {
             pWanIfaceData->BaseInterfaceStatus = WAN_IFACE_PHY_STATUS_UP;
             //Telemetry start
-            /WanMgr_Telemetry_Marker_t Marker = {0};             
+            WanMgr_Telemetry_Marker_t Marker = {0};             
             Marker.enTelemetryMarkerID = WAN_INFO_PHY_UP;
             Marker.pInterface = pWanIfaceData;
             wanmgr_telemetry_event(&Marker);
