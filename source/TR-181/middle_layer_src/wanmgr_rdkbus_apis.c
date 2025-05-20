@@ -327,12 +327,14 @@ int get_Virtual_Interface_FromPSM(ULONG instancenum, ULONG virtInsNum ,DML_VIRTU
     if (retPsmGet == CCSP_SUCCESS)
     {
         _ansc_sscanf(param_value, "%d", &(pVirtIf->IP.Mode));
+  CcspTraceInfo(("%s %d: Kavya.\n",__FUNCTION__, __LINE__));	
         //Telemetry start
         WanMgr_Telemetry_Marker_t Marker = {0};
         Marker.enTelemetryMarkerID = WAN_INFO_IP_MODE;
         Marker.pVirtInterface = pVirtIf;
         wanmgr_telemetry_event(&Marker);
         //Telemetry end		
+  CcspTraceInfo(("%s %d: Kavya.\n",__FUNCTION__, __LINE__));	
     }
 
     _ansc_memset(param_name, 0, sizeof(param_name));
@@ -342,11 +344,13 @@ int get_Virtual_Interface_FromPSM(ULONG instancenum, ULONG virtInsNum ,DML_VIRTU
     if(retPsmGet == CCSP_SUCCESS)
     {
         _ansc_sscanf(param_value, "%d", &(pVirtIf->IP.IPv4Source));
+  CcspTraceInfo(("%s %d: Kavya.\n",__FUNCTION__, __LINE__));	
         //Telemetry start
         WanMgr_Telemetry_Marker_t Marker = {0};
         Marker.enTelemetryMarkerID = WAN_INFO_IPv4_CONFIG_TYPE;
         Marker.pVirtInterface = pVirtIf;
         wanmgr_telemetry_event(&Marker);		
+  CcspTraceInfo(("%s %d: Kavya.\n",__FUNCTION__, __LINE__));	
     }
 
     _ansc_memset(param_name, 0, sizeof(param_name));
