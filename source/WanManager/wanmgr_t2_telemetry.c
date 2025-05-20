@@ -20,6 +20,7 @@ static void wanmgr_telemetry_append_key_value(char* key, const char* value)
     }
 }
 /* Send Telemetry event based on interface is active or not*/
+/*
 void wanmgr_send_T2_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
 {
 	CcspTraceInfo(("%s %d Kavya Enter\n",__FUNCTION__, __LINE__));
@@ -46,7 +47,8 @@ void wanmgr_send_T2_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
         t2_event_s(WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID],buf);
         CcspTraceInfo(("%s %d: Kavya Telemetry event [%s] with arguments = [%s].\n",__FUNCTION__, __LINE__,WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID],buf));	    
     }
-}
+}*/
+
 /*This api processes the Marker struct,
  * gets the data required to send to T2 marker*/
 ANSC_STATUS wanmgr_process_T2_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
@@ -70,7 +72,7 @@ CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
     CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
     if(pVirtIntf)
     {
-        if(pIntf == NULL)
+  	if(pIntf == NULL)
         {
             WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pVirtIntf->baseIfIdx);
             if(pWanDmlIfaceData != NULL)
@@ -137,7 +139,30 @@ CcspTraceInfo(("%s %d Kavya sendEventOnActiveOnly = [%d]\n",__FUNCTION__, __LINE
     }
     strcat(buf,"\0");
     CcspTraceInfo(("%s %d Kavya Send Marker\n",__FUNCTION__, __LINE__));
-    wanmgr_send_T2_telemetry_event(Marker);
+    if(sendEventOnActiveOnly)
+    {
+            CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
+        if(pIntf->Selection.Status == WAN_IFACE_ACTIVE)
+        {
+                CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
+            t2_event_s(WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID],buf);
+            CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
+            CcspTraceInfo(("%s %d: Kavya Sent Telemetry event [%s] with arguments = [%s].\n",__FUNCTION__, __LINE__,WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID],buf));
+        }
+        else
+        {
+                CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
+            CcspTraceInfo(("%s %d:Kavya Interface not active, not sending telemetry event for [%s].\n",__FUNCTION__, __LINE__,WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID]));
+        }
+    }
+    else
+    {
+            CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
+        t2_event_s(WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID],buf);
+        CcspTraceInfo(("%s %d: Kavya Telemetry event [%s] with arguments = [%s].\n",__FUNCTION__, __LINE__,WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID],buf));
+    }
+    
+//    wanmgr_send_T2_telemetry_event(Marker);
     CcspTraceInfo(("%s %d Kavya SUCCESS\n",__FUNCTION__, __LINE__));
     return ANSC_STATUS_SUCCESS;
 }
