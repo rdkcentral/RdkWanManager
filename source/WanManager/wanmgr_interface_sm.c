@@ -2010,6 +2010,7 @@ static eWanState_t wan_transition_physical_interface_down(WanMgr_IfaceSM_Control
 #if defined(FEATURE_MAPT) || defined(FEATURE_SUPPORT_MAPT_NAT46)
     if(p_VirtIf->MAP.MaptStatus == WAN_IFACE_MAPT_STATE_UP)
     {
+	    CcspTraceInfo(("%s %d Kavya calling wan_transition_mapt_down\n",__FUNCTION__, __LINE__));
         wan_transition_mapt_down(pWanIfaceCtrl);
     }
 #endif
@@ -2956,7 +2957,7 @@ static eWanState_t wan_transition_mapt_down(WanMgr_IfaceSM_Controller_t* pWanIfa
 
     DML_WAN_IFACE* pInterface = pWanIfaceCtrl->pIfaceData;
     DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIfaceById(pInterface->VirtIfList, pWanIfaceCtrl->VirIfIdx);
-
+CcspTraceInfo(("%s %d Kavya Sending WANMGR_IFACE_MAPT_STOP\n",__FUNCTION__, __LINE__));
     WanManager_UpdateInterfaceStatus (p_VirtIf, WANMGR_IFACE_MAPT_STOP);
 
     if(p_VirtIf->Status == WAN_IFACE_STATUS_UP)
@@ -3949,6 +3950,7 @@ static eWanState_t wan_state_mapt_active(WanMgr_IfaceSM_Controller_t* pWanIfaceC
             (p_VirtIf->VLAN.Enable == TRUE &&  p_VirtIf->VLAN.Status ==  WAN_IFACE_LINKSTATUS_DOWN ))
     {
         CcspTraceInfo(("%s %d - LinkStatus=[%d] \n", __FUNCTION__, __LINE__, p_VirtIf->VLAN.Status));
+	CcspTraceInfo(("%s %d Kavya calling wan_transition_mapt_down\n",__FUNCTION__, __LINE__));
         return wan_transition_mapt_down(pWanIfaceCtrl);
     }
     else if (mapt_feature_enable_changed == TRUE)
@@ -3956,6 +3958,7 @@ static eWanState_t wan_state_mapt_active(WanMgr_IfaceSM_Controller_t* pWanIfaceC
         if (FALSE == wanmanager_mapt_feature())
         {
             mapt_feature_enable_changed = FALSE;
+	    CcspTraceInfo(("%s %d Kavya calling wan_transition_mapt_down\n",__FUNCTION__, __LINE__));
             wan_transition_mapt_down(pWanIfaceCtrl);
             return wan_transition_mapt_feature_refresh(pWanIfaceCtrl);
         }

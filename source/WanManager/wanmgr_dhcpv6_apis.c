@@ -1938,6 +1938,7 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
 #endif
             // reset MAP-T parameters
             memset(&(pVirtIf->MAP.dhcp6cMAPTparameters), 0, sizeof(ipc_mapt_data_t));
+	    CcspTraceInfo(("%s %d Kavya Sending WANMGR_IFACE_MAPT_STOP\n",__FUNCTION__, __LINE__));
             WanManager_UpdateInterfaceStatus(pVirtIf, WANMGR_IFACE_MAPT_STOP);
         }
     }
