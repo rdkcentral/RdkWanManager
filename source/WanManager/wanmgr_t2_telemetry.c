@@ -142,7 +142,7 @@ CcspTraceInfo(("%s %d Kavya sendEventOnActiveOnly = [%d]\n",__FUNCTION__, __LINE
     if(sendEventOnActiveOnly)
     {
             CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
-        if(pIntf->Selection.Status == WAN_IFACE_ACTIVE)
+        if(pIntf->Selection.Status == WAN_IFACE_ACTIVE || pIntf->Selection.Status == WAN_IFACE_SELECTED)
         {
                 CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
             t2_event_s(WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID],buf);
