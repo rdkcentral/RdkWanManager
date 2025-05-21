@@ -457,7 +457,8 @@ rbusError_t WanMgr_Interface_SetHandler(rbusHandle_t handle, rbusProperty_t prop
                 CcspTraceInfo(("%s-%d : %s BaseInterfaceStatus changed to %s\n", __FUNCTION__, __LINE__, pWanDmlIface->Name, String));
                 WanMgr_StringToEnum(&pWanDmlIface->BaseInterfaceStatus, ENUM_PHY, String);
                 if(pWanDmlIface->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_DOWN)
-		{
+		{		   
+		    CcspTraceInfo(("%s %d Kavya send WAN_ERROR_PHY_DOWN pWanDmlIface->Selection.Status = [%d] \n",__FUNCTION__, __LINE__,pWanDmlIface->Selection.Status));
                     //Telemetry start
                     WanMgr_Telemetry_Marker_t Marker = {0};             
                     Marker.enTelemetryMarkerID = WAN_ERROR_PHY_DOWN;
@@ -467,6 +468,7 @@ rbusError_t WanMgr_Interface_SetHandler(rbusHandle_t handle, rbusProperty_t prop
 		}
 		else if(pWanDmlIface->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_UP)
 		{
+		    CcspTraceInfo(("%s %d Kavya send WAN_INFO_PHY_UP pWanDmlIface->Selection.Status = [%d] \n",__FUNCTION__, __LINE__,pWanDmlIface->Selection.Status));
                     //Telemetry start
                     WanMgr_Telemetry_Marker_t Marker = {0};
                     Marker.enTelemetryMarkerID = WAN_INFO_PHY_UP;
@@ -817,6 +819,7 @@ static void WanMgr_Rbus_EventReceiveHandler(rbusHandle_t handle, rbusEvent_t con
                     WanMgr_StringToEnum(&pWanIfaceData->BaseInterfaceStatus, ENUM_PHY, pValue);
                     if(pWanIfaceData->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_DOWN)
 		    {
+		    CcspTraceInfo(("%s %d Kavya send WAN_ERROR_PHY_DOWN pWanIfaceData->Selection.Status = [%d] \n",__FUNCTION__, __LINE__,pWanIfaceData->Selection.Status));
                         //Telemetry start
                         WanMgr_Telemetry_Marker_t Marker = {0};
                         Marker.enTelemetryMarkerID = WAN_ERROR_PHY_DOWN;
@@ -826,6 +829,7 @@ static void WanMgr_Rbus_EventReceiveHandler(rbusHandle_t handle, rbusEvent_t con
 		    }
 		    else if(pWanIfaceData->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_UP)
 		    {
+			CcspTraceInfo(("%s %d Kavya send WAN_INFO_PHY_UP pWanIfaceData->Selection.Status = [%d]\n",__FUNCTION__, __LINE__,pWanIfaceData->Selection.Status));
                         //Telemetry start
                         WanMgr_Telemetry_Marker_t Marker = {0};
                         Marker.enTelemetryMarkerID = WAN_INFO_PHY_UP;
@@ -1575,6 +1579,7 @@ void *WanMgr_WanRemoteIfaceConfigure_thread(void *arg)
                             __FUNCTION__, __LINE__, cpeInterfaceIndex));
             pWanDmlIface->Selection.Enable = FALSE;
             pWanDmlIface->BaseInterfaceStatus = WAN_IFACE_PHY_STATUS_DOWN;
+		    CcspTraceInfo(("%s %d Kavya send WAN_ERROR_PHY_DOWN pWanDmlIface->Selection.Status = [%d] \n",__FUNCTION__, __LINE__,pWanDmlIface->Selection.Status));
             //Telemetry start
             WanMgr_Telemetry_Marker_t Marker = {0};             
             Marker.enTelemetryMarkerID = WAN_ERROR_PHY_DOWN;

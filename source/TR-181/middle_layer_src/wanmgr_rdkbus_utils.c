@@ -891,6 +891,7 @@ ANSC_STATUS WanMgr_GetBaseInterfaceStatus (DML_WAN_IFACE *pWanIfaceData)
         if(strcmp(dmValue,"true") == 0)
         {
             pWanIfaceData->BaseInterfaceStatus = WAN_IFACE_PHY_STATUS_UP;
+	    CcspTraceInfo(("%s %d Kavya send WAN_INFO_PHY_UP pWanIfaceData->Selection.Status = [%d]\n",__FUNCTION__, __LINE__,pWanIfaceData->Selection.Status));
             //Telemetry start
             WanMgr_Telemetry_Marker_t Marker = {0};             
             Marker.enTelemetryMarkerID = WAN_INFO_PHY_UP;
@@ -912,6 +913,7 @@ ANSC_STATUS WanMgr_GetBaseInterfaceStatus (DML_WAN_IFACE *pWanIfaceData)
         if(strcmp(dmValue,"true") == 0)
         {
             pWanIfaceData->BaseInterfaceStatus = WAN_IFACE_PHY_STATUS_UP;
+	    CcspTraceInfo(("%s %d Kavya send WAN_INFO_PHY_UP pWanIfaceData->Selection.Status = [%d]\n",__FUNCTION__, __LINE__,pWanIfaceData->Selection.Status));
             //Telemetry start
             WanMgr_Telemetry_Marker_t Marker = {0};             
             Marker.enTelemetryMarkerID = WAN_INFO_PHY_UP;
@@ -933,6 +935,7 @@ ANSC_STATUS WanMgr_GetBaseInterfaceStatus (DML_WAN_IFACE *pWanIfaceData)
         if(strcmp(dmValue,"OPERATIONAL") == 0)
         {
             pWanIfaceData->BaseInterfaceStatus = WAN_IFACE_PHY_STATUS_UP;
+	    CcspTraceInfo(("%s %d Kavya send WAN_INFO_PHY_UP pWanIfaceData->Selection.Status = [%d]\n",__FUNCTION__, __LINE__,pWanIfaceData->Selection.Status));
             //Telemetry start
             WanMgr_Telemetry_Marker_t Marker = {0};             
             Marker.enTelemetryMarkerID = WAN_INFO_PHY_UP;
@@ -954,6 +957,7 @@ ANSC_STATUS WanMgr_GetBaseInterfaceStatus (DML_WAN_IFACE *pWanIfaceData)
         if(strcmp(dmValue,"Up") == 0)
         {
             pWanIfaceData->BaseInterfaceStatus = WAN_IFACE_PHY_STATUS_UP;
+	    CcspTraceInfo(("%s %d Kavya send WAN_INFO_PHY_UP pWanIfaceData->Selection.Status = [%d]\n",__FUNCTION__, __LINE__,pWanIfaceData->Selection.Status));
             //Telemetry start
             WanMgr_Telemetry_Marker_t Marker = {0};             
             Marker.enTelemetryMarkerID = WAN_INFO_PHY_UP;

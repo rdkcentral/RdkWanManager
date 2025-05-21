@@ -2089,6 +2089,7 @@ static eWanState_t wan_transition_physical_interface_down(WanMgr_IfaceSM_Control
     Enable_CaptivePortal(TRUE);
 #endif
     CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION DECONFIGURING WAN\n", __FUNCTION__, __LINE__, pInterface->Name));
+		    CcspTraceInfo(("%s %d Kavya send WAN_ERROR_PHY_DOWN pInterface->Selection.Status = [%d] \n",__FUNCTION__, __LINE__,pInterface->Selection.Status));
     //Telemetry start
     WanMgr_Telemetry_Marker_t Marker = {0};
     Marker.enTelemetryMarkerID = WAN_ERROR_PHY_DOWN;
