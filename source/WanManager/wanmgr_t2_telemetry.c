@@ -138,6 +138,18 @@ CcspTraceInfo(("%s %d Kavya sendEventOnActiveOnly = [%d]\n",__FUNCTION__, __LINE
 	    ;
     }
     strcat(buf,"\0");
+    CcspTraceInfo(("%s %d: Kavya Arguments = [%s] \n",__FUNCTION__, __LINE__,buf));
+    CcspTraceInfo(("%s %d: Kavya SelectionStatus = [%d] \n",__FUNCTION__, __LINE__,pIntf->Selection.Status));
+    CcspTraceInfo(("%s %d: Kavya SelectionEnable = [%d] \n",__FUNCTION__, __LINE__,pIntf->Selection.Enable));
+    CcspTraceInfo(("%s %d: Kavya BaseInterfaceStatus = [%d] \n",__FUNCTION__, __LINE__,pIntf->BaseInterfaceStatus));
+    //Telemetry start
+    v_secure_system("echo '*****%s*****' >> /tmp/kavya_syscfg.txt",WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID]);
+    v_secure_system("syscfg show | grep -i wan >> /tmp/kavya_syscfg.txt");
+    v_secure_system("echo '**********' >> /tmp/kavya_syscfg.txt");
+    v_secure_system("echo '*****%s*****' >> /tmp/kavya_sysevent.txt",WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID]);
+    v_secure_system("sysevent show /tmp/sysevent.txt ; cat /tmp/sysevent.txt | grep -i wan >> /tmp/kavya_sysevent.txt");
+    v_secure_system("echo '**********' >> /tmp/kavya_sysevent.txt");
+    
     CcspTraceInfo(("%s %d Kavya Send Marker\n",__FUNCTION__, __LINE__));
     if(sendEventOnActiveOnly)
     {
@@ -152,7 +164,7 @@ CcspTraceInfo(("%s %d Kavya sendEventOnActiveOnly = [%d]\n",__FUNCTION__, __LINE
         else
         {
                 CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
-            CcspTraceInfo(("%s %d:Kavya Interface not active, not sending telemetry event for [%s].\n",__FUNCTION__, __LINE__,WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID]));
+            CcspTraceInfo(("%s %d:Kavya Interface not active [%s], arguments:[%s].\n",__FUNCTION__, __LINE__,WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID],buf));
         }
     }
     else
