@@ -735,17 +735,20 @@ void WanManager_UpdateInterfaceStatus(DML_VIRTUAL_IFACE* pVirtIf, wanmgr_iface_s
         }
         case WANMGR_IFACE_MAPT_STOP:
         {
+	    if(pVirtIf->MAP.MaptStatus == WAN_IFACE_MAPT_STATE_UP)
+            {
+                CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
+                //Telemetry start
+                WanMgr_Telemetry_Marker_t Marker = {0};             
+                Marker.enTelemetryMarkerID = WAN_ERROR_MAPT_STATUS_DOWN;
+                Marker.pVirtInterface = pVirtIf ;
+                wanmgr_telemetry_event(&Marker);
+                //Telemetry end
+	    }
             pVirtIf->MAP.MaptStatus = WAN_IFACE_MAPT_STATE_DOWN;     // reset MAPT flag
             pVirtIf->MAP.MaptChanged = FALSE;                        // reset MAPT flag
             CcspTraceInfo(("mapt: %s \n",
                    ((iface_status == WANMGR_IFACE_MAPT_START) ? "UP" : (iface_status == WANMGR_IFACE_MAPT_STOP) ? "DOWN" : "N/A")));
-	    CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
-            //Telemetry start
-            WanMgr_Telemetry_Marker_t Marker = {0};             
-            Marker.enTelemetryMarkerID = WAN_ERROR_MAPT_STATUS_DOWN;
-            Marker.pVirtInterface = pVirtIf ;
-            wanmgr_telemetry_event(&Marker);
-            //Telemetry end
             break;
         }
 #endif
