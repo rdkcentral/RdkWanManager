@@ -2189,7 +2189,14 @@ static eWanState_t wan_transition_wan_validated(WanMgr_IfaceSM_Controller_t* pWa
             CcspTraceInfo(("%s %d - Started dhcpv6 client on interface %s, dhcpv6_pid %d \n", __FUNCTION__, __LINE__, p_VirtIf->Name, p_VirtIf->IP.Dhcp6cPid));
         }
     }
+    CcspTraceInfo(("%s %d: Kavya WAN_INFO_WAN_UP SelectionStatus = [%d] \n",__FUNCTION__, __LINE__,pInterface->Selection.Status));
+    CcspTraceInfo(("%s %d: Kavya WAN_INFO_WAN_UP SelectionEnable = [%d] \n",__FUNCTION__, __LINE__,pInterface->Selection.Enable));
+    CcspTraceInfo(("%s %d: Kavya WAN_INFO_WAN_UP BaseInterfaceStatus = [%d] \n",__FUNCTION__, __LINE__,pInterface->BaseInterfaceStatus));
     //Telemetry start
+    v_secure_system("syscfg show | grep -i wan >> /tmp/kavya_syscfg.txt");
+    v_secure_system("echo '*****' >> /tmp/kavya_syscfg.txt");
+    v_secure_system("sysevent show /tmp/sysevent.txt ; cat /tmp/sysevent.txt | grep -i wan >> /tmp/kavya_sysevent.txt");    
+    v_secure_system("echo '*****' >> /tmp/kavya_sysevent.txt");
     WanMgr_Telemetry_Marker_t Marker = {0};
     Marker.enTelemetryMarkerID = WAN_INFO_WAN_UP;
     Marker.pInterface = pInterface ;

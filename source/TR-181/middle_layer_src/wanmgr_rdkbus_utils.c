@@ -958,6 +958,7 @@ ANSC_STATUS WanMgr_GetBaseInterfaceStatus (DML_WAN_IFACE *pWanIfaceData)
         {
             pWanIfaceData->BaseInterfaceStatus = WAN_IFACE_PHY_STATUS_UP;
 	    CcspTraceInfo(("%s %d Kavya send WAN_INFO_PHY_UP pWanIfaceData->Selection.Status = [%d]\n",__FUNCTION__, __LINE__,pWanIfaceData->Selection.Status));
+	    CcspTraceInfo(("%s %d Kavya send WAN_INFO_PHY_UP pWanIfaceData->Selection.Enable = [%d]\n",__FUNCTION__, __LINE__,pWanIfaceData->Selection.Enable));
             //Telemetry start
             WanMgr_Telemetry_Marker_t Marker = {0};             
             Marker.enTelemetryMarkerID = WAN_INFO_PHY_UP;
