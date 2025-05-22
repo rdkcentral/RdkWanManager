@@ -973,6 +973,7 @@ ANSC_STATUS WanMgr_Remote_IfaceData_configure(char *remoteCPEMac, int  *iface_in
                 p_VirtIf->baseIfIdx = *iface_index; //Add base interface index 
                 p_VirtIf->Enable = TRUE;
                 p_VirtIf->IP.IPv6Source = DML_WAN_IP_SOURCE_STATIC;
+		CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
                 //Telemetry start
                 WanMgr_Telemetry_Marker_t Marker = {0};
                 Marker.enTelemetryMarkerID = WAN_INFO_IPv6_CONFIG_TYPE;

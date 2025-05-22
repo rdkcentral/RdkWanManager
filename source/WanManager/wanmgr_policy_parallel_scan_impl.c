@@ -814,7 +814,7 @@ static WcPsPolicyState_t State_ScanningInterface (WanMgr_Policy_Controller_t * p
             {
                 DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
                 WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
-
+CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
                 WanMgr_Telemetry_Marker_t Marker = {0};
                 Marker.enTelemetryMarkerID = WAN_WARN_IP_OBTAIN_TIMER_EXPIRED;
                 Marker.pInterface = pWanIfaceData ;
