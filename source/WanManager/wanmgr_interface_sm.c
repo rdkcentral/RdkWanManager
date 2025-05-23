@@ -659,14 +659,17 @@ void WanManager_UpdateInterfaceStatus(DML_VIRTUAL_IFACE* pVirtIf, wanmgr_iface_s
                 sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV4_TIME_ZONE, pVirtIf->IP.Ipv4Data.timeZone, 0);
             }
 #endif
+	    if(pVirtIf->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_DOWN)
+	    {
+                CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
+                //Telemetry start
+                WanMgr_Telemetry_Marker_t Marker = {0};
+                Marker.enTelemetryMarkerID = WAN_INFO_IPv4_UP;
+                Marker.pVirtInterface = pVirtIf;
+                wanmgr_telemetry_event(&Marker);
+                //Telemetry end   
+	    }
             pVirtIf->IP.Ipv4Status = WAN_IFACE_IPV4_STATE_UP;
-	    CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
-            //Telemetry start
-            WanMgr_Telemetry_Marker_t Marker = {0};             
-            Marker.enTelemetryMarkerID = WAN_INFO_IPv4_UP;
-            Marker.pVirtInterface = pVirtIf;
-            wanmgr_telemetry_event(&Marker);
-            //Telemetry end		    
             break;
         }
         case WANMGR_IFACE_CONNECTION_DOWN:
