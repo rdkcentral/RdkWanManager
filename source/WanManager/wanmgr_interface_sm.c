@@ -500,12 +500,32 @@ static void WanMgr_MonitorDhcpApps (WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
 #ifdef FEATURE_IPOE_HEALTH_CHECK
             if(pWanIfaceCtrl->IhcPid > 0)
             {
-                WanManager_StopIHC(pWanIfaceCtrl);        
+               if( WanManager_StopIHC(pWanIfaceCtrl) != ANSC_STATUS_SUCCESS)
+                {
+                CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
+                //Telemetry start
+                WanMgr_Telemetry_Marker_t Marker = {0};
+                Marker.enTelemetryMarkerID = WAN_WARN_CONNECTIVITY_CHECK_STATUS_FAILED;
+                Marker.pInterface = pInterface ;
+                wanmgr_telemetry_event(&Marker);
+                //Telemetry end
+                }
+
             }
             else
 #endif
             {
-                WanMgr_Configure_TAD_WCC( p_VirtIf,  WCC_STOP);        
+               if( WanMgr_Configure_TAD_WCC( p_VirtIf,  WCC_STOP) != ANSC_STATUS_SUCCESS)
+                {
+                CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
+                //Telemetry start
+                WanMgr_Telemetry_Marker_t Marker = {0};
+                Marker.enTelemetryMarkerID = WAN_WARN_CONNECTIVITY_CHECK_STATUS_FAILED;
+                Marker.pInterface = pInterface ;
+                wanmgr_telemetry_event(&Marker);
+                //Telemetry end
+                }
+
             }
             p_VirtIf->IP.ConnectivityCheckRunning = FALSE;
             //Since we are stopping Connectivity Check, Reset ConnectivityStatus to UP.
@@ -663,7 +683,7 @@ void WanManager_UpdateInterfaceStatus(DML_VIRTUAL_IFACE* pVirtIf, wanmgr_iface_s
             memset(wan_ifname,0,sizeof(wan_ifname));
             syscfg_get(NULL, "wan_physical_ifname", wan_ifname, sizeof(wan_ifname));
             CcspTraceInfo(("%s %d Kavya syscfg wan_ifname = [%s]\n",__FUNCTION__, __LINE__,wan_ifname));
-            CcspTraceInfo(("%s %d Kavya pVirtIntf->Name = [%s]\n",__FUNCTION__, __LINE__,pVirtIntf->Name));
+            CcspTraceInfo(("%s %d Kavya pVirtIntf->Name = [%s]\n",__FUNCTION__, __LINE__,pVirtIf->Name));
 
             if(strncmp(pVirtIf->Name,wan_ifname, sizeof(wan_ifname) == 0))
             {
@@ -710,7 +730,7 @@ void WanManager_UpdateInterfaceStatus(DML_VIRTUAL_IFACE* pVirtIf, wanmgr_iface_s
             memset(wan_ifname,0,sizeof(wan_ifname));
             syscfg_get(NULL, "wan_physical_ifname", wan_ifname, sizeof(wan_ifname));
             CcspTraceInfo(("%s %d Kavya syscfg wan_ifname = [%s]\n",__FUNCTION__, __LINE__,wan_ifname));
-            CcspTraceInfo(("%s %d Kavya pVirtIntf->Name = [%s]\n",__FUNCTION__, __LINE__,pVirtIntf->Name));
+            CcspTraceInfo(("%s %d Kavya pVirtIntf->Name = [%s]\n",__FUNCTION__, __LINE__,pVirtIf->Name));
 
             if(strncmp(pVirtIf->Name,wan_ifname, sizeof(wan_ifname) == 0))
             {
@@ -761,7 +781,7 @@ void WanManager_UpdateInterfaceStatus(DML_VIRTUAL_IFACE* pVirtIf, wanmgr_iface_s
             memset(wan_ifname,0,sizeof(wan_ifname));
             syscfg_get(NULL, "wan_physical_ifname", wan_ifname, sizeof(wan_ifname));
             CcspTraceInfo(("%s %d Kavya syscfg wan_ifname = [%s]\n",__FUNCTION__, __LINE__,wan_ifname));
-            CcspTraceInfo(("%s %d Kavya pVirtIntf->Name = [%s]\n",__FUNCTION__, __LINE__,pVirtIntf->Name));
+            CcspTraceInfo(("%s %d Kavya pVirtIntf->Name = [%s]\n",__FUNCTION__, __LINE__,pVirtIf->Name));
 
             if(strncmp(pVirtIf->Name,wan_ifname, sizeof(wan_ifname) == 0))
             {
@@ -809,7 +829,7 @@ void WanManager_UpdateInterfaceStatus(DML_VIRTUAL_IFACE* pVirtIf, wanmgr_iface_s
             memset(wan_ifname,0,sizeof(wan_ifname));
             syscfg_get(NULL, "wan_physical_ifname", wan_ifname, sizeof(wan_ifname));
             CcspTraceInfo(("%s %d Kavya syscfg wan_ifname = [%s]\n",__FUNCTION__, __LINE__,wan_ifname));
-            CcspTraceInfo(("%s %d Kavya pVirtIntf->Name = [%s]\n",__FUNCTION__, __LINE__,pVirtIntf->Name));
+            CcspTraceInfo(("%s %d Kavya pVirtIntf->Name = [%s]\n",__FUNCTION__, __LINE__,pVirtIf->Name));
 
             if(strncmp(pVirtIf->Name,wan_ifname, sizeof(wan_ifname) == 0))
             {
@@ -1795,7 +1815,16 @@ static ANSC_STATUS WanMgr_StartConnectivityCheck(WanMgr_IfaceSM_Controller_t* pW
     if(pVirtIf->IP.ConnectivityCheckType == WAN_CONNECTIVITY_TYPE_TAD)
     {
         CcspTraceInfo(("%s %d ConnectivityCheck Type is TAD \n", __FUNCTION__, __LINE__));
-        WanMgr_Configure_TAD_WCC( pVirtIf, (pVirtIf->IP.ConnectivityCheckRunning && pVirtIf->IP.RestartConnectivityCheck) ? WCC_RESTART : WCC_START);
+        if(WanMgr_Configure_TAD_WCC( pVirtIf, (pVirtIf->IP.ConnectivityCheckRunning && pVirtIf->IP.RestartConnectivityCheck) ? WCC_RESTART : WCC_START) != ANSC_STATUS_SUCCESS)
+	{
+                CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
+                //Telemetry start
+                WanMgr_Telemetry_Marker_t Marker = {0};
+                Marker.enTelemetryMarkerID = WAN_WARN_CONNECTIVITY_CHECK_STATUS_FAILED;
+                Marker.pInterface = pInterface ;
+                wanmgr_telemetry_event(&Marker);
+                //Telemetry end	
+	}
         pVirtIf->IP.ConnectivityCheckRunning = TRUE;    
 	CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
         //Telemetry start
@@ -1871,7 +1900,17 @@ static ANSC_STATUS WanMgr_StopConnectivityCheck(WanMgr_IfaceSM_Controller_t* pWa
     if(pVirtIf->IP.ConnectivityCheckType == WAN_CONNECTIVITY_TYPE_TAD)
     {
         CcspTraceInfo(("%s %d ConnectivityCheck Type is TAD \n", __FUNCTION__, __LINE__));
-        WanMgr_Configure_TAD_WCC( pVirtIf,  WCC_STOP);
+        if(WanMgr_Configure_TAD_WCC( pVirtIf,  WCC_STOP) != ANSC_STATUS_SUCCESS)
+        {
+                CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
+                //Telemetry start
+                WanMgr_Telemetry_Marker_t Marker = {0};
+                Marker.enTelemetryMarkerID = WAN_WARN_CONNECTIVITY_CHECK_STATUS_FAILED;
+                Marker.pInterface = pInterface ;
+                wanmgr_telemetry_event(&Marker);
+                //Telemetry end
+        }
+
 	CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
         //Telemetry start
         WanMgr_Telemetry_Marker_t Marker = {0};
@@ -1887,7 +1926,17 @@ static ANSC_STATUS WanMgr_StopConnectivityCheck(WanMgr_IfaceSM_Controller_t* pWa
 #ifdef FEATURE_IPOE_HEALTH_CHECK
         if(pWanIfaceCtrl->IhcPid > 0)
         {
-            WanManager_StopIHC(pWanIfaceCtrl);
+           if( WanManager_StopIHC(pWanIfaceCtrl) != ANSC_STATUS_SUCCESS)
+                {
+                CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
+                //Telemetry start
+                WanMgr_Telemetry_Marker_t Marker = {0};
+                Marker.enTelemetryMarkerID = WAN_WARN_CONNECTIVITY_CHECK_STATUS_FAILED;
+                Marker.pInterface = pInterface ;
+                wanmgr_telemetry_event(&Marker);
+                //Telemetry end
+                }
+
         }
 	CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
         //Telemetry start
