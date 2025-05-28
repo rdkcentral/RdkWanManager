@@ -783,7 +783,7 @@ ANSC_STATUS WanManager_VerifyMAPTConfiguration(ipc_mapt_data_t *dhcp6cMAPTMsgBod
     return ANSC_STATUS_SUCCESS;
 }
 
-int WanManager_ProcessMAPTConfiguration(ipc_mapt_data_t *dhcp6cMAPTMsgBody, WANMGR_MAPT_CONFIG_DATA *MaptConfig, const char *baseIf, const char *vlanIf)
+int WanManager_ProcessMAPTConfiguration(ipc_mapt_data_t *dhcp6cMAPTMsgBody, WANMGR_MAPT_CONFIG_DATA *MaptConfig, const char *baseIf, const WANMGR_IPV6_DATA *ipv6Data)
 {
     /* IVI_KERNEL_SUPPORT : To Enable IVI sopprted MAPT work flow
      * NAT46_KERNEL_SUPPORT : To Enable NAT46 sopprted MAPT work flow
@@ -798,7 +798,7 @@ int WanManager_ProcessMAPTConfiguration(ipc_mapt_data_t *dhcp6cMAPTMsgBody, WANM
     char cmdEnableIpv4Traffic[BUFLEN_64] = "";
     char cmdEnableDefaultIpv4Route[BUFLEN_64] = "";
     char layer2_iface[BUFLEN_32] = {0};
-
+    const char *vlanIf = ipv6Data->ifname;
     MaptData_t maptInfo;
 
     /* Get PartnerID. In sky-uk MTU size is 1500 and else case its 1520. */
@@ -1038,8 +1038,14 @@ int WanManager_ProcessMAPTConfiguration(ipc_mapt_data_t *dhcp6cMAPTMsgBody, WANM
         return ret;
     }
 
+#if defined (_COSA_BCM_ARM_) && defined (_XB6_PRODUCT_REQ_) 
+    //Adding local.pd info for the Broadcom specific platforms to support MAP-T accelaration. TODO: this could be added generically.
+    snprintf(cmdInterfaceConfig , sizeof(cmdInterfaceConfig), "echo config %s local.style MAP local.v4 %s/%d local.v6 %s local.ea-len %d local.psid-offset %d remote.v4 0.0.0.0/0 remote.v6 %s remote.style RFC6052 remote.ea-len 0 remote.psid-offset 0 debug -1 local.pd %s > /proc/net/nat46/control",
+    MAP_INTERFACE, dhcp6cMAPTMsgBody->ruleIPv4Prefix, dhcp6cMAPTMsgBody->v4Len, dhcp6cMAPTMsgBody->ruleIPv6Prefix, dhcp6cMAPTMsgBody->eaLen, dhcp6cMAPTMsgBody->psidOffset, dhcp6cMAPTMsgBody->brIPv6Prefix, ipv6Data->sitePrefix);
+#else
     snprintf(cmdInterfaceConfig , sizeof(cmdInterfaceConfig), "echo config %s local.style MAP local.v4 %s/%d local.v6 %s local.ea-len %d local.psid-offset %d remote.v4 0.0.0.0/0 remote.v6 %s remote.style RFC6052 remote.ea-len 0 remote.psid-offset 0 debug -1 > /proc/net/nat46/control",
     MAP_INTERFACE, dhcp6cMAPTMsgBody->ruleIPv4Prefix, dhcp6cMAPTMsgBody->v4Len, dhcp6cMAPTMsgBody->ruleIPv6Prefix, dhcp6cMAPTMsgBody->eaLen, dhcp6cMAPTMsgBody->psidOffset, dhcp6cMAPTMsgBody->brIPv6Prefix);
+#endif
     if ((ret = WanManager_DoSystemActionWithStatus("map_nat46", cmdInterfaceConfig)) < RETURN_OK)
     {
         CcspTraceError(("Failed to run: %s:%d", cmdInterfaceConfig, ret));
