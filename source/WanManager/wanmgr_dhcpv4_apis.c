@@ -423,7 +423,8 @@ void WanMgr_UpdateIpFromCellularMgr (WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
                 }
 
                 //update Ipv4 data
-                wanmgr_handle_dhcpv4_event_data(p_VirtIf);
+CcspTraceInfo(("%s %d Kavya Calling wanmgr_handle_dhcpv4_event_data\n",__FUNCTION__, __LINE__));
+		wanmgr_handle_dhcpv4_event_data(p_VirtIf);
             }    
         }
         //IPv6 data

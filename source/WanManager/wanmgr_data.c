@@ -863,10 +863,10 @@ void WanMgr_VirtIface_Init(DML_VIRTUAL_IFACE * pVirtIf, UINT iface_index)
     CcspTraceInfo(("%s %d Kavya Setting initial value\n",__FUNCTION__, __LINE__));
     pVirtIf->IP.pIpcIpv4Data = NULL;
     pVirtIf->IP.pIpcIpv6Data = NULL;
-    pVirtIf->IP.pIpcIpv4Data->isExpired = FALSE;
-    pVirtIf->IP.pIpcIpv6Data->isExpired = FALSE;
+//    pVirtIf->IP.pIpcIpv4Data->isExpired = FALSE;
+//    pVirtIf->IP.pIpcIpv6Data->isExpired = FALSE;
 
-    CcspTraceInfo(("%s %d Kavya Setting Done\n",__FUNCTION__, __LINE__));
+  //  CcspTraceInfo(("%s %d Kavya Setting Done\n",__FUNCTION__, __LINE__));
     //CcspTraceInfo(("%s %d Kavya pVirtIf->IP.pIpcIpv4Data->isExpired = [%d]\n",__FUNCTION__, __LINE__,pVirtIf->IP.pIpcIpv4Data->isExpired ? 1 : 0));
     pVirtIf->MAP.MaptStatus = WAN_IFACE_MAPT_STATE_DOWN;
     memset(pVirtIf->MAP.Path, 0, 64);
