@@ -249,7 +249,7 @@ ANSC_STATUS wanmgr_handle_dhcpv4_event_data(DML_VIRTUAL_IFACE* pVirtIf)
                 CcspTraceError(("%s %d - Failed to set up system gateway", __FUNCTION__, __LINE__));
             }
         }
-
+CcspTraceInfo(("%s %d Kavya Sending WANMGR_IFACE_CONNECTION_UP..\n",__FUNCTION__, __LINE__));
         WanManager_UpdateInterfaceStatus(pVirtIf, WANMGR_IFACE_CONNECTION_UP);
     }
     else if (pDhcpcInfo->isExpired)
@@ -257,6 +257,7 @@ ANSC_STATUS wanmgr_handle_dhcpv4_event_data(DML_VIRTUAL_IFACE* pVirtIf)
         CcspTraceInfo(("DHCPC Lease expired!!!!!!!!!!\n"));
         // update current IPv4 data
         wanmgr_dchpv4_get_ipc_msg_info(&(pVirtIf->IP.Ipv4Data), pDhcpcInfo);
+CcspTraceInfo(("%s %d Kavya Sending WANMGR_IFACE_CONNECTION_DOWN..\n",__FUNCTION__, __LINE__));	
         WanManager_UpdateInterfaceStatus(pVirtIf, WANMGR_IFACE_CONNECTION_DOWN);
     }
 

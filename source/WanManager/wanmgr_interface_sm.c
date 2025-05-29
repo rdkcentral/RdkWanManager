@@ -684,18 +684,34 @@ void WanManager_UpdateInterfaceStatus(DML_VIRTUAL_IFACE* pVirtIf, wanmgr_iface_s
             syscfg_get(NULL, "wan_physical_ifname", wan_ifname, sizeof(wan_ifname));
             CcspTraceInfo(("%s %d Kavya syscfg wan_ifname = [%s]\n",__FUNCTION__, __LINE__,wan_ifname));
             CcspTraceInfo(("%s %d Kavya pVirtIntf->Name = [%s]\n",__FUNCTION__, __LINE__,pVirtIf->Name));
-
-            if(strncmp(pVirtIf->Name,wan_ifname, sizeof(wan_ifname) == 0))
-            {
+        CcspTraceInfo(("%s %d Kavya.pIntf->Selection.Status =[%d] \n",__FUNCTION__, __LINE__,pIntf->Selection.Status));
+                CcspTraceInfo(("%s %d Kavya..pVirtIf->IP.Ipv4Status = [%d]\n",__FUNCTION__, __LINE__,pVirtIf->IP.Ipv4Status));
+            if(strncmp(pVirtIf->Name,wan_ifname, sizeof(wan_ifname) != 0))
+            {CcspTraceInfo(("%s %d Kavya NOT SAME\n",__FUNCTION__, __LINE__));
+                if(pVirtIf->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_DOWN)
+                {
+                CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
+                //Telemetry start
+                WanMgr_Telemetry_Marker_t Marker = {0};
+                Marker.enTelemetryMarkerID = WAN_INFO_IPv4_UP;
+                Marker.pVirtInterface = pVirtIf;
+                wanmgr_telemetry_event(&Marker);
+                //Telemetry end
+                }
+		    
+	    }
+	    else
+	    {CcspTraceInfo(("%s %d Kavya SAME\n",__FUNCTION__, __LINE__));
 	        DML_WAN_IFACE *pIntf = NULL;	    
                 WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pVirtIf->baseIfIdx);
                 if(pWanDmlIfaceData != NULL)
-                {
+                {CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
                     pIntf = &(pWanDmlIfaceData->data);
                     WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
                 }		    
+		CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
 	        if(pIntf->Selection.Status == WAN_IFACE_ACTIVE)
-	        {
+	        {CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
 	            if(pVirtIf->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_DOWN)
 	            {
                     CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
@@ -708,19 +724,7 @@ void WanManager_UpdateInterfaceStatus(DML_VIRTUAL_IFACE* pVirtIf, wanmgr_iface_s
 	            }
 	        }
 	    }
-            else
-            {
-                if(pVirtIf->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_DOWN)
-                {
-                CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
-                //Telemetry start
-                WanMgr_Telemetry_Marker_t Marker = {0};
-                Marker.enTelemetryMarkerID = WAN_INFO_IPv4_UP;
-                Marker.pVirtInterface = pVirtIf;
-                wanmgr_telemetry_event(&Marker);
-                //Telemetry end
-                }		    
-            }
+		    CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
             pVirtIf->IP.Ipv4Status = WAN_IFACE_IPV4_STATE_UP;
             break;
         }
@@ -731,18 +735,37 @@ void WanManager_UpdateInterfaceStatus(DML_VIRTUAL_IFACE* pVirtIf, wanmgr_iface_s
             syscfg_get(NULL, "wan_physical_ifname", wan_ifname, sizeof(wan_ifname));
             CcspTraceInfo(("%s %d Kavya syscfg wan_ifname = [%s]\n",__FUNCTION__, __LINE__,wan_ifname));
             CcspTraceInfo(("%s %d Kavya pVirtIntf->Name = [%s]\n",__FUNCTION__, __LINE__,pVirtIf->Name));
-
-            if(strncmp(pVirtIf->Name,wan_ifname, sizeof(wan_ifname) == 0))
+        CcspTraceInfo(("%s %d Kavya.pIntf->Selection.Status =[%d] \n",__FUNCTION__, __LINE__,pIntf->Selection.Status));
+                CcspTraceInfo(("%s %d Kavya..pVirtIf->IP.Ipv4Status = [%d]\n",__FUNCTION__, __LINE__,pVirtIf->IP.Ipv4Status));
+            if(strncmp(pVirtIf->Name,wan_ifname, sizeof(wan_ifname) != 0))
             {
+		    CcspTraceInfo(("%s %d Kavya NOT SAME\n",__FUNCTION__, __LINE__));
+                if(pVirtIf->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_UP)
+                {
+                CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
+                //Telemetry start
+                WanMgr_Telemetry_Marker_t Marker = {0};
+                Marker.enTelemetryMarkerID = WAN_ERROR_IPv4_DOWN;
+                Marker.pVirtInterface = pVirtIf;
+                wanmgr_telemetry_event(&Marker);
+                //Telemetry end
+                }
+		    
+	    }
+	    else
+	    {
+		    CcspTraceInfo(("%s %d Kavya SAME\n",__FUNCTION__, __LINE__));
                 DML_WAN_IFACE *pIntf = NULL;
                 WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pVirtIf->baseIfIdx);
                 if(pWanDmlIfaceData != NULL)
-                {
+                {CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
                     pIntf = &(pWanDmlIfaceData->data);
                     WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
                 }
+		CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
                 if(pIntf->Selection.Status == WAN_IFACE_ACTIVE)
                 {
+			CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
                     if(pVirtIf->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_UP)
                     {
                     CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
@@ -753,19 +776,6 @@ void WanManager_UpdateInterfaceStatus(DML_VIRTUAL_IFACE* pVirtIf, wanmgr_iface_s
                     wanmgr_telemetry_event(&Marker);
                     //Telemetry end
                     }
-                }
-            }
-            else
-            {
-                if(pVirtIf->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_UP)
-                {
-                CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
-                //Telemetry start
-                WanMgr_Telemetry_Marker_t Marker = {0};
-                Marker.enTelemetryMarkerID = WAN_ERROR_IPv4_DOWN;
-                Marker.pVirtInterface = pVirtIf;
-                wanmgr_telemetry_event(&Marker);
-                //Telemetry end
                 }
             }
    		
@@ -782,18 +792,34 @@ void WanManager_UpdateInterfaceStatus(DML_VIRTUAL_IFACE* pVirtIf, wanmgr_iface_s
             syscfg_get(NULL, "wan_physical_ifname", wan_ifname, sizeof(wan_ifname));
             CcspTraceInfo(("%s %d Kavya syscfg wan_ifname = [%s]\n",__FUNCTION__, __LINE__,wan_ifname));
             CcspTraceInfo(("%s %d Kavya pVirtIntf->Name = [%s]\n",__FUNCTION__, __LINE__,pVirtIf->Name));
-
-            if(strncmp(pVirtIf->Name,wan_ifname, sizeof(wan_ifname) == 0))
-            {
+        CcspTraceInfo(("%s %d Kavya.pIntf->Selection.Status =[%d] \n",__FUNCTION__, __LINE__,pIntf->Selection.Status));
+           CcspTraceInfo(("%s %d Kavya..pVirtIf->IP.Ipv6Status = [%d]\n",__FUNCTION__, __LINE__,pVirtIf->IP.Ipv6Status));
+            if(strncmp(pVirtIf->Name,wan_ifname, sizeof(wan_ifname) != 0))
+	    {
+CcspTraceInfo(("%s %d Kavya NOT SAME\n",__FUNCTION__, __LINE__));
+                if(pVirtIf->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_DOWN)
+                {
+                CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
+                //Telemetry start
+                WanMgr_Telemetry_Marker_t Marker = {0};
+                Marker.enTelemetryMarkerID = WAN_INFO_IPv6_UP;
+                Marker.pVirtInterface = pVirtIf;
+                wanmgr_telemetry_event(&Marker);
+                //Telemetry end
+                }
+		    
+	    }
+	    else
+            {CcspTraceInfo(("%s %d Kavya SAME\n",__FUNCTION__, __LINE__));
                 DML_WAN_IFACE *pIntf = NULL;
                 WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pVirtIf->baseIfIdx);
                 if(pWanDmlIfaceData != NULL)
-                {
+                {CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
                     pIntf = &(pWanDmlIfaceData->data);
                     WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
                 }
                 if(pIntf->Selection.Status == WAN_IFACE_ACTIVE)
-                {
+                {CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
                     if(pVirtIf->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_DOWN)
                     {
                     CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
@@ -804,19 +830,6 @@ void WanManager_UpdateInterfaceStatus(DML_VIRTUAL_IFACE* pVirtIf, wanmgr_iface_s
                     wanmgr_telemetry_event(&Marker);
                     //Telemetry end
                     }
-                }
-            }
-            else
-            {
-                if(pVirtIf->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_DOWN)
-                {
-                CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
-                //Telemetry start
-                WanMgr_Telemetry_Marker_t Marker = {0};
-                Marker.enTelemetryMarkerID = WAN_INFO_IPv6_UP;
-                Marker.pVirtInterface = pVirtIf;
-                wanmgr_telemetry_event(&Marker);
-                //Telemetry end
                 }
             }
                  		
@@ -830,18 +843,36 @@ void WanManager_UpdateInterfaceStatus(DML_VIRTUAL_IFACE* pVirtIf, wanmgr_iface_s
             syscfg_get(NULL, "wan_physical_ifname", wan_ifname, sizeof(wan_ifname));
             CcspTraceInfo(("%s %d Kavya syscfg wan_ifname = [%s]\n",__FUNCTION__, __LINE__,wan_ifname));
             CcspTraceInfo(("%s %d Kavya pVirtIntf->Name = [%s]\n",__FUNCTION__, __LINE__,pVirtIf->Name));
+        CcspTraceInfo(("%s %d Kavya.pIntf->Selection.Status =[%d] \n",__FUNCTION__, __LINE__,pIntf->Selection.Status));
+           CcspTraceInfo(("%s %d Kavya..pVirtIf->IP.Ipv6Status = [%d]\n",__FUNCTION__, __LINE__,pVirtIf->IP.Ipv6Status));
 
-            if(strncmp(pVirtIf->Name,wan_ifname, sizeof(wan_ifname) == 0))
-            {
+            if(strncmp(pVirtIf->Name,wan_ifname, sizeof(wan_ifname) != 0))
+	    {
+CcspTraceInfo(("%s %d Kavya NOT SAME\n",__FUNCTION__, __LINE__));
+                if(pVirtIf->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_UP)
+                {
+                CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
+                //Telemetry start
+                WanMgr_Telemetry_Marker_t Marker = {0};
+                Marker.enTelemetryMarkerID = WAN_ERROR_IPv6_DOWN;
+                Marker.pVirtInterface = pVirtIf;
+                wanmgr_telemetry_event(&Marker);
+                //Telemetry end
+                }
+		    
+	    }
+	    else
+            {CcspTraceInfo(("%s %d Kavya SAME\n",__FUNCTION__, __LINE__));
+
                 DML_WAN_IFACE *pIntf = NULL;
                 WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pVirtIf->baseIfIdx);
                 if(pWanDmlIfaceData != NULL)
-                {
+                {CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
                     pIntf = &(pWanDmlIfaceData->data);
                     WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
                 }
                 if(pIntf->Selection.Status == WAN_IFACE_ACTIVE)
-                {
+                {CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
                     if(pVirtIf->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_UP)
                     {
                     CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
@@ -854,20 +885,6 @@ void WanManager_UpdateInterfaceStatus(DML_VIRTUAL_IFACE* pVirtIf, wanmgr_iface_s
                     }
                 }
             }
-            else
-            {
-                if(pVirtIf->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_UP)
-                {
-                CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
-                //Telemetry start
-                WanMgr_Telemetry_Marker_t Marker = {0};
-                Marker.enTelemetryMarkerID = WAN_ERROR_IPv6_DOWN;
-                Marker.pVirtInterface = pVirtIf;
-                wanmgr_telemetry_event(&Marker);
-                //Telemetry end
-                }
-            }
-
     		
             pVirtIf->IP.Ipv6Status = WAN_IFACE_IPV6_STATE_DOWN;
             pVirtIf->IP.Ipv6Changed = FALSE;
@@ -2591,6 +2608,7 @@ static eWanState_t wan_transition_ipv4_down(WanMgr_IfaceSM_Controller_t* pWanIfa
             CcspTraceInfo(("%s %d - SELFHEAL - Started dhcpc on interface %s, dhcpv4_pid %d \n", __FUNCTION__, __LINE__, p_VirtIf->Name, p_VirtIf->IP.Dhcp4cPid));
         }
     }
+    CcspTraceInfo(("%s %d Kavya Sending WANMGR_IFACE_CONNECTION_DOWN..\n",__FUNCTION__, __LINE__));
     WanManager_UpdateInterfaceStatus (p_VirtIf, WANMGR_IFACE_CONNECTION_DOWN);
 
 #if defined(_DT_WAN_Manager_Enable_)
@@ -3130,6 +3148,7 @@ CcspTraceInfo(("%s %d Kavya Sending WANMGR_IFACE_MAPT_STOP\n",__FUNCTION__, __LI
     }
 
     /* Clear DHCPv4 client */
+    CcspTraceInfo(("%s %d Kavya Sending WANMGR_IFACE_CONNECTION_DOWN..\n",__FUNCTION__, __LINE__));
     WanManager_UpdateInterfaceStatus (p_VirtIf, WANMGR_IFACE_CONNECTION_DOWN);
     memset(&(p_VirtIf->IP.Ipv4Data), 0, sizeof(WANMGR_IPV4_DATA));
     //p_VirtIf->IP.Dhcp4cPid = 0;
