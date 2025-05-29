@@ -1631,7 +1631,8 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
     {
         CcspTraceInfo(("DHCP6LeaseExpired\n"));
         // update current IPv6 data
-        WanManager_UpdateInterfaceStatus(pVirtIf, WANMGR_IFACE_CONNECTION_IPV6_DOWN);
+        CcspTraceInfo(("%s %d Kavya Sending WANMGR_IFACE_CONNECTION_IPV6_DOWN\n",__FUNCTION__, __LINE__));
+	WanManager_UpdateInterfaceStatus(pVirtIf, WANMGR_IFACE_CONNECTION_IPV6_DOWN);
 
         //Free buffer
         if (pVirtIf->IP.pIpcIpv6Data != NULL )
@@ -1688,6 +1689,7 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
             if (strcmp(pDhcp6cInfoCur->sitePrefix, pNewIpcMsg->sitePrefix) == 0)
             {
                 CcspTraceInfo(("remove prefix \n"));
+		CcspTraceInfo(("%s %d Kavya Sending WANMGR_IFACE_CONNECTION_IPV6_DOWN\n",__FUNCTION__, __LINE__));
                 WanManager_UpdateInterfaceStatus(pVirtIf, WANMGR_IFACE_CONNECTION_IPV6_DOWN);
             }
         }
@@ -1788,6 +1790,7 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
                 syscfg_set(NULL, SYSCFG_FIELD_IPV6_PREFIX, "");
                 syscfg_set(NULL, SYSCFG_FIELD_PREVIOUS_IPV6_PREFIX, "");
                 syscfg_set_commit(NULL, SYSCFG_FIELD_IPV6_PREFIX_ADDRESS, "");
+		CcspTraceInfo(("%s %d Kavya Sending WANMGR_IFACE_CONNECTION_IPV6_DOWN\n",__FUNCTION__, __LINE__));
                 WanManager_UpdateInterfaceStatus(pVirtIf, WANMGR_IFACE_CONNECTION_IPV6_DOWN);
             }
         }
@@ -1895,8 +1898,8 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
         }
         // update current IPv6 Data
         memcpy(&(pVirtIf->IP.Ipv6Data), &(Ipv6DataNew), sizeof(WANMGR_IPV6_DATA));
-        pVirtIf->IP.Ipv6Status = WAN_IFACE_IPV6_STATE_UP;
-	// update MAP-T flags
+        //pVirtIf->IP.Ipv6Status = WAN_IFACE_IPV6_STATE_UP;
+	// update IPv6 Status 
         WanManager_UpdateInterfaceStatus(pVirtIf,WANMGR_IFACE_CONNECTION_IPV6_UP);
 
     }

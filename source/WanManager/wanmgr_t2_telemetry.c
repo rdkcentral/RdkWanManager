@@ -89,7 +89,19 @@ ANSC_STATUS wanmgr_process_T2_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
         case WAN_ERROR_IPv6_DOWN:
         case WAN_INFO_MAPT_STATUS_UP:
         case WAN_ERROR_MAPT_STATUS_DOWN:
-            wanmgr_telemetry_append_key_value(WANMGR_T2_SELECTION_STATUS_STRING,(pIntf->Selection.Status == WAN_IFACE_ACTIVE) ? "Active" : (pIntf->Selection.Status == WAN_IFACE_SELECTED) ? "Selected":"Standby");
+            char wan_ifname[16] = {0};
+            memset(wan_ifname,0,sizeof(wan_ifname));
+            syscfg_get(NULL, "wan_physical_ifname", wan_ifname, sizeof(wan_ifname));
+            CcspTraceInfo(("%s %d Kavya syscfg wan_ifname = [%s]\n",__FUNCTION__, __LINE__,wan_ifname));
+            CcspTraceInfo(("%s %d Kavya pVirtIntf->Name = [%s]\n",__FUNCTION__, __LINE__,pVirtIntf->Name));
+            if(strncmp(pVirtIntf->Name,wan_ifname, sizeof(wan_ifname) != 0))
+            {
+                wanmgr_telemetry_append_key_value(WANMGR_T2_SELECTION_STATUS_STRING,(pIntf->Selection.Status == WAN_IFACE_ACTIVE) ? "Active" : (pIntf->Selection.Status == WAN_IFACE_SELECTED) ? "Selected":"Standby");
+            }
+            else
+	    {
+                wanmgr_telemetry_append_key_value(WANMGR_T2_SELECTION_STATUS_STRING,(pIntf->Selection.Status == WAN_IFACE_ACTIVE || pIntf->Selection.Status == WAN_IFACE_VALIDATING || pIntf->Selection.Status == WAN_IFACE_SELECTED ) ? "Active" : "Standby");		    
+	    }
 	    sendEventOnActiveOnly = 0;
             break;
         default:
