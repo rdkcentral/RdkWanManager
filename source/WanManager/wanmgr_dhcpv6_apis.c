@@ -1896,6 +1896,8 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
         // update current IPv6 Data
         memcpy(&(pVirtIf->IP.Ipv6Data), &(Ipv6DataNew), sizeof(WANMGR_IPV6_DATA));
         pVirtIf->IP.Ipv6Status = WAN_IFACE_IPV6_STATE_UP;
+	// update MAP-T flags
+        WanManager_UpdateInterfaceStatus(pVirtIf,WANMGR_IFACE_CONNECTION_IPV6_UP);
 
     }
 
