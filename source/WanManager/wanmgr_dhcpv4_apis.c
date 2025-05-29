@@ -84,8 +84,8 @@ static ANSC_STATUS wanmgr_dchpv4_get_ipc_msg_info(WANMGR_IPV4_DATA* pDhcpv4Data,
     memcpy(pDhcpv4Data->gateway, pIpcIpv4Data->gateway, BUFLEN_32);
     memcpy(pDhcpv4Data->dnsServer, pIpcIpv4Data->dnsServer, BUFLEN_64);
     memcpy(pDhcpv4Data->dnsServer1, pIpcIpv4Data->dnsServer1, BUFLEN_64);
-    CcspTraceInfo(("%s %d Kavya Setting IsExpired = FALSE..\n",__FUNCTION__, __LINE__));
-    pDhcpv4Data->isExpired = FALSE;
+    //CcspTraceInfo(("%s %d Kavya Setting IsExpired = FALSE..\n",__FUNCTION__, __LINE__));
+    //pDhcpv4Data->isExpired = FALSE;
 #if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
     memcpy(pDhcpv4Data->timeZone, pIpcIpv4Data->timeZone, BUFLEN_64);
     pDhcpv4Data->isTimeOffsetAssigned = pIpcIpv4Data->isTimeOffsetAssigned;
@@ -122,7 +122,7 @@ ANSC_STATUS wanmgr_handle_dhcpv4_event_data(DML_VIRTUAL_IFACE* pVirtIf)
     {
        return ANSC_STATUS_BAD_PARAMETER;
     }
-
+CcspTraceInfo(("%s %d Kavya pDhcpcInfo->isExpired = [%d]\n",__FUNCTION__, __LINE__,pDhcpcInfo->isExpired));
     CcspTraceInfo(("%s %d - Enter \n", __FUNCTION__, __LINE__));
     bool IPv4ConfigChanged = FALSE;
 

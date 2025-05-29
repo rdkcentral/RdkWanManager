@@ -89,6 +89,7 @@ ANSC_STATUS wanmgr_process_T2_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
         case WAN_ERROR_IPv6_DOWN:
         case WAN_INFO_MAPT_STATUS_UP:
         case WAN_ERROR_MAPT_STATUS_DOWN:
+	    {
             char wan_ifname[16] = {0};
             memset(wan_ifname,0,sizeof(wan_ifname));
             syscfg_get(NULL, "wan_physical_ifname", wan_ifname, sizeof(wan_ifname));
@@ -103,11 +104,13 @@ ANSC_STATUS wanmgr_process_T2_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
                 wanmgr_telemetry_append_key_value(WANMGR_T2_SELECTION_STATUS_STRING,(pIntf->Selection.Status == WAN_IFACE_ACTIVE || pIntf->Selection.Status == WAN_IFACE_VALIDATING || pIntf->Selection.Status == WAN_IFACE_SELECTED ) ? "Active" : "Standby");		    
 	    }
 	    sendEventOnActiveOnly = 0;
+	    }
             break;
         default:
 	    ;
     }
     strcat(buf,"\0");
+    CcspTraceInfo(("%s %d: Kavya Event = [%s] \n",__FUNCTION__, __LINE__,WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID]));
     CcspTraceInfo(("%s %d: Kavya Arguments = [%s] \n",__FUNCTION__, __LINE__,buf));
     //Telemetry start
     v_secure_system("echo '**********%s**********' >> /tmp/kavya_syscfg.txt",WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID]);
