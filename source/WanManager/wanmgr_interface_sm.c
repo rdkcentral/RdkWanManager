@@ -3257,10 +3257,10 @@ static eWanState_t wan_transition_standby(WanMgr_IfaceSM_Controller_t* pWanIface
     CcspTraceInfo(("%s %d - TRANSITION WAN_STATE_STANDBY\n", __FUNCTION__, __LINE__));
     CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
     //Telemetry start
-    WanMgr_Telemetry_Marker_t Marker = {0};
+    /*WanMgr_Telemetry_Marker_t Marker = {0};
     Marker.enTelemetryMarkerID = WAN_INFO_WAN_STANDBY;
     Marker.pInterface = pInterface ;
-    wanmgr_telemetry_event(&Marker);
+    wanmgr_telemetry_event(&Marker);*/
     //Telemetry end
     
     return WAN_STATE_STANDBY;

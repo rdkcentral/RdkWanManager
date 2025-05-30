@@ -253,6 +253,7 @@ CcspTraceInfo(("%s %d Kavya pDhcpcInfo->isExpired = [%d]\n",__FUNCTION__, __LINE
             }
         }
 CcspTraceInfo(("%s %d Kavya Sending WANMGR_IFACE_CONNECTION_UP..\n",__FUNCTION__, __LINE__));
+
         WanManager_UpdateInterfaceStatus(pVirtIf, WANMGR_IFACE_CONNECTION_UP);
     }
     else if (pDhcpcInfo->isExpired)
