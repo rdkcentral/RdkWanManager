@@ -4405,9 +4405,15 @@ static ANSC_STATUS WanMgr_IfaceIpcMsg_handle(WanMgr_IfaceSM_Controller_t* pWanIf
 
     if (p_VirtIf->IP.pIpcIpv4Data != NULL )
     {
+	    static AfterReboot = 1;
 	    CcspTraceInfo(("%s %d Kavya Calling wanmgr_handle_dhcpv4_event_data\n",__FUNCTION__, __LINE__));
 CcspTraceInfo(("%s %d Kavya p_VirtIf->IP.pIpcIpv4Data->isExpired = [%d] \n",__FUNCTION__, __LINE__,p_VirtIf->IP.pIpcIpv4Data->isExpired));
-p_VirtIf->IP.pIpcIpv4Data->isExpired = FALSE;
+        if (AfterReboot)
+	{
+		p_VirtIf->IP.pIpcIpv4Data->isExpired = FALSE;
+		CcspTraceInfo(("%s %d Kavya Setting isExpired to FALSE = [%d] \n",__FUNCTION__, __LINE__,p_VirtIf->IP.pIpcIpv4Data->isExpired));
+		AfterReboot = 0;
+	}
         wanmgr_handle_dhcpv4_event_data(p_VirtIf);
     }
 
