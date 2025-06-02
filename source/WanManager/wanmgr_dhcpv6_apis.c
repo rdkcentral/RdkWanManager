@@ -1900,6 +1900,7 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
         memcpy(&(pVirtIf->IP.Ipv6Data), &(Ipv6DataNew), sizeof(WANMGR_IPV6_DATA));
         //pVirtIf->IP.Ipv6Status = WAN_IFACE_IPV6_STATE_UP;
 	// update IPv6 Status 
+	CcspTraceInfo(("%s %d Kavya Sending WANMGR_IFACE_CONNECTION_IPV6_UP\n",__FUNCTION__, __LINE__));
         WanManager_UpdateInterfaceStatus(pVirtIf,WANMGR_IFACE_CONNECTION_IPV6_UP);
 
     }
