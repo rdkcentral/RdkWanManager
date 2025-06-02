@@ -83,6 +83,12 @@ ANSC_STATUS wanmgr_process_T2_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
         case WAN_INFO_CONNECTIVITY_CHECK_TYPE:
             wanmgr_telemetry_append_key_value(WANMGR_T2_WANMGR_SPLIT_VAL_STRING,WanMgr_Telemetry_ConnectivityTypeStr[pVirtIntf->IP.ConnectivityCheckType]);
             break;
+	case WAN_WARN_CONNECTIVITY_CHECK_STATUS_FAILED_IPV4:
+	    wanmgr_telemetry_append_key_value(WANMGR_T2_WANMGR_SPLIT_VAL_STRING,"IPv4");
+	    break;
+	case WAN_WARN_CONNECTIVITY_CHECK_STATUS_FAILED_IPV6:
+	    wanmgr_telemetry_append_key_value(WANMGR_T2_WANMGR_SPLIT_VAL_STRING,"IPv6");            
+	    break;
         case WAN_INFO_IPv4_UP:
         case WAN_ERROR_IPv4_DOWN:
         case WAN_INFO_IPv6_UP:
@@ -123,8 +129,8 @@ ANSC_STATUS wanmgr_process_T2_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
         char wan_ifname[16] = {0};
         memset(wan_ifname,0,sizeof(wan_ifname));
         syscfg_get(NULL, "wan_physical_ifname", wan_ifname, sizeof(wan_ifname));
-        CcspTraceInfo(("%s %d Kavya syscfg wan_ifname = [%s]\n",__FUNCTION__, __LINE__,wan_ifname));
-        CcspTraceInfo(("%s %d Kavya pVirtIntf->Name = [%s]\n",__FUNCTION__, __LINE__,pVirtIntf->Name));
+//        CcspTraceInfo(("%s %d Kavya syscfg wan_ifname = [%s]\n",__FUNCTION__, __LINE__,wan_ifname));
+//        CcspTraceInfo(("%s %d Kavya pVirtIntf->Name = [%s]\n",__FUNCTION__, __LINE__,pVirtIntf->Name));
 
         if(strncmp(pVirtIntf->Name,wan_ifname, sizeof(wan_ifname) != 0))
         {

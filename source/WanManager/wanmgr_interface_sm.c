@@ -2027,6 +2027,14 @@ static ANSC_STATUS WanMgr_SendMsgTo_ConnectivityCheck(WanMgr_IfaceSM_Controller_
             {
                 if(p_VirtIf->IP.Ipv4Renewed == TRUE && (strcmp(IHC_status, IPOE_STATUS_FAILED) == 0))
                 {
+                    CcspTraceInfo(("%s %d Kavya IPOE_STATUS_FAILED IPv4\n",__FUNCTION__, __LINE__));
+                    //Telemetry start
+                    WanMgr_Telemetry_Marker_t Marker = {0};
+                    Marker.enTelemetryMarkerID = WAN_WARN_CONNECTIVITY_CHECK_STATUS_FAILED_IPV4;
+                    Marker.pVirtInterface = p_VirtIf ;
+                    wanmgr_telemetry_event(&Marker);
+                    //Telemetry end
+			
                     //Restarting firewall to add IPOE_HEALTH_CHECK firewall rules.
                     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, NULL, 0);
                 }
@@ -2049,6 +2057,14 @@ static ANSC_STATUS WanMgr_SendMsgTo_ConnectivityCheck(WanMgr_IfaceSM_Controller_
             {
                 if(p_VirtIf->IP.Ipv6Renewed == TRUE && (strcmp(IHC_status, IPOE_STATUS_FAILED) == 0))
                 {
+                    CcspTraceInfo(("%s %d Kavya IPOE_STATUS_FAILED\n",__FUNCTION__, __LINE__));
+                    //Telemetry start
+                    WanMgr_Telemetry_Marker_t Marker = {0};
+                    Marker.enTelemetryMarkerID = WAN_WARN_CONNECTIVITY_CHECK_STATUS_FAILED_IPV6;
+                    Marker.pVirtInterface = p_VirtIf ;
+                    wanmgr_telemetry_event(&Marker);
+                    //Telemetry end
+			
                     //Restarting firewall to add IPOE_HEALTH_CHECK firewall rules.
                     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, NULL, 0);
                 }
