@@ -504,10 +504,10 @@ static void WanMgr_MonitorDhcpApps (WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
                 {
                 CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
                 //Telemetry start
-                WanMgr_Telemetry_Marker_t Marker = {0};
+                /*WanMgr_Telemetry_Marker_t Marker = {0};
                 Marker.enTelemetryMarkerID = WAN_WARN_CONNECTIVITY_CHECK_STATUS_FAILED;
                 Marker.pInterface = pInterface ;
-                wanmgr_telemetry_event(&Marker);
+                wanmgr_telemetry_event(&Marker);*/
                 //Telemetry end
                 }
 
@@ -519,10 +519,10 @@ static void WanMgr_MonitorDhcpApps (WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
                 {
                 CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
                 //Telemetry start
-                WanMgr_Telemetry_Marker_t Marker = {0};
+/*                WanMgr_Telemetry_Marker_t Marker = {0};
                 Marker.enTelemetryMarkerID = WAN_WARN_CONNECTIVITY_CHECK_STATUS_FAILED;
                 Marker.pInterface = pInterface ;
-                wanmgr_telemetry_event(&Marker);
+                wanmgr_telemetry_event(&Marker);*/
                 //Telemetry end
                 }
 
@@ -1854,10 +1854,10 @@ static ANSC_STATUS WanMgr_StartConnectivityCheck(WanMgr_IfaceSM_Controller_t* pW
 	{
                 CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
                 //Telemetry start
-                WanMgr_Telemetry_Marker_t Marker = {0};
+                /*WanMgr_Telemetry_Marker_t Marker = {0};
                 Marker.enTelemetryMarkerID = WAN_WARN_CONNECTIVITY_CHECK_STATUS_FAILED;
                 Marker.pInterface = pInterface ;
-                wanmgr_telemetry_event(&Marker);
+                wanmgr_telemetry_event(&Marker);*/
                 //Telemetry end	
 	}
         pVirtIf->IP.ConnectivityCheckRunning = TRUE;    
@@ -1890,10 +1890,10 @@ static ANSC_STATUS WanMgr_StartConnectivityCheck(WanMgr_IfaceSM_Controller_t* pW
                 CcspTraceError(("%s %d - Failed to start IPoE Health Check for interface %s \n", __FUNCTION__, __LINE__, pVirtIf->Name));
 		CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
                 //Telemetry start
-                WanMgr_Telemetry_Marker_t Marker = {0};
+                /*WanMgr_Telemetry_Marker_t Marker = {0};
                 Marker.enTelemetryMarkerID = WAN_WARN_CONNECTIVITY_CHECK_STATUS_FAILED;
                 Marker.pInterface = pInterface ;
-                wanmgr_telemetry_event(&Marker);
+                wanmgr_telemetry_event(&Marker);*/
                 //Telemetry end				
             }
             pVirtIf->IP.ConnectivityCheckRunning = TRUE;    
@@ -1939,10 +1939,10 @@ static ANSC_STATUS WanMgr_StopConnectivityCheck(WanMgr_IfaceSM_Controller_t* pWa
         {
                 CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
                 //Telemetry start
-                WanMgr_Telemetry_Marker_t Marker = {0};
+                /*WanMgr_Telemetry_Marker_t Marker = {0};
                 Marker.enTelemetryMarkerID = WAN_WARN_CONNECTIVITY_CHECK_STATUS_FAILED;
                 Marker.pInterface = pInterface ;
-                wanmgr_telemetry_event(&Marker);
+                wanmgr_telemetry_event(&Marker);*/
                 //Telemetry end
         }
 
@@ -1965,10 +1965,10 @@ static ANSC_STATUS WanMgr_StopConnectivityCheck(WanMgr_IfaceSM_Controller_t* pWa
                 {
                 CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
                 //Telemetry start
-                WanMgr_Telemetry_Marker_t Marker = {0};
+                /*WanMgr_Telemetry_Marker_t Marker = {0};
                 Marker.enTelemetryMarkerID = WAN_WARN_CONNECTIVITY_CHECK_STATUS_FAILED;
                 Marker.pInterface = pInterface ;
-                wanmgr_telemetry_event(&Marker);
+                wanmgr_telemetry_event(&Marker);*/
                 //Telemetry end
                 }
 
@@ -2020,11 +2020,13 @@ static ANSC_STATUS WanMgr_SendMsgTo_ConnectivityCheck(WanMgr_IfaceSM_Controller_
         char IHC_status[BUFLEN_16] = {0};
         if(type == CONNECTION_MSG_IPV4 && ConnStatus == TRUE)
         {
+		CcspTraceInfo(("%s %d Kavya \n",__FUNCTION__, __LINE__));
             sysevent_get(sysevent_fd, sysevent_token, IPOE_HEALTH_CHECK_V4_STATUS, IHC_status, sizeof(IHC_status));
             if(pWanIfaceCtrl->IhcV4Status == IHC_STOPPED ||
                     p_VirtIf->IP.Ipv4Changed == TRUE  ||
                     (p_VirtIf->IP.Ipv4Renewed == TRUE && (strcmp(IHC_status, IPOE_STATUS_FAILED) == 0)))
             {
+		CcspTraceInfo(("%s %d Kavya \n",__FUNCTION__, __LINE__));
                 if(p_VirtIf->IP.Ipv4Renewed == TRUE && (strcmp(IHC_status, IPOE_STATUS_FAILED) == 0))
                 {
                     CcspTraceInfo(("%s %d Kavya IPOE_STATUS_FAILED IPv4\n",__FUNCTION__, __LINE__));
@@ -2044,17 +2046,20 @@ static ANSC_STATUS WanMgr_SendMsgTo_ConnectivityCheck(WanMgr_IfaceSM_Controller_
         }
         else if(type == CONNECTION_MSG_IPV4 && ConnStatus == FALSE)
         {
+		CcspTraceInfo(("%s %d Kavya \n",__FUNCTION__, __LINE__));
                 CcspTraceInfo(("%s %d Sending IPOE_MSG_WAN_CONNECTION_DOWN \n", __FUNCTION__, __LINE__));
                 WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_DOWN, p_VirtIf->Name);
                 pWanIfaceCtrl->IhcV4Status = IHC_STOPPED;
         }
         else if(type == CONNECTION_MSG_IPV6 && ConnStatus == TRUE)
         {
+		CcspTraceInfo(("%s %d Kavya \n",__FUNCTION__, __LINE__));
             sysevent_get(sysevent_fd, sysevent_token, IPOE_HEALTH_CHECK_V6_STATUS, IHC_status, sizeof(IHC_status));
             if(pWanIfaceCtrl->IhcV6Status == IHC_STOPPED ||
                     p_VirtIf->IP.Ipv6Changed == TRUE  ||
                     (p_VirtIf->IP.Ipv6Renewed == TRUE && (strcmp(IHC_status, IPOE_STATUS_FAILED) == 0)))
             {
+		CcspTraceInfo(("%s %d Kavya \n",__FUNCTION__, __LINE__));
                 if(p_VirtIf->IP.Ipv6Renewed == TRUE && (strcmp(IHC_status, IPOE_STATUS_FAILED) == 0))
                 {
                     CcspTraceInfo(("%s %d Kavya IPOE_STATUS_FAILED\n",__FUNCTION__, __LINE__));
@@ -2074,6 +2079,7 @@ static ANSC_STATUS WanMgr_SendMsgTo_ConnectivityCheck(WanMgr_IfaceSM_Controller_
         }
         else if(type == CONNECTION_MSG_IPV6 && ConnStatus == FALSE)
         {
+		CcspTraceInfo(("%s %d Kavya \n",__FUNCTION__, __LINE__));
                 CcspTraceInfo(("%s %d Sending IPOE_MSG_WAN_CONNECTION_IPV6_DOWN \n", __FUNCTION__, __LINE__));
                 WanMgr_SendMsgToIHC(IPOE_MSG_WAN_CONNECTION_IPV6_DOWN, p_VirtIf->Name);
                 pWanIfaceCtrl->IhcV6Status = IHC_STOPPED;
@@ -2083,6 +2089,7 @@ static ANSC_STATUS WanMgr_SendMsgTo_ConnectivityCheck(WanMgr_IfaceSM_Controller_
 
     }else
     {
+		CcspTraceInfo(("%s %d Kavya \n",__FUNCTION__, __LINE__));
         CcspTraceInfo(("[%s:%d] ConnectivityCheck not configured.\n", __FUNCTION__, __LINE__));
     }
 
