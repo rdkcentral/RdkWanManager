@@ -89,6 +89,9 @@ ANSC_STATUS wanmgr_process_T2_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
 	case WAN_WARN_CONNECTIVITY_CHECK_STATUS_FAILED_IPV6:
 	    wanmgr_telemetry_append_key_value(WANMGR_T2_WANMGR_SPLIT_VAL_STRING,"IPv6");            
 	    break;
+	case WAN_WARN_IP_OBTAIN_TIMER_EXPIRED:
+            sendEventOnActiveOnly = 0;
+	    break;
         case WAN_INFO_IPv4_UP:
         case WAN_ERROR_IPv4_DOWN:
         case WAN_INFO_IPv6_UP:
@@ -116,14 +119,14 @@ ANSC_STATUS wanmgr_process_T2_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
 	    ;
     }
     strcat(buf,"\0");
-    CcspTraceInfo(("%s %d: Kavya Event = [%s] \n",__FUNCTION__, __LINE__,WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID]));
-    CcspTraceInfo(("%s %d: Kavya Arguments = [%s] \n",__FUNCTION__, __LINE__,buf));
+    CcspTraceInfo(("%s %d: Kavya Processing Event = [%s] \n",__FUNCTION__, __LINE__,WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID]));
+    CcspTraceInfo(("%s %d: Kavya With Arguments = [%s] \n",__FUNCTION__, __LINE__,buf));
     //Telemetry start
-    v_secure_system("echo '**********%s**********' >> /tmp/kavya_syscfg.txt",WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID]);
+/*    v_secure_system("echo '**********%s**********' >> /tmp/kavya_syscfg.txt",WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID]);
     v_secure_system("syscfg show | grep -i wan >> /tmp/kavya_syscfg.txt");
     v_secure_system("echo '**********%s**********' >> /tmp/kavya_sysevent.txt",WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID]);
     v_secure_system("sysevent show /tmp/sysevent.txt ; cat /tmp/sysevent.txt | grep -i wan >> /tmp/kavya_sysevent.txt");
-    
+*/    
     if(sendEventOnActiveOnly)
     {
         char wan_ifname[16] = {0};

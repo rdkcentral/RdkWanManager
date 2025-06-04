@@ -919,16 +919,19 @@ CcspTraceInfo(("%s %d Kavya case IPv6_DOWN MAP.MaptStatus = [%d]\n",__FUNCTION__
         case WANMGR_IFACE_MAPT_START:
         {
 CcspTraceInfo(("%s %d Kavya case MAPT_START MAP.MaptStatus = [%d]\n",__FUNCTION__, __LINE__,pVirtIf->MAP.MaptStatus));	
+            if(pVirtIf->MAP.MaptStatus == WAN_IFACE_MAPT_STATE_DOWN)
+            {
+	    CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
+                //Telemetry start
+                WanMgr_Telemetry_Marker_t Marker = {0};
+                Marker.enTelemetryMarkerID = WAN_INFO_MAPT_STATUS_UP;
+                Marker.pVirtInterface = pVirtIf ;
+                wanmgr_telemetry_event(&Marker);
+                //Telemetry end
+	    }
             pVirtIf->MAP.MaptStatus = WAN_IFACE_MAPT_STATE_UP;
             CcspTraceInfo(("mapt: %s \n",
                    ((iface_status == WANMGR_IFACE_MAPT_START) ? "UP" : (iface_status == WANMGR_IFACE_MAPT_STOP) ? "DOWN" : "N/A")));
-	    CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
-            //Telemetry start
-            WanMgr_Telemetry_Marker_t Marker = {0};             
-            Marker.enTelemetryMarkerID = WAN_INFO_MAPT_STATUS_UP;
-            Marker.pVirtInterface = pVirtIf ;
-            wanmgr_telemetry_event(&Marker);
-            //Telemetry end
             break;
         }
         case WANMGR_IFACE_MAPT_STOP:
