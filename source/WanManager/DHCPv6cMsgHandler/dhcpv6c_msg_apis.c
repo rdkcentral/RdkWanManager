@@ -470,7 +470,7 @@ ANSC_STATUS WanMgr_MaptParseOpt95Response
                                                 g_stMaptData.PsidOffset) != STATUS_SUCCESS )
   {
        MAPT_LOG_ERROR("MAPT Psid and IPv4 Suffix Validation Failed !!");
-       rc = memset_s (&g_stMaptData, sizeof(g_stMaptData), 0, sizeof(g_stMaptData));
+       rc = memset (&g_stMaptData, 0, sizeof(g_stMaptData));
        ERR_CHK(rc);
        ret = STATUS_FAILURE;
   }
