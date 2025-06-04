@@ -149,6 +149,7 @@ ANSC_STATUS wanmgr_sysevents_ipv6Info_init()
 {
     sysevent_set(sysevent_fd, sysevent_token,SYSEVENT_FIELD_IPV6_DOMAIN, "", 0);
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV6_CONNECTION_STATE, WAN_STATUS_DOWN, 0);
+    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV6_STATUS, "down", 0);
     syscfg_set_commit(NULL, SYSCFG_FIELD_IPV6_PREFIX_ADDRESS, "");
     return ANSC_STATUS_SUCCESS;
 }
