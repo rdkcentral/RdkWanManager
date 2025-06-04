@@ -1211,9 +1211,10 @@ static int wan_setUpIPv4(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_CURRENT_WAN_SUBNET, p_VirtIf->IP.Ipv4Data.mask, 0);
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_CURRENT_WAN_STATE, WAN_STATUS_UP, 0);
 
-    snprintf(buf, sizeof(buf), "%u", WanManager_getUpTime());
+    char syseventParam[BUFLEN_128] = {0};
 
-    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_WAN_START_TIME, buf, 0);
+    snprintf(syseventParam, sizeof(syseventParam), "%u", WanManager_getUpTime());
+    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_WAN_START_TIME, syseventParam, 0);
 
     //Enabling IP forwarding 
     CcspTraceInfo(("%s %d - net.ipv4.ip_forward set to 1 \n", __FUNCTION__, __LINE__));
@@ -1397,6 +1398,7 @@ static int wan_setUpIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
         int  uptime = 0;
         char buffer[64] = {0};
         char ifaceMacAddress[BUFLEN_128] = {0};
+        char buf[BUFLEN_128] = {0};
 
         //Get WAN uptime
         WanManager_GetDateAndUptime( buffer, &uptime );
@@ -1406,6 +1408,17 @@ static int wan_setUpIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
 
         sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_WAN_SERVICE_STATUS, WAN_STATUS_STARTED, 0);
         sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_WAN_STATUS, WAN_STATUS_STARTED, 0);
+
+        sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV6_STATUS, WAN_STATUS_UP, 0);
+        sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_WAN6_IP_ADDRESS, p_VirtIf->IP.Ipv6Data.address, 0);
+        snprintf(buf, sizeof(buf), "%s %s", p_VirtIf->IP.Ipv6Data.nameserver, p_VirtIf->IP.Ipv6Data.nameserver1);
+        sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV6_NS, buf, 0);
+        if(p_VirtIf->IP.Ipv6Data.ipv6_TimeOffset)
+        {
+            snprintf(buf, sizeof(buf), "%d", p_VirtIf->IP.Ipv6Data.ipv6_TimeOffset);
+            sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV6_TIME_OFFSET, buf, 0);
+        }
+
         CcspTraceInfo(("%s %d - wan-status event set to started \n", __FUNCTION__, __LINE__));
 
         /* Set the current WAN Interface name */
