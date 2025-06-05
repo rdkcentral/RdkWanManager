@@ -449,6 +449,8 @@ typedef enum
     WAN_STATE_IPV6_LEASED,
     WAN_STATE_DUAL_STACK_ACTIVE,
     WAN_STATE_MAPT_ACTIVE,
+    WAN_STATE_MAP_UP,
+    WAN_STATE_MAP_ACTIVE,
     WAN_STATE_REFRESHING_WAN,
     WAN_STATE_DECONFIGURING_WAN,
     WAN_STATE_STANDBY
@@ -613,6 +615,115 @@ typedef struct _WANMGR_IFACECTRL_DATA_
     WanMgr_Iface_Data_t*        pIface;
     UINT                        update;
 }WanMgr_IfaceCtrl_Data_t;
+
+typedef enum _DML_MAP_STATUS
+{
+    WAN_MAP_STATUS_DISABLED = 1,
+    WAN_MAP_STATUS_ENABLED
+} DML_MAP_STATUS;
+
+typedef enum _DML_MAP_TRANSPORT
+{
+    WAN_MAP_TRANSPORT_ENCAPSULATED = 1,
+    WAN_MAP_TRANSPORT_TRANSLATION
+} DML_MAP_TRANSPORT;
+
+typedef enum _DML_MAP_DOMAININTERFACE_STATUS
+{
+    WAN_MAPDOMAININTERFACE_STATUS_Up = 1,
+    WAN_MAPDOMAININTERFACE_STATUS_Down
+} DML_MAP_DOMAININTERFACE_STATUS;
+
+ /* Interface Stat structure */
+typedef struct _DML_MAP_DOMAININTERFACESTAT
+{
+    ULONG BytesSent;
+    ULONG BytesReceived;
+    ULONG PacketsSent;
+    ULONG PacketsReceived;
+    ULONG ErrorsSent;
+    ULONG ErrorsReceived;
+    ULONG UnicastPacketsSent;
+    ULONG UnicastPacketsReceived;
+    ULONG DiscardPacketsSent;
+    ULONG DiscardPacketsReceived;
+    ULONG MulticastPacketsSent;
+    ULONG MulticastPacketsReceived;
+    ULONG BroadcastPacketsSent;
+    ULONG BroadcastPacketsReceived;
+    ULONG UnknownProtoPacketsReceived;
+}DML_MAP_DOMAININTERFACESTAT;
+
+ /* DomainInterface structure */
+typedef struct _DML_MAP_DOMAININTERFACE
+{
+    BOOL Enable;
+    DML_MAP_DOMAININTERFACE_STATUS Status;
+    CHAR Alias[32];
+    CHAR Name[32];
+    UINT LastChange;
+    CHAR LowerLayers[32];
+    DML_MAP_DOMAININTERFACESTAT data;
+}DML_MAP_DOMAININTERFACE;
+
+ /* DomainRule structure */
+typedef struct _DML_MAP_DOMAINRULE
+{
+    BOOL Enable;
+    DML_MAP_STATUS Status;
+    CHAR Alias[32];
+    CHAR Origin[32];
+    CHAR IPv6Prefix[32];
+    CHAR IPv4Prefix[32];
+    UINT EABitsLength;
+    BOOL IsFMR;
+    UINT PSIDOffset;
+    UINT PSIDLength;
+    UINT PSID;
+    BOOL IncludeSystemPorts;
+    UINT           uiIfaceIdx;
+    UINT           uiInstanceNumber;
+}DML_MAP_DOMAINRULE;
+ /* Map Domain structure */
+typedef struct _DML_MAP_DOMAIN
+{
+    BOOL Enable;
+    DML_MAP_STATUS Status;
+    CHAR Alias[32];
+    DML_MAP_TRANSPORT TransportMode;
+    CHAR WANInterface[32];
+    CHAR IPv6Prefix[32];
+    CHAR BRIPv6Prefix[32];
+    UINT DSCPMarkPolicy;
+    UINT           uiIfaceIdx;
+    UINT           uiInstanceNumber;
+}DML_MAP_DOMAIN;
+
+typedef struct _WANMGR_MAPDOMAINRULE_DATA_
+{
+   UINT    ulTotalNumWanMapDomainRuleEntries;
+   DML_MAP_DOMAINRULE data;
+}WanMgr_Map_DomainRule_t;
+
+typedef struct _WANMGR_MAP_DOMAIN_
+{
+    DML_MAP_DOMAIN      Domaindata;
+    WanMgr_Map_DomainRule_t* pRule;
+    DML_MAP_DOMAININTERFACE data;
+}WanMgr_Map_Domain_t;
+
+typedef struct _WANMGR_MAPDOMAINCTRL_DATA_
+{
+    UINT                        ulTotalNumWanMapDomainEntries;
+    BOOL                        Enable;
+    WanMgr_Map_Domain_t*        pDomain;
+    pthread_mutex_t             mDataMutex;
+}WanMgr_MapDomainCtrl_Data_t;
+
+typedef struct WANMGR_MAP_ST
+{
+   WanMgr_MapDomainCtrl_Data_t MapDomainCtrl;
+} WANMGR_MAP_ST;
 
 typedef struct _WANMGR_DATA_ST_
 {

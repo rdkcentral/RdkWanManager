@@ -20,6 +20,14 @@
 #ifndef _WANMGR_NET_UTILS_H_
 #define _WANMGR_NET_UTILS_H_
 
+#define SYSCFG_LAN_IP_ADDRESS "lan_ipaddr"
+#define SYSCFG_LAN_NET_MASK "lan_netmask"
+#define SYSCFG_LAN_INTERFACE "lan_ifname"
+#define SYSCFG_WAN_INTERFACE "wan_ifname"
+#define SYSEVENT_FIREWALL_RESTART "firewall-restart"
+#define SYSEVENT_IGD_RESTART "igd-restart"
+#define DOM_MAPE_INS_NO 1
+
 /* ---- Include Files ---------------------------------------- */
 #include <stdio.h>
 #include <stdbool.h>
