@@ -175,6 +175,21 @@ int get_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFACE* p_Inte
 
     _ansc_memset(param_name, 0, sizeof(param_name));
     _ansc_memset(param_value, 0, sizeof(param_value));
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_SELECTION_LAST_ACTIVE_RETRY, instancenum);
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
+    if (retPsmGet == CCSP_SUCCESS)
+    {
+        _ansc_sscanf(param_value, "%d", &(p_Interface->Selection.LastActiveInterfaceRetries));
+        //LastActiveInterfaceRetries should be greater than 0 and less than 10
+        if (p_Interface->Selection.LastActiveInterfaceRetries <= 0 || p_Interface->Selection.LastActiveInterfaceRetries > 10)
+        {
+            CcspTraceError(("%s %d LastActiveInterfaceRetries value is invalid. Resetting to default. \n", __FUNCTION__, __LINE__));
+            p_Interface->Selection.LastActiveInterfaceRetries = 1;
+        }
+    }
+
+    _ansc_memset(param_name, 0, sizeof(param_name));
+    _ansc_memset(param_value, 0, sizeof(param_value));
     _ansc_sprintf(param_name, PSM_WANMANAGER_IF_SELECTION_GROUP, instancenum);
     retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
     if (retPsmGet == CCSP_SUCCESS)
@@ -442,6 +457,12 @@ int write_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFACE* p_In
     memset(param_name, 0, sizeof(param_name));
     _ansc_sprintf(param_value, "%d", p_Interface->Selection.Timeout );
     _ansc_sprintf(param_name, PSM_WANMANAGER_IF_SELECTION_TIMEOUT, instancenum);
+    WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
+
+    memset(param_value, 0, sizeof(param_value));
+    memset(param_name, 0, sizeof(param_name));
+    _ansc_sprintf(param_value, "%d", p_Interface->Selection.LastActiveInterfaceRetries );
+    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_SELECTION_LAST_ACTIVE_RETRY, instancenum);
     WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
 
     memset(param_value, 0, sizeof(param_value));
