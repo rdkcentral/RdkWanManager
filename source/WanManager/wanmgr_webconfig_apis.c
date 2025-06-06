@@ -96,21 +96,23 @@ CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
     // update interface specific config
     uiTotalIfaces = WanIf_GetEntryCount(NULL);
 
-CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
+CcspTraceInfo(("%s:%d KAVYA_CRASH uiTotalIfaces =[%d] \n",__FUNCTION__,__LINE__,uiTotalIfaces));
         for( i = 0; i < pWebConfig->ifCount; i++ ) // Iterate for each interface in blob
         {
-CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
+CcspTraceInfo(("%s:%d KAVYA_CRASH i = [%d]\n",__FUNCTION__,__LINE__,i));
             WebConfig_Wan_Interface_Table_t *pIfCfg = &(pWebConfig->ifTable[i]);
             CcspTraceInfo(("%s : Processing Interface: %s..\n",__FUNCTION__, pWebConfig->ifTable[i].name));
 
             for(j = 0; j < uiTotalIfaces; j++) // Find the interface in dml with same name of the current blob entry
             {
-CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
+CcspTraceInfo(("%s:%d KAVYA_CRASH j = [%d]\n",__FUNCTION__,__LINE__,j));
                 pWanDmlIfaceData = WanIf_GetEntry(NULL, j, &ifInsNum);
 CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                 if(pWanDmlIfaceData != NULL)
                 {
-CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
+//			DML_WAN_IFACE *pIntf = &(pWanDmlIfaceData->data);
+CcspTraceInfo(("%s:%d KAVYA_CRASH pWanDmlIfaceData->data.uiIfaceIdx = [%d] \n",__FUNCTION__,__LINE__,pWanDmlIfaceData->data.uiIfaceIdx));
+
                     memset(dmlIfName, 0, sizeof(dmlIfName));
                     nameLength = sizeof(dmlIfName);
                     if(ANSC_STATUS_SUCCESS == WanIf_GetParamStringValue((ANSC_HANDLE)pWanDmlIfaceData,
