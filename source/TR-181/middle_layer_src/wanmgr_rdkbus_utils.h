@@ -224,4 +224,17 @@ ANSC_STATUS WanMgr_SetConnectivityCheckTypeToPSM(DML_VIRTUAL_IFACE* pVirtIf, CON
  */
 void Wanmgr_TriggerReboot();
 
+/**
+ * @brief Checks if the system is operating in Bridge Mode based on the 
+ *        configuration from the PandM module.
+ *
+ * This function determines whether the current LAN bridge configuration
+ * is set to Bridge Mode by querying the PandM  module.
+ *
+ * @return BOOL
+ *         - TRUE if the system is in Bridge Mode.
+ *         - FALSE otherwise.
+ */
+
+ BOOL WanMgr_isBridgeModeEnabled();
 #endif /* _WANMGR_RDKBUS_UTILS_H_ */

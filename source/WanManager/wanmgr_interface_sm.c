@@ -40,7 +40,6 @@
 #endif
 
 #define IF_SIZE      32
-#define DEFAULT_IFNAME    "erouter0"
 #define LOOP_TIMEOUT 50000 // timeout in microseconds. This is the state machine loop interval
 #define RESOLV_CONF_FILE "/etc/resolv.conf"
 #define LOOPBACK "127.0.0.1"
@@ -941,6 +940,16 @@ int wan_updateDNS(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl, BOOL addIPv4, BOOL
 
     if(resolv_conf_changed)
     {
+#if (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_))
+        //TODO: this is a workaround for the devices using the primary DNS for the backup interfaces. CurrentActiveDNS may not have the right value. 
+        WanMgr_Config_Data_t*   pWanConfigData = WanMgr_GetConfigData_locked();
+        if (pWanConfigData != NULL)
+        {
+            DML_WANMGR_CONFIG* pWanDmlData = &(pWanConfigData->data);
+            memset(pWanDmlData->CurrentActiveDNS, 0, sizeof(pWanDmlData->CurrentActiveDNS));
+            WanMgrDml_GetConfigData_release(pWanConfigData);
+        }
+#endif
         Update_Interface_Status();
     }
 
@@ -1059,7 +1068,7 @@ static void updateInterfaceToVoiceManager(WanMgr_IfaceSM_Controller_t* pWanIface
         // Update the Interface name after auto wan sesning is complete.
         // When interface is down (due to cable removal etc) set Interface name to empty string
         if (voip_started)
-            strncpy(voipIfName, DEFAULT_IFNAME, sizeof(voipIfName));
+            strncpy(voipIfName, p_VirtIf->Name, sizeof(voipIfName));
 
         /* If there is a VOIP interface present, then do not update DATA vlan name to TelecoVoiceManager. */
         for(int virIf_id=0; virIf_id< pWanIfaceData->NoOfVirtIfs; virIf_id++)
@@ -2756,7 +2765,7 @@ static eWanState_t wan_transition_mapt_up(WanMgr_IfaceSM_Controller_t* pWanIface
     v_secure_system("sysctl -w net.ipv4.ip_forward=1");
 
     /* Configure MAPT. */
-    if (WanManager_ProcessMAPTConfiguration(&(p_VirtIf->MAP.dhcp6cMAPTparameters), &(p_VirtIf->MAP.MaptConfig), pInterface->Name, p_VirtIf->IP.Ipv6Data.ifname) != RETURN_OK)
+    if (WanManager_ProcessMAPTConfiguration(&(p_VirtIf->MAP.dhcp6cMAPTparameters), &(p_VirtIf->MAP.MaptConfig), pInterface->Name, &(p_VirtIf->IP.Ipv6Data)) != RETURN_OK)
     {
         CcspTraceError(("%s %d - Error processing MAP-T Parameters \n", __FUNCTION__, __LINE__));
         CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION to State=%d \n", __FUNCTION__, __LINE__, pInterface->Name, p_VirtIf->eCurrentState));
@@ -2764,6 +2773,7 @@ static eWanState_t wan_transition_mapt_up(WanMgr_IfaceSM_Controller_t* pWanIface
     }
 
     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, NULL, 0);
+    wanmgr_services_restart();
 
     CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION WAN_STATE_MAPT_ACTIVE\n", __FUNCTION__, __LINE__, pInterface->Name));
     return WAN_STATE_MAPT_ACTIVE;
@@ -3794,7 +3804,7 @@ static eWanState_t wan_state_mapt_active(WanMgr_IfaceSM_Controller_t* pWanIfaceC
                 if (WanManager_VerifyMAPTConfiguration(&(p_VirtIf->MAP.dhcp6cMAPTparameters), &(p_VirtIf->MAP.MaptConfig)) == ANSC_STATUS_SUCCESS)
                 {
                     CcspTraceInfo(("%s %d - MAPT Configuration verification success \n", __FUNCTION__, __LINE__));
-                    if (WanManager_ProcessMAPTConfiguration(&(p_VirtIf->MAP.dhcp6cMAPTparameters), &(p_VirtIf->MAP.MaptConfig), pInterface->Name, p_VirtIf->IP.Ipv6Data.ifname) == RETURN_OK)
+                    if (WanManager_ProcessMAPTConfiguration(&(p_VirtIf->MAP.dhcp6cMAPTparameters), &(p_VirtIf->MAP.MaptConfig), pInterface->Name, &(p_VirtIf->IP.Ipv6Data)) == RETURN_OK)
                     {
                         p_VirtIf->MAP.MaptChanged = FALSE;
                         CcspTraceInfo(("%s %d - Successfully updated MAP-T configure Changes for %s Interface \n", __FUNCTION__, __LINE__, p_VirtIf->Name));

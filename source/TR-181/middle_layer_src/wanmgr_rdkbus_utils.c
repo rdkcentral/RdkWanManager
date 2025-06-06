@@ -1152,3 +1152,43 @@ void Wanmgr_TriggerReboot()
         CcspTraceError(("%s %d: WanManager Failed to trigger reboot \n", __FUNCTION__, __LINE__));
     }
 }
+
+#define TR181_LANMODE_PARAM "Device.X_CISCO_COM_DeviceControl.LanManagementEntry.1.LanMode"
+
+/**
+ * @brief Checks if the system is operating in Bridge Mode based on the 
+ *        configuration from the PandM module.
+ *
+ * This function determines whether the current LAN bridge configuration
+ * is set to Bridge Mode by querying the PandM  module.
+ *
+ * @return BOOL
+ *         - TRUE if the system is in Bridge Mode.
+ *         - FALSE otherwise.
+ */
+
+BOOL WanMgr_isBridgeModeEnabled()
+{
+    char dmlValue[64] = {0};
+
+    //Query
+    if (ANSC_STATUS_FAILURE == WanMgr_RdkBus_GetParamValues(PAM_COMPONENT_NAME, PAM_DBUS_PATH, TR181_LANMODE_PARAM, dmlValue))
+    {
+        CcspTraceError(("[%s][%d] Failed to get param value\n", __FUNCTION__, __LINE__));
+        return FALSE;
+    }
+
+    //Possible DML values  bridge-dhcp,bridge-static,router
+    if(strcmp(dmlValue, "bridge-dhcp") == 0 || strcmp(dmlValue, "bridge-static") == 0 || strcmp(dmlValue, "full-bridge-static") == 0)
+    {
+        CcspTraceInfo(("%s %d - CPE is in Bridge Mode\n", __FUNCTION__, __LINE__));
+        return TRUE;
+    }
+    else
+    {
+        CcspTraceInfo(("%s %d - CPE is in Router Mode\n", __FUNCTION__, __LINE__));
+        return FALSE;
+    }
+
+    return FALSE;
+}
