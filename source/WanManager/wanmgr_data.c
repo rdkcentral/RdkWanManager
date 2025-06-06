@@ -347,19 +347,28 @@ UINT WanMgr_IfaceData_GetTotalWanIface(void)
 
 WanMgr_Iface_Data_t* WanMgr_GetIfaceData_locked(UINT iface_index)
 {
+	CcspTraceInfo(("%s:%d KAVYA_CRASH [%d] \n", __FUNCTION__, __LINE__,iface_index));
     if(pthread_mutex_lock(&gWanMgrDataBase.gDataMutex) == 0)
     {
+	    CcspTraceInfo(("%s:%d KAVYA_CRASH \n", __FUNCTION__, __LINE__));
         WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl = &(gWanMgrDataBase.IfaceCtrl);
+	    CcspTraceInfo(("%s:%d KAVYA_CRASH \n", __FUNCTION__, __LINE__));
         if(iface_index < pWanIfaceCtrl->ulTotalNumbWanInterfaces)
         {
+	    CcspTraceInfo(("%s:%d KAVYA_CRASH \n", __FUNCTION__, __LINE__));
             if(pWanIfaceCtrl->pIface != NULL)
             {
+	    CcspTraceInfo(("%s:%d KAVYA_CRASH \n", __FUNCTION__, __LINE__));
                 WanMgr_Iface_Data_t* pWanIfaceData = &(pWanIfaceCtrl->pIface[iface_index]);
+	    CcspTraceInfo(("%s:%d KAVYA_CRASH \n", __FUNCTION__, __LINE__));
                 return pWanIfaceData;
             }
+	    CcspTraceInfo(("%s:%d KAVYA_CRASH \n", __FUNCTION__, __LINE__));
         }
+	    CcspTraceInfo(("%s:%d KAVYA_CRASH \n", __FUNCTION__, __LINE__));
         WanMgrDml_GetIfaceData_release(NULL);
     }
+	    CcspTraceInfo(("%s:%d KAVYA_CRASH \n", __FUNCTION__, __LINE__));
 
     return NULL;
 }
