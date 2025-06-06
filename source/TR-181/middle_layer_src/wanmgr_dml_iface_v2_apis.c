@@ -266,7 +266,7 @@ CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
     if(pIfaceDmlEntry != NULL)
     {
 CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
-	if(pIfaceDmlEntry->data != NULL)
+/*	if(pIfaceDmlEntry->data != NULL)
 	{
 CcspTraceInfo(("%s:%d KAVYA_CRASH Index = [%d]\n",__FUNCTION__,__LINE__,pIfaceDmlEntry->data.uiIfaceIdx));
 	}
@@ -274,7 +274,7 @@ CcspTraceInfo(("%s:%d KAVYA_CRASH Index = [%d]\n",__FUNCTION__,__LINE__,pIfaceDm
 	{
 CcspTraceInfo(("%s:%d KAVYA_CRASH data NULL\n",__FUNCTION__,__LINE__));
 return 0;
-	}
+	}*/
         WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pIfaceDmlEntry->data.uiIfaceIdx);
 CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
         if(pWanDmlIfaceData != NULL)
