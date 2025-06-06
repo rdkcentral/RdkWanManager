@@ -258,7 +258,7 @@ WanIf_Synchronize
 **********************************************************************/
 ULONG WanIf_GetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, char* pValue, ULONG* pUlSize)
 {
-CcspTraceInfo(("%s:%d KAVYA_CRASH Enter\n",__FUNCTION__,__LINE__));
+CcspTraceInfo(("%s:%d KAVYA_CRASH Enter ParamName = [%s]\n",__FUNCTION__,__LINE__,ParamName));
     ULONG ret = -1;
 
     WanMgr_Iface_Data_t* pIfaceDmlEntry = (WanMgr_Iface_Data_t*) hInsContext;
@@ -268,6 +268,7 @@ CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
 CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
 CcspTraceInfo(("%s:%d KAVYA_CRASH Index = [%d]\n",__FUNCTION__,__LINE__,pIfaceDmlEntry->data.uiIfaceIdx));
         WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pIfaceDmlEntry->data.uiIfaceIdx);
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
         if(pWanDmlIfaceData != NULL)
         {
 CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
