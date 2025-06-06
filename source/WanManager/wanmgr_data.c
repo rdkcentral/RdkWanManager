@@ -20,6 +20,7 @@
 
 #include "wanmgr_data.h"
 #include "wanmgr_rdkbus_apis.h"
+#include "wanmgr_telemetry.h"
 
 #if defined(WAN_MANAGER_UNIFICATION_ENABLED) && (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_))
 extern ANSC_STATUS WanMgr_CheckAndResetV2PSMEntries(UINT IfaceCount);
@@ -359,7 +360,6 @@ WanMgr_Iface_Data_t* WanMgr_GetIfaceData_locked(UINT iface_index)
         }
         WanMgrDml_GetIfaceData_release(NULL);
     }
-
     return NULL;
 }
 
@@ -859,8 +859,14 @@ void WanMgr_VirtIface_Init(DML_VIRTUAL_IFACE * pVirtIf, UINT iface_index)
     pVirtIf->IP.Ipv6Renewed = FALSE;
     memset(&(pVirtIf->IP.Ipv4Data), 0, sizeof(WANMGR_IPV4_DATA));
     memset(&(pVirtIf->IP.Ipv6Data), 0, sizeof(WANMGR_IPV6_DATA));
+    CcspTraceInfo(("%s %d Kavya Setting initial value\n",__FUNCTION__, __LINE__));
     pVirtIf->IP.pIpcIpv4Data = NULL;
     pVirtIf->IP.pIpcIpv6Data = NULL;
+//    pVirtIf->IP.pIpcIpv4Data->isExpired = FALSE;
+//    pVirtIf->IP.pIpcIpv6Data->isExpired = FALSE;
+
+  //  CcspTraceInfo(("%s %d Kavya Setting Done\n",__FUNCTION__, __LINE__));
+    //CcspTraceInfo(("%s %d Kavya pVirtIf->IP.pIpcIpv4Data->isExpired = [%d]\n",__FUNCTION__, __LINE__,pVirtIf->IP.pIpcIpv4Data->isExpired ? 1 : 0));
     pVirtIf->MAP.MaptStatus = WAN_IFACE_MAPT_STATE_DOWN;
     memset(pVirtIf->MAP.Path, 0, 64);
     pVirtIf->MAP.MaptChanged = FALSE;
@@ -972,6 +978,12 @@ ANSC_STATUS WanMgr_Remote_IfaceData_configure(char *remoteCPEMac, int  *iface_in
                 p_VirtIf->baseIfIdx = *iface_index; //Add base interface index 
                 p_VirtIf->Enable = TRUE;
                 p_VirtIf->IP.IPv6Source = DML_WAN_IP_SOURCE_STATIC;
+		CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
+                //Telemetry start
+                WanMgr_Telemetry_Marker_t Marker = {0};
+                Marker.enTelemetryMarkerID = WAN_INFO_IPv6_CONFIG_TYPE;
+                Marker.pVirtInterface = p_VirtIf ;
+                wanmgr_telemetry_event(&Marker);			
                 strncpy(p_VirtIf->Name, REMOTE_INTERFACE_NAME, sizeof(p_VirtIf->Name));
                 //setting DNS Connectivity Check for Remote Interface from PSM Wan Interface 1.
                 get_Remote_Virtual_Interface_FromPSM(1, i, p_VirtIf);

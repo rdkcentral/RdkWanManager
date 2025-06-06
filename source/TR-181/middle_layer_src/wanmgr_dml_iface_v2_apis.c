@@ -43,7 +43,7 @@
 #if defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_)
 #include "wanmgr_utils.h"
 #endif
-
+#include "wanmgr_telemetry.h"
 extern WANMGR_DATA_ST gWanMgrDataBase;
 /***********************************************************************
 
@@ -258,27 +258,45 @@ WanIf_Synchronize
 **********************************************************************/
 ULONG WanIf_GetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, char* pValue, ULONG* pUlSize)
 {
+CcspTraceInfo(("%s:%d KAVYA_CRASH Enter ParamName = [%s]\n",__FUNCTION__,__LINE__,ParamName));
     ULONG ret = -1;
 
     WanMgr_Iface_Data_t* pIfaceDmlEntry = (WanMgr_Iface_Data_t*) hInsContext;
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
     if(pIfaceDmlEntry != NULL)
     {
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
+/*	if(pIfaceDmlEntry->data != NULL)
+	{
+CcspTraceInfo(("%s:%d KAVYA_CRASH Index = [%d]\n",__FUNCTION__,__LINE__,pIfaceDmlEntry->data.uiIfaceIdx));
+	}
+	else
+	{
+CcspTraceInfo(("%s:%d KAVYA_CRASH data NULL\n",__FUNCTION__,__LINE__));
+return 0;
+	}*/
         WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pIfaceDmlEntry->data.uiIfaceIdx);
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
         if(pWanDmlIfaceData != NULL)
         {
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
             DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
 
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
             ///* check the parameter name and return the corresponding value */
             if (strcmp(ParamName, "Name") == 0)
             {
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                /* collect value */
                if ( ( sizeof( pWanDmlIface->Name ) - 1 ) < *pUlSize )
                {
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                    AnscCopyString( pValue, pWanDmlIface->Name );
                    ret = 0;
                }
                else
                {
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                    *pUlSize = sizeof( pWanDmlIface->Name );
                    ret = 1;
                }
@@ -286,21 +304,25 @@ ULONG WanIf_GetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, char* 
 #if !RBUS_BUILD_FLAG_ENABLE
             else if (strcmp(ParamName, "Alias") == 0)
             {
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                /* collect value */
                if ( ( sizeof( pWanDmlIface->AliasName ) - 1 ) < *pUlSize )
                {
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                    AnscCopyString( pValue, pWanDmlIface->AliasName );
                    ret = 0;
                }
                else
                {
                    *pUlSize = sizeof( pWanDmlIface->AliasName );
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                    ret = 1;
                }
             }
 #endif
             else if (strcmp(ParamName, "AliasName") == 0)
             {
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                /* collect value */
                if ( ( sizeof( pWanDmlIface->AliasName ) - 1 ) < *pUlSize )
                {
@@ -315,6 +337,7 @@ ULONG WanIf_GetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, char* 
             }
             else if (strcmp(ParamName, "DisplayName") == 0)
             {
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                /* collect value */
                if ( ( sizeof( pWanDmlIface->DisplayName ) - 1 ) < *pUlSize )
                {
@@ -330,6 +353,7 @@ ULONG WanIf_GetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, char* 
 
             if (strcmp(ParamName, "CustomConfigPath") == 0)
             {
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                /* collect value */
                if ( ( sizeof( pWanDmlIface->CustomConfigPath ) - 1 ) < *pUlSize )
                {
@@ -345,6 +369,7 @@ ULONG WanIf_GetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, char* 
 
             if (strcmp(ParamName, "BaseInterface") == 0)
             {
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                /* collect value */
                if ( ( sizeof( pWanDmlIface->BaseInterface ) - 1 ) < *pUlSize )
                {
@@ -359,6 +384,7 @@ ULONG WanIf_GetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, char* 
             }
 
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
         }
     }
 
