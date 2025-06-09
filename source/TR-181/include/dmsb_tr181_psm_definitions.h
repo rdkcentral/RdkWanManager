@@ -103,6 +103,7 @@
 #define PSM_SELFHEAL_REBOOT_STATUS                          "dmsb.selfheal.rebootstatus"
 
 #define PSM_MESH_WAN_IFNAME                                     "dmsb.Mesh.WAN.Interface.Name"
+#define PSM_MESH_WAN_DHCPv4                                     "dmsb.Mesh.WAN.Interface.DHCPV4Interface"
 
 /**********************************************************************
                        Interface.{i}.Marking.{i}.
