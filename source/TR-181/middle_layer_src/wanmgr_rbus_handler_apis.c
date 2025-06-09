@@ -793,7 +793,7 @@ static void WanMgr_Rbus_EventReceiveHandler(rbusHandle_t handle, rbusEvent_t con
                     WanMgr_StringToEnum(&pWanIfaceData->VirtIfList->VLAN.Status, ENUM_WAN_LINKSTATUS, pValue);
                     if(pWanIfaceData->VirtIfList->VLAN.Status == WAN_IFACE_LINKSTATUS_UP)
                     {
-                        WanMgr_getRemoteWanIfName(pWanIfaceData->VirtIfList->Name, sizeof(pWanIfaceData->VirtIfList->Name));
+                        WanMgr_getRemoteWanParamsFromPSM(pWanIfaceData->VirtIfList);
                     }
                 }
                 else if( strstr(pParamName, WANMGR_INFACE_WAN_STATUS_SUFFIX) != NULL )

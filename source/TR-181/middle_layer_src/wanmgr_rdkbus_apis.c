@@ -402,24 +402,35 @@ int get_Remote_Virtual_Interface_FromPSM(ULONG instancenum, ULONG virtInsNum ,DM
     }
 }
 
-void WanMgr_getRemoteWanIfName(char *IfaceName,int Size)
+void WanMgr_getRemoteWanParamsFromPSM(DML_VIRTUAL_IFACE * pVirtIf)
 {
-    char* val=NULL;
-    if (PSM_Get_Record_Value2(bus_handle, g_Subsystem,PSM_MESH_WAN_IFNAME , NULL, &val) != CCSP_SUCCESS )
+    char param_value[256] = {0};
+    int retPsmGet = CCSP_SUCCESS;
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(PSM_MESH_WAN_IFNAME,param_value,sizeof(param_value));
+    if(retPsmGet == CCSP_SUCCESS)
     {
-        CcspTraceError(("%s-%d :Failed to Read PSM %s , So Set Default Remote Wan Interface Name\n", __FUNCTION__, __LINE__, PSM_MESH_WAN_IFNAME));
-    }
-    if (val)
-    {
-        snprintf(IfaceName,Size,"%s",val);
-        ((CCSP_MESSAGE_BUS_INFO *)bus_handle)->freefunc(val);
+        snprintf(pVirtIf->Name,sizeof(pVirtIf->Name),"%s",param_value);
     }
     else
     {
-        snprintf(IfaceName,Size,"%s",REMOTE_INTERFACE_NAME);
+        CcspTraceError(("%s-%d :Failed to get Remote WAN IfName from PSM, using default\n", __FUNCTION__, __LINE__));
+        snprintf(pVirtIf->Name,sizeof(pVirtIf->Name),"%s",REMOTE_INTERFACE_NAME);
     }
 
-    CcspTraceWarning(("%s-%d :Remote WAN IfName is (%s)\n", __FUNCTION__, __LINE__, IfaceName));
+    CcspTraceWarning(("%s-%d :Remote WAN IfName is (%s)\n", __FUNCTION__, __LINE__, pVirtIf->Name));
+
+    memset(param_value, 0, sizeof(param_value));
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(PSM_MESH_WAN_DHCPv4,param_value,sizeof(param_value));
+
+    if(retPsmGet == CCSP_SUCCESS)
+    {
+        snprintf(pVirtIf->IP.DHCPv4Iface,sizeof(pVirtIf->IP.DHCPv4Iface),"%s",param_value);
+    }
+    else
+    {
+        CcspTraceError(("%s-%d :Failed to get Remote WAN DHCP interface from PSM,\n", __FUNCTION__, __LINE__));
+    }
+
     return;
 }
 
