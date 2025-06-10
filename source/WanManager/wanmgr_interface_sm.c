@@ -697,7 +697,7 @@ void WanManager_UpdateInterfaceStatus(DML_VIRTUAL_IFACE* pVirtIf, wanmgr_iface_s
                 //Telemetry start
                 WanMgr_Telemetry_Marker_t Marker = {0};
                 Marker.enTelemetryMarkerID = WAN_ERROR_WAN_DOWN;
-                Marker.pInterface = pInterface ;
+                Marker.pVirtInterface = pVirtIf;
                 wanmgr_telemetry_event(&Marker);
                 //Telemetry end		    
 	    }
@@ -757,7 +757,7 @@ void WanManager_UpdateInterfaceStatus(DML_VIRTUAL_IFACE* pVirtIf, wanmgr_iface_s
                 //Telemetry start
                 WanMgr_Telemetry_Marker_t Marker = {0};
                 Marker.enTelemetryMarkerID = WAN_ERROR_WAN_DOWN;
-                Marker.pInterface = pInterface ;
+                Marker.pVirtInterface = pVirtIf;
                 wanmgr_telemetry_event(&Marker);
                 //Telemetry end
             }
