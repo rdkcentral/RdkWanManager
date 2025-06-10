@@ -2118,7 +2118,7 @@ BOOL WanIfIpCfg_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULO
                 //Telemetry start
                 WanMgr_Telemetry_Marker_t Marker = {0};
                 Marker.enTelemetryMarkerID = WAN_INFO_IP_MODE;
-                Marker.pVirtInterface = pVirtIf;
+                Marker.pVirtInterface = p_VirtIf;
                 wanmgr_telemetry_event(&Marker);
                 //Telemetry end		
             }
