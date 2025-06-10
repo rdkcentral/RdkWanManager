@@ -89,6 +89,12 @@ ANSC_STATUS wanmgr_process_T2_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
 	case WAN_WARN_CONNECTIVITY_CHECK_STATUS_FAILED_IPV6:
 	    wanmgr_telemetry_append_key_value(WANMGR_T2_WANMGR_SPLIT_VAL_STRING,"IPv6");            
 	    break;
+	case WAN_WARN_CONNECTIVITY_CHECK_STATUS_IDLE_IPV4:
+	    wanmgr_telemetry_append_key_value(WANMGR_T2_WANMGR_SPLIT_VAL_STRING,"IPv4");
+	    break;
+	case WAN_WARN_CONNECTIVITY_CHECK_STATUS_IDLE_IPV6:
+	    wanmgr_telemetry_append_key_value(WANMGR_T2_WANMGR_SPLIT_VAL_STRING,"IPv6");
+	    break;
 	case WAN_WARN_IP_OBTAIN_TIMER_EXPIRED:
             sendEventOnActiveOnly = 0;
 	    break;
