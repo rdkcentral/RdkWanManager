@@ -174,11 +174,13 @@ CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                     {
 CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                         pCxtLink = Marking_GetEntry((ANSC_HANDLE)pWanDmlIfaceData, markIdx, &insNum);
-                        if (pCxtLink)
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
+                        if (pCxtLink != NULL)
                         {
 CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                             memset(dmlAlias, 0, sizeof(dmlAlias));
                             nameLength = sizeof(dmlAlias);
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                             if(ANSC_STATUS_SUCCESS == Marking_GetParamStringValue((ANSC_HANDLE)pCxtLink,
                                         PARAM_NAME_MARK_ALIAS, dmlAlias, &nameLength))
                             {
@@ -189,12 +191,17 @@ CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                                     //Alias already present, update the entry
                                     CcspTraceInfo(("%s : Alias already present, Entry would be updated ..\n",
                                                 __FUNCTION__));
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                                     Marking_SetParamIntValue((ANSC_HANDLE) pCxtLink, PARAM_NAME_ETHERNET_PRIORITY_MARK,
                                             pWebConfig->ifTable[i].markingTable[j].ethernetPriorityMark);
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                                     pCxtLink->bNew = false;
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                                     CcspTraceInfo(("%s : Committing marking entry instance: %lu..\n",
                                                 __FUNCTION__, insNum));
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                                     Marking_Commit((ANSC_HANDLE)pCxtLink);
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                                     break;
                                 }
                             }
@@ -225,16 +232,20 @@ CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                                         markingPath, insNum));
                             pCxtLink = Marking_GetEntry((ANSC_HANDLE)pWanDmlIfaceData, markingCount, &insNum);
 
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                             if(pCxtLink)
                             {
 CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                                 CcspTraceInfo(("%s : Fetched new entry , instnce-number: %lu..\n", __FUNCTION__, insNum));
                                 Marking_SetParamStringValue((ANSC_HANDLE)pCxtLink, PARAM_NAME_MARK_ALIAS, alias);
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                                 Marking_SetParamIntValue((ANSC_HANDLE)pCxtLink, PARAM_NAME_ETHERNET_PRIORITY_MARK,
                                         pWebConfig->ifTable[i].markingTable[j].ethernetPriorityMark);
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                                 pCxtLink->bNew = true;
                                 CcspTraceInfo(("%s : Committing marking entry instance: %lu ..\n", __FUNCTION__, insNum));
                                 Marking_Commit((ANSC_HANDLE)pCxtLink);
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                             }
                             else
                             {
