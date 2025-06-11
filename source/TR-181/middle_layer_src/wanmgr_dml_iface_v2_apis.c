@@ -114,14 +114,14 @@ ULONG WanIf_GetEntryCount(ANSC_HANDLE hInsContext)
 ANSC_HANDLE WanIf_GetEntry(ANSC_HANDLE hInsContext, ULONG nIndex, ULONG* pInsNumber)
 {
     ANSC_HANDLE pDmlEntry = NULL;
-CcspTraceInfo(("%s:%d KAVYA_CRASH nIndex =[%lu] \n",__FUNCTION__,__LINE__,nIndex));
+WanIf_GetEntryCcspTraceInfo(("%s:%d KAVYA_CRASH nIndex =[%lu] \n",__FUNCTION__,__LINE__,nIndex));
     WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(nIndex);
     CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
     if(pWanDmlIfaceData != NULL)
     {
     CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
         *pInsNumber = nIndex + 1;
-    CcspTraceInfo(("%s:%d KAVYA_CRASH pInsNumber =[%lu]\n",__FUNCTION__,__LINE__,pInsNumber));
+    CcspTraceInfo(("%s:%d KAVYA_CRASH pInsNumber =[%lu]\n",__FUNCTION__,__LINE__,*pInsNumber));
         pDmlEntry = (ANSC_HANDLE) pWanDmlIfaceData;
 
     CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));

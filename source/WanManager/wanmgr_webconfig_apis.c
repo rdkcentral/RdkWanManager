@@ -106,7 +106,18 @@ CcspTraceInfo(("%s:%d KAVYA_CRASH i = [%d]\n",__FUNCTION__,__LINE__,i));
             for(j = 0; j < uiTotalIfaces; j++) // Find the interface in dml with same name of the current blob entry
             {
 CcspTraceInfo(("%s:%d KAVYA_CRASH j = [%d]\n",__FUNCTION__,__LINE__,j));
-                pWanDmlIfaceData = (WanMgr_Iface_Data_t*)WanIf_GetEntry(NULL, j, &ifInsNum);
+                WanMgr_Iface_Data_t* pWanDml_IfaceData  = WanMgr_GetIfaceData_locked(j);
+                CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
+                if(pWanDml_IfaceData != NULL)
+                {
+                    CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
+                    ifInsNum = j + 1;
+                    pWanDmlIfaceData = pWanDml_IfaceData;
+                    CcspTraceInfo(("%s:%d KAVYA_CRASH ifInsNum =[%lu]\n",__FUNCTION__,__LINE__,ifInsNum));
+                    WanMgrDml_GetIfaceData_release(pWanDml_IfaceData);
+                    CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
+                }
+
 CcspTraceInfo(("%s:%d KAVYA_CRASH ifInsNum = [%lu]\n",__FUNCTION__,__LINE__,ifInsNum));
                 if(pWanDmlIfaceData != NULL)
                 {
