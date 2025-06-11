@@ -96,6 +96,7 @@ static void copyDhcpv6Data(WANMGR_IPV6_DATA* pDhcpv6Data, const DHCP_MGR_IPV6_MS
     pDhcpv6Data->addrAssigned = leaseInfo->addrAssigned;
     pDhcpv6Data->prefixAssigned = leaseInfo->prefixAssigned;
     pDhcpv6Data->domainNameAssigned = leaseInfo->domainNameAssigned;
+    pDhcpv6Data->ipv6_TimeOffset = leaseInfo->ipv6_TimeOffset;
 }
 
 pthread_mutex_t DhcpClientEvents_mutex = PTHREAD_MUTEX_INITIALIZER;
