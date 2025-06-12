@@ -3216,7 +3216,7 @@ ULONG Marking_GetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, char
 {
 CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
     CONTEXT_MARKING_LINK_OBJECT*        pCxtLink      = (CONTEXT_MARKING_LINK_OBJECT*)hInsContext;
-    DML_MARKING*                        p_Marking     = (DML_MARKING* )pCxtLink->hContext;
+    DML_MARKING*                        p_Marking     = (DML_MARKING* )(pCxtLink->hContext);
 
 CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
     /* check the parameter name and return the corresponding value */

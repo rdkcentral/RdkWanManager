@@ -181,11 +181,13 @@ CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                             memset(dmlAlias, 0, sizeof(dmlAlias));
                             nameLength = sizeof(dmlAlias);
 CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
-                            if(ANSC_STATUS_SUCCESS == Marking_GetParamStringValue((ANSC_HANDLE)pCxtLink,
-                                        PARAM_NAME_MARK_ALIAS, dmlAlias, &nameLength))
-                            {
+                        //    if(ANSC_STATUS_SUCCESS == Marking_GetParamStringValue((ANSC_HANDLE)pCxtLink,
+                          //              PARAM_NAME_MARK_ALIAS, dmlAlias, &nameLength))
+                            if(true)
+			    {
 CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
-                                if(!strncmp(alias, dmlAlias, sizeof(alias)))
+                            //    if(!strncmp(alias, dmlAlias, sizeof(alias)))
+			        if(true)
                                 {
 CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                                     //Alias already present, update the entry
