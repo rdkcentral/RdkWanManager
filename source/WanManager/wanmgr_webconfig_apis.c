@@ -63,13 +63,14 @@ pErr WanMgr_Process_Webconfig_Request(void *Data)
     ULONG ifInsNum;
     ULONG insNum;
     WanMgr_Iface_Data_t*   pWanDmlIfaceData = NULL;
-
+CcspTraceInfo(("%s:%d KAVYA_CRASH Enter\n",__FUNCTION__,__LINE__));
     CcspTraceInfo(("%s : Starting WAN Blob Data Processing\n",__FUNCTION__));
     if (Data == NULL) {
         CcspTraceError(("%s: Input Data is NULL\n",__FUNCTION__));
         return execRetVal;
     }
 
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
     WanMgr_WebConfig_t *pWebConfig = (WanMgr_WebConfig_t *) Data;
 
     execRetVal = (pErr ) malloc (sizeof(Err));
@@ -81,10 +82,12 @@ pErr WanMgr_Process_Webconfig_Request(void *Data)
 
     memset(execRetVal,0,(sizeof(Err)));
 
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
     // update wanmanager global config
     if (pWebConfig->pWanFailOverData != NULL)
     {
         WanManager_SetParamBoolValue(NULL, PARAM_NAME_ALLOW_REMOTE_IFACE, pWebConfig->pWanFailOverData->AllowRemoteIface);
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
         CcspTraceInfo(("%s %d: Set %s value to %d\n", __FUNCTION__, __LINE__, PARAM_NAME_ALLOW_REMOTE_IFACE, pWebConfig->pWanFailOverData->AllowRemoteIface));
     }
 
@@ -93,30 +96,54 @@ pErr WanMgr_Process_Webconfig_Request(void *Data)
     // update interface specific config
     uiTotalIfaces = WanIf_GetEntryCount(NULL);
 
+CcspTraceInfo(("%s:%d KAVYA_CRASH uiTotalIfaces =[%d] \n",__FUNCTION__,__LINE__,uiTotalIfaces));
         for( i = 0; i < pWebConfig->ifCount; i++ ) // Iterate for each interface in blob
         {
+CcspTraceInfo(("%s:%d KAVYA_CRASH i = [%d]\n",__FUNCTION__,__LINE__,i));
             WebConfig_Wan_Interface_Table_t *pIfCfg = &(pWebConfig->ifTable[i]);
             CcspTraceInfo(("%s : Processing Interface: %s..\n",__FUNCTION__, pWebConfig->ifTable[i].name));
 
             for(j = 0; j < uiTotalIfaces; j++) // Find the interface in dml with same name of the current blob entry
             {
-                pWanDmlIfaceData = WanIf_GetEntry(NULL, j, &ifInsNum);
+CcspTraceInfo(("%s:%d KAVYA_CRASH j = [%d]\n",__FUNCTION__,__LINE__,j));
+                WanMgr_Iface_Data_t* pWanDml_IfaceData  = WanMgr_GetIfaceData_locked(j);
+                CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
+                if(pWanDml_IfaceData != NULL)
+                {
+                    CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
+                    ifInsNum = j + 1;
+                    pWanDmlIfaceData = pWanDml_IfaceData;
+                    CcspTraceInfo(("%s:%d KAVYA_CRASH ifInsNum =[%lu]\n",__FUNCTION__,__LINE__,ifInsNum));
+                    WanMgrDml_GetIfaceData_release(pWanDml_IfaceData);
+                    CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
+                }
+
+CcspTraceInfo(("%s:%d KAVYA_CRASH ifInsNum = [%lu]\n",__FUNCTION__,__LINE__,ifInsNum));
                 if(pWanDmlIfaceData != NULL)
                 {
+//			DML_WAN_IFACE *pIntf = &(pWanDmlIfaceData->data);
+CcspTraceInfo(("%s:%d KAVYA_CRASH pWanDmlIfaceData->data.uiIfaceIdx = [%d] \n",__FUNCTION__,__LINE__,pWanDmlIfaceData->data.uiIfaceIdx));
+
                     memset(dmlIfName, 0, sizeof(dmlIfName));
                     nameLength = sizeof(dmlIfName);
                     if(ANSC_STATUS_SUCCESS == WanIf_GetParamStringValue((ANSC_HANDLE)pWanDmlIfaceData,
                                 PARAM_NAME_IF_NAME, dmlIfName, &nameLength))
                     {
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                         if(!strncmp(pWebConfig->ifTable[i].name, dmlIfName, sizeof(dmlIfName)))
                         {
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                             CcspTraceInfo(("%s : Found dml entry for Interface: %s..\n",
                                         __FUNCTION__, pWebConfig->ifTable[i].name));
                             break;
                         }
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                     }
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                 }
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
             }
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
 
             if(j < uiTotalIfaces)
             {
@@ -129,81 +156,109 @@ pErr WanMgr_Process_Webconfig_Request(void *Data)
                     CcspTraceInfo(("%s : Processing Marking Entry: %s..\n",__FUNCTION__,
                                 pWebConfig->ifTable[i].markingTable[j].alias));
 
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                     ULONG markingCount = Marking_GetEntryCount((ANSC_HANDLE)pWanDmlIfaceData);
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                     if (strncmp(pWebConfig->ifTable[i].markingTable[j].alias, "network_control",
                                 sizeof(pWebConfig->ifTable[i].markingTable[j].alias)))
                     {
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                         strncpy(alias, pWebConfig->ifTable[i].markingTable[j].alias, sizeof(alias)-1);
                     }
                     else
                     {
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                         strncpy(alias, "DATA", sizeof(alias)-1);
                     }
                     for(markIdx = 0; markIdx < markingCount; markIdx++)
                     {
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                         pCxtLink = Marking_GetEntry((ANSC_HANDLE)pWanDmlIfaceData, markIdx, &insNum);
-                        if (pCxtLink)
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
+                        if (pCxtLink != NULL)
                         {
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                             memset(dmlAlias, 0, sizeof(dmlAlias));
                             nameLength = sizeof(dmlAlias);
-                            if(ANSC_STATUS_SUCCESS == Marking_GetParamStringValue((ANSC_HANDLE)pCxtLink,
-                                        PARAM_NAME_MARK_ALIAS, dmlAlias, &nameLength))
-                            {
-                                if(!strncmp(alias, dmlAlias, sizeof(alias)))
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
+                        //    if(ANSC_STATUS_SUCCESS == Marking_GetParamStringValue((ANSC_HANDLE)pCxtLink,
+                          //              PARAM_NAME_MARK_ALIAS, dmlAlias, &nameLength))
+                            if(true)
+			    {
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
+                            //    if(!strncmp(alias, dmlAlias, sizeof(alias)))
+			        if(true)
                                 {
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                                     //Alias already present, update the entry
                                     CcspTraceInfo(("%s : Alias already present, Entry would be updated ..\n",
                                                 __FUNCTION__));
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                                     Marking_SetParamIntValue((ANSC_HANDLE) pCxtLink, PARAM_NAME_ETHERNET_PRIORITY_MARK,
                                             pWebConfig->ifTable[i].markingTable[j].ethernetPriorityMark);
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                                     pCxtLink->bNew = false;
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                                     CcspTraceInfo(("%s : Committing marking entry instance: %lu..\n",
                                                 __FUNCTION__, insNum));
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                                     Marking_Commit((ANSC_HANDLE)pCxtLink);
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                                     break;
                                 }
                             }
                             else
                             {
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                                 CcspTraceError(("%s : Failed to read Alias for marking entry: %d..\n",
                                             __FUNCTION__, markIdx));
                             }
                         }
                         else
                         {
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                             CcspTraceError(("%s : Failed to fetch entry at index: %d..\n",
                                         __FUNCTION__, markIdx));
                         }
                     }
                     if(markIdx >= markingCount)
                     {
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                         // Matching entry not found, add a new entry with new Alias and EthernetPriorityMark
                         snprintf(markingPath,sizeof(markingPath),"%s%d.%s", TABLE_NAME_WAN_INTERFACE,
                                 ifInsNum, TABLE_NAME_WAN_MARKING);
                         if (CCSP_SUCCESS == CcspCcMbi_AddTblRow( 0, markingPath, (int *)&insNum, NULL) )
                         {
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                             CcspTraceInfo(("%s : Added new entry at %s, instnce-number: %lu..\n", __FUNCTION__,
                                         markingPath, insNum));
                             pCxtLink = Marking_GetEntry((ANSC_HANDLE)pWanDmlIfaceData, markingCount, &insNum);
 
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                             if(pCxtLink)
                             {
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                                 CcspTraceInfo(("%s : Fetched new entry , instnce-number: %lu..\n", __FUNCTION__, insNum));
                                 Marking_SetParamStringValue((ANSC_HANDLE)pCxtLink, PARAM_NAME_MARK_ALIAS, alias);
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                                 Marking_SetParamIntValue((ANSC_HANDLE)pCxtLink, PARAM_NAME_ETHERNET_PRIORITY_MARK,
                                         pWebConfig->ifTable[i].markingTable[j].ethernetPriorityMark);
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                                 pCxtLink->bNew = true;
                                 CcspTraceInfo(("%s : Committing marking entry instance: %lu ..\n", __FUNCTION__, insNum));
                                 Marking_Commit((ANSC_HANDLE)pCxtLink);
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                             }
                             else
                             {
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                                 CcspTraceError(("%s : Failed to fetch new entry at index: %d..\n",
                                             __FUNCTION__, markingCount));
                             }
                         }
                         else
                         {
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                             CcspTraceError(("%s : Failed to create new table row on path: %s..\n",
                                         __FUNCTION__, markingPath));
                         }
@@ -212,12 +267,15 @@ pErr WanMgr_Process_Webconfig_Request(void *Data)
                 }
 #if defined(WAN_MANAGER_UNIFICATION_ENABLED)
                 WanIf_SetParamBoolValue((ANSC_HANDLE)pWanDmlIfaceData, PARAM_NAME_WAN_REFRESH, true);
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
 #else
                 WanIfCfg_SetParamBoolValue((ANSC_HANDLE)pWanDmlIfaceData, PARAM_NAME_WAN_REFRESH, true);
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
 #endif /** WAN_MANAGER_UNIFICATION_ENABLED */
             }
             else
             {
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                 CcspTraceInfo(("%s : Failed to find dml entry for Interface: %s..\n",
                             __FUNCTION__, pWebConfig->ifTable[i].name));
                 execRetVal->ErrorCode = BLOB_EXEC_FAILURE;
@@ -226,6 +284,7 @@ pErr WanMgr_Process_Webconfig_Request(void *Data)
         }
     }
 
+CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
     CcspTraceInfo(("%s : WAN Blob Data Applied Successfully\n",__FUNCTION__));
     execRetVal->ErrorCode = BLOB_EXEC_SUCCESS;
     return execRetVal;

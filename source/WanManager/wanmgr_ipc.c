@@ -25,6 +25,7 @@
 #include "wanmgr_data.h"
 #include "wanmgr_sysevents.h"
 #include "wanmgr_dhcpv4_apis.h"
+#include "wanmgr_telemetry.h"
 
 #define WANMGR_MAX_IPC_PROCCESS_TRY             5
 #define WANMGR_IPC_PROCCESS_TRY_WAIT_TIME       100000 //us
@@ -220,6 +221,40 @@ static ANSC_STATUS WanMgr_IpcNewIhcMsg(ipc_ihc_data_t *pIhcMsg)
         case IPOE_MSG_IHC_ECHO_FAIL_IPV6:
             CcspTraceInfo(("[%s-%d] Received IPOE_MSG_IHC_ECHO_FAIL_IPV6 from IHC for intf: %s \n", __FUNCTION__, __LINE__, pIhcMsg->ifName));
             return WanMgr_SetInterfaceStatus(pIhcMsg->ifName, WANMGR_IFACE_CONNECTION_IPV6_DOWN);
+            break;
+	case IPOE_MSG_IHC_ECHO_IPV4_IDLE:
+	    {
+	    CcspTraceInfo(("[%s-%d] Received IPOE_MSG_IHC_ECHO_IPV4_IDLE from IHC for intf: %s \n", __FUNCTION__, __LINE__, pIhcMsg->ifName));
+CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
+            DML_VIRTUAL_IFACE* pVirtIf = WanMgr_GetVirtualIfaceByName_locked(pIhcMsg->ifName);
+	    if(pVirtIf != NULL)
+	    {
+                //Telemetry start
+                WanMgr_Telemetry_Marker_t Marker = {0};         
+                Marker.enTelemetryMarkerID = WAN_WARN_CONNECTIVITY_CHECK_STATUS_IDLE_IPV4;
+                Marker.pVirtInterface = pVirtIf ;
+                wanmgr_telemetry_event(&Marker);
+                //Telemetry end		            
+                WanMgr_VirtualIfaceData_release(pVirtIf);
+	    }
+	    }
+            break;
+        case IPOE_MSG_IHC_ECHO_IPV6_IDLE:
+	    {
+	    CcspTraceInfo(("[%s-%d] Received IPOE_MSG_IHC_ECHO_FAIL_IPV4 from IHC for intf: %s \n", __FUNCTION__, __LINE__, pIhcMsg->ifName));
+	    CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
+            DML_VIRTUAL_IFACE* pVirtIf = WanMgr_GetVirtualIfaceByName_locked(pIhcMsg->ifName);
+            if(pVirtIf != NULL)
+            {
+                //Telemetry start
+                WanMgr_Telemetry_Marker_t Marker = {0};
+                Marker.enTelemetryMarkerID = WAN_WARN_CONNECTIVITY_CHECK_STATUS_IDLE_IPV6;
+                Marker.pVirtInterface = pVirtIf ;
+                wanmgr_telemetry_event(&Marker);
+                //Telemetry end
+                WanMgr_VirtualIfaceData_release(pVirtIf);
+            }
+	    }	    
             break;
         default:
             CcspTraceError(("[%s-%d] Invalid message type \n", __FUNCTION__, __LINE__));
