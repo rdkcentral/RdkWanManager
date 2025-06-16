@@ -1664,7 +1664,7 @@ void *WanMgr_AutoWanSelectionProcess (void* arg)
                 aw_sm_state = State_SelectingInterface(&WanController);
                 break;
             case STATE_AUTO_WAN_INTERFACE_WAITING:
-                w_sm_state = State_WaitForInterface(&WanController);
+                aw_sm_state = State_WaitForInterface(&WanController);
                 break;
             case STATE_AUTO_WAN_INTERFACE_SCANNING:
                 aw_sm_state = State_ScanningInterface(&WanController);
