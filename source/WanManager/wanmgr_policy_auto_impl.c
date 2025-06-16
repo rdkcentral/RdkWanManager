@@ -29,9 +29,11 @@
 #include "wanmgr_wan_failover.h"
 #include "wanmgr_net_utils.h"
 #include "wanmgr_telemetry.h"
+#include <sysevent/sysevent.h>
 
 /* ---- Global Constants -------------------------- */
 #define SELECTION_PROCESS_LOOP_TIMEOUT 250000 // timeout in microseconds. This is the state machine loop interval
+#define RESTART_SELECTION_TIME_SYEVENT_NAME "ResetSelectionTimeout_%s"
 
 extern WANMGR_DATA_ST gWanMgrDataBase;
 
@@ -897,6 +899,12 @@ static WcAwPolicyState_t Transition_RestartSelectionInterface (WanMgr_Policy_Con
     {
         CcspTraceInfo(("%s %d: Resetting FO scan thread\n", __FUNCTION__, __LINE__));
         pWanConfigData->data.ResetFailOverScan = TRUE;
+	DML_WAN_IFACE* pWanIfaceData = &(pWanConfigData->data);
+        char cmd[64] ={0};
+        memset(cmd,0,sizeof(cmd));
+        snprintf(cmd, sizeof(cmd),RESTART_SELECTION_TIME_SYEVENT_NAME,pWanIfaceData->Name);
+        v_secure_system("sysevent set %s 1",cmd);
+	
         WanMgrDml_GetConfigData_release(pWanConfigData);
     }
 
@@ -1113,10 +1121,22 @@ static WcAwPolicyState_t State_WaitForInterface (WanMgr_Policy_Controller_t * pW
                     __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
 	CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
         //Telemetry start
-        WanMgr_Telemetry_Marker_t Marker = {0};         
-        Marker.enTelemetryMarkerID = WAN_WARN_IP_OBTAIN_TIMER_EXPIRED;
-        Marker.pInterface = pActiveInterface ;
-        wanmgr_telemetry_event(&Marker);
+        char temp[4] = {0};
+        char cmd[32] = {0};
+        static int firstTime = 1;
+        memset(temp,0,sizeof(temp));
+        memset(cmd,0,sizeof(cmd));
+        snprintf(cmd,sizeof(cmd),RESTART_SELECTION_TIME_SYEVENT_NAME ,pActiveInterface->Name);
+        sysevent_get(sysevent_fd, sysevent_token,cmd, temp, sizeof(temp));
+        if (strncmp(temp, "1",sizeof(temp)) == 0 || firstTime)
+        {	
+            WanMgr_Telemetry_Marker_t Marker = {0};         
+            Marker.enTelemetryMarkerID = WAN_WARN_IP_OBTAIN_TIMER_EXPIRED;
+            Marker.pInterface = pActiveInterface ;
+            wanmgr_telemetry_event(&Marker);
+            sysevent_set(sysevent_fd, sysevent_token, cmd,"0",0);
+            firstTime = 0;
+        }
         //Telemetry end		
         return Transition_InterfaceInvalid(pWanController);
     }
@@ -1203,10 +1223,23 @@ static WcAwPolicyState_t State_ScanningInterface (WanMgr_Policy_Controller_t * p
                         __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
 	    CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
             //Telemetry start
+        char temp[4] = {0};
+        char cmd[32] = {0};
+        static int firstTime = 1;
+        memset(temp,0,sizeof(temp));
+        memset(cmd,0,sizeof(cmd));
+        snprintf(cmd,sizeof(cmd),RESTART_SELECTION_TIME_SYEVENT_NAME ,pActiveInterface->Name);
+        sysevent_get(sysevent_fd, sysevent_token,cmd, temp, sizeof(temp));
+        if (strncmp(temp, "1",sizeof(temp)) == 0 || firstTime)
+        {
+	    
             WanMgr_Telemetry_Marker_t Marker = {0};             
             Marker.enTelemetryMarkerID = WAN_WARN_IP_OBTAIN_TIMER_EXPIRED;
             Marker.pInterface = pActiveInterface ;
             wanmgr_telemetry_event(&Marker);
+	    sysevent_set(sysevent_fd, sysevent_token, cmd,"0",0);
+            firstTime = 0;
+        }
             //Telemetry end		    
             return Transition_InterfaceDeselect(pWanController);
         }
@@ -1631,7 +1664,7 @@ void *WanMgr_AutoWanSelectionProcess (void* arg)
                 aw_sm_state = State_SelectingInterface(&WanController);
                 break;
             case STATE_AUTO_WAN_INTERFACE_WAITING:
-                aw_sm_state = State_WaitForInterface(&WanController);
+                w_sm_state = State_WaitForInterface(&WanController);
                 break;
             case STATE_AUTO_WAN_INTERFACE_SCANNING:
                 aw_sm_state = State_ScanningInterface(&WanController);
