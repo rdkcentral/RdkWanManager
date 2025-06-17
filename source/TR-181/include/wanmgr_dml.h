@@ -538,6 +538,7 @@ typedef struct _DML_IFACE_SELECTION
     BOOL                        Enable; 
     INT                         Priority;
     UINT                        Timeout;
+    UINT                        LastActiveInterfaceRetries; //Param to retry the last active interface. Curretnly, only used in the AUTOWAN policy
     WANMGR_IFACE_SELECTION      Status;
     BOOL                        ActiveLink;
     UINT                        Group;
