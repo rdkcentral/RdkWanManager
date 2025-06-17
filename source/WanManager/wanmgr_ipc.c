@@ -199,6 +199,18 @@ static ANSC_STATUS WanMgr_IpcNewIhcMsg(ipc_ihc_data_t *pIhcMsg)
             {
                 CcspTraceInfo(("Setting IPV6 Connection state to UP \n"));
                 sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV6_CONNECTION_STATE, WAN_STATUS_UP, 0);
+                CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
+                DML_VIRTUAL_IFACE* pVirtIf = WanMgr_GetVirtualIfaceByName_locked(pIhcMsg->ifName);
+                if(pVirtIf != NULL)
+                {
+                //Telemetry start
+                WanMgr_Telemetry_Marker_t Marker = {0};
+                Marker.enTelemetryMarkerID = WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP_IPV6;
+                Marker.pVirtInterface = pVirtIf ;
+                wanmgr_telemetry_event(&Marker);
+                //Telemetry end
+                WanMgr_VirtualIfaceData_release(pVirtIf);
+		}
             }
             break;
         case IPOE_MSG_IHC_ECHO_IPV4_UP:
@@ -212,14 +224,56 @@ static ANSC_STATUS WanMgr_IpcNewIhcMsg(ipc_ihc_data_t *pIhcMsg)
             {
                 CcspTraceInfo(("Setting IPv4 Connection state to UP \n"));
                 sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV4_CONNECTION_STATE, WAN_STATUS_UP, 0);
+		CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
+                DML_VIRTUAL_IFACE* pVirtIf = WanMgr_GetVirtualIfaceByName_locked(pIhcMsg->ifName);
+                if(pVirtIf != NULL)
+                {		
+                //Telemetry start
+                WanMgr_Telemetry_Marker_t Marker = {0};
+                Marker.enTelemetryMarkerID = WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP_IPV4;
+                Marker.pVirtInterface = pVirtIf ;
+                wanmgr_telemetry_event(&Marker);
+                //Telemetry end
+                WanMgr_VirtualIfaceData_release(pVirtIf);
+		}
+            }
+  		
             }
             break;
         case IPOE_MSG_IHC_ECHO_FAIL_IPV4:
             CcspTraceInfo(("[%s-%d] Received IPOE_MSG_IHC_ECHO_FAIL_IPV4 from IHC for intf: %s \n", __FUNCTION__, __LINE__, pIhcMsg->ifName));
+	    {
+                CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
+                DML_VIRTUAL_IFACE* pVirtIf = WanMgr_GetVirtualIfaceByName_locked(pIhcMsg->ifName);
+                if(pVirtIf != NULL)
+                {
+                //Telemetry start
+                WanMgr_Telemetry_Marker_t Marker = {0};
+                Marker.enTelemetryMarkerID = WAN_WARN_CONNECTIVITY_CHECK_STATUS_FAILED_IPV4;
+                Marker.pVirtInterface = pVirtIf ;
+                wanmgr_telemetry_event(&Marker);
+                //Telemetry end
+                WanMgr_VirtualIfaceData_release(pVirtIf);
+  	    	}
+	    }
             return WanMgr_SetInterfaceStatus(pIhcMsg->ifName, WANMGR_IFACE_CONNECTION_DOWN);
             break;
         case IPOE_MSG_IHC_ECHO_FAIL_IPV6:
             CcspTraceInfo(("[%s-%d] Received IPOE_MSG_IHC_ECHO_FAIL_IPV6 from IHC for intf: %s \n", __FUNCTION__, __LINE__, pIhcMsg->ifName));
+	    {
+                CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
+                DML_VIRTUAL_IFACE* pVirtIf = WanMgr_GetVirtualIfaceByName_locked(pIhcMsg->ifName);
+                if(pVirtIf != NULL)
+                {
+                //Telemetry start
+                WanMgr_Telemetry_Marker_t Marker = {0};
+                Marker.enTelemetryMarkerID = WAN_WARN_CONNECTIVITY_CHECK_STATUS_FAILED_IPV6;
+                Marker.pVirtInterface = pVirtIf ;
+                wanmgr_telemetry_event(&Marker);
+                //Telemetry end
+                WanMgr_VirtualIfaceData_release(pVirtIf);
+		}	    
+	    }
             return WanMgr_SetInterfaceStatus(pIhcMsg->ifName, WANMGR_IFACE_CONNECTION_IPV6_DOWN);
             break;
 	case IPOE_MSG_IHC_ECHO_IPV4_IDLE:

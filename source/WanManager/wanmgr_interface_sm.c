@@ -1705,10 +1705,10 @@ static ANSC_STATUS WanMgr_StartConnectivityCheck(WanMgr_IfaceSM_Controller_t* pW
         pVirtIf->IP.ConnectivityCheckRunning = TRUE;    
 	CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
         //Telemetry start
-        WanMgr_Telemetry_Marker_t Marker = {0};
+        /*WanMgr_Telemetry_Marker_t Marker = {0};
         Marker.enTelemetryMarkerID = WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP;
 	Marker.pInterface = pInterface ;
-        wanmgr_telemetry_event(&Marker);
+        wanmgr_telemetry_event(&Marker);*/
         //Telemetry end
 	
     }
@@ -1734,10 +1734,10 @@ static ANSC_STATUS WanMgr_StartConnectivityCheck(WanMgr_IfaceSM_Controller_t* pW
             pVirtIf->IP.ConnectivityCheckRunning = TRUE;    
 	    CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
             //Telemetry start
-            WanMgr_Telemetry_Marker_t Marker = {0};
+            /*WanMgr_Telemetry_Marker_t Marker = {0};
             Marker.enTelemetryMarkerID = WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP;
 	    Marker.pInterface = pInterface ;
-            wanmgr_telemetry_event(&Marker);
+            wanmgr_telemetry_event(&Marker);*/
             //Telemetry end	    
         }
 #endif
@@ -1774,10 +1774,10 @@ static ANSC_STATUS WanMgr_StopConnectivityCheck(WanMgr_IfaceSM_Controller_t* pWa
 
 	CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
         //Telemetry start
-        WanMgr_Telemetry_Marker_t Marker = {0};
+        /*WanMgr_Telemetry_Marker_t Marker = {0};
         Marker.enTelemetryMarkerID = WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN;
         Marker.pVirtInterface = pVirtIf ;
-        wanmgr_telemetry_event(&Marker);
+        wanmgr_telemetry_event(&Marker);*/
         //Telemetry end
 	
     }
@@ -1791,10 +1791,10 @@ static ANSC_STATUS WanMgr_StopConnectivityCheck(WanMgr_IfaceSM_Controller_t* pWa
         }
 	CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
         //Telemetry start
-        WanMgr_Telemetry_Marker_t Marker = {0};
+/*        WanMgr_Telemetry_Marker_t Marker = {0};
         Marker.enTelemetryMarkerID = WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN;
         Marker.pVirtInterface = pVirtIf ;
-        wanmgr_telemetry_event(&Marker);
+        wanmgr_telemetry_event(&Marker);*/
         //Telemetry end
 	
 #endif  // FEATURE_IPOE_HEALTH_CHECK
