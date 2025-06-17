@@ -28,6 +28,8 @@
 #include "wanmgr_rdkbus_apis.h"
 #include "wanmgr_wan_failover.h"
 #include "wanmgr_net_utils.h"
+#include "wanmgr_telemetry.h"
+#include <sysevent/sysevent.h>
 
 #define ETH_HW_CONFIGURATION_DM     "Device.Ethernet.Interface.%d.Upstream"
 #define ETH_PHY_PATH_DM             "Device.Ethernet.X_RDK_Interface.%d"
@@ -35,7 +37,7 @@
 /* ---- Global Constants -------------------------- */
 #define SELECTION_PROCESS_LOOP_TIMEOUT 250000 // timeout in microseconds. This is the state machine loop interval
 #define MAX_PRIORITY_VALUE 255
-
+#define RESTART_SELECTION_TIME_SYEVENT_NAME "ResetSelectionTimeout_%s"
 extern ANSC_HANDLE bus_handle;
 
 typedef enum {
@@ -613,6 +615,10 @@ static WcPsPolicyState_t Transition_RestartScan (WanMgr_Policy_Controller_t * pW
                     WanMgr_RdkBus_AddIntfToLanBridge(pWanIfaceData->BaseInterface, FALSE);
                 }
             }
+            char cmd[64] ={0};
+	    memset(cmd,0,sizeof(cmd));
+	    snprintf(cmd, sizeof(cmd),RESTART_SELECTION_TIME_SYEVENT_NAME,pWanIfaceData->Name);
+	    v_secure_system("sysevent set %s 1",cmd);
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
         }
     }
@@ -807,6 +813,31 @@ static WcPsPolicyState_t State_ScanningInterface (WanMgr_Policy_Controller_t * p
         {
             /*If timer expired select the highest priority active interface */
             CcspTraceInfo(("%s %d  SelectionTimeOut expired. Selecting Highest(available) priority interface id(%d)\n", __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
+            //Telemetry start
+            WanMgr_Iface_Data_t*   pWanDmlIfaceData = WanMgr_GetIfaceData_locked(highPriorityValidIface);
+            if(pWanDmlIfaceData != NULL)
+            {
+                DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
+CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
+                char temp[4] = {0};
+		char cmd[32] = {0};
+		static int firstTime = 1;
+		memset(temp,0,sizeof(temp));
+		memset(cmd,0,sizeof(cmd));
+		snprintf(cmd,sizeof(cmd),RESTART_SELECTION_TIME_SYEVENT_NAME ,pWanIfaceData->Name);
+                sysevent_get(sysevent_fd, sysevent_token,cmd, temp, sizeof(temp));
+                if (strncmp(temp, "1",sizeof(temp)) == 0 || firstTime)
+		{
+                    WanMgr_Telemetry_Marker_t Marker = {0};
+                    Marker.enTelemetryMarkerID = WAN_WARN_IP_OBTAIN_TIMER_EXPIRED;
+                    Marker.pInterface = pWanIfaceData ;
+                    wanmgr_telemetry_event(&Marker);
+		    sysevent_set(sysevent_fd, sysevent_token, cmd,"0",0);
+		    firstTime = 0;
+		}
+                WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+            }
+            //Telemetry end	    
             return Transition_SelectingInterface(pWanController);
         }else
         {
