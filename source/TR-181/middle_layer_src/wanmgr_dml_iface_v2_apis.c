@@ -114,21 +114,15 @@ ULONG WanIf_GetEntryCount(ANSC_HANDLE hInsContext)
 ANSC_HANDLE WanIf_GetEntry(ANSC_HANDLE hInsContext, ULONG nIndex, ULONG* pInsNumber)
 {
     ANSC_HANDLE pDmlEntry = NULL;
-CcspTraceInfo(("%s:%d KAVYA_CRASH nIndex =[%lu] \n",__FUNCTION__,__LINE__,nIndex));
     WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(nIndex);
-    CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
     if(pWanDmlIfaceData != NULL)
     {
-    CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
         *pInsNumber = nIndex + 1;
-    CcspTraceInfo(("%s:%d KAVYA_CRASH pInsNumber =[%lu]\n",__FUNCTION__,__LINE__,*pInsNumber));
         pDmlEntry = (ANSC_HANDLE) pWanDmlIfaceData;
 
-    CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
         WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
     }
 
-    CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
     return pDmlEntry;
 }
 
@@ -263,45 +257,27 @@ WanIf_Synchronize
 **********************************************************************/
 ULONG WanIf_GetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, char* pValue, ULONG* pUlSize)
 {
-CcspTraceInfo(("%s:%d KAVYA_CRASH Enter ParamName = [%s]\n",__FUNCTION__,__LINE__,ParamName));
     ULONG ret = -1;
 
     WanMgr_Iface_Data_t* pIfaceDmlEntry = (WanMgr_Iface_Data_t*) hInsContext;
-CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
     if(pIfaceDmlEntry != NULL)
     {
-CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
-/*	if(pIfaceDmlEntry->data != NULL)
-	{
-CcspTraceInfo(("%s:%d KAVYA_CRASH Index = [%d]\n",__FUNCTION__,__LINE__,pIfaceDmlEntry->data.uiIfaceIdx));
-	}
-	else
-	{
-CcspTraceInfo(("%s:%d KAVYA_CRASH data NULL\n",__FUNCTION__,__LINE__));
-return 0;
-	}*/
         WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pIfaceDmlEntry->data.uiIfaceIdx);
-CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
         if(pWanDmlIfaceData != NULL)
         {
-CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
             DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
 
-CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
             ///* check the parameter name and return the corresponding value */
             if (strcmp(ParamName, "Name") == 0)
             {
-CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                /* collect value */
                if ( ( sizeof( pWanDmlIface->Name ) - 1 ) < *pUlSize )
                {
-CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                    AnscCopyString( pValue, pWanDmlIface->Name );
                    ret = 0;
                }
                else
                {
-CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                    *pUlSize = sizeof( pWanDmlIface->Name );
                    ret = 1;
                }
@@ -309,25 +285,21 @@ CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
 #if !RBUS_BUILD_FLAG_ENABLE
             else if (strcmp(ParamName, "Alias") == 0)
             {
-CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                /* collect value */
                if ( ( sizeof( pWanDmlIface->AliasName ) - 1 ) < *pUlSize )
                {
-CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                    AnscCopyString( pValue, pWanDmlIface->AliasName );
                    ret = 0;
                }
                else
                {
                    *pUlSize = sizeof( pWanDmlIface->AliasName );
-CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                    ret = 1;
                }
             }
 #endif
             else if (strcmp(ParamName, "AliasName") == 0)
             {
-CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                /* collect value */
                if ( ( sizeof( pWanDmlIface->AliasName ) - 1 ) < *pUlSize )
                {
@@ -342,7 +314,6 @@ CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
             }
             else if (strcmp(ParamName, "DisplayName") == 0)
             {
-CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                /* collect value */
                if ( ( sizeof( pWanDmlIface->DisplayName ) - 1 ) < *pUlSize )
                {
@@ -358,7 +329,6 @@ CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
 
             if (strcmp(ParamName, "CustomConfigPath") == 0)
             {
-CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                /* collect value */
                if ( ( sizeof( pWanDmlIface->CustomConfigPath ) - 1 ) < *pUlSize )
                {
@@ -374,7 +344,6 @@ CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
 
             if (strcmp(ParamName, "BaseInterface") == 0)
             {
-CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                /* collect value */
                if ( ( sizeof( pWanDmlIface->BaseInterface ) - 1 ) < *pUlSize )
                {
@@ -389,7 +358,6 @@ CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
             }
 
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
-CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
         }
     }
 
@@ -2978,45 +2946,31 @@ ULONG Marking_GetEntryCount(ANSC_HANDLE hInsContext)
 
 ANSC_HANDLE Marking_GetEntry(ANSC_HANDLE hInsContext, ULONG nIndex, ULONG* pInsNumber)
 {
-CcspTraceInfo(("%s:%d KAVYA_CRASH nIndex = [%lu]\n",__FUNCTION__,__LINE__,nIndex));
     PSINGLE_LINK_ENTRY  pSListEntry = NULL;
     *pInsNumber= 0;
 
-CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
 #ifdef FEATURE_802_1P_COS_MARKING
     WanMgr_Iface_Data_t* pIfaceDmlEntry = (WanMgr_Iface_Data_t*) hInsContext;
-CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
     if(pIfaceDmlEntry != NULL)
     {
-CcspTraceInfo(("%s:%d KAVYA_CRASH pIfaceDmlEntry->data.uiIfaceIdx = [%lu] \n",__FUNCTION__,__LINE__,pIfaceDmlEntry->data.uiIfaceIdx));
         WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pIfaceDmlEntry->data.uiIfaceIdx);
-CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
         if(pWanDmlIfaceData != NULL)
         {
-CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
             DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
 
-CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
             /* check the parameter name and set the corresponding value */
             pSListEntry       = AnscSListGetEntryByIndex(&(pWanDmlIface->Marking.MarkingList), nIndex);
-CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
             if ( pSListEntry )
             {
-CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
                 CONTEXT_MARKING_LINK_OBJECT* pCxtLink      = ACCESS_CONTEXT_MARKING_LINK_OBJECT(pSListEntry);
                 *pInsNumber   = pCxtLink->InstanceNumber;
-CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
             }
 
-CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
-CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
         }
-CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
     }
 #endif /* * FEATURE_802_1P_COS_MARKING */
 
-CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
     return (ANSC_HANDLE)pSListEntry;
 }
 
@@ -3214,30 +3168,23 @@ BOOL Marking_GetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULONG*
 
 ULONG Marking_GetParamStringValue(ANSC_HANDLE hInsContext, char* ParamName, char* pValue, ULONG* pUlSize)
 {
-CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
     CONTEXT_MARKING_LINK_OBJECT*        pCxtLink      = (CONTEXT_MARKING_LINK_OBJECT*)hInsContext;
     DML_MARKING*                        p_Marking     = (DML_MARKING* )(pCxtLink->hContext);
 
-CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
     /* check the parameter name and return the corresponding value */
     if (strcmp(ParamName, "Alias") == 0)
     {
-CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
         if ( AnscSizeOfString(p_Marking->Alias) < *pUlSize)
         {
-CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
             AnscCopyString(pValue, p_Marking->Alias);
             return 0;
         }
         else
         {
-CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
             *pUlSize = AnscSizeOfString(p_Marking->Alias)+1;
             return 1;
         }
-CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
     }
-CcspTraceInfo(("%s:%d KAVYA_CRASH \n",__FUNCTION__,__LINE__));
 
     /* CcspTraceWarning(("Unsupported parameter '%s'\n", ParamName)); */
     return -1;

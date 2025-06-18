@@ -812,10 +812,12 @@ int WanManager_ProcessMAPTConfiguration(ipc_mapt_data_t *dhcp6cMAPTMsgBody, WANM
     char partnerID[BUFLEN_32]    = {0};
     syscfg_get(NULL, "PartnerID", partnerID, sizeof(partnerID));
     int mtu_size_mapt = MTU_DEFAULT_SIZE; /* 1500 */
+    #if !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_)) || defined (_RDKB_GLOBAL_PRODUCT_REQ_) // XB6 and CBR use 1500 MTU size for MAPT.
     if (strcmp("sky-uk", partnerID) != 0)
     {
         mtu_size_mapt = MTU_SIZE; /* 1520. */
     }
+    #endif
     MaptInfo("mapt: MTU Size = %d \n", mtu_size_mapt);
 
     /* Stopping UPnP, if mapt ratio is not 1:1 */
@@ -1083,7 +1085,11 @@ int WanManager_ProcessMAPTConfiguration(ipc_mapt_data_t *dhcp6cMAPTMsgBody, WANM
     snprintf(cmdConfigureMTUSize, sizeof(cmdConfigureMTUSize), "ip link set dev %s mtu %d ", MAP_INTERFACE, mtu_size_mapt);
     snprintf(cmdInterfaceMTU1, sizeof(cmdInterfaceMTU1), "echo %d > /proc/sys/net/ipv6/conf/%s/mtu", MTU_DEFAULT_SIZE, vlanIf);
     snprintf(cmdInterfaceMTU2, sizeof(cmdInterfaceMTU2), "ip -6 ro change default via %s dev %s mtu %d", defaultGatewayV6, vlanIf, MTU_DEFAULT_SIZE) ;
-    snprintf(cmdEnableIpv4Traffic, sizeof(cmdEnableIpv4Traffic), "ip ro rep default dev %s mtu %d", MAP_INTERFACE, MTU_DEFAULT_SIZE) ;
+#if !(defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_)) || defined (_RDKB_GLOBAL_PRODUCT_REQ_)
+        snprintf(cmdEnableIpv4Traffic, sizeof(cmdEnableIpv4Traffic), "ip ro rep default dev %s mtu %d", MAP_INTERFACE, MTU_DEFAULT_SIZE) ;
+    #else // XB6 and CBR use 1500 -28 MTU size for route
+        snprintf(cmdEnableIpv4Traffic, sizeof(cmdEnableIpv4Traffic), "ip ro rep default dev %s mtu %d", MAP_INTERFACE, MTU_DEFAULT_SIZE-28) ;
+    #endif
     snprintf(cmdInterfaceMTU3, sizeof(cmdInterfaceMTU3), "ip -6 ro rep %s via %s dev %s mtu %d", dhcp6cMAPTMsgBody->brIPv6Prefix, defaultGatewayV6, vlanIf, mtu_size_mapt);
     snprintf(cmdInterfaceDefaultRouteDefault , sizeof(cmdInterfaceDefaultRouteDefault), "ip -6 ro rep %s/128 dev %s mtu %d", ipv6AddressString, MAP_INTERFACE, mtu_size_mapt);
 #ifdef FEATURE_MAPT_DEBUG
