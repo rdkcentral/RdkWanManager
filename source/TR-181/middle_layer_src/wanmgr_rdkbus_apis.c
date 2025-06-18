@@ -430,7 +430,7 @@ void WanMgr_getRemoteWanParamsFromPSM(DML_VIRTUAL_IFACE * pVirtIf)
     {
         CcspTraceError(("%s-%d :Failed to get Remote WAN DHCP interface from PSM,\n", __FUNCTION__, __LINE__));
     }
-
+    CcspTraceWarning(("%s-%d :Remote WAN DHCPv4Iface is (%s)\n", __FUNCTION__, __LINE__, pVirtIf->IP.DHCPv4Iface));
     return;
 }
 

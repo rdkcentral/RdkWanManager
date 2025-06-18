@@ -1707,6 +1707,8 @@ static void CPEInterface_AsyncMethodHandler(
                     if(pWanIfaceData->VirtIfList->VLAN.Status == WAN_IFACE_LINKSTATUS_UP)
                     {
                         strncpy(pWanIfaceData->VirtIfList->Name, REMOTE_INTERFACE_NAME, sizeof(pWanIfaceData->VirtIfList->Name));
+                        WanMgr_getRemoteWanParamsFromPSM(pWanIfaceData->VirtIfList);
+
                     }
                 }
                 else if( WANMGR_WAN_STATUS_CHECK )

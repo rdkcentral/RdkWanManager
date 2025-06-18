@@ -672,6 +672,12 @@ ANSC_STATUS WanManager_StopDhcpv4Client(DML_VIRTUAL_IFACE* pVirtIf, DHCP_RELEASE
         CcspTraceInfo(("%s %d - Failed setting [%s] to DHCP Manager \n", __FUNCTION__, __LINE__, pVirtIf->Name));
     }
     WanMgr_UnSubscribeDhcpClientEvents(pVirtIf->IP.DHCPv4Iface);
+    if (IsReleaseNeeded == STOP_DHCP_WITH_RELEASE)
+    {
+        // Need to review during DHCP Manager integration.
+        CcspTraceInfo(("%s %d - sleep 3 seconds for dhcpv4 client to send release \n", __FUNCTION__, __LINE__));
+        sleep(3);
+    }    
     return ANSC_STATUS_SUCCESS;
 #else
 #if defined(_DT_WAN_Manager_Enable_)
