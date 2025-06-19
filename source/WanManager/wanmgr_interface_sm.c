@@ -4191,10 +4191,10 @@ static eWanState_t wan_state_deconfiguring_wan(WanMgr_IfaceSM_Controller_t* pWan
     {
 	    CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
         //Telemetry start
-        WanMgr_Telemetry_Marker_t Marker = {0};
+/*        WanMgr_Telemetry_Marker_t Marker = {0};
         Marker.enTelemetryMarkerID = WAN_ERROR_WAN_DOWN;
         Marker.pInterface = pInterface ;
-        wanmgr_telemetry_event(&Marker);
+        wanmgr_telemetry_event(&Marker);*/
         //Telemetry end
     }
     return wan_transition_exit(pWanIfaceCtrl);

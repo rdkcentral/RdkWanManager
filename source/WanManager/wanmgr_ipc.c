@@ -199,6 +199,8 @@ static ANSC_STATUS WanMgr_IpcNewIhcMsg(ipc_ihc_data_t *pIhcMsg)
             {
                 CcspTraceInfo(("Setting IPV6 Connection state to UP \n"));
                 sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV6_CONNECTION_STATE, WAN_STATUS_UP, 0);
+	    }
+	    {
                 CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
                 DML_VIRTUAL_IFACE* pVirtIf = WanMgr_GetVirtualIfaceByName_locked(pIhcMsg->ifName);
                 if(pVirtIf != NULL)
@@ -224,6 +226,8 @@ static ANSC_STATUS WanMgr_IpcNewIhcMsg(ipc_ihc_data_t *pIhcMsg)
             {
                 CcspTraceInfo(("Setting IPv4 Connection state to UP \n"));
                 sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV4_CONNECTION_STATE, WAN_STATUS_UP, 0);
+	    }
+	    {
 		CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
                 DML_VIRTUAL_IFACE* pVirtIf = WanMgr_GetVirtualIfaceByName_locked(pIhcMsg->ifName);
                 if(pVirtIf != NULL)
