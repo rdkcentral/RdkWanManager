@@ -674,7 +674,7 @@ ANSC_STATUS WanManager_StopDhcpv4Client(DML_VIRTUAL_IFACE* pVirtIf, DHCP_RELEASE
     WanMgr_UnSubscribeDhcpClientEvents(pVirtIf->IP.DHCPv4Iface);
     if (IsReleaseNeeded == STOP_DHCP_WITH_RELEASE)
     {
-        // Need to review during DHCP Manager integration.
+        //TODO: sleep added to allow dhcpv4 client to send release before interface deconfig. This should be handled by dhcpmanager itself.
         CcspTraceInfo(("%s %d - sleep 3 seconds for dhcpv4 client to send release \n", __FUNCTION__, __LINE__));
         sleep(3);
     }    
