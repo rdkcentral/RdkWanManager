@@ -694,6 +694,7 @@ void WanManager_UpdateInterfaceStatus(DML_VIRTUAL_IFACE* pVirtIf, wanmgr_iface_s
 
 	    if( pVirtIf->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_DOWN && pVirtIf->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_DOWN)
 	    {
+		CcspTraceInfo(("%s %d Kavya Sending WAN_DOWN from v4 DOWN\n",__FUNCTION__, __LINE__));
                 //Telemetry start
                 WanMgr_Telemetry_Marker_t Marker = {0};
                 Marker.enTelemetryMarkerID = WAN_ERROR_WAN_DOWN;
@@ -729,7 +730,7 @@ void WanManager_UpdateInterfaceStatus(DML_VIRTUAL_IFACE* pVirtIf, wanmgr_iface_s
                 Marker.pVirtInterface = pVirtIf;
                 wanmgr_telemetry_event(&Marker);
                 //Telemetry end
-            if( pVirtIf->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_DOWN && pVirtIf->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_DOWN)
+/*            if( pVirtIf->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_DOWN && pVirtIf->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_DOWN)
             {
                 //Telemetry start
                 WanMgr_Telemetry_Marker_t Marker = {0};
@@ -737,7 +738,7 @@ void WanManager_UpdateInterfaceStatus(DML_VIRTUAL_IFACE* pVirtIf, wanmgr_iface_s
                 Marker.pVirtInterface = pVirtIf;
                 wanmgr_telemetry_event(&Marker);
                    //Telemetry end
-                }
+                }*/
 		
             }
             if(pVirtIf->MAP.MaptStatus == WAN_IFACE_MAPT_STATE_UP)
@@ -764,6 +765,7 @@ void WanManager_UpdateInterfaceStatus(DML_VIRTUAL_IFACE* pVirtIf, wanmgr_iface_s
             wanmgr_sysevents_ipv6Info_init(); // reset the sysvent/syscfg fields
             if( pVirtIf->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_DOWN && pVirtIf->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_DOWN)
             {
+		CcspTraceInfo(("%s %d Kavya Sending WAN_DOWN from v6 DOWN\n",__FUNCTION__, __LINE__));
                 //Telemetry start
                 WanMgr_Telemetry_Marker_t Marker = {0};
                 Marker.enTelemetryMarkerID = WAN_ERROR_WAN_DOWN;
