@@ -338,6 +338,7 @@ typedef struct _WANMGR_IPV6_DATA
    uint32_t prefixPltime;
    uint32_t prefixVltime;
    char sitePrefixOld[BUFLEN_48]; /**< add support for RFC7084 requirement L-13 */
+    uint32_t ipv6_TimeOffset;
    #if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
    /* Params to store the IPv6 IPC message */
    bool addrAssigned;
