@@ -713,7 +713,11 @@ static WcAwPolicyState_t Transition_InterfaceInvalid (WanMgr_Policy_Controller_t
     // deselect the interface
     CcspTraceInfo(("%s %d: de-selecting interface \n", __FUNCTION__, __LINE__));
     pWanController->activeInterfaceIdx = -1;
-
+/*        char cmd[64] ={0};
+        memset(cmd,0,sizeof(cmd));
+        snprintf(cmd, sizeof(cmd),RESTART_SELECTION_TIME_SYEVENT_NAME,pIfaceData->Name);
+        v_secure_system("sysevent set %s 1",cmd);
+   CcspTraceInfo(("%s %d Kavya sysevent set %s 1 ..\n",__FUNCTION__, __LINE__,cmd));*/
     return STATE_AUTO_WAN_INTERFACE_SELECTING;
 
 }
@@ -904,7 +908,7 @@ static WcAwPolicyState_t Transition_RestartSelectionInterface (WanMgr_Policy_Con
         memset(cmd,0,sizeof(cmd));
         snprintf(cmd, sizeof(cmd),RESTART_SELECTION_TIME_SYEVENT_NAME,pWanIfaceData->Name);
         v_secure_system("sysevent set %s 1",cmd);
-	
+CcspTraceInfo(("%s %d Kavya sysevent set %s 1 ..\n",__FUNCTION__, __LINE__,cmd));	
         WanMgrDml_GetConfigData_release(pWanConfigData);
     }
 
@@ -1123,19 +1127,21 @@ static WcAwPolicyState_t State_WaitForInterface (WanMgr_Policy_Controller_t * pW
         //Telemetry start
         char temp[4] = {0};
         char cmd[32] = {0};
-        static int firstTime = 1;
+        //static int firstTime = 1;
         memset(temp,0,sizeof(temp));
         memset(cmd,0,sizeof(cmd));
         snprintf(cmd,sizeof(cmd),RESTART_SELECTION_TIME_SYEVENT_NAME ,pActiveInterface->Name);
         sysevent_get(sysevent_fd, sysevent_token,cmd, temp, sizeof(temp));
-        if (strncmp(temp, "1",sizeof(temp)) == 0 || firstTime)
+	CcspTraceInfo(("%s %d Kavya sysevent get %s  = [%s] ..\n",__FUNCTION__, __LINE__,cmd, temp));
+        if (strncmp(temp, "1",sizeof(temp)) == 0 || strncmp(temp, "",sizeof(temp)) == 0)
         {	
             WanMgr_Telemetry_Marker_t Marker = {0};         
             Marker.enTelemetryMarkerID = WAN_WARN_IP_OBTAIN_TIMER_EXPIRED;
             Marker.pInterface = pActiveInterface ;
             wanmgr_telemetry_event(&Marker);
             sysevent_set(sysevent_fd, sysevent_token, cmd,"0",0);
-            firstTime = 0;
+	    CcspTraceInfo(("%s %d Kavya sysevent set %s 0 ..\n",__FUNCTION__, __LINE__,cmd));
+        //    firstTime = 0;
         }
         //Telemetry end		
         return Transition_InterfaceInvalid(pWanController);
@@ -1225,12 +1231,13 @@ static WcAwPolicyState_t State_ScanningInterface (WanMgr_Policy_Controller_t * p
             //Telemetry start
         char temp[4] = {0};
         char cmd[32] = {0};
-        static int firstTime = 1;
+        //static int firstTime = 1;
         memset(temp,0,sizeof(temp));
         memset(cmd,0,sizeof(cmd));
         snprintf(cmd,sizeof(cmd),RESTART_SELECTION_TIME_SYEVENT_NAME ,pActiveInterface->Name);
         sysevent_get(sysevent_fd, sysevent_token,cmd, temp, sizeof(temp));
-        if (strncmp(temp, "1",sizeof(temp)) == 0 || firstTime)
+	CcspTraceInfo(("%s %d Kavya sysevent get %s = [%s]..\n",__FUNCTION__, __LINE__,cmd,temp));
+        if (strncmp(temp, "1",sizeof(temp)) == 0 || strncmp(temp, "",sizeof(temp)) == 0)
         {
 	    
             WanMgr_Telemetry_Marker_t Marker = {0};             
@@ -1238,7 +1245,8 @@ static WcAwPolicyState_t State_ScanningInterface (WanMgr_Policy_Controller_t * p
             Marker.pInterface = pActiveInterface ;
             wanmgr_telemetry_event(&Marker);
 	    sysevent_set(sysevent_fd, sysevent_token, cmd,"0",0);
-            firstTime = 0;
+	    CcspTraceInfo(("%s %d Kavya sysevent set %s = 0 ..\n",__FUNCTION__, __LINE__,cmd));
+//            firstTime = 0;
         }
             //Telemetry end		    
             return Transition_InterfaceDeselect(pWanController);

@@ -619,6 +619,7 @@ static WcPsPolicyState_t Transition_RestartScan (WanMgr_Policy_Controller_t * pW
 	    memset(cmd,0,sizeof(cmd));
 	    snprintf(cmd, sizeof(cmd),RESTART_SELECTION_TIME_SYEVENT_NAME,pWanIfaceData->Name);
 	    v_secure_system("sysevent set %s 1",cmd);
+	    CcspTraceInfo(("%s %d Kavya sysevent set %s = 1..\n",__FUNCTION__, __LINE__, cmd));
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
         }
     }
@@ -726,7 +727,7 @@ static WcPsPolicyState_t Transition_Reboot (WanMgr_Policy_Controller_t * pWanCon
  * If, for any interface, Status is Up AND this interface is the ONLY interface in the group whose Selection.Enable is true. 
  The interface is selected and Selecting Interface Transition will be called.
  * If, for any interface, Status is Up AND Selection.Priority is the HIGHEST out of all valid interfaces AND Timer value is greater than the Scanning Timeout value. 
- The interface is selected and Selecting Interface Transition will be called.
+The interface is selected and Selecting Interface Transition will be called.
  * If, for any interface, Status is Up AND Selection.Enable is True AND Selection.Group equals the input Group parameter AND VirtIfList->Status is Disabled. New Interface Connected transition called.
  */
 static WcPsPolicyState_t State_ScanningInterface (WanMgr_Policy_Controller_t * pWanController)
@@ -821,19 +822,21 @@ static WcPsPolicyState_t State_ScanningInterface (WanMgr_Policy_Controller_t * p
 CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
                 char temp[4] = {0};
 		char cmd[32] = {0};
-		static int firstTime = 1;
+		//static int firstTime = 1;
 		memset(temp,0,sizeof(temp));
 		memset(cmd,0,sizeof(cmd));
 		snprintf(cmd,sizeof(cmd),RESTART_SELECTION_TIME_SYEVENT_NAME ,pWanIfaceData->Name);
                 sysevent_get(sysevent_fd, sysevent_token,cmd, temp, sizeof(temp));
-                if (strncmp(temp, "1",sizeof(temp)) == 0 || firstTime)
+		CcspTraceInfo(("%s %d Kavya sysevent get %s = [%s]..\n",__FUNCTION__, __LINE__, cmd, temp));
+                if (strncmp(temp, "1",sizeof(temp)) == 0 || strncmp(temp, "",sizeof(temp)) == 0)
 		{
                     WanMgr_Telemetry_Marker_t Marker = {0};
                     Marker.enTelemetryMarkerID = WAN_WARN_IP_OBTAIN_TIMER_EXPIRED;
                     Marker.pInterface = pWanIfaceData ;
                     wanmgr_telemetry_event(&Marker);
 		    sysevent_set(sysevent_fd, sysevent_token, cmd,"0",0);
-		    firstTime = 0;
+		    CcspTraceInfo(("%s %d Kavya sysevent set %s = 0\n",__FUNCTION__, __LINE__,cmd));
+//		    firstTime = 0;
 		}
                 WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
             }
