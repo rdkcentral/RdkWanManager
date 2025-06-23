@@ -23,6 +23,7 @@
 #include "wanmgr_rbus_handler_apis.h"
 #include "wanmgr_rdkbus_apis.h"
 #include "dmsb_tr181_psm_definitions.h"
+#include "wanmgr_telemetry.h"
 enum {
 ENUM_PHY = 1,
 ENUM_WAN_STATUS,
@@ -455,6 +456,24 @@ rbusError_t WanMgr_Interface_SetHandler(rbusHandle_t handle, rbusProperty_t prop
                 strncpy(String , rbusValue_GetString(value, NULL),sizeof(String)-1);
                 CcspTraceInfo(("%s-%d : %s BaseInterfaceStatus changed to %s\n", __FUNCTION__, __LINE__, pWanDmlIface->Name, String));
                 WanMgr_StringToEnum(&pWanDmlIface->BaseInterfaceStatus, ENUM_PHY, String);
+                if(pWanDmlIface->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_DOWN)
+		{		   
+                    //Telemetry start
+                    WanMgr_Telemetry_Marker_t Marker = {0};             
+                    Marker.enTelemetryMarkerID = WAN_ERROR_PHY_DOWN;
+                    Marker.pInterface = pWanDmlIface ;
+                    wanmgr_telemetry_event(&Marker);
+                    //Telemetry end
+		}
+		else if(pWanDmlIface->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_UP)
+		{
+                    //Telemetry start
+                    WanMgr_Telemetry_Marker_t Marker = {0};
+                    Marker.enTelemetryMarkerID = WAN_INFO_PHY_UP;
+                    Marker.pInterface = pWanDmlIface ;
+                    wanmgr_telemetry_event(&Marker);
+                    //Telemetry end		    
+		}		
                 if (pWanDmlIface->Sub.BaseInterfaceStatusSub)
                 {
                     CcspTraceInfo(("%s-%d : BaseInterfaceStatus Publish Event, SubCount(%d)\n", __FUNCTION__, __LINE__, pWanDmlIface->Sub.BaseInterfaceStatusSub));
@@ -479,6 +498,15 @@ rbusError_t WanMgr_Interface_SetHandler(rbusHandle_t handle, rbusProperty_t prop
                 char String[20] = {0};
                 strncpy(String , rbusValue_GetString(value, NULL),sizeof(String)-1);
                 WanMgr_StringToEnum(&p_VirtIf->VLAN.Status, ENUM_WAN_LINKSTATUS, String);
+                if(p_VirtIf->VLAN.Status == WAN_IFACE_LINKSTATUS_DOWN)
+		{
+                    //Telemetry start
+                    WanMgr_Telemetry_Marker_t Marker = {0};
+                    Marker.enTelemetryMarkerID = WAN_ERROR_VLAN_DOWN;
+                    Marker.pVirtInterface = p_VirtIf ;
+                    wanmgr_telemetry_event(&Marker);
+                    //Telemetry end
+		}		
                 if (pWanDmlIface->Sub.WanLinkStatusSub)
                 {
                     CcspTraceInfo(("%s-%d : VLAN Status Publish Event, SubCount(%d)\n", __FUNCTION__, __LINE__, pWanDmlIface->Sub.WanLinkStatusSub));
@@ -790,6 +818,15 @@ static void WanMgr_Rbus_EventReceiveHandler(rbusHandle_t handle, rbusEvent_t con
                 else if( strstr(pParamName, WANMGR_INFACE_WAN_LINKSTATUS_SUFFIX) != NULL )
                 {
                     WanMgr_StringToEnum(&pWanIfaceData->VirtIfList->VLAN.Status, ENUM_WAN_LINKSTATUS, pValue);
+   	            if(pWanIfaceData->VirtIfList->VLAN.Status == WAN_IFACE_LINKSTATUS_DOWN)
+		    {
+                        //Telemetry start
+                        WanMgr_Telemetry_Marker_t Marker = {0};
+                        Marker.enTelemetryMarkerID = WAN_ERROR_VLAN_DOWN;
+                        Marker.pInterface = pWanIfaceData ;
+                        wanmgr_telemetry_event(&Marker);
+                        //Telemetry end
+		    }		    
                     if(pWanIfaceData->VirtIfList->VLAN.Status == WAN_IFACE_LINKSTATUS_UP)
                     {
                         WanMgr_getRemoteWanIfName(pWanIfaceData->VirtIfList->Name, sizeof(pWanIfaceData->VirtIfList->Name));
@@ -1703,6 +1740,15 @@ static void CPEInterface_AsyncMethodHandler(
                 else if( WANMGR_WAN_LINKSTATUS_CHECK )
                 {
                     WanMgr_StringToEnum(&pWanIfaceData->VirtIfList->VLAN.Status, ENUM_WAN_LINKSTATUS, pValue);
+ 	 	    if(pWanIfaceData->VirtIfList->VLAN.Status == WAN_IFACE_LINKSTATUS_DOWN)
+		    {
+                        //Telemetry start
+                        WanMgr_Telemetry_Marker_t Marker = {0};
+                        Marker.enTelemetryMarkerID = WAN_ERROR_VLAN_DOWN;
+                        Marker.pInterface = pWanIfaceData ;
+                        wanmgr_telemetry_event(&Marker);
+                        //Telemetry end             
+		    }			    
                     if(pWanIfaceData->VirtIfList->VLAN.Status == WAN_IFACE_LINKSTATUS_UP)
                     {
                         strncpy(pWanIfaceData->VirtIfList->Name, REMOTE_INTERFACE_NAME, sizeof(pWanIfaceData->VirtIfList->Name));
