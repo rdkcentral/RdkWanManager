@@ -117,16 +117,19 @@ ANSC_STATUS wanmgr_process_T2_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
         if(strncmp(pVirtIntf->Name,wan_ifname, sizeof(wan_ifname) != 0))
         {
             return ANSC_STATUS_SUCCESS;
-
         }
         else
         {
             t2_event_s(WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID],buf);
+//This log is added for our internal testing, to be removed	
+CcspTraceInfo(("%s %d: Successfully sent Telemetry event [%s] with arguments = [%s].\n",__FUNCTION__, __LINE__,WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID],buf));
         }
     }
     else
     {
         t2_event_s(WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID],buf);
+//This log is added for our internal testing, to be removed	
+CcspTraceInfo(("%s %d: Successfully sent Telemetry event [%s] with arguments = [%s].\n",__FUNCTION__, __LINE__,WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID],buf));
     }
 
     return ANSC_STATUS_SUCCESS;
