@@ -111,6 +111,7 @@ ANSC_STATUS wanmgr_process_T2_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
     strcat(buf,"\0");
     if(sendEventOnActiveOnly)
     {
+	CcspTraceInfo(("%s %d: KAVYA SelStatus=[%d],IfaceType=[%d],VirtStatus=[%d],RemoteStatus=[%d].\n",__FUNCTION__, __LINE__,pIntf->Selection.Status,pIntf->IfaceType,pVirtIntf->Status,pVirtIntf->RemoteStatus));
         if((pIntf->Selection.Status == WAN_IFACE_ACTIVE) &&
            ((pIntf->IfaceType == REMOTE_IFACE && pVirtIntf->Status == WAN_IFACE_STATUS_UP && pVirtIntf->RemoteStatus == WAN_IFACE_STATUS_UP) ||
             (pIntf->IfaceType == LOCAL_IFACE && pVirtIntf->Status == WAN_IFACE_STATUS_UP)))
