@@ -455,8 +455,7 @@ rbusError_t WanMgr_Interface_SetHandler(rbusHandle_t handle, rbusProperty_t prop
                 char String[20] = {0};
                 strncpy(String , rbusValue_GetString(value, NULL),sizeof(String)-1);
                 CcspTraceInfo(("%s-%d : %s BaseInterfaceStatus changed to %s\n", __FUNCTION__, __LINE__, pWanDmlIface->Name, String));
-                WanMgr_StringToEnum(&pWanDmlIface->BaseInterfaceStatus, ENUM_PHY, String);
-                if(pWanDmlIface->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_DOWN)
+                if(pWanDmlIface->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_UP && (strncmp(String,"Down",sizeof(String)) == 0) )
 		{		   
                     //Telemetry start
                     WanMgr_Telemetry_Marker_t Marker = {0};             
@@ -465,7 +464,7 @@ rbusError_t WanMgr_Interface_SetHandler(rbusHandle_t handle, rbusProperty_t prop
                     wanmgr_telemetry_event(&Marker);
                     //Telemetry end
 		}
-		else if(pWanDmlIface->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_UP)
+		else if(pWanDmlIface->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_DOWN && (strncmp(String,"Up",sizeof(String)) == 0) )
 		{
                     //Telemetry start
                     WanMgr_Telemetry_Marker_t Marker = {0};
@@ -474,6 +473,7 @@ rbusError_t WanMgr_Interface_SetHandler(rbusHandle_t handle, rbusProperty_t prop
                     wanmgr_telemetry_event(&Marker);
                     //Telemetry end		    
 		}		
+                WanMgr_StringToEnum(&pWanDmlIface->BaseInterfaceStatus, ENUM_PHY, String);
                 if (pWanDmlIface->Sub.BaseInterfaceStatusSub)
                 {
                     CcspTraceInfo(("%s-%d : BaseInterfaceStatus Publish Event, SubCount(%d)\n", __FUNCTION__, __LINE__, pWanDmlIface->Sub.BaseInterfaceStatusSub));
