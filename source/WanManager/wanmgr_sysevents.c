@@ -938,8 +938,14 @@ static void *WanManagerSyseventHandler(void *args)
                         CcspTraceInfo(("%s %d - Stopping IPoE App(PID:%d) for WAN IfName:%s\n", __FUNCTION__, __LINE__, atoi(output), ifName));
                         WanManager_StopIpoeHealthCheckService(atoi(output));
 #endif /* FEATURE_IPOE_HEALTH_CHECK */
+                        //TODO: not a correct place to stop dhcpv6 client, virtual interface state machine may restart it again.  
                         CcspTraceInfo(("%s %d - Stopping DHCPv6 client for WAN IfName:%s\n", __FUNCTION__, __LINE__, ifName ));
-                        //WanManager_StopDhcpv6Client(ifName, TRUE);
+                        DML_VIRTUAL_IFACE* pVirtIf = WanMgr_GetVirtualIfaceByName_locked(ifName);
+                        if(pVirtIf != NULL)
+                        {
+                            WanManager_StopDhcpv6Client(pVirtIf, TRUE);
+                            WanMgr_VirtualIfaceData_release(pVirtIf);
+                        }
                     }
                 }
             }

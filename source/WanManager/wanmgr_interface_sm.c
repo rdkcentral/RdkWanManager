@@ -2685,10 +2685,7 @@ static eWanState_t wan_transition_mapt_feature_refresh(WanMgr_IfaceSM_Controller
     if (p_VirtIf->IP.IPv6Source == DML_WAN_IP_SOURCE_DHCP &&
        (p_VirtIf->IP.Mode == DML_WAN_IP_MODE_DUAL_STACK || p_VirtIf->IP.Mode == DML_WAN_IP_MODE_IPV6_ONLY))
     {
-        int i = 0;
-
         // MAPT config changed, if we got a v6 lease at this stage, send a v6 RELEASE
-        
         WanManager_RestartDhcpv6Client(p_VirtIf, pInterface->IfaceType);
     }
 
