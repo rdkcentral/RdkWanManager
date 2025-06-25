@@ -10,7 +10,6 @@
 
 void wanmgr_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
 {
-    CcspTraceInfo(("%s %d: Enter.\n",__FUNCTION__, __LINE__));	
     if(Marker == NULL)
     {
         return ANSC_STATUS_FAILURE; 

@@ -111,19 +111,18 @@ ANSC_STATUS wanmgr_process_T2_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
     strcat(buf,"\0");
     if(sendEventOnActiveOnly)
     {
-        char wan_ifname[16] = {0};
-        memset(wan_ifname,0,sizeof(wan_ifname));
-        syscfg_get(NULL, "wan_physical_ifname", wan_ifname, sizeof(wan_ifname));
-        if(strncmp(pVirtIntf->Name,wan_ifname, sizeof(wan_ifname) != 0))
-        {
-            return ANSC_STATUS_SUCCESS;
-        }
-        else
+        if((pIntf->Selection.Status == WAN_IFACE_ACTIVE) &&
+           ((pIntf->IfaceType == REMOTE_IFACE && pVirtIntf->Status == WAN_IFACE_STATUS_UP && pVirtIntf->RemoteStatus == WAN_IFACE_STATUS_UP) ||
+            (pIntf->IfaceType == LOCAL_IFACE && pVirtIntf->Status == WAN_IFACE_STATUS_UP)))
         {
             t2_event_s(WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID],buf);
 //This log is added for our internal testing, to be removed	
 CcspTraceInfo(("%s %d: Successfully sent Telemetry event [%s] with arguments = [%s].\n",__FUNCTION__, __LINE__,WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID],buf));
         }
+	else
+	{
+	    return ANSC_STATUS_SUCCESS;
+	}
     }
     else
     {
