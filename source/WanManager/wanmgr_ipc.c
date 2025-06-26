@@ -243,7 +243,6 @@ static ANSC_STATUS WanMgr_IpcNewIhcMsg(ipc_ihc_data_t *pIhcMsg)
         case IPOE_MSG_IHC_ECHO_FAIL_IPV4:
             CcspTraceInfo(("[%s-%d] Received IPOE_MSG_IHC_ECHO_FAIL_IPV4 from IHC for intf: %s \n", __FUNCTION__, __LINE__, pIhcMsg->ifName));
 	    {
-                CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
                 DML_VIRTUAL_IFACE* pVirtIf = WanMgr_GetVirtualIfaceByName_locked(pIhcMsg->ifName);
                 if(pVirtIf != NULL)
                 {
@@ -261,7 +260,6 @@ static ANSC_STATUS WanMgr_IpcNewIhcMsg(ipc_ihc_data_t *pIhcMsg)
         case IPOE_MSG_IHC_ECHO_FAIL_IPV6:
             CcspTraceInfo(("[%s-%d] Received IPOE_MSG_IHC_ECHO_FAIL_IPV6 from IHC for intf: %s \n", __FUNCTION__, __LINE__, pIhcMsg->ifName));
 	    {
-                CcspTraceInfo(("%s %d Kavya\n",__FUNCTION__, __LINE__));
                 DML_VIRTUAL_IFACE* pVirtIf = WanMgr_GetVirtualIfaceByName_locked(pIhcMsg->ifName);
                 if(pVirtIf != NULL)
                 {

@@ -4138,11 +4138,11 @@ static ANSC_STATUS WanMgr_IfaceIpcMsg_handle(WanMgr_IfaceSM_Controller_t* pWanIf
 
     if (p_VirtIf->IP.pIpcIpv4Data != NULL )
     {
-        static AfterReboot = 1;
-        if (AfterReboot)
+        static doOnce = 1;
+        if (doOnce)
 	{
             p_VirtIf->IP.pIpcIpv4Data->isExpired = FALSE;
-            AfterReboot = 0;
+            doOnce = 0;
 	}		
         wanmgr_handle_dhcpv4_event_data(p_VirtIf);
     }

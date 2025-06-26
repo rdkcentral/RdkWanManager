@@ -901,7 +901,7 @@ static WcAwPolicyState_t Transition_RestartSelectionInterface (WanMgr_Policy_Con
         char cmd[64] ={0};
         memset(cmd,0,sizeof(cmd));
         snprintf(cmd, sizeof(cmd),RESTART_SELECTION_TIME_SYEVENT_NAME,pWanIfaceData->Name);
-        v_secure_system("sysevent set %s 1",cmd);	
+	sysevent_set(sysevent_fd, sysevent_token, cmd,"1",0);
         WanMgrDml_GetConfigData_release(pWanConfigData);
     }
 
@@ -1123,7 +1123,7 @@ static WcAwPolicyState_t State_WaitForInterface (WanMgr_Policy_Controller_t * pW
         memset(cmd,0,sizeof(cmd));
         snprintf(cmd,sizeof(cmd),RESTART_SELECTION_TIME_SYEVENT_NAME ,pActiveInterface->Name);
         sysevent_get(sysevent_fd, sysevent_token,cmd, temp, sizeof(temp));
-        if (strncmp(temp, "1",sizeof(temp)) == 0 || strncmp(temp, "",sizeof(temp)) == 0)
+        if (strncmp(temp, "1",strlen(temp)) == 0 || strncmp(temp, "",strlen(temp)) == 0)
         {	
             WanMgr_Telemetry_Marker_t Marker = {0};         
             Marker.enTelemetryMarkerID = WAN_WARN_IP_OBTAIN_TIMER_EXPIRED;
@@ -1222,7 +1222,7 @@ static WcAwPolicyState_t State_ScanningInterface (WanMgr_Policy_Controller_t * p
             memset(cmd,0,sizeof(cmd));
             snprintf(cmd,sizeof(cmd),RESTART_SELECTION_TIME_SYEVENT_NAME ,pActiveInterface->Name);
             sysevent_get(sysevent_fd, sysevent_token,cmd, temp, sizeof(temp));
-            if (strncmp(temp, "1",sizeof(temp)) == 0 || strncmp(temp, "",sizeof(temp)) == 0)
+            if (strncmp(temp, "1",strlen(temp)) == 0 || strncmp(temp, "",strlen(temp)) == 0)
             {
                 WanMgr_Telemetry_Marker_t Marker = {0};             
                 Marker.enTelemetryMarkerID = WAN_WARN_IP_OBTAIN_TIMER_EXPIRED;

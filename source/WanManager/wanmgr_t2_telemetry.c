@@ -111,19 +111,20 @@ ANSC_STATUS wanmgr_process_T2_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
     strcat(buf,"\0");
     if(sendEventOnActiveOnly)
     {
-	CcspTraceInfo(("%s %d: KAVYA SelStatus=[%d],IfaceType=[%d],VirtStatus=[%d],RemoteStatus=[%d].\n",__FUNCTION__, __LINE__,pIntf->Selection.Status,pIntf->IfaceType,pVirtIntf->Status,pVirtIntf->RemoteStatus));
-        if((pIntf->Selection.Status == WAN_IFACE_ACTIVE) &&
-           ((pIntf->IfaceType == REMOTE_IFACE && pVirtIntf->Status == WAN_IFACE_STATUS_UP && pVirtIntf->RemoteStatus == WAN_IFACE_STATUS_UP) ||
-            (pIntf->IfaceType == LOCAL_IFACE && pVirtIntf->Status == WAN_IFACE_STATUS_UP)))
-        {
+        char wan_ifname[16] = {0};
+        memset(wan_ifname,0,sizeof(wan_ifname));
+        syscfg_get(NULL, "wan_active_interface_phyname", wan_ifname, sizeof(wan_ifname));
+	CcspTraceInfo(("%s %d: KAVYA pIntf->DisplayName = [%s],wan_ifname = [%s].\n",__FUNCTION__, __LINE__,pIntf->DisplayName,wan_ifname));
+        if(strncmp(pIntf->DisplayName,wan_ifname, sizeof(wan_ifname) != 0))
+	{
+            return ANSC_STATUS_SUCCESS;
+	}
+	else
+	{
             t2_event_s(WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID],buf);
 //This log is added for our internal testing, to be removed	
 CcspTraceInfo(("%s %d: Successfully sent Telemetry event [%s] with arguments = [%s].\n",__FUNCTION__, __LINE__,WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID],buf));
         }
-	else
-	{
-	    return ANSC_STATUS_SUCCESS;
-	}
     }
     else
     {
