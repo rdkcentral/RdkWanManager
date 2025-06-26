@@ -2052,14 +2052,17 @@ static eWanState_t wan_transition_physical_interface_down(WanMgr_IfaceSM_Control
             /* VLAN link is not created yet if LinkStatus is CONFIGURING. Change it to down. */
             if( p_VirtIf->VLAN.Status == WAN_IFACE_LINKSTATUS_CONFIGURING || p_VirtIf->VLAN.Status == WAN_IFACE_LINKSTATUS_UP )
             {
+		if(p_VirtIf->VLAN.Status == WAN_IFACE_LINKSTATUS_UP)
+		{
+	            //Telemetry start
+                    WanMgr_Telemetry_Marker_t Marker = {0};
+                    Marker.enTelemetryMarkerID = WAN_ERROR_VLAN_DOWN;
+                    Marker.pInterface = pInterface ;
+                    wanmgr_telemetry_event(&Marker);
+                    //Telemetry end		    
+		}
                 CcspTraceInfo(("%s %d: LinkStatus is still CONFIGURING. Set to down\n", __FUNCTION__, __LINE__));
                 p_VirtIf->VLAN.Status = WAN_IFACE_LINKSTATUS_DOWN;
-                //Telemetry start
-                WanMgr_Telemetry_Marker_t Marker = {0};             
-                Marker.enTelemetryMarkerID = WAN_ERROR_VLAN_DOWN;
-                Marker.pInterface = pInterface ;
-                wanmgr_telemetry_event(&Marker);
-                //Telemetry end				
             }
         }
     }
