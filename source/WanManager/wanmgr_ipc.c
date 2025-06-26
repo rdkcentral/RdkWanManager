@@ -230,7 +230,7 @@ static ANSC_STATUS WanMgr_IpcNewIhcMsg(ipc_ihc_data_t *pIhcMsg)
 
 static ANSC_STATUS Wan_ForceRenewDhcpIPv4(char *ifName)
 {
-#if FEATURE_RDKB_DHCP_MANAGER
+#if  defined( FEATURE_RDKB_DHCP_MANAGER )
     char dmlName[256] = {0};
     DML_VIRTUAL_IFACE* pVirtIf = WanMgr_GetVirtualIfaceByName_locked(ifName);
     if(pVirtIf != NULL)
