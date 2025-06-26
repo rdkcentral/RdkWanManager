@@ -130,7 +130,6 @@ int get_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFACE* p_Inte
         {
             CcspTraceError(("%s:%d syscfg_set failed for parameter wan_active_interface_phyname\n",__FUNCTION__,__LINE__));
         }	
-	CcspTraceInfo(("%s %d: KAVYA Setting wan_active_interface_phyname = [%s].\n",__FUNCTION__, __LINE__,p_Interface->DisplayName));
     }
     _ansc_memset(param_name, 0, sizeof(param_name));
     _ansc_memset(param_value, 0, sizeof(param_value));
