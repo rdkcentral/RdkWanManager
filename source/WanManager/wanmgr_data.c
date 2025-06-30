@@ -267,6 +267,10 @@ ANSC_STATUS WanMgr_WanIfaceConfInit(WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl)
             get_Wan_Interface_ParametersFromPSM((idx+1), &(pIfaceData->data));
 
             CcspTraceInfo(("%s %d No Of Virtual Interfaces %d \n", __FUNCTION__, __LINE__, pIfaceData->data.NoOfVirtIfs));
+            if ( syscfg_set(NULL, "wan_active_interface_phyname", "") != 0 )
+            {
+                CcspTraceError(("%s:%d syscfg_set failed for parameter wan_active_interface_phyname\n",__FUNCTION__,__LINE__));
+            }	
 
             for(int i=0; i< pIfaceData->data.NoOfVirtIfs; i++)
             {
