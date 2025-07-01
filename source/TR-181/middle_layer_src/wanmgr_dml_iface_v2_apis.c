@@ -43,6 +43,7 @@
 #if defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_)
 #include "wanmgr_utils.h"
 #endif
+#include "wanmgr_telemetry.h"
 
 extern WANMGR_DATA_ST gWanMgrDataBase;
 /***********************************************************************
@@ -2088,6 +2089,12 @@ BOOL WanIfIpCfg_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULO
                 p_VirtIf->IP.RefreshDHCP = TRUE;
                 p_VirtIf->IP.ModeForceEnable = TRUE;
                 CcspTraceInfo(("%s %d IP.%s changed for %s to %d. ModeForceEnable set and Refreshing DHCP \n", __FUNCTION__, __LINE__, ParamName, p_VirtIf->Name, p_VirtIf->IP.Mode));
+                //Telemetry start
+                WanMgr_Telemetry_Marker_t Marker = {0};
+                Marker.enTelemetryMarkerID = WAN_INFO_IP_MODE;
+                Marker.pVirtInterface = p_VirtIf;
+                wanmgr_telemetry_event(&Marker);
+                //Telemetry end			
             }
             ret = TRUE;
         }

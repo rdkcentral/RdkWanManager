@@ -41,7 +41,8 @@
 #ifdef RBUS_BUILD_FLAG_ENABLE
 #include "wanmgr_rbus_handler_apis.h"
 #endif //RBUS_BUILD_FLAG_ENABLE
-//
+#include "wanmgr_telemetry.h"
+
 #define PSM_ENABLE_STRING_TRUE  "TRUE"
 #define PSM_ENABLE_STRING_FALSE  "FALSE"
 #define PPP_LINKTYPE_PPPOA "PPPoA"
@@ -124,6 +125,13 @@ int get_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFACE* p_Inte
         AnscCopyString(p_Interface->DisplayName, param_value);
     }
 
+    if( p_Interface->Selection.Enable == TRUE && p_Interface->Selection.ActiveLink == TRUE )
+    {
+        if ( syscfg_set(NULL, "wan_active_interface_phyname", p_Interface->DisplayName) != 0 )
+        {
+            CcspTraceError(("%s:%d syscfg_set failed for parameter wan_active_interface_phyname\n",__FUNCTION__,__LINE__));
+        }	
+    }
     _ansc_memset(param_name, 0, sizeof(param_name));
     _ansc_memset(param_value, 0, sizeof(param_value));
     _ansc_sprintf(param_name, PSM_WANMANAGER_IF_ALIAS, instancenum);
@@ -326,6 +334,12 @@ int get_Virtual_Interface_FromPSM(ULONG instancenum, ULONG virtInsNum ,DML_VIRTU
     if (retPsmGet == CCSP_SUCCESS)
     {
         _ansc_sscanf(param_value, "%d", &(pVirtIf->IP.Mode));
+        //Telemetry start
+        WanMgr_Telemetry_Marker_t Marker = {0};
+        Marker.enTelemetryMarkerID = WAN_INFO_IP_MODE;
+        Marker.pVirtInterface = pVirtIf;
+        wanmgr_telemetry_event(&Marker);
+        //Telemetry end		
     }
 
     _ansc_memset(param_name, 0, sizeof(param_name));
@@ -335,6 +349,12 @@ int get_Virtual_Interface_FromPSM(ULONG instancenum, ULONG virtInsNum ,DML_VIRTU
     if(retPsmGet == CCSP_SUCCESS)
     {
         _ansc_sscanf(param_value, "%d", &(pVirtIf->IP.IPv4Source));
+        //Telemetry start
+        WanMgr_Telemetry_Marker_t Marker = {0};
+        Marker.enTelemetryMarkerID = WAN_INFO_IPv4_CONFIG_TYPE;
+        Marker.pVirtInterface = pVirtIf;
+        wanmgr_telemetry_event(&Marker);
+        //Telemetry end	
     }
 
     _ansc_memset(param_name, 0, sizeof(param_name));
@@ -350,6 +370,12 @@ int get_Virtual_Interface_FromPSM(ULONG instancenum, ULONG virtInsNum ,DML_VIRTU
     if(retPsmGet == CCSP_SUCCESS)
     {
         _ansc_sscanf(param_value, "%d", &(pVirtIf->IP.IPv6Source));
+        //Telemetry start
+        WanMgr_Telemetry_Marker_t Marker = {0};
+        Marker.enTelemetryMarkerID = WAN_INFO_IPv6_CONFIG_TYPE;
+        Marker.pVirtInterface = pVirtIf ;
+        wanmgr_telemetry_event(&Marker);	
+        //Telemetry end	
     }
 
     _ansc_memset(param_name, 0, sizeof(param_name));
@@ -384,6 +410,12 @@ int get_Virtual_Interface_FromPSM(ULONG instancenum, ULONG virtInsNum ,DML_VIRTU
     if(retPsmGet == CCSP_SUCCESS)
     {
         _ansc_sscanf(param_value, "%d", &(pVirtIf->IP.ConnectivityCheckType));
+        //Telemetry start
+        WanMgr_Telemetry_Marker_t Marker = {0};
+        Marker.enTelemetryMarkerID = WAN_INFO_CONNECTIVITY_CHECK_TYPE;
+        Marker.pVirtInterface = pVirtIf ;
+        wanmgr_telemetry_event(&Marker);
+        //Telemetry end			
     }
 }
 
@@ -399,6 +431,12 @@ int get_Remote_Virtual_Interface_FromPSM(ULONG instancenum, ULONG virtInsNum ,DM
     if(retPsmGet == CCSP_SUCCESS)
     {
         _ansc_sscanf(param_value, "%d", &(pVirtIf->IP.ConnectivityCheckType));
+        //Telemetry start
+        WanMgr_Telemetry_Marker_t Marker = {0};
+        Marker.enTelemetryMarkerID = WAN_INFO_CONNECTIVITY_CHECK_TYPE;
+        Marker.pVirtInterface = pVirtIf ;
+        wanmgr_telemetry_event(&Marker);
+        //Telemetry end			
     }
 }
 
