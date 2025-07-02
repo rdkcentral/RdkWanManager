@@ -432,10 +432,10 @@ int get_Remote_Virtual_Interface_FromPSM(ULONG instancenum, ULONG virtInsNum ,DM
     {
         _ansc_sscanf(param_value, "%d", &(pVirtIf->IP.ConnectivityCheckType));
         //Telemetry start
-        WanMgr_Telemetry_Marker_t Marker = {0};
+        /*WanMgr_Telemetry_Marker_t Marker = {0};
         Marker.enTelemetryMarkerID = WAN_INFO_CONNECTIVITY_CHECK_TYPE;
         Marker.pVirtInterface = pVirtIf ;
-        wanmgr_telemetry_event(&Marker);
+        wanmgr_telemetry_event(&Marker);*/
         //Telemetry end			
     }
 }

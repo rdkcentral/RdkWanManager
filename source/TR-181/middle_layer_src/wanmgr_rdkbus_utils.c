@@ -146,10 +146,10 @@ ANSC_STATUS  WanMgr_SetDnsConnectivityCheck(BOOL Enable)
                         CcspTraceInfo(("%s-%d: RFC- DNS Connectivity Check %s, Type=%s", __FUNCTION__, __LINE__,
                                         (Enable? "Enabled":"Disabled"), (Enable? "TAD":"None")));
                         //Telemetry start
-                        WanMgr_Telemetry_Marker_t Marker = {0};
+                        /*WanMgr_Telemetry_Marker_t Marker = {0};
                         Marker.enTelemetryMarkerID = WAN_INFO_CONNECTIVITY_CHECK_TYPE;
                         Marker.pVirtInterface = p_VirtIf ;
-                        wanmgr_telemetry_event(&Marker);
+                        wanmgr_telemetry_event(&Marker);*/
                         //Telemetry end							
                     }
                 }
