@@ -77,6 +77,13 @@ typedef enum _DML_WAN_IFACE_STATUS
     WAN_IFACE_STATUS_STANDBY
 } DML_WAN_IFACE_STATUS;
 
+typedef enum _WANMGR_IFACE_MODE
+{
+    WAN_IFACE_UNKNOWN,
+    WAN_IFACE_PRIMARY,
+    WAN_IFACE_COLD_STANDBY,
+    WAN_IFACE_HOT_STANDBY
+} WANMGR_IFACE_MODE;
 
 typedef enum _DML_WAN_IFACE_SCAN_STATUS
 {
@@ -454,6 +461,7 @@ typedef struct _DML_WANIFACE_SUBSCRIBE
 typedef enum
 {
     WAN_STATE_EXIT = 0,
+    WAN_STATE_WAIT_FOR_COLD_STANDBY,
     WAN_STATE_VLAN_CONFIGURING,
     WAN_STATE_PPP_CONFIGURING,
     WAN_STATE_VALIDATING_WAN,
@@ -569,10 +577,12 @@ typedef struct _DML_WAN_INTERFACE
     BOOL                        WanConfigEnabled;
     BOOL                        VirtIfChanged;
     BOOL                        CustomConfigEnable;
+    WANMGR_IFACE_MODE           IfaceMode;
     CHAR                        CustomConfigPath[BUFLEN_128];
     DML_WAN_IFACE_SCAN_STATUS   InterfaceScanStatus;
     CHAR                        RemoteCPEMac[BUFLEN_128];
     CHAR                        BaseInterface[BUFLEN_128];
+    CHAR                        BaseInterfaceReference[BUFLEN_128];
     DML_WAN_IFACE_TYPE          Type; //TODO: Comcast use
     DML_WAN_IFACE_PHY_STATUS    BaseInterfaceStatus;
     DML_IFACE_SELECTION         Selection;

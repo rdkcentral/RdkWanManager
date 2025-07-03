@@ -510,6 +510,56 @@ ANSC_STATUS WanMgr_RdkBus_GetParamValueFromAnyComp( char * pQuery, char *pValue)
     return ANSC_STATUS_SUCCESS;
 }
 
+ANSC_STATUS WanMgr_RdkBus_SetParamValueToAnyComp( char *pParam, char *pValue, enum dataType_e type, BOOLEAN bCommit)
+{
+    if ((pParam == NULL) || (pValue == NULL))
+    {
+        CcspTraceError (("%s %d: invalid args..\n", __FUNCTION__, __LINE__));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    int ret ;
+    int size = 0;
+    char dst_pathname_cr[BUFLEN_256] = {0};
+    componentStruct_t ** ppComponents = NULL;
+
+    snprintf(dst_pathname_cr, sizeof(dst_pathname_cr) - 1, "eRT.%s", CCSP_DBUS_INTERFACE_CR);
+
+    // Get the component name and dbus path which has the data model 
+    ret = CcspBaseIf_discComponentSupportingNamespace
+        (
+         bus_handle,
+         dst_pathname_cr,
+         pParam,
+         "",
+         &ppComponents,
+         &size
+        );
+
+    if ((ret != CCSP_SUCCESS) || (size <= 0))
+    {
+        CcspTraceError (("%s %d: CcspBaseIf_discComponentSupportingNamespace() call failed for '%s'\n", __FUNCTION__, __LINE__, pParam));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    // query the data model from the component
+    CcspTraceInfo (("%s %d: quering dm:%s from component:%s of dbuspath:%s\n", 
+                __FUNCTION__, __LINE__, pParam, ppComponents[0]->componentName, ppComponents[0]->dbusPath));
+    ret = WanMgr_RdkBus_SetParamValues( ppComponents[0]->componentName, ppComponents[0]->dbusPath, pParam, pValue, type, bCommit );
+
+    if(ret != ANSC_STATUS_SUCCESS)
+    {
+        CcspTraceError(("%s %d DM set %s %s failed\n", __FUNCTION__,__LINE__, pParam, pValue));
+        free_componentStruct_t(bus_handle, size, ppComponents);
+        return ANSC_STATUS_FAILURE;
+    }
+    
+    free_componentStruct_t(bus_handle, size, ppComponents);
+    CcspTraceInfo(("%s %d DM set %s %s Successful\n", __FUNCTION__,__LINE__, pParam, pValue));
+
+    return ANSC_STATUS_SUCCESS;
+}
+
 ANSC_STATUS WanMgr_RdkBus_GetParamValues( char *pComponent, char *pBus, char *pParamName, char *pReturnVal )
 {
     CCSP_MESSAGE_BUS_INFO  *bus_info         = (CCSP_MESSAGE_BUS_INFO *)bus_handle;
@@ -1191,4 +1241,26 @@ BOOL WanMgr_isBridgeModeEnabled()
     }
 
     return FALSE;
+}
+
+ANSC_STATUS WanManager_ConfigureColdStandbyInterface(DML_WAN_IFACE* pInterface, BOOL Enable)
+{
+    char acSetParamName[256]  = {0};
+    char acSetParamValue[256] = {0};
+    ANSC_STATUS ret = ANSC_STATUS_FAILURE;
+
+    //Configure Cold Standby Interface Enable/Disable
+    CcspTraceInfo(("%s %d %s Cold Standby Interface %s\n", __FUNCTION__,__LINE__, Enable? "Enabling":"Disabling",pInterface->Name));
+    snprintf( acSetParamName, DATAMODEL_PARAM_LENGTH, "%s.Enable", pInterface->BaseInterfaceReference );
+    snprintf( acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", PPPEnable? "true":"false" );
+    ret = WanMgr_RdkBus_SetParamValues( WIFI_COMPONENT_NAME, WIFI_DBUS_PATH, acSetParamName, acSetParamValue, ccsp_boolean, TRUE );
+
+    if(ret != ANSC_STATUS_SUCCESS)
+    {
+        CcspTraceError(("%s %d DM set %s %s failed\n", __FUNCTION__,__LINE__, acSetParamName, acSetParamValue));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    CcspTraceInfo(("%s %d DM set %s %s Successful\n", __FUNCTION__,__LINE__, acSetParamName, acSetParamValue));
+    return ANSC_STATUS_SUCCESS;
 }
