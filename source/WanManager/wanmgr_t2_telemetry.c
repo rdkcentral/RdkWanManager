@@ -114,6 +114,7 @@ ANSC_STATUS wanmgr_process_T2_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
         char wan_ifname[16] = {0};
         memset(wan_ifname,0,sizeof(wan_ifname));
         syscfg_get(NULL, "wan_active_interface_phyname", wan_ifname, sizeof(wan_ifname));
+	CcspTraceInfo(("%s %d: KAVYA wan_ifname = [%s] pIntf->DisplayName = [%s] Marker = [%s].\n",__FUNCTION__, __LINE__,wan_ifname, pIntf->DisplayName,WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID]));
         if(strncmp(pIntf->DisplayName,wan_ifname, sizeof(wan_ifname) != 0))
 	{
             return ANSC_STATUS_SUCCESS;

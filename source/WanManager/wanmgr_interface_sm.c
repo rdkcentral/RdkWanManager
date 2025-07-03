@@ -1971,7 +1971,18 @@ static eWanState_t wan_transition_start(WanMgr_IfaceSM_Controller_t* pWanIfaceCt
     Update_Interface_Status();
 
     CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION START\n", __FUNCTION__, __LINE__, pInterface->Name));
-
+    char wan_ifname[16] = {0};
+    memset(wan_ifname,0,sizeof(wan_ifname));
+    syscfg_get(NULL, "wan_active_interface_phyname", wan_ifname, sizeof(wan_ifname));
+    CcspTraceInfo(("%s %d: KAVYA pInterface->DisplayName = [%s], wan_active_interface_phyname = [%s]\n", __FUNCTION__, __LINE__, pInterface->DisplayName, wan_ifname));
+    if(strncmp(pInterface->DisplayName,wan_ifname, sizeof(wan_ifname) != 0))
+    {
+	CcspTraceInfo(("%s %d: KAVYA change in wan_active_interface_phyname = [%d]\n", __FUNCTION__, __LINE__, pInterface->DisplayName));
+        if ( syscfg_set(NULL, "wan_active_interface_phyname", pInterface->DisplayName) != 0 )
+        {
+            CcspTraceError(("%s:%d syscfg_set failed for parameter wan_active_interface_phyname\n",__FUNCTION__,__LINE__));
+        }	
+    }    
     p_VirtIf->Interface_SM_Running = TRUE;
 
     WanManager_GetDateAndUptime( buffer, &uptime );
