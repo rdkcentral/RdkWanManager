@@ -3038,13 +3038,12 @@ static eWanState_t wan_state_cold_standby_status_waiting(WanMgr_IfaceSM_Controll
         return wan_transition_physical_interface_down(pWanIfaceCtrl);
     }
 
-    if ( pInterface->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_UP)
+    if ( pInterface->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_UP )
     {
-        return wan_transition_physical_interface_down(pWanIfaceCtrl);
+        return wan_transition_vlan_configure(pWanIfaceCtrl);
     }
 
-    //TODO: NEW_DESIGN check for Cellular case
-    return wan_transition_ppp_configure(pWanIfaceCtrl);
+    return WAN_STATE_WAIT_FOR_COLD_STANDBY;
 }
 
 static eWanState_t wan_state_vlan_configuring(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
