@@ -549,13 +549,11 @@ ANSC_STATUS WanMgr_RdkBus_SetParamValueToAnyComp( char *pParam, char *pValue, en
 
     if(ret != ANSC_STATUS_SUCCESS)
     {
-        CcspTraceError(("%s %d DM set %s %s failed\n", __FUNCTION__,__LINE__, pParam, pValue));
         free_componentStruct_t(bus_handle, size, ppComponents);
         return ANSC_STATUS_FAILURE;
     }
     
     free_componentStruct_t(bus_handle, size, ppComponents);
-    CcspTraceInfo(("%s %d DM set %s %s Successful\n", __FUNCTION__,__LINE__, pParam, pValue));
 
     return ANSC_STATUS_SUCCESS;
 }
@@ -1252,8 +1250,8 @@ ANSC_STATUS WanManager_ConfigureColdStandbyInterface(DML_WAN_IFACE* pInterface, 
     //Configure Cold Standby Interface Enable/Disable
     CcspTraceInfo(("%s %d %s Cold Standby Interface %s\n", __FUNCTION__,__LINE__, Enable? "Enabling":"Disabling",pInterface->Name));
     snprintf( acSetParamName, DATAMODEL_PARAM_LENGTH, "%s.Enable", pInterface->BaseInterfaceReference );
-    snprintf( acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", PPPEnable? "true":"false" );
-    ret = WanMgr_RdkBus_SetParamValues( WIFI_COMPONENT_NAME, WIFI_DBUS_PATH, acSetParamName, acSetParamValue, ccsp_boolean, TRUE );
+    snprintf( acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", Enable? "true":"false" );
+    ret = WanMgr_RdkBus_SetParamValueToAnyComp( acSetParamName, acSetParamValue, ccsp_boolean, TRUE );
 
     if(ret != ANSC_STATUS_SUCCESS)
     {
