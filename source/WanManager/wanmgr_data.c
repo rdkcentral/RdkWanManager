@@ -239,6 +239,11 @@ ANSC_STATUS WanMgr_WanIfaceConfInit(WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl)
     {
         CcspTraceError(("%s:%d syscfg_set failed for parameter wan_active_interface_phyname\n",__FUNCTION__,__LINE__));
     }	    
+    if ( syscfg_set(NULL, "wan_remote_interface_phyname", "") != 0 )
+    {
+        CcspTraceError(("%s:%d syscfg_set failed for parameter wan_remote_interface_phyname\n",__FUNCTION__,__LINE__));
+    }
+    
     if(pWanIfaceCtrl != NULL)
     {
         ANSC_STATUS result;

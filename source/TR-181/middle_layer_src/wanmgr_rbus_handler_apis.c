@@ -1556,11 +1556,11 @@ void *WanMgr_WanRemoteIfaceConfigure_thread(void *arg)
                             __FUNCTION__, __LINE__, cpeInterfaceIndex));
             pWanDmlIface->Selection.Enable = FALSE;
             pWanDmlIface->BaseInterfaceStatus = WAN_IFACE_PHY_STATUS_DOWN;
-            if ( syscfg_set(NULL, "wan_remote_interface_phyname", "") != 0 )
+/*            if ( syscfg_set(NULL, "wan_remote_interface_phyname", "") != 0 )
             {
                 CcspTraceError(("%s:%d syscfg_set failed for parameter wan_remote_interface_phyname\n",__FUNCTION__,__LINE__));
             }
-
+*/
             free(pDeviceChangeEvent);
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
             pthread_mutex_unlock(&RemoteIfaceConfigure_mutex);
