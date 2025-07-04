@@ -1556,11 +1556,6 @@ void *WanMgr_WanRemoteIfaceConfigure_thread(void *arg)
                             __FUNCTION__, __LINE__, cpeInterfaceIndex));
             pWanDmlIface->Selection.Enable = FALSE;
             pWanDmlIface->BaseInterfaceStatus = WAN_IFACE_PHY_STATUS_DOWN;
-/*            if ( syscfg_set(NULL, "wan_remote_interface_phyname", "") != 0 )
-            {
-                CcspTraceError(("%s:%d syscfg_set failed for parameter wan_remote_interface_phyname\n",__FUNCTION__,__LINE__));
-            }
-*/
             free(pDeviceChangeEvent);
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
             pthread_mutex_unlock(&RemoteIfaceConfigure_mutex);
@@ -1569,10 +1564,6 @@ void *WanMgr_WanRemoteIfaceConfigure_thread(void *arg)
 
         CcspTraceInfo(("%s %d: Setting interface:%d to Selection.Enable = TRUE\n", __FUNCTION__, __LINE__, cpeInterfaceIndex));
         pWanDmlIface->Selection.Enable = TRUE;
-        if ( syscfg_set(NULL, "wan_remote_interface_phyname", pWanDmlIface->DisplayName) != 0 )
-        {
-            CcspTraceError(("%s:%d syscfg_set failed for parameter wan_remote_interface_phyname\n",__FUNCTION__,__LINE__));
-        }		
         WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
     }
 
@@ -1642,6 +1633,23 @@ void *WanMgr_WanRemoteIfaceConfigure_thread(void *arg)
         }
     }
 
+    WanMgr_Iface_Data_t * pWanDmlIfaceData = WanMgr_GetIfaceData_locked(cpeInterfaceIndex);
+    if (pWanDmlIfaceData != NULL)
+    {
+        DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
+
+        CcspTraceInfo(("%s %d: KAVYA pWanDmlIface->DisplayName = [%s]\n", __FUNCTION__, __LINE__,pWanDmlIface->DisplayName ));
+        if (pWanDmlIface->Selection.Enable = TRUE)
+        {
+            if ( syscfg_set(NULL, "wan_remote_interface_phyname", pWanDmlIface->DisplayName) != 0 )
+            {
+                CcspTraceError(("%s:%d syscfg_set failed for parameter wan_remote_interface_phyname\n",__FUNCTION__,__LINE__));
+            }
+
+            CcspTraceInfo(("%s %d: KAVYA Setting wan_remote_interface_phyname = [%s]\n", __FUNCTION__, __LINE__,pWanDmlIface->DisplayName ));
+	}
+        WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+    }
     free(pDeviceChangeEvent);
     pthread_exit(NULL);
     return NULL;
