@@ -119,14 +119,6 @@ ANSC_STATUS wanmgr_process_T2_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
         syscfg_get(NULL, "wan_remote_interface_phyname", remote_ifname, sizeof(remote_ifname));
 
 	CcspTraceInfo(("%s %d: KAVYA wan_ifname = [%s] remote_ifname = [%s],pIntf->DisplayName = [%s] Marker = [%s].\n",__FUNCTION__, __LINE__,wan_ifname,remote_ifname, pIntf->DisplayName,WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID]));
-if( (strncmp(pIntf->DisplayName,wan_ifname, sizeof(wan_ifname)) != 0) && (strncmp(pIntf->DisplayName,remote_ifname, sizeof(remote_ifname)) != 0) )
-	{
-	    CcspTraceInfo(("%s %d: KAVYA Neither wanifname nor remoteifname\n",__FUNCTION__,__LINE__));
-	}
-        else
-        {
-	    CcspTraceInfo(("%s %d: KAVYA Send event\n",__FUNCTION__,__LINE__));
-	}
 	
         if((strncmp(pIntf->DisplayName,wan_ifname, sizeof(wan_ifname)) ==0)  || (strncmp(pIntf->DisplayName,remote_ifname, sizeof(remote_ifname))==0))
 	{
