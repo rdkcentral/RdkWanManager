@@ -1871,7 +1871,7 @@ static eWanState_t wan_transition_start(WanMgr_IfaceSM_Controller_t* pWanIfaceCt
     WanManager_PrintBootEvents (WAN_INIT_START);
 
     // Move to Cold Standby activation if interface mode is cold standby
-    if( WAN_IFACE_COLD_STANDBY == pInterface->IfaceMode )
+    if( WAN_IFACE_MODE_COLD_STANDBY == pInterface->IfaceMode )
     {
         return wan_transition_cold_standby_activation(pWanIfaceCtrl);
     }
