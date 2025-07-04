@@ -1249,7 +1249,7 @@ ANSC_STATUS WanManager_ConfigureColdStandbyInterface(DML_WAN_IFACE* pInterface, 
 
     //Configure Cold Standby Interface Enable/Disable
     CcspTraceInfo(("%s %d %s Cold Standby Interface %s\n", __FUNCTION__,__LINE__, Enable? "Enabling":"Disabling",pInterface->Name));
-    snprintf( acSetParamName, DATAMODEL_PARAM_LENGTH, "%s.Enable", pInterface->BaseInterfaceReference );
+    snprintf( acSetParamName, DATAMODEL_PARAM_LENGTH, "%s.Enable", pInterface->BaseInterface );
     snprintf( acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", Enable? "true":"false" );
     ret = WanMgr_RdkBus_SetParamValueToAnyComp( acSetParamName, acSetParamValue, ccsp_boolean, TRUE );
 

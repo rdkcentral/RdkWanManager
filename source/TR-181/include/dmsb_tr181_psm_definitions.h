@@ -43,7 +43,6 @@
 #define PSM_WANMANAGER_IF_TYPE                              "dmsb.wanmanager.if.%d.Type"
 #define PSM_WANMANAGER_IF_MODE                              "dmsb.wanmanager.if.%d.Mode"
 #define PSM_WANMANAGER_IF_BASEINTERFACE                     "dmsb.wanmanager.if.%d.BaseInterface"
-#define PSM_WANMANAGER_IF_BASEINTERFACE_REFERENCE           "dmsb.wanmanager.if.%d.BaseInterfaceReference"
 #define PSM_WANMANAGER_IF_VIRIF_COUNT                       "dmsb.wanmanager.if.%d.VirtualInterfaceifcount"
 #define PSM_WANMANAGER_IF_VIRIF_PPP_INTERFACE               "dmsb.wanmanager.if.%d.VirtualInterface.%d.PPPInterface"
 #define PSM_WANMANAGER_IF_VIRIF_VLAN_INUSE                  "dmsb.wanmanager.if.%d.VirtualInterface.%d.VlanInUse"

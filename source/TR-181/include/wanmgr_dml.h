@@ -582,7 +582,6 @@ typedef struct _DML_WAN_INTERFACE
     DML_WAN_IFACE_SCAN_STATUS   InterfaceScanStatus;
     CHAR                        RemoteCPEMac[BUFLEN_128];
     CHAR                        BaseInterface[BUFLEN_128];
-    CHAR                        BaseInterfaceReference[BUFLEN_128];
     DML_WAN_IFACE_TYPE          Type; //TODO: Comcast use
     DML_WAN_IFACE_PHY_STATUS    BaseInterfaceStatus;
     DML_IFACE_SELECTION         Selection;
