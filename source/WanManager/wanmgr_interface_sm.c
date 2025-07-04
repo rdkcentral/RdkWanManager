@@ -1892,7 +1892,7 @@ static eWanState_t wan_transition_cold_standby_activation(WanMgr_IfaceSM_Control
     DML_WAN_IFACE* pInterface = pWanIfaceCtrl->pIfaceData;
     DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIfaceById(pInterface->VirtIfList, pWanIfaceCtrl->VirIfIdx);
 
-    WanManager_ConfigureColdStandbyInterface( pInterface );
+    WanManager_ConfigureColdStandbyInterface(pInterface, TRUE);
     
     CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION COLD STANDBY ACTIVATION\n", __FUNCTION__, __LINE__, pInterface->Name));
 
