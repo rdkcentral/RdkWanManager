@@ -1633,7 +1633,7 @@ void *WanMgr_WanRemoteIfaceConfigure_thread(void *arg)
         }
     }
 
-    WanMgr_Iface_Data_t * pWanDmlIfaceData = WanMgr_GetIfaceData_locked(cpeInterfaceIndex);
+    pWanDmlIfaceData = WanMgr_GetIfaceData_locked(cpeInterfaceIndex);
     if (pWanDmlIfaceData != NULL)
     {
         DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
