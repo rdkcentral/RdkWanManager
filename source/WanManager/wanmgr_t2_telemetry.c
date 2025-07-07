@@ -120,7 +120,7 @@ ANSC_STATUS wanmgr_process_T2_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
 
 	CcspTraceInfo(("%s %d: KAVYA wan_ifname = [%s] remote_ifname = [%s],pIntf->DisplayName = [%s] Marker = [%s].\n",__FUNCTION__, __LINE__,wan_ifname,remote_ifname, pIntf->DisplayName,WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID]));
 	
-        if((strncmp(pIntf->DisplayName,wan_ifname, sizeof(wan_ifname)) ==0)  || (strncmp(pIntf->DisplayName,remote_ifname, sizeof(remote_ifname))==0))
+        if((strncmp(pIntf->DisplayName,wan_ifname, sizeof(wan_ifname)) ==0)  || (strncmp(pIntf->DisplayName,remote_ifname, sizeof(remote_ifname))==0) || (strstr(pIntf->DisplayName,remote_ifname) != NULL))
 	{
             t2_event_s(WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID],buf);
 //This log is added for our internal testing, to be removed	
