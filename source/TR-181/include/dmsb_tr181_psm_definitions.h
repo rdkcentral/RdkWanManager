@@ -41,7 +41,7 @@
 #define PSM_WANMANAGER_IF_DISPLAY_NAME                      "dmsb.wanmanager.if.%d.DisplayName"
 #define PSM_WANMANAGER_IF_ALIAS                             "dmsb.wanmanager.if.%d.AliasName"
 #define PSM_WANMANAGER_IF_TYPE                              "dmsb.wanmanager.if.%d.Type"
-#define PSM_WANMANAGER_IF_MODE                              "dmsb.wanmanager.if.%d.Mode"
+#define PSM_WANMANAGER_IF_CONNECTION_MODE                   "dmsb.wanmanager.if.%d.ConnectionMode"
 #define PSM_WANMANAGER_IF_BASEINTERFACE                     "dmsb.wanmanager.if.%d.BaseInterface"
 #define PSM_WANMANAGER_IF_VIRIF_COUNT                       "dmsb.wanmanager.if.%d.VirtualInterfaceifcount"
 #define PSM_WANMANAGER_IF_VIRIF_PPP_INTERFACE               "dmsb.wanmanager.if.%d.VirtualInterface.%d.PPPInterface"

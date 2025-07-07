@@ -77,13 +77,12 @@ typedef enum _DML_WAN_IFACE_STATUS
     WAN_IFACE_STATUS_STANDBY
 } DML_WAN_IFACE_STATUS;
 
-typedef enum _WANMGR_IFACE_MODE
+typedef enum _WANMGR_IFACE_CONNECTION_MODE
 {
-    WAN_IFACE_MODE_UNKNOWN,
     WAN_IFACE_MODE_PRIMARY,
     WAN_IFACE_MODE_COLD_STANDBY,
     WAN_IFACE_MODE_HOT_STANDBY
-} WANMGR_IFACE_MODE;
+} WANMGR_IFACE_CONNECTION_MODE;
 
 typedef enum _DML_WAN_IFACE_SCAN_STATUS
 {
@@ -577,7 +576,7 @@ typedef struct _DML_WAN_INTERFACE
     BOOL                        WanConfigEnabled;
     BOOL                        VirtIfChanged;
     BOOL                        CustomConfigEnable;
-    WANMGR_IFACE_MODE           IfaceMode;
+    WANMGR_IFACE_CONNECTION_MODE IfaceConnectionMode;
     CHAR                        CustomConfigPath[BUFLEN_128];
     DML_WAN_IFACE_SCAN_STATUS   InterfaceScanStatus;
     CHAR                        RemoteCPEMac[BUFLEN_128];
