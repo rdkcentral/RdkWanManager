@@ -1872,7 +1872,7 @@ static eWanState_t wan_transition_start(WanMgr_IfaceSM_Controller_t* pWanIfaceCt
     WanManager_PrintBootEvents (WAN_INIT_START);
 
     // Move to Cold Standby activation if interface mode is cold standby
-    if( WAN_IFACE_MODE_COLD_STANDBY == pInterface->IfaceConnectionMode )
+    if( WAN_IFACE_CONN_TYPE_COLD_STANDBY == pInterface->IfaceConnectionType )
     {
         return wan_transition_cold_standby_activation(pWanIfaceCtrl);
     }
@@ -1893,7 +1893,7 @@ static eWanState_t wan_transition_cold_standby_activation(WanMgr_IfaceSM_Control
     DML_WAN_IFACE* pInterface = pWanIfaceCtrl->pIfaceData;
     DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIfaceById(pInterface->VirtIfList, pWanIfaceCtrl->VirIfIdx);
 
-    WanManager_ConfigureColdStandbyInterface(pInterface, TRUE);
+    WanManager_EnableInterface(pInterface, TRUE);
     
     CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION COLD STANDBY ACTIVATION\n", __FUNCTION__, __LINE__, pInterface->Name));
 

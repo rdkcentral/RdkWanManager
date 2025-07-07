@@ -1241,14 +1241,14 @@ BOOL WanMgr_isBridgeModeEnabled()
     return FALSE;
 }
 
-ANSC_STATUS WanManager_ConfigureColdStandbyInterface(DML_WAN_IFACE* pInterface, BOOL Enable)
+ANSC_STATUS WanManager_EnableInterface(DML_WAN_IFACE* pInterface, BOOL Enable)
 {
     char acSetParamName[256]  = {0};
     char acSetParamValue[256] = {0};
     ANSC_STATUS ret = ANSC_STATUS_FAILURE;
 
-    //Configure Cold Standby Interface Enable/Disable
-    CcspTraceInfo(("%s %d %s Cold Standby Interface %s\n", __FUNCTION__,__LINE__, Enable? "Enabling":"Disabling",pInterface->Name));
+    //Interface Enable/Disable
+    CcspTraceInfo(("%s %d %s Interface %s\n", __FUNCTION__,__LINE__, Enable? "Enabling":"Disabling",pInterface->Name));
     snprintf( acSetParamName, DATAMODEL_PARAM_LENGTH, "%s.Enable", pInterface->BaseInterface );
     snprintf( acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", Enable? "true":"false" );
     ret = WanMgr_RdkBus_SetParamValueToAnyComp( acSetParamName, acSetParamValue, ccsp_boolean, TRUE );
