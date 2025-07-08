@@ -1090,10 +1090,11 @@ static WcAwPolicyState_t State_WaitForInterface (WanMgr_Policy_Controller_t * pW
     }
 
     // check if Phy is UP
-    if (pActiveInterface->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_UP)
+    if ( (pActiveInterface->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_UP) ||
+         (pActiveInterface->IfaceConnectionType == WAN_IFACE_CONN_TYPE_COLD_STANDBY) )
     {
         // Phy is UP for selected iface
-        CcspTraceInfo(("%s %d: selected interface index:%d is BaseInterface UP\n", __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
+        CcspTraceInfo(("%s %d: selected interface index:%d is BaseInterface %s\n", __FUNCTION__, __LINE__,  pWanController->activeInterfaceIdx, (pActiveInterface->IfaceConnectionType == WAN_IFACE_CONN_TYPE_COLD_STANDBY) ? "status check can be skipped here for Cold Standby Interface" : "UP"));
 #ifdef WAN_MANAGER_SELECTION_SCAN_TIMEOUT_DISABLE
         CcspTraceInfo(("%s %d: stopping timer\n", __FUNCTION__, __LINE__));
         memset(&(pWanController->SelectionTimeOutStart), 0, sizeof(struct timespec));
