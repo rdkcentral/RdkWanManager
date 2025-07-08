@@ -1637,18 +1637,28 @@ void *WanMgr_WanRemoteIfaceConfigure_thread(void *arg)
     if (pWanDmlIfaceData != NULL)
     {
         DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
-
-        CcspTraceInfo(("%s %d: KAVYA pWanDmlIface->DisplayName = [%s]\n", __FUNCTION__, __LINE__,pWanDmlIface->DisplayName ));
         if (pWanDmlIface->Selection.Enable = TRUE)
         {
             if ( syscfg_set(NULL, "wan_remote_interface_phyname", pWanDmlIface->DisplayName) != 0 )
             {
                 CcspTraceError(("%s:%d syscfg_set failed for parameter wan_remote_interface_phyname\n",__FUNCTION__,__LINE__));
             }
-
-            CcspTraceInfo(("%s %d: KAVYA Setting wan_remote_interface_phyname = [%s]\n", __FUNCTION__, __LINE__,pWanDmlIface->DisplayName ));
 	}
-        WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+	CcspTraceInfo(("%s %d: KAVYA Sending config info for [%s].\n",__FUNCTION__, __LINE__,pWanDmlIface->DisplayName));
+        //Telemetry start
+        WanMgr_Telemetry_Marker_t Marker = {0};
+        Marker.pInterface = pWanDmlIface;
+        Marker.enTelemetryMarkerID = WAN_INFO_IPv4_CONFIG_TYPE;
+        wanmgr_telemetry_event(&Marker);
+	Marker.enTelemetryMarkerID = WAN_INFO_IPv6_CONFIG_TYPE;
+	wanmgr_telemetry_event(&Marker);
+	Marker.enTelemetryMarkerID = WAN_INFO_CONNECTIVITY_CHECK_TYPE;
+	wanmgr_telemetry_event(&Marker);
+	Marker.enTelemetryMarkerID = WAN_INFO_IP_MODE;
+	wanmgr_telemetry_event(&Marker);
+        //Telemetry end		
+        
+	WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
     }
     free(pDeviceChangeEvent);
     pthread_exit(NULL);
@@ -1931,6 +1941,17 @@ static void WanMgr_TandD_EventHandler(rbusHandle_t handle, rbusEvent_t const* ev
         DML_VIRTUAL_IFACE *p_VirtIf = WanMgr_GetVirtIfDataByAlias_locked(Alias);
         if(p_VirtIf != NULL)
         {
+	    if((p_VirtIf->IP.Ipv4ConnectivityStatus == WAN_CONNECTIVITY_DOWN || p_VirtIf->IP.Ipv6ConnectivityStatus == WAN_CONNECTIVITY_DOWN ) && res == 1)
+	    {
+                //Telemetry start
+                WanMgr_Telemetry_Marker_t Marker = {0};
+                Marker.enTelemetryMarkerID = WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP_IPV4;
+                Marker.pVirtInterface = p_VirtIf ;
+                wanmgr_telemetry_event(&Marker);
+		Marker.enTelemetryMarkerID = WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP_IPV6;
+                wanmgr_telemetry_event(&Marker);
+                //Telemetry end		    
+	    }
             p_VirtIf->IP.Ipv4ConnectivityStatus = res;
             p_VirtIf->IP.Ipv6ConnectivityStatus = res;
             WanMgr_VirtualIfaceData_release(p_VirtIf);

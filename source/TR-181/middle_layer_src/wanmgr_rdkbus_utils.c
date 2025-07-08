@@ -82,6 +82,12 @@ ANSC_STATUS WanMgr_SetConnectivityCheckTypeToPSM(DML_VIRTUAL_IFACE* pVirtIf, CON
         AnscTraceError(("%s Error %d writing %s %s\n", __FUNCTION__, retPsmSet, param_name, param_value));
         result = ANSC_STATUS_FAILURE;
     }
+    //Telemetry start
+    WanMgr_Telemetry_Marker_t Marker = {0};
+    Marker.enTelemetryMarkerID = WAN_INFO_CONNECTIVITY_CHECK_TYPE;
+    Marker.pVirtInterface = pVirtIf ;
+    wanmgr_telemetry_event(&Marker);
+    //Telemetry end		    
     return result;
 }
 
@@ -145,12 +151,6 @@ ANSC_STATUS  WanMgr_SetDnsConnectivityCheck(BOOL Enable)
                         retStatus = ANSC_STATUS_SUCCESS;
                         CcspTraceInfo(("%s-%d: RFC- DNS Connectivity Check %s, Type=%s", __FUNCTION__, __LINE__,
                                         (Enable? "Enabled":"Disabled"), (Enable? "TAD":"None")));
-                        //Telemetry start
-                        /*WanMgr_Telemetry_Marker_t Marker = {0};
-                        Marker.enTelemetryMarkerID = WAN_INFO_CONNECTIVITY_CHECK_TYPE;
-                        Marker.pVirtInterface = p_VirtIf ;
-                        wanmgr_telemetry_event(&Marker);*/
-                        //Telemetry end							
                     }
                 }
             }
