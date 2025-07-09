@@ -630,7 +630,7 @@ int write_Virtual_Interface_ToPSM(ULONG instancenum, ULONG virtInsNum ,DML_VIRTU
     retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
     if(retPsmGet == CCSP_SUCCESS)
     {
-        if(strncmp(pVirtIf->IP.Mode,param_value,strlen(param_value)) != 0)
+        if( pVirtIf->IP.Mode != atoi(param_value) )
         {
             //Telemetry start
             WanMgr_Telemetry_Marker_t Marker = {0};
@@ -653,7 +653,7 @@ int write_Virtual_Interface_ToPSM(ULONG instancenum, ULONG virtInsNum ,DML_VIRTU
     retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
     if(retPsmGet == CCSP_SUCCESS)
     {
-	if(strncmp(pVirtIf->IP.IPv4Source,param_value,strlen(param_value)) != 0)
+	if( pVirtIf->IP.IPv4Source != atoi(param_value) )
 	{
 	    //Telemetry start
             WanMgr_Telemetry_Marker_t Marker = {0};
@@ -681,7 +681,7 @@ int write_Virtual_Interface_ToPSM(ULONG instancenum, ULONG virtInsNum ,DML_VIRTU
     retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
     if(retPsmGet == CCSP_SUCCESS)
     {
-        if(strncmp(pVirtIf->IP.IPv6Source,param_value,strlen(param_value)) != 0)
+        if(pVirtIf->IP.IPv6Source != atoi(param_value) )
         {
             //Telemetry start
             WanMgr_Telemetry_Marker_t Marker = {0};
