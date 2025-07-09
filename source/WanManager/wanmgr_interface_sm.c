@@ -669,10 +669,7 @@ void WanManager_UpdateInterfaceStatus(DML_VIRTUAL_IFACE* pVirtIf, wanmgr_iface_s
                 Marker.enTelemetryMarkerID = WAN_INFO_IPv4_UP;
                 Marker.pVirtInterface = pVirtIf;
                 wanmgr_telemetry_event(&Marker);
-        	char remote_ifname[16] = {0};
-                memset(remote_ifname,0,sizeof(remote_ifname));
-                syscfg_get(NULL, "wan_remote_interface_phyname", remote_ifname, sizeof(remote_ifname));
-                if(pVirtIf->IP.Mode == DML_WAN_IP_MODE_IPV4_ONLY || (pVirtIf->IP.Mode == DML_WAN_IP_MODE_DUAL_STACK && pVirtIf->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_UP) || (strncmp(pVirtIf->Alias, remote_ifname, sizeof(remote_ifname))==0) )
+                if(pVirtIf->IP.Mode == DML_WAN_IP_MODE_IPV4_ONLY || (pVirtIf->IP.Mode == DML_WAN_IP_MODE_DUAL_STACK && pVirtIf->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_UP))
 		{
 		    Marker.enTelemetryMarkerID = WAN_INFO_WAN_UP;
                     wanmgr_telemetry_event(&Marker);
@@ -714,10 +711,7 @@ void WanManager_UpdateInterfaceStatus(DML_VIRTUAL_IFACE* pVirtIf, wanmgr_iface_s
                 Marker.enTelemetryMarkerID = WAN_INFO_IPv6_UP;
                 Marker.pVirtInterface = pVirtIf;
                 wanmgr_telemetry_event(&Marker);
-                char remote_ifname[16] = {0};
-                memset(remote_ifname,0,sizeof(remote_ifname));
-                syscfg_get(NULL, "wan_remote_interface_phyname", remote_ifname, sizeof(remote_ifname));
-                if(pVirtIf->IP.Mode == DML_WAN_IP_MODE_IPV6_ONLY || (pVirtIf->IP.Mode == DML_WAN_IP_MODE_DUAL_STACK && pVirtIf->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_UP) || (strncmp(pVirtIf->Alias, remote_ifname, sizeof(remote_ifname))==0))
+                if(pVirtIf->IP.Mode == DML_WAN_IP_MODE_IPV6_ONLY || (pVirtIf->IP.Mode == DML_WAN_IP_MODE_DUAL_STACK && pVirtIf->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_UP))
 		{
 	            Marker.enTelemetryMarkerID = WAN_INFO_WAN_UP;
                     wanmgr_telemetry_event(&Marker);

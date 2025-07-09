@@ -125,13 +125,6 @@ int get_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFACE* p_Inte
         AnscCopyString(p_Interface->DisplayName, param_value);
     }
 
-    if( p_Interface->Selection.Enable == TRUE && p_Interface->Selection.ActiveLink == TRUE )
-    {
-        if ( syscfg_set(NULL, "wan_active_interface_phyname", p_Interface->DisplayName) != 0 )
-        {
-            CcspTraceError(("%s:%d syscfg_set failed for parameter wan_active_interface_phyname\n",__FUNCTION__,__LINE__));
-        }	
-    }
     _ansc_memset(param_name, 0, sizeof(param_name));
     _ansc_memset(param_value, 0, sizeof(param_value));
     _ansc_sprintf(param_name, PSM_WANMANAGER_IF_ALIAS, instancenum);

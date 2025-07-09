@@ -235,14 +235,6 @@ ANSC_STATUS WanMgr_VirtIfConfVLAN(DML_VIRTUAL_IFACE *p_VirtIf, UINT Ifid)
 ANSC_STATUS WanMgr_WanIfaceConfInit(WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl)
 {
     CcspTraceInfo(("%s %d Initialize Wan Iface Conf \n", __FUNCTION__, __LINE__));
-    if ( syscfg_set(NULL, "wan_active_interface_phyname", "") != 0 )
-    {
-        CcspTraceError(("%s:%d syscfg_set failed for parameter wan_active_interface_phyname\n",__FUNCTION__,__LINE__));
-    }	    
-    if ( syscfg_set(NULL, "wan_remote_interface_phyname", "") != 0 )
-    {
-        CcspTraceError(("%s:%d syscfg_set failed for parameter wan_remote_interface_phyname\n",__FUNCTION__,__LINE__));
-    }
     
     if(pWanIfaceCtrl != NULL)
     {
@@ -986,12 +978,6 @@ ANSC_STATUS WanMgr_Remote_IfaceData_configure(char *remoteCPEMac, int  *iface_in
                 p_VirtIf->baseIfIdx = *iface_index; //Add base interface index 
                 p_VirtIf->Enable = TRUE;
                 p_VirtIf->IP.IPv6Source = DML_WAN_IP_SOURCE_STATIC;
-                //Telemetry start
-                /*WanMgr_Telemetry_Marker_t Marker = {0};
-                Marker.enTelemetryMarkerID = WAN_INFO_IPv6_CONFIG_TYPE;
-                Marker.pVirtInterface = p_VirtIf ;
-                wanmgr_telemetry_event(&Marker);	*/
-		//Telemetry end		
                 strncpy(p_VirtIf->Name, REMOTE_INTERFACE_NAME, sizeof(p_VirtIf->Name));
                 //setting DNS Connectivity Check for Remote Interface from PSM Wan Interface 1.
                 get_Remote_Virtual_Interface_FromPSM(1, i, p_VirtIf);

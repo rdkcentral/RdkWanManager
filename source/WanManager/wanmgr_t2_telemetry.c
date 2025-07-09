@@ -2,7 +2,6 @@
 #include "wanmgr_rdkbus_utils.h"
 
 static char buf[128] = {0};
-static int sendEventOnActiveOnly;
 
 /*append api appends key value in pairs, separated by DELIMITER*/
 static void wanmgr_telemetry_append_key_value(char* key, const char* value)
@@ -58,7 +57,6 @@ ANSC_STATUS wanmgr_process_T2_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
     }
 
     //By default, send T2 event for active interface only.
-    sendEventOnActiveOnly = 1;
     switch(Marker->enTelemetryMarkerID)
     {
         case WAN_INFO_IP_MODE:
@@ -93,9 +91,6 @@ ANSC_STATUS wanmgr_process_T2_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
 	case WAN_WARN_CONNECTIVITY_CHECK_STATUS_IDLE_IPV6:
 	    wanmgr_telemetry_append_key_value(WANMGR_T2_WANMGR_SPLIT_VAL_STRING,"IPv6");
 	    break;
-	case WAN_WARN_IP_OBTAIN_TIMER_EXPIRED:
-            sendEventOnActiveOnly = 0;
-	    break;
         case WAN_INFO_IPv4_UP:
         case WAN_ERROR_IPv4_DOWN:
         case WAN_INFO_IPv6_UP:
@@ -103,40 +98,15 @@ ANSC_STATUS wanmgr_process_T2_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
         case WAN_INFO_MAPT_STATUS_UP:
         case WAN_ERROR_MAPT_STATUS_DOWN:
             wanmgr_telemetry_append_key_value(WANMGR_T2_SELECTION_STATUS_STRING,(pIntf->Selection.Status == WAN_IFACE_ACTIVE) ? "Active" : (pIntf->Selection.Status == WAN_IFACE_VALIDATING) ? "Validating" : (pIntf->Selection.Status == WAN_IFACE_SELECTED ) ? "Selected" : "Standby");
-	    sendEventOnActiveOnly = 0;
             break;
         default:
 	    ;
     }
     strcat(buf,"\0");
-    if(sendEventOnActiveOnly)
-    {
-        char wan_ifname[16] = {0};
-	char remote_ifname[16] = {0};
-        memset(wan_ifname,0,sizeof(wan_ifname));
-        memset(remote_ifname,0,sizeof(remote_ifname));
-        syscfg_get(NULL, "wan_active_interface_phyname", wan_ifname, sizeof(wan_ifname));
-        syscfg_get(NULL, "wan_remote_interface_phyname", remote_ifname, sizeof(remote_ifname));
-
-	CcspTraceInfo(("%s %d: KAVYA wan_ifname = [%s] remote_ifname = [%s],pIntf->DisplayName = [%s] Marker = [%s].\n",__FUNCTION__, __LINE__,wan_ifname,remote_ifname, pIntf->DisplayName,WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID]));
-	
-        if((strncmp(pIntf->DisplayName,wan_ifname, sizeof(wan_ifname)) ==0)  || (strncmp(pIntf->DisplayName,remote_ifname, sizeof(remote_ifname))==0))
-	{
-            t2_event_s(WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID],buf);
-//This log is added for our internal testing, to be removed	
-CcspTraceInfo(("%s %d: Successfully sent Telemetry event [%s] with arguments = [%s].\n",__FUNCTION__, __LINE__,WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID],buf));
-        }
-	else
-	{
-	    return ANSC_STATUS_SUCCESS;
-	}
-    }
-    else
-    {
         t2_event_s(WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID],buf);
-//This log is added for our internal testing, to be removed	
+
+	//This log is added for our internal testing, to be removed	
 CcspTraceInfo(("%s %d: Successfully sent Telemetry event [%s] with arguments = [%s].\n",__FUNCTION__, __LINE__,WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID],buf));
-    }
 
     return ANSC_STATUS_SUCCESS;
 }
