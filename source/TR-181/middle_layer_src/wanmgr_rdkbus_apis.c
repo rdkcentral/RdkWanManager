@@ -537,6 +537,7 @@ int write_Wan_Interface_ParametersFromPSM(ULONG instancenum, DML_WAN_IFACE* p_In
 int write_Virtual_Interface_ToPSM(ULONG instancenum, ULONG virtInsNum ,DML_VIRTUAL_IFACE * pVirtIf)
 {
     int retPsmSet = CCSP_SUCCESS;
+    int retPsmGet = CCSP_SUCCESS;
     char param_name[256] = {0};
     char param_value[256] = {0};
 
