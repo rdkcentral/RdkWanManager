@@ -2094,23 +2094,30 @@ static void WanMgr_InterfaceStatus_EventHandler(rbusHandle_t handle, rbusEvent_t
         if(pWanDmlIfaceData != NULL)
         {
             DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data); 
-            char acOutputString[256] = {0};
+            //char acOutputString[256] = {0};
 
-            WanMgr_get_prefix_before_last_dot( eventName, acOutputString, sizeof(acOutputString) );  
-            CcspTraceInfo(("%s %d: Prefix event %s base %s iface %s\n", __FUNCTION__, __LINE__, acOutputString, pWanIfaceData->BaseInterface, pWanIfaceData->Name));
+            //WanMgr_get_prefix_before_last_dot( eventName, acOutputString, sizeof(acOutputString) );  
+            CcspTraceInfo(("%s %d: Prefix event %s base %s iface %s\n", __FUNCTION__, __LINE__, eventName, pWanIfaceData->BaseInterface, pWanIfaceData->Name));
 
-            if( 0 == strncmp( pWanIfaceData->BaseInterface, acOutputString, strlen(acOutputString) ) )    
+            if( 0 == strncmp( eventName, pWanIfaceData->BaseInterface, strlen(pWanIfaceData->BaseInterface) ) )    
             {
                 rbusValue_t value;
                 value = rbusObject_GetValue(event->data, "value");
-                pWanIfaceData->BaseInterfaceStatus = rbusValue_GetUInt32(value);
 
-                CcspTraceInfo(("%s %d: Prefix Value %d\n", __FUNCTION__, __LINE__, rbusValue_GetUInt32(value)));
+                char acStatus[16] = {0};
+                strncpy(acStatus , rbusValue_GetString(value, NULL),sizeof(acStatus)-1);
+
+                pWanIfaceData->BaseInterfaceStatus = ( 0 == strcmp(acStatus, "Up", strlen("Up")) ) ?  WAN_IFACE_PHY_STATUS_UP : WAN_IFACE_PHY_STATUS_DOWN;
+
+                CcspTraceInfo(("%s %d: Prefix Value %s, phy status %d\n", __FUNCTION__, __LINE__, acStatus, pWanIfaceData->BaseInterfaceStatus));
 
                 DML_VIRTUAL_IFACE* pVirtIf = WanMgr_GetVirtualIfaceByName_locked(pWanIfaceData->Name);
                 if(pVirtIf != NULL)
                 {
-                    pVirtIf->VLAN.Status = rbusValue_GetUInt32(value);
+                    pVirtIf->VLAN.Status = ( 0 == strcmp(acStatus, "Up", strlen("Up")) ) ?  WAN_IFACE_LINKSTATUS_UP : WAN_IFACE_LINKSTATUS_DOWN;
+
+                    CcspTraceInfo(("%s %d: Prefix Value %s, link status %d\n", __FUNCTION__, __LINE__, acStatus, pVirtIf->VLAN.Status));
+
                     WanMgr_VirtualIfaceData_release(pVirtIf);
                 }
 
