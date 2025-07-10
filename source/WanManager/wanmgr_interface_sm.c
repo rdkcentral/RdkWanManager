@@ -1886,7 +1886,11 @@ static eWanState_t wan_transition_cold_standby_activation(WanMgr_IfaceSM_Control
     DML_WAN_IFACE* pInterface = pWanIfaceCtrl->pIfaceData;
     DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIfaceById(pInterface->VirtIfList, pWanIfaceCtrl->VirIfIdx);
 
-    WanManager_EnableInterface(pInterface, TRUE);
+    // Configure Interface
+    if ( ANSC_STATUS_FAILURE == WanManager_RdkBus_EnableInterface(pInterface, TRUE) )
+    {
+       return WAN_STATE_DOWN;
+    }
     
     CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION COLD STANDBY ACTIVATION\n", __FUNCTION__, __LINE__, pInterface->Name));
 
@@ -3058,7 +3062,7 @@ static eWanState_t wan_state_cold_standby_status_waiting(WanMgr_IfaceSM_Controll
             pInterface->Selection.Status == WAN_IFACE_NOT_SELECTED)
     {
         //Stop scanning
-        WanManager_EnableInterface(pInterface, FALSE);
+        WanManager_RdkBus_EnableInterface(pInterface, FALSE);
         return wan_transition_physical_interface_down(pWanIfaceCtrl);
     }
 

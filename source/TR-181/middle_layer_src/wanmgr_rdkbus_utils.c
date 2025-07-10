@@ -1241,7 +1241,7 @@ BOOL WanMgr_isBridgeModeEnabled()
     return FALSE;
 }
 
-ANSC_STATUS WanManager_EnableInterface(DML_WAN_IFACE* pInterface, BOOL Enable)
+ANSC_STATUS WanManager_RdkBus_EnableInterface(DML_WAN_IFACE* pInterface, BOOL Enable)
 {
     char acSetParamName[256]  = {0};
     char acSetParamValue[256] = {0};
@@ -1255,10 +1255,19 @@ ANSC_STATUS WanManager_EnableInterface(DML_WAN_IFACE* pInterface, BOOL Enable)
 
     if(ret != ANSC_STATUS_SUCCESS)
     {
-        CcspTraceError(("%s %d DM set %s %s failed\n", __FUNCTION__,__LINE__, acSetParamName, acSetParamValue));
+        CcspTraceError(("%s %d DM %s %s %s failed\n", __FUNCTION__,__LINE__, ((Enable) ? "Set" : "Unset"), acSetParamName, acSetParamValue));
         return ANSC_STATUS_FAILURE;
     }
 
-    CcspTraceInfo(("%s %d DM set %s %s Successful\n", __FUNCTION__,__LINE__, acSetParamName, acSetParamValue));
+    //Manage Subcription for Interface Status
+    snprintf( acSetParamName, DATAMODEL_PARAM_LENGTH, "%s.Status", pInterface->BaseInterface );
+    ret = WanManager_ManageInterfaceStatusSubscription( acSetParamName, Enable );
+    if(ret != ANSC_STATUS_SUCCESS)
+    {
+        CcspTraceError(("%s %d - Failed to %s %s\n", __FUNCTION__, __LINE__, ((Enable) ? "Subscribe" : "Unsubscribe"), acSetParamName));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    CcspTraceInfo(("%s %d DM %s(value:%s) and %s is for %s param Successful\n", __FUNCTION__,__LINE__, ((Enable) ? "Set" : "Unset"), acSetParamValue, ((Enable) ? "Subscribe" : "Unsubscribe"), acSetParamName));
     return ANSC_STATUS_SUCCESS;
 }

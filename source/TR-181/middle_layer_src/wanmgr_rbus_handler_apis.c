@@ -2048,3 +2048,118 @@ void *WanMgr_Configure_WCC_Thread(void *arg)
     pthread_exit(NULL);
     return NULL;
 }
+
+static void WanMgr_get_prefix_before_last_dot(const char *input, char *output, size_t size) 
+{
+    const char *last_dot = strrchr(input, '.');
+    if (last_dot != NULL) 
+    {
+        size_t len = last_dot - input;
+        if (len >= size) {
+            len = size - 1;  // prevent buffer overflow
+        }
+        strncpy(output, input, len);
+        output[len] = '\0';  // null-terminate the output
+    } 
+    else 
+    {
+        // No dot found, copy entire string
+        strncpy(output, input, size - 1);
+        output[size - 1] = '\0';
+    }
+}
+
+static void WanMgr_InterfaceStatus_EventHandler(rbusHandle_t handle, rbusEvent_t const* event, rbusEventSubscription_t* subscription)
+{
+    (void)handle;
+    (void)subscription;
+
+    const char* eventName = event->name;
+
+    if((eventName == NULL))
+    {
+        CcspTraceError(("%s %d : FAILED , value is NULL\n",__FUNCTION__, __LINE__));
+        return;
+    }
+
+    CcspTraceInfo(("%s %d: Received %s\n", __FUNCTION__, __LINE__, eventName));
+
+    UINT uiLoopCount;
+    UINT TotalIfaces = WanMgr_IfaceData_GetTotalWanIface();
+    BOOL bIsIfaceFound = FALSE:
+
+    for( uiLoopCount = 0; uiLoopCount < TotalIfaces; uiLoopCount++ )
+    {
+        WanMgr_Iface_Data_t*   pWanDmlIfaceData = WanMgr_GetIfaceData_locked(uiLoopCount);
+        if(pWanDmlIfaceData != NULL)
+        {
+            DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data); 
+            char acOutputString[256] = {0};
+
+            WanMgr_get_prefix_before_last_dot( eventName, acOutputString, sizeof(acOutputString) );  
+            CcspTraceInfo(("%s %d: Prefix event %s base %s iface %s\n", __FUNCTION__, __LINE__, acOutputString, pWanIfaceData->BaseInterface, pWanIfaceData->Name));
+
+            if( 0 == strncmp( pWanIfaceData->BaseInterface, acOutputString, strlen(acOutputString) ) )    
+            {
+                rbusValue_t value;
+                value = rbusObject_GetValue(event->data, "value");
+                pWanIfaceData->BaseInterfaceStatus = rbusValue_GetUInt32(value);
+
+                CcspTraceInfo(("%s %d: Prefix Value %d\n", __FUNCTION__, __LINE__, rbusValue_GetUInt32(value)));
+
+                DML_VIRTUAL_IFACE* pVirtIf = WanMgr_GetVirtualIfaceByName_locked(pWanIfaceData->Name);
+                if(pVirtIf != NULL)
+                {
+                    pVirtIf->VLAN.Status = rbusValue_GetUInt32(value);
+                    WanMgr_VirtualIfaceData_release(pVirtIf);
+                }
+
+                bIsIfaceFound = TRUE;
+            }   
+
+            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+
+            CcspTraceInfo(("%s %d: Found? %d\n", __FUNCTION__, __LINE__, bIsIfaceFound));
+            if( bIsIfaceFound )
+            {
+                break;
+            }
+        }
+    } 
+}
+
+ANSC_STATUS WanManager_ManageInterfaceStatusSubscription(char *pParam, bool bSubscribeFlag)
+{
+    char acSetParamName[256]  = {0};
+    char acSetParamValue[256] = {0};
+    rbusError_t rc = RBUS_ERROR_SUCCESS;
+
+    if( NULL == pParam )
+    {
+        CcspTraceError(("%s %d - Invalid Parameter Value NULL\n", __FUNCTION__, __LINE__));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    //Manage Subcription for Interface Status
+    if( bSubscribeFlag )
+    {
+        rc = rbusEvent_Subscribe(rbusHandle, pParam, WanMgr_InterfaceStatus_EventHandler, NULL, 60);
+        if(rc != RBUS_ERROR_SUCCESS)
+        {
+            CcspTraceError(("%s %d - Failed to Subscribe %s, Error=%s \n", __FUNCTION__, __LINE__, pParam, rbusError_ToString(rc)));
+            return ANSC_STATUS_FAILURE;
+        }
+    }
+    else
+    {
+        ret = rbusEvent_Unsubscribe(rbusHandle, pParam);
+        if(rc != RBUS_ERROR_SUCCESS)
+        {
+            CcspTraceError(("%s %d - Failed to Unsubscribe %s, Error=%s \n", __FUNCTION__, __LINE__, pParam, rbusError_ToString(rc)));
+            return ANSC_STATUS_FAILURE;
+        }
+    }
+
+    CcspTraceInfo(("%s %d DM %s %s Successful\n", __FUNCTION__,__LINE__, pParam, ((bSubscribeFlag) ? "Subscribe": "Unsubscribe" )));
+    return ANSC_STATUS_SUCCESS;
+}
