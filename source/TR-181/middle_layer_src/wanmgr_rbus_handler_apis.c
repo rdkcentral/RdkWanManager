@@ -2152,7 +2152,7 @@ ANSC_STATUS WanManager_ManageInterfaceStatusSubscription(char *pParam, bool bSub
     }
     else
     {
-        ret = rbusEvent_Unsubscribe(rbusHandle, pParam);
+        rc = rbusEvent_Unsubscribe(rbusHandle, pParam);
         if(rc != RBUS_ERROR_SUCCESS)
         {
             CcspTraceError(("%s %d - Failed to Unsubscribe %s, Error=%s \n", __FUNCTION__, __LINE__, pParam, rbusError_ToString(rc)));
