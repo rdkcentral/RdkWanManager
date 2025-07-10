@@ -2086,7 +2086,7 @@ static void WanMgr_InterfaceStatus_EventHandler(rbusHandle_t handle, rbusEvent_t
 
     UINT uiLoopCount;
     UINT TotalIfaces = WanMgr_IfaceData_GetTotalWanIface();
-    BOOL bIsIfaceFound = FALSE:
+    BOOL bIsIfaceFound = FALSE;
 
     for( uiLoopCount = 0; uiLoopCount < TotalIfaces; uiLoopCount++ )
     {
