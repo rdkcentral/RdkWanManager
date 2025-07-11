@@ -2049,26 +2049,6 @@ void *WanMgr_Configure_WCC_Thread(void *arg)
     return NULL;
 }
 
-static void WanMgr_get_prefix_before_last_dot(const char *input, char *output, size_t size) 
-{
-    const char *last_dot = strrchr(input, '.');
-    if (last_dot != NULL) 
-    {
-        size_t len = last_dot - input;
-        if (len >= size) {
-            len = size - 1;  // prevent buffer overflow
-        }
-        strncpy(output, input, len);
-        output[len] = '\0';  // null-terminate the output
-    } 
-    else 
-    {
-        // No dot found, copy entire string
-        strncpy(output, input, size - 1);
-        output[size - 1] = '\0';
-    }
-}
-
 static void WanMgr_InterfaceStatus_EventHandler(rbusHandle_t handle, rbusEvent_t const* event, rbusEventSubscription_t* subscription)
 {
     (void)handle;
@@ -2094,20 +2074,28 @@ static void WanMgr_InterfaceStatus_EventHandler(rbusHandle_t handle, rbusEvent_t
         if(pWanDmlIfaceData != NULL)
         {
             DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data); 
-            //char acOutputString[256] = {0};
 
-            //WanMgr_get_prefix_before_last_dot( eventName, acOutputString, sizeof(acOutputString) );  
             CcspTraceInfo(("%s %d: Prefix event %s base %s iface %s\n", __FUNCTION__, __LINE__, eventName, pWanIfaceData->BaseInterface, pWanIfaceData->Name));
 
             if( 0 == strncmp( eventName, pWanIfaceData->BaseInterface, strlen(pWanIfaceData->BaseInterface) ) )    
             {
+                CcspTraceInfo(("%s %d: Trace\n", __FUNCTION__, __LINE__));
+
                 rbusValue_t value;
-                value = rbusObject_GetValue(event->data, "value");
+                value = rbusObject_GetValue(event->data, NULL);
+
+                CcspTraceInfo(("%s %d: Trace\n", __FUNCTION__, __LINE__));
 
                 char acStatus[16] = {0};
                 strncpy(acStatus , rbusValue_GetString(value, NULL),sizeof(acStatus)-1);
+                
+                CcspTraceInfo(("%s %d: Trace:[%s]\n", __FUNCTION__, __LINE__,((acStatus[0] != '\0') ? acStatus : "NULL" ) ));
+
+                CcspTraceInfo(("%s %d: Trace\n", __FUNCTION__, __LINE__));
 
                 pWanIfaceData->BaseInterfaceStatus = ( 0 == strncmp(acStatus, "Up", strlen("Up")) ) ?  WAN_IFACE_PHY_STATUS_UP : WAN_IFACE_PHY_STATUS_DOWN;
+
+                CcspTraceInfo(("%s %d: Trace\n", __FUNCTION__, __LINE__));
 
                 CcspTraceInfo(("%s %d: Prefix Value %s, phy status %d\n", __FUNCTION__, __LINE__, acStatus, pWanIfaceData->BaseInterfaceStatus));
 
