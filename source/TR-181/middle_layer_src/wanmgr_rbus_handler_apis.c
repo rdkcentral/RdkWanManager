@@ -2079,23 +2079,13 @@ static void WanMgr_InterfaceStatus_EventHandler(rbusHandle_t handle, rbusEvent_t
 
             if( 0 == strncmp( eventName, pWanIfaceData->BaseInterface, strlen(pWanIfaceData->BaseInterface) ) )    
             {
-                CcspTraceInfo(("%s %d: Trace\n", __FUNCTION__, __LINE__));
-
                 rbusValue_t value;
                 value = rbusObject_GetValue(event->data, NULL);
-
-                CcspTraceInfo(("%s %d: Trace\n", __FUNCTION__, __LINE__));
 
                 char acStatus[16] = {0};
                 strncpy(acStatus , rbusValue_GetString(value, NULL),sizeof(acStatus)-1);
                 
-                CcspTraceInfo(("%s %d: Trace:[%s]\n", __FUNCTION__, __LINE__,((acStatus[0] != '\0') ? acStatus : "NULL" ) ));
-
-                CcspTraceInfo(("%s %d: Trace\n", __FUNCTION__, __LINE__));
-
                 pWanIfaceData->BaseInterfaceStatus = ( 0 == strncmp(acStatus, "Up", strlen("Up")) ) ?  WAN_IFACE_PHY_STATUS_UP : WAN_IFACE_PHY_STATUS_DOWN;
-
-                CcspTraceInfo(("%s %d: Trace\n", __FUNCTION__, __LINE__));
 
                 CcspTraceInfo(("%s %d: Prefix Value %s, phy status %d\n", __FUNCTION__, __LINE__, acStatus, pWanIfaceData->BaseInterfaceStatus));
 
@@ -2114,7 +2104,6 @@ static void WanMgr_InterfaceStatus_EventHandler(rbusHandle_t handle, rbusEvent_t
 
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
 
-            CcspTraceInfo(("%s %d: Found? %d\n", __FUNCTION__, __LINE__, bIsIfaceFound));
             if( bIsIfaceFound )
             {
                 break;
