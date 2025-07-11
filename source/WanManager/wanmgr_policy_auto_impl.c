@@ -20,6 +20,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <unistd.h>
 #include "wanmgr_controller.h"
 #include "wanmgr_data.h"
 #include "wanmgr_rdkbus_utils.h"
@@ -1091,7 +1092,8 @@ static WcAwPolicyState_t State_WaitForInterface (WanMgr_Policy_Controller_t * pW
 
     // check if Phy is UP
     if ( (pActiveInterface->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_UP) ||
-         (pActiveInterface->IfaceConnectionType == WAN_IFACE_CONN_TYPE_COLD_STANDBY) )
+         ((pActiveInterface->IfaceConnectionType == WAN_IFACE_CONN_TYPE_COLD_STANDBY) &&
+          (access("/tmp/wifi_dml_complete", F_OK) == 0)) )
     {
         // Phy is UP for selected iface
         CcspTraceInfo(("%s %d: selected interface index:%d is BaseInterface %s\n", __FUNCTION__, __LINE__,  pWanController->activeInterfaceIdx, (pActiveInterface->IfaceConnectionType == WAN_IFACE_CONN_TYPE_COLD_STANDBY) ? "status check can be skipped here for Cold Standby Interface" : "UP"));
