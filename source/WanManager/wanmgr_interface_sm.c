@@ -38,7 +38,7 @@
 #ifdef ENABLE_FEATURE_TELEMETRY2_0
 #include <telemetry_busmessage_sender.h>
 #endif
-#include "wanmgr_telemetry.h"
+//#include "wanmgr_telemetry.h"
 
 #define IF_SIZE      32
 #define LOOP_TIMEOUT 50000 // timeout in microseconds. This is the state machine loop interval
@@ -619,6 +619,44 @@ static ANSC_STATUS WanManager_ConfigureMarking(WanMgr_IfaceSM_Controller_t* pWan
     return ANSC_STATUS_SUCCESS;
 }
 
+void WanMgr_ProcessTelemetryMarker(DML_VIRTUAL_IFACE* pVirtIf, WanMgr_TelemetryEvent_t telemetry_marker)
+{
+    if(pVirtIf == NULL)
+    {
+        return;
+    }
+
+    DML_WAN_IFACE *pIntf = NULL;
+    WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pVirtIf->baseIfIdx);
+    if(pWanDmlIfaceData != NULL)
+    {
+        pIntf = &(pWanDmlIfaceData->data);
+        WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+    }
+
+    WanMgr_Telemetry_Marker_t Marker = {0};
+    Marker.pVirtInterface = pVirtIf;
+    switch(telemetry_marker)
+    {
+        case WAN_ERROR_PHY_DOWN:
+	    if(pIntf->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_UP)
+	    {
+		Marker.enTelemetryMarkerID = telemetry_marker;
+                wanmgr_telemetry_event(&Marker);
+	    }	
+	    break;
+	case WAN_INFO_PHY_UP:
+	    if(pIntf->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_DOWN)
+            {
+                Marker.enTelemetryMarkerID = telemetry_marker;
+                wanmgr_telemetry_event(&Marker);
+            }
+	    break;
+	default:
+	    break;
+    }
+    return ;
+}
 /*********************************************************************************/
 /**************************** ACTIONS ********************************************/
 /*********************************************************************************/
@@ -662,6 +700,7 @@ void WanManager_UpdateInterfaceStatus(DML_VIRTUAL_IFACE* pVirtIf, wanmgr_iface_s
                 sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV4_TIME_ZONE, pVirtIf->IP.Ipv4Data.timeZone, 0);
             }
 #endif
+            
             //Telemetry start
             if(pVirtIf->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_DOWN)
             {

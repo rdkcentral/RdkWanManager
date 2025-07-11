@@ -24,7 +24,7 @@
 #include "wanmgr_rdkbus_apis.h"
 #include "dmsb_tr181_psm_definitions.h"
 #include "wanmgr_telemetry.h"
-
+#include "wanmgr_interface_sm.h"
 enum {
 ENUM_PHY = 1,
 ENUM_WAN_STATUS,
@@ -456,24 +456,14 @@ rbusError_t WanMgr_Interface_SetHandler(rbusHandle_t handle, rbusProperty_t prop
                 char String[20] = {0};
                 strncpy(String , rbusValue_GetString(value, NULL),sizeof(String)-1);
                 CcspTraceInfo(("%s-%d : %s BaseInterfaceStatus changed to %s\n", __FUNCTION__, __LINE__, pWanDmlIface->Name, String));
-                if(pWanDmlIface->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_UP && (strncmp(String,"Down",strlen(String)) == 0) )
+                if (strncmp(String,"Down",strlen(String)) == 0) 
 		{		   
-                    //Telemetry start
-                    WanMgr_Telemetry_Marker_t Marker = {0};             
-                    Marker.enTelemetryMarkerID = WAN_ERROR_PHY_DOWN;
-                    Marker.pInterface = pWanDmlIface ;
-                    wanmgr_telemetry_event(&Marker);
-                    //Telemetry end
+		    WanMgr_ProcessTelemetryMarker(p_VirtIf,WAN_ERROR_PHY_DOWN);
 		}
-		else if(pWanDmlIface->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_DOWN && (strncmp(String,"Up",strlen(String)) == 0) )
+		else if (strncmp(String,"Up",strlen(String)) == 0) 
 		{
-                    //Telemetry start
-                    WanMgr_Telemetry_Marker_t Marker = {0};
-                    Marker.enTelemetryMarkerID = WAN_INFO_PHY_UP;
-                    Marker.pInterface = pWanDmlIface ;
-                    wanmgr_telemetry_event(&Marker);
-                    //Telemetry end		    
-		}				
+		    WanMgr_ProcessTelemetryMarker(p_VirtIf,WAN_INFO_PHY_UP);
+		}	    
                 WanMgr_StringToEnum(&pWanDmlIface->BaseInterfaceStatus, ENUM_PHY, String);
                 if (pWanDmlIface->Sub.BaseInterfaceStatusSub)
                 {
@@ -814,6 +804,24 @@ static void WanMgr_Rbus_EventReceiveHandler(rbusHandle_t handle, rbusEvent_t con
 
                 if( strstr(pParamName, WANMGR_INFACE_PHY_STATUS_SUFFIX) != NULL )
                 {
+                    if(pWanIfaceData->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_UP && (strncmp(pValue,"Down",strlen(pValue)) == 0) )
+                    {
+                        //Telemetry start
+                        WanMgr_Telemetry_Marker_t Marker = {0};
+                        Marker.enTelemetryMarkerID = WAN_ERROR_PHY_DOWN;
+                        Marker.pInterface = pWanIfaceData ;
+                        wanmgr_telemetry_event(&Marker);
+                        //Telemetry end
+                    }
+                    else if(pWanIfaceData->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_DOWN && (strncmp(pValue,"Up",strlen(pValue)) == 0) )
+                    {
+                        //Telemetry start
+                        WanMgr_Telemetry_Marker_t Marker = {0};
+                        Marker.enTelemetryMarkerID = WAN_INFO_PHY_UP;
+                        Marker.pInterface = pWanIfaceData ;
+                        wanmgr_telemetry_event(&Marker);
+                        //Telemetry end
+                    }			
                     WanMgr_StringToEnum(&pWanIfaceData->BaseInterfaceStatus, ENUM_PHY, pValue);
                 }
                 else if( strstr(pParamName, WANMGR_INFACE_WAN_LINKSTATUS_SUFFIX) != NULL )
@@ -1755,6 +1763,24 @@ static void CPEInterface_AsyncMethodHandler(
                 }
                 else if( WANMGR_PHY_STATUS_CHECK )
                 {
+                    if(pWanIfaceData->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_UP && (strncmp(pValue,"Down",strlen(pValue)) == 0) )
+                    {
+                        //Telemetry start
+                        WanMgr_Telemetry_Marker_t Marker = {0};
+                        Marker.enTelemetryMarkerID = WAN_ERROR_PHY_DOWN;
+                        Marker.pInterface = pWanIfaceData ;
+                        wanmgr_telemetry_event(&Marker);
+                        //Telemetry end
+                    }
+                    else if(pWanIfaceData->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_DOWN && (strncmp(pValue,"Up",strlen(pValue)) == 0) )
+                    {
+                        //Telemetry start
+                        WanMgr_Telemetry_Marker_t Marker = {0};
+                        Marker.enTelemetryMarkerID = WAN_INFO_PHY_UP;
+                        Marker.pInterface = pWanIfaceData ;
+                        wanmgr_telemetry_event(&Marker);
+                        //Telemetry end
+                    }			
                     WanMgr_StringToEnum(&pWanIfaceData->BaseInterfaceStatus, ENUM_PHY, pValue);
                 }
                 else if( WANMGR_WAN_LINKSTATUS_CHECK )

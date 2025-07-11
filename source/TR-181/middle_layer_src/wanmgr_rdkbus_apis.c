@@ -2121,6 +2121,7 @@ ANSC_STATUS Update_Interface_Status()
                 strncpy(prevCurrentActiveInterface,pWanDmlData->CurrentActiveInterface, sizeof(prevCurrentActiveInterface) - 1);
                 memset(pWanDmlData->CurrentActiveInterface, 0, sizeof(pWanDmlData->CurrentActiveInterface));
                 strncpy(pWanDmlData->CurrentActiveInterface,CurrentActiveInterface, sizeof(pWanDmlData->CurrentActiveInterface) - 1);
+
 #ifdef RBUS_BUILD_FLAG_ENABLE
                 publishCurrentActiveInf = TRUE;
 #endif //RBUS_BUILD_FLAG_ENABLE
