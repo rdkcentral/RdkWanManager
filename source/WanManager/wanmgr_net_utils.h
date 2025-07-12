@@ -38,6 +38,7 @@
 #define PHY_WAN_IF_NAME             "erouter0"
 #define ETH_BRIDGE_NAME             "brlan0"
 #define LAN_BRIDGE_NAME             "brlan0"
+#define HOTSPOT_ALIAS_NAME          "HOTSPOT"
 //
 
 #define WAN_STATUS_UP   "up"

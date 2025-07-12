@@ -1965,6 +1965,12 @@ static eWanState_t wan_transition_physical_interface_down(WanMgr_IfaceSM_Control
     }
 #endif
 
+    if( WAN_IFACE_CONN_TYPE_COLD_STANDBY == pInterface->IfaceConnectionType )
+    {
+        CcspTraceInfo(("%s %d: Deconfiguring Cold Standby %s Interface\n", __FUNCTION__, __LINE__, pInterface->Name));
+        WanManager_RdkBus_EnableInterface(pInterface, FALSE);
+    }
+
     if(p_VirtIf->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_UP)
     {
         wan_transition_ipv4_down(pWanIfaceCtrl);
