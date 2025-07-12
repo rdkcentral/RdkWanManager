@@ -639,22 +639,110 @@ void WanMgr_ProcessTelemetryMarker(DML_VIRTUAL_IFACE* pVirtIf, WanMgr_TelemetryE
     switch(telemetry_marker)
     {
         case WAN_ERROR_PHY_DOWN:
-	    if(pIntf->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_UP)
-	    {
-		Marker.enTelemetryMarkerID = telemetry_marker;
-                wanmgr_telemetry_event(&Marker);
-	    }	
+	    if(pIntf->BaseInterfaceStatus != WAN_IFACE_PHY_STATUS_UP)
+		return;
 	    break;
+
 	case WAN_INFO_PHY_UP:
-	    if(pIntf->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_DOWN)
-            {
-                Marker.enTelemetryMarkerID = telemetry_marker;
-                wanmgr_telemetry_event(&Marker);
-            }
+	    if(pIntf->BaseInterfaceStatus != WAN_IFACE_PHY_STATUS_DOWN)
+		return;
 	    break;
+
+	case WAN_INFO_WAN_UP:
+	    break;
+
+	case WAN_ERROR_WAN_DOWN:
+	    break;
+
+	case WAN_INFO_WAN_STANDBY:
+	    break;
+
+	case WAN_INFO_IPv4_CONFIG_TYPE:
+            break;	    
+
+	case WAN_INFO_IPv6_CONFIG_TYPE:
+            break;
+
+	case WAN_INFO_CONNECTIVITY_CHECK_TYPE:
+	    break;
+
+	case WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP_IPV4:
+	    if(pVirtIf->IP.Ipv4ConnectivityStatus != WAN_CONNECTIVITY_DOWN)
+		return;
+	    break;
+
+	case WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP_IPV6:
+	    if(pVirtIf->IP.Ipv6ConnectivityStatus != WAN_CONNECTIVITY_DOWN)
+		return;
+	    break;
+
+	case WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN:
+	    break;
+
+	case WAN_WARN_CONNECTIVITY_CHECK_STATUS_FAILED_IPV4:
+	    break;
+
+	case WAN_WARN_CONNECTIVITY_CHECK_STATUS_FAILED_IPV6:
+	    break;
+
+	case WAN_WARN_CONNECTIVITY_CHECK_STATUS_IDLE_IPV4:
+	    break;
+
+	case WAN_WARN_CONNECTIVITY_CHECK_STATUS_IDLE_IPV6:
+	    break;
+
+	case WAN_INFO_IP_MODE:
+	    break;
+
+	case WAN_INFO_IPv4_UP:
+	    if(pVirtIf->IP.Ipv4Status != WAN_IFACE_IPV4_STATE_DOWN)
+		return;
+            break;
+
+	case WAN_ERROR_IPv4_DOWN:
+	    if(pVirtIf->IP.Ipv4Status != WAN_IFACE_IPV4_STATE_UP)
+		return;
+            break;
+
+	case WAN_INFO_IPv6_UP:
+	    if(pVirtIf->IP.Ipv6Status != WAN_IFACE_IPV6_STATE_DOWN)
+		return;
+            break;
+
+	case WAN_ERROR_IPv6_DOWN:
+	    if(pVirtIf->IP.Ipv6Status != WAN_IFACE_IPV6_STATE_UP)
+		return;
+            break;
+
+	case WAN_INFO_MAPT_STATUS_UP:
+	    if(pVirtIf->MAP.MaptStatus != WAN_IFACE_MAPT_STATE_DOWN)
+		return;
+	    break;
+
+	case WAN_ERROR_MAPT_STATUS_DOWN:
+	    if(pVirtIf->MAP.MaptStatus != WAN_IFACE_MAPT_STATE_UP)
+		return;
+	    break;
+	    	
+        case WAN_ERROR_MAPT_STATUS_FAILED:
+	    break;
+
+	case WAN_ERROR_VLAN_DOWN:
+	    if(pVirtIf->VLAN.Status != WAN_IFACE_LINKSTATUS_UP)
+	        return;
+	    break;
+
+	case WAN_ERROR_VLAN_CREATION_FAILED:
+	    break;
+
+        case WAN_WARN_IP_OBTAIN_TIMER_EXPIRED:
+	    break;
+
 	default:
 	    break;
     }
+    Marker.enTelemetryMarkerID = telemetry_marker;
+    wanmgr_telemetry_event(&Marker);
     return ;
 }
 /*********************************************************************************/
@@ -700,41 +788,13 @@ void WanManager_UpdateInterfaceStatus(DML_VIRTUAL_IFACE* pVirtIf, wanmgr_iface_s
                 sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV4_TIME_ZONE, pVirtIf->IP.Ipv4Data.timeZone, 0);
             }
 #endif
-            
-            //Telemetry start
-            if(pVirtIf->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_DOWN)
-            {
-                WanMgr_Telemetry_Marker_t Marker = {0};
-                Marker.enTelemetryMarkerID = WAN_INFO_IPv4_UP;
-                Marker.pVirtInterface = pVirtIf;
-                wanmgr_telemetry_event(&Marker);
-                if(pVirtIf->IP.Mode == DML_WAN_IP_MODE_IPV4_ONLY || (pVirtIf->IP.Mode == DML_WAN_IP_MODE_DUAL_STACK && pVirtIf->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_UP))
-		{
-		    Marker.enTelemetryMarkerID = WAN_INFO_WAN_UP;
-                    wanmgr_telemetry_event(&Marker);
-		}
-            }	    
-            //Telemetry end	    
+            WanMgr_ProcessTelemetryMarker(pVirtIf,WAN_INFO_IPv4_UP); 
             pVirtIf->IP.Ipv4Status = WAN_IFACE_IPV4_STATE_UP;
             break;
         }
         case WANMGR_IFACE_CONNECTION_DOWN:
         {
-	    //Telemetry start
-            if(pVirtIf->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_UP)
-            {
-                WanMgr_Telemetry_Marker_t Marker = {0};
-                Marker.enTelemetryMarkerID = WAN_ERROR_IPv4_DOWN;
-                Marker.pVirtInterface = pVirtIf;
-                wanmgr_telemetry_event(&Marker);
-
-                if(pVirtIf->IP.Mode == DML_WAN_IP_MODE_IPV4_ONLY || (pVirtIf->IP.Mode == DML_WAN_IP_MODE_DUAL_STACK && pVirtIf->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_DOWN))
-                {
-                    Marker.enTelemetryMarkerID = WAN_ERROR_WAN_DOWN;
-                    wanmgr_telemetry_event(&Marker);
-                }
-	    }		
-	    //Telemetry end		
+	    WanMgr_ProcessTelemetryMarker(pVirtIf,WAN_ERROR_IPv4_DOWN);
             pVirtIf->IP.Ipv4Status = WAN_IFACE_IPV4_STATE_DOWN;
             pVirtIf->IP.Ipv4Changed = FALSE;
             pVirtIf->IP.Ipv4Renewed = FALSE;
@@ -743,47 +803,15 @@ void WanManager_UpdateInterfaceStatus(DML_VIRTUAL_IFACE* pVirtIf, wanmgr_iface_s
         }
         case WANMGR_IFACE_CONNECTION_IPV6_UP:
         {
-            //Telemetry start
-            if(pVirtIf->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_DOWN)
-            {
-                WanMgr_Telemetry_Marker_t Marker = {0};
-                Marker.enTelemetryMarkerID = WAN_INFO_IPv6_UP;
-                Marker.pVirtInterface = pVirtIf;
-                wanmgr_telemetry_event(&Marker);
-                if(pVirtIf->IP.Mode == DML_WAN_IP_MODE_IPV6_ONLY || (pVirtIf->IP.Mode == DML_WAN_IP_MODE_DUAL_STACK && pVirtIf->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_UP))
-		{
-	            Marker.enTelemetryMarkerID = WAN_INFO_WAN_UP;
-                    wanmgr_telemetry_event(&Marker);
-		}
-            }		
-            //Telemetry end		
+            WanMgr_ProcessTelemetryMarker(pVirtIf,WAN_INFO_IPv6_UP);
             pVirtIf->IP.Ipv6Status = WAN_IFACE_IPV6_STATE_UP;
             break;
         }
         case WANMGR_IFACE_CONNECTION_IPV6_DOWN:
         {
-            //Telemetry start
-            if(pVirtIf->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_UP)
-            {
-                WanMgr_Telemetry_Marker_t Marker = {0};
-                Marker.enTelemetryMarkerID = WAN_ERROR_IPv6_DOWN;
-                Marker.pVirtInterface = pVirtIf;
-                wanmgr_telemetry_event(&Marker);
+	    WanMgr_ProcessTelemetryMarker(pVirtIf,WAN_ERROR_IPv6_DOWN);
+	    WanMgr_ProcessTelemetryMarker(pVirtIf,WAN_ERROR_MAPT_STATUS_DOWN);
 
-		if(pVirtIf->IP.Mode == DML_WAN_IP_MODE_IPV6_ONLY || (pVirtIf->IP.Mode == DML_WAN_IP_MODE_DUAL_STACK && pVirtIf->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_DOWN))
-                {
-                    Marker.enTelemetryMarkerID = WAN_ERROR_WAN_DOWN;
-                    wanmgr_telemetry_event(&Marker);
-                }
-	    }	
-            if(pVirtIf->MAP.MaptStatus == WAN_IFACE_MAPT_STATE_UP)
-            {
-                WanMgr_Telemetry_Marker_t Marker = {0};
-                Marker.enTelemetryMarkerID = WAN_ERROR_MAPT_STATUS_DOWN;
-                Marker.pVirtInterface = pVirtIf ;
-                wanmgr_telemetry_event(&Marker);
-            }    	    
-            //Telemetry end		
             pVirtIf->IP.Ipv6Status = WAN_IFACE_IPV6_STATE_DOWN;
             pVirtIf->IP.Ipv6Changed = FALSE;
             pVirtIf->IP.Ipv6Renewed = FALSE;
@@ -800,15 +828,7 @@ void WanManager_UpdateInterfaceStatus(DML_VIRTUAL_IFACE* pVirtIf, wanmgr_iface_s
 #if defined(FEATURE_MAPT) || defined(FEATURE_SUPPORT_MAPT_NAT46)
         case WANMGR_IFACE_MAPT_START:
         {
-            //Telemetry start
-            if(pVirtIf->MAP.MaptStatus == WAN_IFACE_MAPT_STATE_DOWN)
-            {
-                WanMgr_Telemetry_Marker_t Marker = {0};
-                Marker.enTelemetryMarkerID = WAN_INFO_MAPT_STATUS_UP;
-                Marker.pVirtInterface = pVirtIf ;
-                wanmgr_telemetry_event(&Marker);
-	    }		
-            //Telemetry end		
+	    WanMgr_ProcessTelemetryMarker(pVirtIf,WAN_INFO_MAPT_STATUS_UP);
             pVirtIf->MAP.MaptStatus = WAN_IFACE_MAPT_STATE_UP;
             CcspTraceInfo(("mapt: %s \n",
                    ((iface_status == WANMGR_IFACE_MAPT_START) ? "UP" : (iface_status == WANMGR_IFACE_MAPT_STOP) ? "DOWN" : "N/A")));
@@ -817,15 +837,7 @@ void WanManager_UpdateInterfaceStatus(DML_VIRTUAL_IFACE* pVirtIf, wanmgr_iface_s
         }
         case WANMGR_IFACE_MAPT_STOP:
         {
-            //Telemetry start
-	    if(pVirtIf->MAP.MaptStatus == WAN_IFACE_MAPT_STATE_UP)
-            {
-                WanMgr_Telemetry_Marker_t Marker = {0};             
-                Marker.enTelemetryMarkerID = WAN_ERROR_MAPT_STATUS_DOWN;
-                Marker.pVirtInterface = pVirtIf ;
-                wanmgr_telemetry_event(&Marker);
-	    }		
-            //Telemetry end		
+	    WanMgr_ProcessTelemetryMarker(pVirtIf,WAN_ERROR_MAPT_STATUS_DOWN);
             pVirtIf->MAP.MaptStatus = WAN_IFACE_MAPT_STATE_DOWN;     // reset MAPT flag
             pVirtIf->MAP.MaptChanged = FALSE;                        // reset MAPT flag
             CcspTraceInfo(("mapt: %s \n",
@@ -1858,12 +1870,7 @@ static ANSC_STATUS WanMgr_SendMsgTo_ConnectivityCheck(WanMgr_IfaceSM_Controller_
             {
                 if(p_VirtIf->IP.Ipv4Renewed == TRUE && (strcmp(IHC_status, IPOE_STATUS_FAILED) == 0))
                 {
-                    //Telemetry start
-                    WanMgr_Telemetry_Marker_t Marker = {0};
-                    Marker.enTelemetryMarkerID = WAN_WARN_CONNECTIVITY_CHECK_STATUS_FAILED_IPV4;
-                    Marker.pVirtInterface = p_VirtIf ;
-                    wanmgr_telemetry_event(&Marker);
-                    //Telemetry end						
+		    WanMgr_ProcessTelemetryMarker(p_VirtIf,WAN_WARN_CONNECTIVITY_CHECK_STATUS_FAILED_IPV4);
                     //Restarting firewall to add IPOE_HEALTH_CHECK firewall rules.
                     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, NULL, 0);
                 }
@@ -1886,12 +1893,7 @@ static ANSC_STATUS WanMgr_SendMsgTo_ConnectivityCheck(WanMgr_IfaceSM_Controller_
             {
                 if(p_VirtIf->IP.Ipv6Renewed == TRUE && (strcmp(IHC_status, IPOE_STATUS_FAILED) == 0))
                 {
-                    //Telemetry start
-                    WanMgr_Telemetry_Marker_t Marker = {0};
-                    Marker.enTelemetryMarkerID = WAN_WARN_CONNECTIVITY_CHECK_STATUS_FAILED_IPV6;
-                    Marker.pVirtInterface = p_VirtIf ;
-                    wanmgr_telemetry_event(&Marker);
-                    //Telemetry end						
+ 		    WanMgr_ProcessTelemetryMarker(p_VirtIf,WAN_WARN_CONNECTIVITY_CHECK_STATUS_FAILED_IPV6);
                     //Restarting firewall to add IPOE_HEALTH_CHECK firewall rules.
                     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, NULL, 0);
                 }
@@ -2109,12 +2111,7 @@ static eWanState_t wan_transition_physical_interface_down(WanMgr_IfaceSM_Control
             {
 		if(p_VirtIf->VLAN.Status == WAN_IFACE_LINKSTATUS_UP)
 		{
-	            //Telemetry start
-                    WanMgr_Telemetry_Marker_t Marker = {0};
-                    Marker.enTelemetryMarkerID = WAN_ERROR_VLAN_DOWN;
-                    Marker.pInterface = pInterface ;
-                    wanmgr_telemetry_event(&Marker);
-                    //Telemetry end		    
+		    WanMgr_ProcessTelemetryMarker(p_VirtIf,WAN_ERROR_VLAN_DOWN);
 		}		    
                 CcspTraceInfo(("%s %d: LinkStatus is still CONFIGURING. Set to down\n", __FUNCTION__, __LINE__));
                 p_VirtIf->VLAN.Status = WAN_IFACE_LINKSTATUS_DOWN;
@@ -2881,12 +2878,7 @@ static eWanState_t wan_transition_mapt_up(WanMgr_IfaceSM_Controller_t* pWanIface
     if (ret != RETURN_OK)
     {
         CcspTraceError(("%s %d - Failed to configure MAP-T \n", __FUNCTION__, __LINE__));
-        //Telemetry start
-        WanMgr_Telemetry_Marker_t Marker = {0};
-        Marker.enTelemetryMarkerID = WAN_ERROR_MAPT_STATUS_FAILED;
-        Marker.pInterface = pInterface ;
-        wanmgr_telemetry_event(&Marker);
-        //Telemetry end			
+	WanMgr_ProcessTelemetryMarker(pInterface->VirtIfList,WAN_ERROR_MAPT_STATUS_FAILED);
     }
 
     if (p_VirtIf->IP.Dhcp4cStatus == DHCPC_STARTED)
@@ -3053,12 +3045,7 @@ static eWanState_t wan_transition_standby(WanMgr_IfaceSM_Controller_t* pWanIface
 
     Update_Interface_Status();
     DmlSetVLANInUseToPSMDB(p_VirtIf);
-    //Telemetry start
-    WanMgr_Telemetry_Marker_t Marker = {0};
-    Marker.enTelemetryMarkerID = WAN_INFO_WAN_STANDBY;
-    Marker.pInterface = pInterface ;
-    wanmgr_telemetry_event(&Marker);
-    //Telemetry end    
+    WanMgr_ProcessTelemetryMarker(pInterface->VirtIfList, WAN_INFO_WAN_STANDBY);
     CcspTraceInfo(("%s %d - TRANSITION WAN_STATE_STANDBY\n", __FUNCTION__, __LINE__));
     return WAN_STATE_STANDBY;
 }

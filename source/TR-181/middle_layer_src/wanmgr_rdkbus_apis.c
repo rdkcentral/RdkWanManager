@@ -327,12 +327,7 @@ int get_Virtual_Interface_FromPSM(ULONG instancenum, ULONG virtInsNum ,DML_VIRTU
     if (retPsmGet == CCSP_SUCCESS)
     {
         _ansc_sscanf(param_value, "%d", &(pVirtIf->IP.Mode));
-        //Telemetry start
-        WanMgr_Telemetry_Marker_t Marker = {0};
-        Marker.enTelemetryMarkerID = WAN_INFO_IP_MODE;
-        Marker.pVirtInterface = pVirtIf;
-        wanmgr_telemetry_event(&Marker);
-        //Telemetry end		
+	WanMgr_ProcessTelemetryMarker(pVirtIf,WAN_INFO_IP_MODE);
     }
 
     _ansc_memset(param_name, 0, sizeof(param_name));
@@ -342,12 +337,7 @@ int get_Virtual_Interface_FromPSM(ULONG instancenum, ULONG virtInsNum ,DML_VIRTU
     if(retPsmGet == CCSP_SUCCESS)
     {
         _ansc_sscanf(param_value, "%d", &(pVirtIf->IP.IPv4Source));
-        //Telemetry start
-        WanMgr_Telemetry_Marker_t Marker = {0};
-        Marker.enTelemetryMarkerID = WAN_INFO_IPv4_CONFIG_TYPE;
-        Marker.pVirtInterface = pVirtIf;
-        wanmgr_telemetry_event(&Marker);
-        //Telemetry end	
+	WanMgr_ProcessTelemetryMarker(pVirtIf,WAN_INFO_IPv4_CONFIG_TYPE);
     }
 
     _ansc_memset(param_name, 0, sizeof(param_name));
@@ -363,12 +353,7 @@ int get_Virtual_Interface_FromPSM(ULONG instancenum, ULONG virtInsNum ,DML_VIRTU
     if(retPsmGet == CCSP_SUCCESS)
     {
         _ansc_sscanf(param_value, "%d", &(pVirtIf->IP.IPv6Source));
-        //Telemetry start
-        WanMgr_Telemetry_Marker_t Marker = {0};
-        Marker.enTelemetryMarkerID = WAN_INFO_IPv6_CONFIG_TYPE;
-        Marker.pVirtInterface = pVirtIf ;
-        wanmgr_telemetry_event(&Marker);	
-        //Telemetry end	
+	WanMgr_ProcessTelemetryMarker(pVirtIf,WAN_INFO_IPv6_CONFIG_TYPE);
     }
 
     _ansc_memset(param_name, 0, sizeof(param_name));
@@ -403,12 +388,7 @@ int get_Virtual_Interface_FromPSM(ULONG instancenum, ULONG virtInsNum ,DML_VIRTU
     if(retPsmGet == CCSP_SUCCESS)
     {
         _ansc_sscanf(param_value, "%d", &(pVirtIf->IP.ConnectivityCheckType));
-        //Telemetry start
-        WanMgr_Telemetry_Marker_t Marker = {0};
-        Marker.enTelemetryMarkerID = WAN_INFO_CONNECTIVITY_CHECK_TYPE;
-        Marker.pVirtInterface = pVirtIf ;
-        wanmgr_telemetry_event(&Marker);
-        //Telemetry end			
+	WanMgr_ProcessTelemetryMarker(pVirtIf,WAN_INFO_CONNECTIVITY_CHECK_TYPE);
     }
 }
 
@@ -424,12 +404,8 @@ int get_Remote_Virtual_Interface_FromPSM(ULONG instancenum, ULONG virtInsNum ,DM
     if(retPsmGet == CCSP_SUCCESS)
     {
         _ansc_sscanf(param_value, "%d", &(pVirtIf->IP.ConnectivityCheckType));
-        //Telemetry start
-/*        WanMgr_Telemetry_Marker_t Marker = {0};
-        Marker.enTelemetryMarkerID = WAN_INFO_CONNECTIVITY_CHECK_TYPE;
-        Marker.pVirtInterface = pVirtIf ;
-        wanmgr_telemetry_event(&Marker);*/
-        //Telemetry end			
+	CcspTraceInfo(("%s %d KAVYA Sending event for WAN_INFO_CONNECTIVITY_CHECK_TYPE \n", __FUNCTION__, __LINE__));
+	WanMgr_ProcessTelemetryMarker(pVirtIf,WAN_INFO_CONNECTIVITY_CHECK_TYPE);
     }
 }
 
@@ -625,45 +601,12 @@ int write_Virtual_Interface_ToPSM(ULONG instancenum, ULONG virtInsNum ,DML_VIRTU
     _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_IP_INTERFACE, instancenum, (virtInsNum + 1));
     WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
 
-    _ansc_memset(param_name, 0, sizeof(param_name));
-    _ansc_memset(param_value, 0, sizeof(param_value));
-    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_IP_MODE, instancenum, (virtInsNum + 1));
-    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
-    if(retPsmGet == CCSP_SUCCESS)
-    {
-        if( pVirtIf->IP.Mode != atoi(param_value) )
-        {
-            //Telemetry start
-            WanMgr_Telemetry_Marker_t Marker = {0};
-            Marker.enTelemetryMarkerID = WAN_INFO_IP_MODE;
-            Marker.pVirtInterface = pVirtIf;
-            wanmgr_telemetry_event(&Marker);
-            //Telemetry end
-        }
-    }
     memset(param_value, 0, sizeof(param_value));
     memset(param_name, 0, sizeof(param_name));
     _ansc_sprintf(param_value, "%d", pVirtIf->IP.Mode );
     _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_IP_MODE, instancenum, (virtInsNum + 1));
     WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
 
-
-    _ansc_memset(param_name, 0, sizeof(param_name));
-    _ansc_memset(param_value, 0, sizeof(param_value));
-    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_IP_V4SOURCE, instancenum, (virtInsNum + 1));
-    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
-    if(retPsmGet == CCSP_SUCCESS)
-    {
-	if( pVirtIf->IP.IPv4Source != atoi(param_value) )
-	{
-	    //Telemetry start
-            WanMgr_Telemetry_Marker_t Marker = {0};
-            Marker.enTelemetryMarkerID = WAN_INFO_IPv4_CONFIG_TYPE;
-            Marker.pVirtInterface = pVirtIf;
-            wanmgr_telemetry_event(&Marker);
-            //Telemetry end	    
-	}
-    }
     memset(param_value, 0, sizeof(param_value));
     memset(param_name, 0, sizeof(param_name));
     _ansc_sprintf(param_value, "%d", pVirtIf->IP.IPv4Source );
@@ -676,22 +619,6 @@ int write_Virtual_Interface_ToPSM(ULONG instancenum, ULONG virtInsNum ,DML_VIRTU
     _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_IP_DHCPv4, instancenum, (virtInsNum + 1));
     WanMgr_RdkBus_SetParamValuesToDB(param_name,param_value);
 
-    _ansc_memset(param_name, 0, sizeof(param_name));
-    _ansc_memset(param_value, 0, sizeof(param_value));
-    _ansc_sprintf(param_name, PSM_WANMANAGER_IF_VIRIF_IP_V6SOURCE, instancenum, (virtInsNum + 1));
-    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
-    if(retPsmGet == CCSP_SUCCESS)
-    {
-        if(pVirtIf->IP.IPv6Source != atoi(param_value) )
-        {
-            //Telemetry start
-            WanMgr_Telemetry_Marker_t Marker = {0};
-            Marker.enTelemetryMarkerID = WAN_INFO_IPv6_CONFIG_TYPE;
-            Marker.pVirtInterface = pVirtIf;
-            wanmgr_telemetry_event(&Marker);
-            //Telemetry end
-        }
-    }    
     memset(param_value, 0, sizeof(param_value));
     memset(param_name, 0, sizeof(param_name));
     _ansc_sprintf(param_value, "%d", pVirtIf->IP.IPv6Source );

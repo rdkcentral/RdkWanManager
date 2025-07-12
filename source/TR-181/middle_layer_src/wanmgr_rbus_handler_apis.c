@@ -488,14 +488,9 @@ rbusError_t WanMgr_Interface_SetHandler(rbusHandle_t handle, rbusProperty_t prop
             {
                 char String[20] = {0};
                 strncpy(String , rbusValue_GetString(value, NULL),sizeof(String)-1);
-                if(p_VirtIf->VLAN.Status == WAN_IFACE_LINKSTATUS_UP && (strncmp(String,"Down",strlen(String)) == 0))
+                if(strncmp(String,"Down",strlen(String)) == 0)
 		{
-                    //Telemetry start
-                    WanMgr_Telemetry_Marker_t Marker = {0};
-                    Marker.enTelemetryMarkerID = WAN_ERROR_VLAN_DOWN;
-                    Marker.pVirtInterface = p_VirtIf ;
-                    wanmgr_telemetry_event(&Marker);
-                    //Telemetry end
+		    WanMgr_ProcessTelemetryMarker(p_VirtIf,WAN_ERROR_VLAN_DOWN);
 		}				
                 WanMgr_StringToEnum(&p_VirtIf->VLAN.Status, ENUM_WAN_LINKSTATUS, String);
                 if (pWanDmlIface->Sub.WanLinkStatusSub)
@@ -804,36 +799,21 @@ static void WanMgr_Rbus_EventReceiveHandler(rbusHandle_t handle, rbusEvent_t con
 
                 if( strstr(pParamName, WANMGR_INFACE_PHY_STATUS_SUFFIX) != NULL )
                 {
-                    if(pWanIfaceData->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_UP && (strncmp(pValue,"Down",strlen(pValue)) == 0) )
+                    if(strncmp(pValue,"Down",strlen(pValue)) == 0)
                     {
-                        //Telemetry start
-                        WanMgr_Telemetry_Marker_t Marker = {0};
-                        Marker.enTelemetryMarkerID = WAN_ERROR_PHY_DOWN;
-                        Marker.pInterface = pWanIfaceData ;
-                        wanmgr_telemetry_event(&Marker);
-                        //Telemetry end
+			WanMgr_ProcessTelemetryMarker(pWanIfaceData->VirtIfList,WAN_ERROR_PHY_DOWN);
                     }
-                    else if(pWanIfaceData->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_DOWN && (strncmp(pValue,"Up",strlen(pValue)) == 0) )
+                    else if (strncmp(pValue,"Up",strlen(pValue)) == 0)
                     {
-                        //Telemetry start
-                        WanMgr_Telemetry_Marker_t Marker = {0};
-                        Marker.enTelemetryMarkerID = WAN_INFO_PHY_UP;
-                        Marker.pInterface = pWanIfaceData ;
-                        wanmgr_telemetry_event(&Marker);
-                        //Telemetry end
+			WanMgr_ProcessTelemetryMarker(pWanIfaceData->VirtIfList,WAN_INFO_PHY_UP);
                     }			
                     WanMgr_StringToEnum(&pWanIfaceData->BaseInterfaceStatus, ENUM_PHY, pValue);
                 }
                 else if( strstr(pParamName, WANMGR_INFACE_WAN_LINKSTATUS_SUFFIX) != NULL )
                 {
-   	            if(pWanIfaceData->VirtIfList->VLAN.Status == WAN_IFACE_LINKSTATUS_UP && (strncmp(pValue,"Down",strlen(pValue)) == 0 ))
+   	            if (strncmp(pValue,"Down",strlen(pValue)) == 0 )
 		    {
-                        //Telemetry start
-                        WanMgr_Telemetry_Marker_t Marker = {0};
-                        Marker.enTelemetryMarkerID = WAN_ERROR_VLAN_DOWN;
-                        Marker.pInterface = pWanIfaceData ;
-                        wanmgr_telemetry_event(&Marker);
-                        //Telemetry end
+			WanMgr_ProcessTelemetryMarker(pWanIfaceData->VirtIfList,WAN_ERROR_VLAN_DOWN);
 		    }					
                     WanMgr_StringToEnum(&pWanIfaceData->VirtIfList->VLAN.Status, ENUM_WAN_LINKSTATUS, pValue);
                     if(pWanIfaceData->VirtIfList->VLAN.Status == WAN_IFACE_LINKSTATUS_UP)
@@ -1646,19 +1626,10 @@ void *WanMgr_WanRemoteIfaceConfigure_thread(void *arg)
     {
         DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
 	CcspTraceInfo(("%s %d: KAVYA Sending config info for [%s].\n",__FUNCTION__, __LINE__,pWanDmlIface->DisplayName));
-        //Telemetry start
-        WanMgr_Telemetry_Marker_t Marker = {0};
-        Marker.pInterface = pWanDmlIface;
-        Marker.enTelemetryMarkerID = WAN_INFO_IPv4_CONFIG_TYPE;
-        wanmgr_telemetry_event(&Marker);
-	Marker.enTelemetryMarkerID = WAN_INFO_IPv6_CONFIG_TYPE;
-	wanmgr_telemetry_event(&Marker);
-	Marker.enTelemetryMarkerID = WAN_INFO_CONNECTIVITY_CHECK_TYPE;
-	wanmgr_telemetry_event(&Marker);
-	Marker.enTelemetryMarkerID = WAN_INFO_IP_MODE;
-	wanmgr_telemetry_event(&Marker);
-        //Telemetry end		
-        
+	WanMgr_ProcessTelemetryMarker(pWanDmlIface->VirtIfList,WAN_INFO_IPv4_CONFIG_TYPE);
+	WanMgr_ProcessTelemetryMarker(pWanDmlIface->VirtIfList,WAN_INFO_IPv6_CONFIG_TYPE);
+	WanMgr_ProcessTelemetryMarker(pWanDmlIface->VirtIfList,WAN_INFO_CONNECTIVITY_CHECK_TYPE);
+	WanMgr_ProcessTelemetryMarker(pWanDmlIface->VirtIfList,WAN_INFO_IP_MODE);
 	WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
     }
     free(pDeviceChangeEvent);
@@ -1763,36 +1734,21 @@ static void CPEInterface_AsyncMethodHandler(
                 }
                 else if( WANMGR_PHY_STATUS_CHECK )
                 {
-                    if(pWanIfaceData->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_UP && (strncmp(pValue,"Down",strlen(pValue)) == 0) )
+                    if(strncmp(pValue,"Down",strlen(pValue)) == 0)
                     {
-                        //Telemetry start
-                        WanMgr_Telemetry_Marker_t Marker = {0};
-                        Marker.enTelemetryMarkerID = WAN_ERROR_PHY_DOWN;
-                        Marker.pInterface = pWanIfaceData ;
-                        wanmgr_telemetry_event(&Marker);
-                        //Telemetry end
+			WanMgr_ProcessTelemetryMarker(pWanIfaceData->VirtIfList,WAN_ERROR_PHY_DOWN);
                     }
-                    else if(pWanIfaceData->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_DOWN && (strncmp(pValue,"Up",strlen(pValue)) == 0) )
+                    else if(strncmp(pValue,"Up",strlen(pValue)) == 0)
                     {
-                        //Telemetry start
-                        WanMgr_Telemetry_Marker_t Marker = {0};
-                        Marker.enTelemetryMarkerID = WAN_INFO_PHY_UP;
-                        Marker.pInterface = pWanIfaceData ;
-                        wanmgr_telemetry_event(&Marker);
-                        //Telemetry end
+			WanMgr_ProcessTelemetryMarker(pWanIfaceData->VirtIfList,WAN_INFO_PHY_UP);
                     }			
                     WanMgr_StringToEnum(&pWanIfaceData->BaseInterfaceStatus, ENUM_PHY, pValue);
                 }
                 else if( WANMGR_WAN_LINKSTATUS_CHECK )
                 {
- 	 	    if(pWanIfaceData->VirtIfList->VLAN.Status == WAN_IFACE_LINKSTATUS_UP && (strncmp(pValue,"Down",strlen(pValue)) == 0))
+ 	 	    if(strncmp(pValue,"Down",strlen(pValue)) == 0)
 		    {
-                        //Telemetry start
-                        WanMgr_Telemetry_Marker_t Marker = {0};
-                        Marker.enTelemetryMarkerID = WAN_ERROR_VLAN_DOWN;
-                        Marker.pInterface = pWanIfaceData ;
-                        wanmgr_telemetry_event(&Marker);
-                        //Telemetry end             
+			WanMgr_ProcessTelemetryMarker(pWanIfaceData->VirtIfList,WAN_ERROR_VLAN_DOWN);
 		    }				
                     WanMgr_StringToEnum(&pWanIfaceData->VirtIfList->VLAN.Status, ENUM_WAN_LINKSTATUS, pValue);
                     if(pWanIfaceData->VirtIfList->VLAN.Status == WAN_IFACE_LINKSTATUS_UP)
@@ -1960,17 +1916,16 @@ static void WanMgr_TandD_EventHandler(rbusHandle_t handle, rbusEvent_t const* ev
         DML_VIRTUAL_IFACE *p_VirtIf = WanMgr_GetVirtIfDataByAlias_locked(Alias);
         if(p_VirtIf != NULL)
         {
-	    if((p_VirtIf->IP.Ipv4ConnectivityStatus == WAN_CONNECTIVITY_DOWN || p_VirtIf->IP.Ipv6ConnectivityStatus == WAN_CONNECTIVITY_DOWN ) && res == 1)
+	    if(res == 1)
 	    {
-                //Telemetry start
-                WanMgr_Telemetry_Marker_t Marker = {0};
-                Marker.pVirtInterface = p_VirtIf ;
-                Marker.enTelemetryMarkerID = WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP_IPV4;
-                wanmgr_telemetry_event(&Marker);
-		Marker.enTelemetryMarkerID = WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP_IPV6;
-                wanmgr_telemetry_event(&Marker);
-                //Telemetry end		    
+		WanMgr_ProcessTelemetryMarker(p_VirtIf,WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP_IPV4);
+		WanMgr_ProcessTelemetryMarker(p_VirtIf,WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP_IPV6);
 	    }
+	    else if(res == 2)
+	    {
+		WanMgr_ProcessTelemetryMarker(p_VirtIf,WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN);
+	    }
+
             p_VirtIf->IP.Ipv4ConnectivityStatus = res;
             p_VirtIf->IP.Ipv6ConnectivityStatus = res;
             WanMgr_VirtualIfaceData_release(p_VirtIf);

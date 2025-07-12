@@ -819,20 +819,7 @@ static WcPsPolicyState_t State_ScanningInterface (WanMgr_Policy_Controller_t * p
             if(pWanDmlIfaceData != NULL)
             {
                 DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
-                char temp[4] = {0};
-		char cmd[32] = {0};
-		memset(temp,0,sizeof(temp));
-		memset(cmd,0,sizeof(cmd));
-		snprintf(cmd,sizeof(cmd),RESTART_SELECTION_TIME_SYEVENT_NAME ,pWanIfaceData->Name);
-                sysevent_get(sysevent_fd, sysevent_token,cmd, temp, sizeof(temp));
-                if (strncmp(temp, "1",strlen(temp)) == 0 || strncmp(temp, "",strlen(temp)) == 0)
-		{
-                    WanMgr_Telemetry_Marker_t Marker = {0};
-                    Marker.enTelemetryMarkerID = WAN_WARN_IP_OBTAIN_TIMER_EXPIRED;
-                    Marker.pInterface = pWanIfaceData ;
-                    wanmgr_telemetry_event(&Marker);
-		    sysevent_set(sysevent_fd, sysevent_token, cmd,"0",0);
-		}
+		WanMgr_ProcessTelemetryMarker(pWanIfaceData->VirtIfList,WAN_WARN_IP_OBTAIN_TIMER_EXPIRED);
                 WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
             }
             //Telemetry end		    

@@ -1118,22 +1118,7 @@ static WcAwPolicyState_t State_WaitForInterface (WanMgr_Policy_Controller_t * pW
         // timer expired for selected iface but there is another interface that can be used
         CcspTraceInfo(("%s %d: Validation Timer expired for interface index:%d and there is another iface that can be possibly used as Wan interface\n", 
                     __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
-        //Telemetry start
-        char temp[4] = {0};
-        char cmd[32] = {0};
-        memset(temp,0,sizeof(temp));
-        memset(cmd,0,sizeof(cmd));
-        snprintf(cmd,sizeof(cmd),RESTART_SELECTION_TIME_SYEVENT_NAME ,pActiveInterface->Name);
-        sysevent_get(sysevent_fd, sysevent_token,cmd, temp, sizeof(temp));
-        if (strncmp(temp, "1",strlen(temp)) == 0 || strncmp(temp, "",strlen(temp)) == 0)
-        {	
-            WanMgr_Telemetry_Marker_t Marker = {0};         
-            Marker.enTelemetryMarkerID = WAN_WARN_IP_OBTAIN_TIMER_EXPIRED;
-            Marker.pInterface = pActiveInterface ;
-            wanmgr_telemetry_event(&Marker);
-            sysevent_set(sysevent_fd, sysevent_token, cmd,"0",0);
-        }
-        //Telemetry end				
+	WanMgr_ProcessTelemetryMarker(pActiveInterface->VirtIfList,WAN_WARN_IP_OBTAIN_TIMER_EXPIRED);
         return Transition_InterfaceInvalid(pWanController);
     }
 
@@ -1217,22 +1202,7 @@ static WcAwPolicyState_t State_ScanningInterface (WanMgr_Policy_Controller_t * p
         {
             CcspTraceInfo(("%s %d: Validation Timer expired for interface index:%d and there is another iface that can be possibly used as Wan interface\n", 
                         __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
-            //Telemetry start
-            char temp[4] = {0};
-            char cmd[32] = {0};
-            memset(temp,0,sizeof(temp));
-            memset(cmd,0,sizeof(cmd));
-            snprintf(cmd,sizeof(cmd),RESTART_SELECTION_TIME_SYEVENT_NAME ,pActiveInterface->Name);
-            sysevent_get(sysevent_fd, sysevent_token,cmd, temp, sizeof(temp));
-            if (strncmp(temp, "1",strlen(temp)) == 0 || strncmp(temp, "",strlen(temp)) == 0)
-            {
-                WanMgr_Telemetry_Marker_t Marker = {0};             
-                Marker.enTelemetryMarkerID = WAN_WARN_IP_OBTAIN_TIMER_EXPIRED;
-                Marker.pInterface = pActiveInterface ;
-                wanmgr_telemetry_event(&Marker);
-	        sysevent_set(sysevent_fd, sysevent_token, cmd,"0",0);
-            }
-            //Telemetry end		    
+	    WanMgr_ProcessTelemetryMarker(pActiveInterface->VirtIfList,WAN_WARN_IP_OBTAIN_TIMER_EXPIRED);
             return Transition_InterfaceDeselect(pWanController);
         }
     }

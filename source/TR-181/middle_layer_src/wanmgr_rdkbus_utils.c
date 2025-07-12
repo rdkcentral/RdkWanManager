@@ -82,12 +82,7 @@ ANSC_STATUS WanMgr_SetConnectivityCheckTypeToPSM(DML_VIRTUAL_IFACE* pVirtIf, CON
         AnscTraceError(("%s Error %d writing %s %s\n", __FUNCTION__, retPsmSet, param_name, param_value));
         result = ANSC_STATUS_FAILURE;
     }
-    //Telemetry start
-    WanMgr_Telemetry_Marker_t Marker = {0};
-    Marker.enTelemetryMarkerID = WAN_INFO_CONNECTIVITY_CHECK_TYPE;
-    Marker.pVirtInterface = pVirtIf ;
-    wanmgr_telemetry_event(&Marker);
-    //Telemetry end		    
+    WanMgr_ProcessTelemetryMarker(pVirtIf,WAN_INFO_CONNECTIVITY_CHECK_TYPE);
     return result;
 }
 
@@ -1016,12 +1011,7 @@ ANSC_STATUS  WanMgr_RdkBus_ConfigureVlan(DML_VIRTUAL_IFACE* pVirtIf, BOOL VlanEn
     if(ret != ANSC_STATUS_SUCCESS)
     {
         CcspTraceError(("%s %d DM set %s %s failed\n", __FUNCTION__,__LINE__, acSetParamName, acSetParamValue));
-        //Telemetry start
-        WanMgr_Telemetry_Marker_t Marker = {0};
-        Marker.enTelemetryMarkerID = WAN_ERROR_VLAN_CREATION_FAILED;
-        Marker.pVirtInterface = pVirtIf ;
-        wanmgr_telemetry_event(&Marker);
-        //Telemetry end		
+	WanMgr_ProcessTelemetryMarker(pVirtIf,WAN_ERROR_VLAN_CREATION_FAILED);
         return ANSC_STATUS_FAILURE;
     }
 

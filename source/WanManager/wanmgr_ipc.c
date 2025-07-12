@@ -204,12 +204,7 @@ static ANSC_STATUS WanMgr_IpcNewIhcMsg(ipc_ihc_data_t *pIhcMsg)
                 DML_VIRTUAL_IFACE* pVirtIf = WanMgr_GetVirtualIfaceByName_locked(pIhcMsg->ifName);
                 if(pVirtIf != NULL)
                 {
-                    //Telemetry start
-                    WanMgr_Telemetry_Marker_t Marker = {0};
-                    Marker.enTelemetryMarkerID = WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP_IPV6;
-                    Marker.pVirtInterface = pVirtIf ;
-                    wanmgr_telemetry_event(&Marker);
-                    //Telemetry end
+		    WanMgr_ProcessTelemetryMarker(pVirtIf,WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP_IPV6);
                     WanMgr_VirtualIfaceData_release(pVirtIf);
 		}
 	    }			    
@@ -229,13 +224,8 @@ static ANSC_STATUS WanMgr_IpcNewIhcMsg(ipc_ihc_data_t *pIhcMsg)
 	    {
                 DML_VIRTUAL_IFACE* pVirtIf = WanMgr_GetVirtualIfaceByName_locked(pIhcMsg->ifName);
                 if(pVirtIf != NULL)
-                {		
-                    //Telemetry start
-                    WanMgr_Telemetry_Marker_t Marker = {0};
-                    Marker.enTelemetryMarkerID = WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP_IPV4;
-                    Marker.pVirtInterface = pVirtIf ;
-                    wanmgr_telemetry_event(&Marker);
-                    //Telemetry end
+                {
+		    WanMgr_ProcessTelemetryMarker(pVirtIf,WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP_IPV4);		
                     WanMgr_VirtualIfaceData_release(pVirtIf);
 		}
             }		    
@@ -246,12 +236,7 @@ static ANSC_STATUS WanMgr_IpcNewIhcMsg(ipc_ihc_data_t *pIhcMsg)
                 DML_VIRTUAL_IFACE* pVirtIf = WanMgr_GetVirtualIfaceByName_locked(pIhcMsg->ifName);
                 if(pVirtIf != NULL)
                 {
-                    //Telemetry start
-                    WanMgr_Telemetry_Marker_t Marker = {0};
-                    Marker.enTelemetryMarkerID = WAN_WARN_CONNECTIVITY_CHECK_STATUS_FAILED_IPV4;
-                    Marker.pVirtInterface = pVirtIf ;
-                    wanmgr_telemetry_event(&Marker);
-                    //Telemetry end
+		    WanMgr_ProcessTelemetryMarker(pVirtIf,WAN_WARN_CONNECTIVITY_CHECK_STATUS_FAILED_IPV4);
                     WanMgr_VirtualIfaceData_release(pVirtIf);
   	    	}
 	    }	    	    
@@ -263,12 +248,7 @@ static ANSC_STATUS WanMgr_IpcNewIhcMsg(ipc_ihc_data_t *pIhcMsg)
                 DML_VIRTUAL_IFACE* pVirtIf = WanMgr_GetVirtualIfaceByName_locked(pIhcMsg->ifName);
                 if(pVirtIf != NULL)
                 {
-                    //Telemetry start
-                    WanMgr_Telemetry_Marker_t Marker = {0};
-                    Marker.enTelemetryMarkerID = WAN_WARN_CONNECTIVITY_CHECK_STATUS_FAILED_IPV6;
-                    Marker.pVirtInterface = pVirtIf ;
-                    wanmgr_telemetry_event(&Marker);
-                    //Telemetry end
+		    WanMgr_ProcessTelemetryMarker(pVirtIf,WAN_WARN_CONNECTIVITY_CHECK_STATUS_FAILED_IPV6);
                     WanMgr_VirtualIfaceData_release(pVirtIf);
 		}	    
 	    }	    	    
@@ -280,12 +260,7 @@ static ANSC_STATUS WanMgr_IpcNewIhcMsg(ipc_ihc_data_t *pIhcMsg)
                 DML_VIRTUAL_IFACE* pVirtIf = WanMgr_GetVirtualIfaceByName_locked(pIhcMsg->ifName);
                 if(pVirtIf != NULL)
 	        {
-                    //Telemetry start
-                    WanMgr_Telemetry_Marker_t Marker = {0};         
-                    Marker.enTelemetryMarkerID = WAN_WARN_CONNECTIVITY_CHECK_STATUS_IDLE_IPV4;
-                    Marker.pVirtInterface = pVirtIf ;
-                    wanmgr_telemetry_event(&Marker);
-                    //Telemetry end		            
+		    WanMgr_ProcessTelemetryMarker(pVirtIf,WAN_WARN_CONNECTIVITY_CHECK_STATUS_IDLE_IPV4);
                     WanMgr_VirtualIfaceData_release(pVirtIf);
 	        }
 	    }
@@ -296,12 +271,7 @@ static ANSC_STATUS WanMgr_IpcNewIhcMsg(ipc_ihc_data_t *pIhcMsg)
                 DML_VIRTUAL_IFACE* pVirtIf = WanMgr_GetVirtualIfaceByName_locked(pIhcMsg->ifName);
                 if(pVirtIf != NULL)
                 {
-                    //Telemetry start
-                    WanMgr_Telemetry_Marker_t Marker = {0};
-                    Marker.enTelemetryMarkerID = WAN_WARN_CONNECTIVITY_CHECK_STATUS_IDLE_IPV6;
-                    Marker.pVirtInterface = pVirtIf ;
-                    wanmgr_telemetry_event(&Marker);
-                    //Telemetry end
+	            WanMgr_ProcessTelemetryMarker(pVirtIf,WAN_WARN_CONNECTIVITY_CHECK_STATUS_IDLE_IPV6);
                     WanMgr_VirtualIfaceData_release(pVirtIf);
                 }
 	    }	    
