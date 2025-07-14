@@ -2564,7 +2564,6 @@ static eWanState_t wan_transition_ipv6_down(WanMgr_IfaceSM_Controller_t* pWanIfa
     WanMgr_Rbus_EventPublishHandler(param_name, "", RBUS_STRING);
     snprintf(param_name, sizeof(param_name), "Device.X_RDK_WanManager.Interface.%d.VirtualInterface.%d.IP.IPv6Prefix",  p_VirtIf->baseIfIdx+1, p_VirtIf->VirIfIdx+1);
     WanMgr_Rbus_EventPublishHandler(param_name, "", RBUS_STRING);
-    WanManager_UpdateInterfaceStatus (p_VirtIf, WANMGR_IFACE_CONNECTION_IPV6_DOWN);
 
     if(p_VirtIf->Status == WAN_IFACE_STATUS_UP)
     {
@@ -2573,6 +2572,9 @@ static eWanState_t wan_transition_ipv6_down(WanMgr_IfaceSM_Controller_t* pWanIfa
             CcspTraceError(("%s %d - Failed to tear down IPv6 for %s \n", __FUNCTION__, __LINE__, p_VirtIf->Name));
         }
     }
+
+    WanManager_UpdateInterfaceStatus (p_VirtIf, WANMGR_IFACE_CONNECTION_IPV6_DOWN);
+
 #if defined(FEATURE_464XLAT)
 	xlat_status = xlat_state_get();
 	if(xlat_status == XLAT_ON)

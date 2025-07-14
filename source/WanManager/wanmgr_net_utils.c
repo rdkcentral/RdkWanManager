@@ -343,7 +343,7 @@ int WanManager_Ipv6AddrUtil(DML_VIRTUAL_IFACE* p_VirtIf,Ipv6OperType opr)
             if (strlen( p_VirtIf->IP.Ipv6Data.address) > 0)
             {
                 memset(cmdLine, 0, sizeof(cmdLine));
-                snprintf(cmdLine, sizeof(cmdLine), "ip -6 addr del %s/64 dev %s", p_VirtIf->IP.Ipv6Data.address, p_VirtIf->Name);
+                snprintf(cmdLine, sizeof(cmdLine), "ip -6 addr del %s/128 dev %s", p_VirtIf->IP.Ipv6Data.address, p_VirtIf->Name);
                 if (WanManager_DoSystemActionWithStatus("ip -6 addr del ADDR dev xxxx", cmdLine) != 0)
                     CcspTraceError(("failed to run cmd: %s", cmdLine));
 
