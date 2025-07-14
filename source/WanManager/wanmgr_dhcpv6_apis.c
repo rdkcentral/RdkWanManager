@@ -1958,7 +1958,6 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
         {
             if(pVirtIf->Status == WAN_IFACE_STATUS_UP &&  pNewIpcMsg->prefixPltime > 0 && pNewIpcMsg->prefixVltime > 0 ) //Update life time only if the interface is active.
             {
-                //TODO : RADVD restart required for ipv6 renew ?
                 sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_RADVD_RESTART, NULL, 0);
             }
             pVirtIf->IP.Ipv6Renewed = TRUE;
@@ -2183,7 +2182,10 @@ int setUpLanPrefixIPv6(DML_VIRTUAL_IFACE* pVirtIf)
 
     CcspTraceWarning(("%s: setting lan-restart\n", __FUNCTION__));
     sysevent_set(sysevent_fd, sysevent_token, "lan-restart", "1", 0);
-
+#if defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) && ! defined(DHCPV6_PREFIX_FIX) 
+    CcspTraceWarning(("%s: setting dhcpv6_server-restart\n", __FUNCTION__));
+    sysevent_set(sysevent_fd, sysevent_token, "dhcpv6_server-restart", "", 0);
+#else
     // Below code copied from CosaDmlDHCPv6sTriggerRestart(FALSE) PAm function.
     int fd = 0;
     char str[32] = "restart";
@@ -2195,6 +2197,7 @@ int setUpLanPrefixIPv6(DML_VIRTUAL_IFACE* pVirtIf)
     }
     write( fd, str, sizeof(str) );
     close(fd);
+#endif
 #endif
 #endif
     return RETURN_OK;
