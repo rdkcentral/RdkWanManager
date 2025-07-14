@@ -1916,12 +1916,12 @@ static void WanMgr_TandD_EventHandler(rbusHandle_t handle, rbusEvent_t const* ev
         DML_VIRTUAL_IFACE *p_VirtIf = WanMgr_GetVirtIfDataByAlias_locked(Alias);
         if(p_VirtIf != NULL)
         {            
-	    if(res == 1)
+	    if(res == WAN_CONNECTIVITY_UP)
 	    {
 		WanMgr_ProcessTelemetryMarker(p_VirtIf,WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP_IPV4);
 		WanMgr_ProcessTelemetryMarker(p_VirtIf,WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP_IPV6);
 	    }
-	    else if(res == 2)
+	    else if(res == WAN_CONNECTIVITY_DOWN)
 	    {
 		WanMgr_ProcessTelemetryMarker(p_VirtIf,WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN);
 	    }
