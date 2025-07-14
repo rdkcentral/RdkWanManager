@@ -608,7 +608,7 @@ int WanManager_StartDhcpv4Client(DML_VIRTUAL_IFACE* pVirtIf, char* baseInterface
         snprintf(cmdInterfaceAction, sizeof(cmdInterfaceAction), "ip link set dev %s up", pVirtIf->Name);
         if (0 != WanManager_DoSystemActionWithStatus("start_dhcpc", cmdInterfaceAction))
         {
-            CcspTraceError(("Failed to run: %s:%d", cmdInterfaceAction, ret));
+            CcspTraceError(("Failed to run: %s", cmdInterfaceAction));
             return -1;
         }
     }
