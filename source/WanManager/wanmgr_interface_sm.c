@@ -747,9 +747,6 @@ void WanMgr_ProcessTelemetryMarker(DML_VIRTUAL_IFACE* pVirtIf, WanMgr_TelemetryE
 	    pWanIfaceData->ResetSelectionTimer = FALSE;
 	    break;
 
-	case RESET_TIMER_EXPIRED:
-
-	    break;
 	default:
 	    break;
     }
