@@ -38,7 +38,6 @@
 #ifdef ENABLE_FEATURE_TELEMETRY2_0
 #include <telemetry_busmessage_sender.h>
 #endif
-//#include "wanmgr_telemetry.h"
 
 #define IF_SIZE      32
 #define LOOP_TIMEOUT 50000 // timeout in microseconds. This is the state machine loop interval
@@ -628,12 +627,14 @@ void WanMgr_ProcessTelemetryMarker(DML_VIRTUAL_IFACE* pVirtIf, WanMgr_TelemetryE
 
     DML_WAN_IFACE *pIntf = NULL;
     WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pVirtIf->baseIfIdx);
-    if(pWanDmlIfaceData != NULL)
+    if(pWanDmlIfaceData == NULL)
     {
-        pIntf = &(pWanDmlIfaceData->data);
-        WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+        return ;
     }
 
+    pIntf = &(pWanDmlIfaceData->data);
+    WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+    
     WanMgr_Telemetry_Marker_t Marker = {0};
     Marker.pVirtInterface = pVirtIf;
     switch(telemetry_marker)
@@ -649,8 +650,6 @@ void WanMgr_ProcessTelemetryMarker(DML_VIRTUAL_IFACE* pVirtIf, WanMgr_TelemetryE
 	    break;
 
 	case WAN_INFO_WAN_UP:
-//	    if(pIntf->Selection.Status != WAN_IFACE_NOT_SELECTED)
-//		return;
 	    break;
 
 	case WAN_ERROR_WAN_DOWN:
@@ -2119,13 +2118,10 @@ static eWanState_t wan_transition_physical_interface_down(WanMgr_IfaceSM_Control
         if (pInterface->IfaceType != REMOTE_IFACE) //TODO NEW_DESIGN rework for remote interface
         {
             WanMgr_RdkBus_ConfigureVlan(p_VirtIf, FALSE);        
+	    WanMgr_ProcessTelemetryMarker(p_VirtIf,WAN_ERROR_VLAN_DOWN);
             /* VLAN link is not created yet if LinkStatus is CONFIGURING. Change it to down. */
-            if( p_VirtIf->VLAN.Status == WAN_IFACE_LINKSTATUS_CONFIGURING || p_VirtIf->VLAN.Status == WAN_IFACE_LINKSTATUS_UP)
+            if( p_VirtIf->VLAN.Status == WAN_IFACE_LINKSTATUS_CONFIGURING )
             {
-		if(p_VirtIf->VLAN.Status == WAN_IFACE_LINKSTATUS_UP)
-		{
-		    WanMgr_ProcessTelemetryMarker(p_VirtIf,WAN_ERROR_VLAN_DOWN);
-		}		    
                 CcspTraceInfo(("%s %d: LinkStatus is still CONFIGURING. Set to down\n", __FUNCTION__, __LINE__));
                 p_VirtIf->VLAN.Status = WAN_IFACE_LINKSTATUS_DOWN;
             }

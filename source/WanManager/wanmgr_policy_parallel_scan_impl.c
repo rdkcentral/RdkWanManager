@@ -29,7 +29,6 @@
 #include "wanmgr_wan_failover.h"
 #include "wanmgr_net_utils.h"
 #include "wanmgr_telemetry.h"
-#include <sysevent/sysevent.h>
 
 #define ETH_HW_CONFIGURATION_DM     "Device.Ethernet.Interface.%d.Upstream"
 #define ETH_PHY_PATH_DM             "Device.Ethernet.X_RDK_Interface.%d"
@@ -399,7 +398,7 @@ static WcPsPolicyState_t Transition_SelectingInterface (WanMgr_Policy_Controller
                     DmlSetWanActiveLinkInPSMDB(uiLoopCount, TRUE);
                 }else
                 {
-		    //WanMgr_ProcessTelemetryMarker(pWanIfaceData->VirtIfList,WAN_ERROR_WAN_DOWN);
+		    WanMgr_ProcessTelemetryMarker(pWanIfaceData->VirtIfList,WAN_ERROR_WAN_DOWN);
                     pWanIfaceData->Selection.Status = WAN_IFACE_NOT_SELECTED;
                     pWanIfaceData->Selection.ActiveLink = FALSE;
                     DmlSetWanActiveLinkInPSMDB(uiLoopCount, FALSE);
@@ -812,7 +811,7 @@ static WcPsPolicyState_t State_ScanningInterface (WanMgr_Policy_Controller_t * p
         {
             /*If timer expired select the highest priority active interface */
             CcspTraceInfo(("%s %d  SelectionTimeOut expired. Selecting Highest(available) priority interface id(%d)\n", __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
-            //Telemetry start
+             
             WanMgr_Iface_Data_t*   pWanDmlIfaceData = WanMgr_GetIfaceData_locked(highPriorityValidIface);
             if(pWanDmlIfaceData != NULL)
             {
