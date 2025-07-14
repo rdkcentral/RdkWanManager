@@ -83,7 +83,7 @@ static eWanState_t wan_state_refreshing_wan(WanMgr_IfaceSM_Controller_t* pWanIfa
 static eWanState_t wan_state_deconfiguring_wan(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
 static eWanState_t wan_state_exit(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
 static eWanState_t wan_state_cold_standby_status_waiting(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
-static eWanState_t wan_state_down(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
+static eWanState_t wan_state_phy_down(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
 
 /*WAN Manager Transitions*/
 static eWanState_t wan_transition_start(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
@@ -1872,7 +1872,7 @@ static eWanState_t wan_transition_start(WanMgr_IfaceSM_Controller_t* pWanIfaceCt
 
     WanManager_PrintBootEvents (WAN_INIT_START);
 
-    return WAN_STATE_DOWN;
+    return WAN_STATE_PHY_DOWN;
 }
 
 static eWanState_t wan_transition_cold_standby_activation(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
@@ -1889,7 +1889,7 @@ static eWanState_t wan_transition_cold_standby_activation(WanMgr_IfaceSM_Control
     // Configure Interface
     if ( ANSC_STATUS_FAILURE == WanManager_RdkBus_EnableInterface(pInterface, TRUE) )
     {
-       return WAN_STATE_DOWN;
+       return WAN_STATE_PHY_DOWN;
     }
     
     CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION COLD STANDBY ACTIVATION\n", __FUNCTION__, __LINE__, pInterface->Name));
@@ -3023,7 +3023,7 @@ static eWanState_t wan_transition_standby_deconfig_ips(WanMgr_IfaceSM_Controller
 /*********************************************************************************/
 /**************************** STATES *********************************************/
 /*********************************************************************************/
-static eWanState_t wan_state_down(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
+static eWanState_t wan_state_phy_down(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
 {
     if((pWanIfaceCtrl == NULL) || (pWanIfaceCtrl->pIfaceData == NULL))
     {
@@ -4216,9 +4216,9 @@ static void* WanMgr_InterfaceSMThread( void *arg )
         // process state
         switch (iface_sm_state)
         {
-            case WAN_STATE_DOWN:
+            case WAN_STATE_PHY_DOWN:
                 {
-                    iface_sm_state = wan_state_down(pWanIfaceCtrl);
+                    iface_sm_state = wan_state_phy_down(pWanIfaceCtrl);
                     break;
                 }
             case WAN_STATE_WAIT_FOR_COLD_STANDBY:
