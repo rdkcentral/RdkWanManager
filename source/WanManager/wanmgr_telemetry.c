@@ -54,6 +54,7 @@ void wanmgr_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
             break;
         default:
 	    ;    
+    }
 #endif	    
     return ANSC_STATUS_SUCCESS;
 }
