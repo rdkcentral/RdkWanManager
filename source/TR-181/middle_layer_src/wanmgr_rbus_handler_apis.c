@@ -1915,7 +1915,7 @@ static void WanMgr_TandD_EventHandler(rbusHandle_t handle, rbusEvent_t const* ev
 
         DML_VIRTUAL_IFACE *p_VirtIf = WanMgr_GetVirtIfDataByAlias_locked(Alias);
         if(p_VirtIf != NULL)
-        {
+        {            
 	    if(res == 1)
 	    {
 		WanMgr_ProcessTelemetryMarker(p_VirtIf,WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP_IPV4);

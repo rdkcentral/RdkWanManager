@@ -649,9 +649,15 @@ void WanMgr_ProcessTelemetryMarker(DML_VIRTUAL_IFACE* pVirtIf, WanMgr_TelemetryE
 	    break;
 
 	case WAN_INFO_WAN_UP:
+//	    if(pIntf->Selection.Status != WAN_IFACE_NOT_SELECTED)
+//		return;
 	    break;
 
 	case WAN_ERROR_WAN_DOWN:
+	    if(!(pIntf->Selection.Status == WAN_IFACE_VALIDATING || pIntf->Selection.Status == WAN_IFACE_SELECTED || pIntf->Selection.Status == WAN_IFACE_ACTIVE))
+	    {
+		return;
+	    }
 	    break;
 
 	case WAN_INFO_WAN_STANDBY:
@@ -736,8 +742,15 @@ void WanMgr_ProcessTelemetryMarker(DML_VIRTUAL_IFACE* pVirtIf, WanMgr_TelemetryE
 	    break;
 
         case WAN_WARN_IP_OBTAIN_TIMER_EXPIRED:
+	    if(pWanIfaceData->ResetSelectionTimer != TRUE)
+		return;
+
+	    pWanIfaceData->ResetSelectionTimer = FALSE;
 	    break;
 
+	case RESET_TIMER_EXPIRED:
+
+	    break;
 	default:
 	    break;
     }

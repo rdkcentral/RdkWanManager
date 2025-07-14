@@ -33,7 +33,6 @@
 
 /* ---- Global Constants -------------------------- */
 #define SELECTION_PROCESS_LOOP_TIMEOUT 250000 // timeout in microseconds. This is the state machine loop interval
-#define RESTART_SELECTION_TIME_SYEVENT_NAME "ResetSelectionTimeout_%s"
 
 extern WANMGR_DATA_ST gWanMgrDataBase;
 
@@ -820,8 +819,8 @@ static WcAwPolicyState_t Transition_InterfaceDeselect (WanMgr_Policy_Controller_
 
     DML_WAN_IFACE * pActiveInterface = &(pWanController->pWanActiveIfaceData->data);
     CcspTraceInfo(("%s %d: Selection.Status set to NOT_SELECTED. Tearing down iface state machine\n", __FUNCTION__, __LINE__));
+    WanMgr_ProcessTelemetryMarker(pActiveInterface->VirtIfList,WAN_ERROR_WAN_DOWN);
     pActiveInterface->Selection.Status = WAN_IFACE_NOT_SELECTED;
-
     return STATE_AUTO_WAN_INTERFACE_TEARDOWN;
 
 }
@@ -900,10 +899,7 @@ static WcAwPolicyState_t Transition_RestartSelectionInterface (WanMgr_Policy_Con
         CcspTraceInfo(("%s %d: Resetting FO scan thread\n", __FUNCTION__, __LINE__));
         pWanConfigData->data.ResetFailOverScan = TRUE;
 	DML_WAN_IFACE* pWanIfaceData = &(pWanConfigData->data);
-        char cmd[64] ={0};
-        memset(cmd,0,sizeof(cmd));
-        snprintf(cmd, sizeof(cmd),RESTART_SELECTION_TIME_SYEVENT_NAME,pWanIfaceData->Name);
-	sysevent_set(sysevent_fd, sysevent_token, cmd,"1",0);	
+	pWanIfaceData->ResetSelectionTimer = TRUE;
         WanMgrDml_GetConfigData_release(pWanConfigData);
     }
 
@@ -952,10 +948,10 @@ static WcAwPolicyState_t Transition_ReconfigurePlatform (WanMgr_Policy_Controlle
 
     // set Selection.Status = WAN_IFACE_NOT_SELECTED, to tear down iface sm 
     DML_WAN_IFACE * pActiveInterface = &(pWanController->pWanActiveIfaceData->data);
+    WanMgr_ProcessTelemetryMarker(pActiveInterface->VirtIfList,WAN_ERROR_WAN_DOWN);
     pActiveInterface->Selection.Status = WAN_IFACE_NOT_SELECTED;
     pActiveInterface->Selection.RebootTriggerStatus = TRUE;
     CcspTraceInfo(("%s %d: setting Selection.Status for interface:%d as NOT_SELECTED \n", __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
-
     return STATE_AUTO_WAN_REBOOT_PLATFORM;
 }
 
@@ -1029,9 +1025,9 @@ static WcAwPolicyState_t Transition_ResetSelectedInterface (WanMgr_Policy_Contro
 
     DML_WAN_IFACE* pWanIfaceData = &(pWanController->pWanActiveIfaceData->data);
 
+    WanMgr_ProcessTelemetryMarker(pWanIfaceData->VirtIfList,WAN_ERROR_WAN_DOWN);
     pWanIfaceData->Selection.Status = WAN_IFACE_NOT_SELECTED;
     CcspTraceInfo(("%s %d: Selection.Status set to NOT_SELECTED. moving to State_WaitingForIfaceTearDown()\n", __FUNCTION__, __LINE__));
-
     return STATE_AUTO_WAN_INTERFACE_TEARDOWN;
 }
 

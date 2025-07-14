@@ -37,7 +37,6 @@
 /* ---- Global Constants -------------------------- */
 #define SELECTION_PROCESS_LOOP_TIMEOUT 250000 // timeout in microseconds. This is the state machine loop interval
 #define MAX_PRIORITY_VALUE 255
-#define RESTART_SELECTION_TIME_SYEVENT_NAME "ResetSelectionTimeout_%s"
 
 extern ANSC_HANDLE bus_handle;
 
@@ -400,6 +399,7 @@ static WcPsPolicyState_t Transition_SelectingInterface (WanMgr_Policy_Controller
                     DmlSetWanActiveLinkInPSMDB(uiLoopCount, TRUE);
                 }else
                 {
+		    //WanMgr_ProcessTelemetryMarker(pWanIfaceData->VirtIfList,WAN_ERROR_WAN_DOWN);
                     pWanIfaceData->Selection.Status = WAN_IFACE_NOT_SELECTED;
                     pWanIfaceData->Selection.ActiveLink = FALSE;
                     DmlSetWanActiveLinkInPSMDB(uiLoopCount, FALSE);
@@ -616,10 +616,7 @@ static WcPsPolicyState_t Transition_RestartScan (WanMgr_Policy_Controller_t * pW
                     WanMgr_RdkBus_AddIntfToLanBridge(pWanIfaceData->BaseInterface, FALSE);
                 }
             }
-            char cmd[64] ={0};
-	    memset(cmd,0,sizeof(cmd));
-	    snprintf(cmd, sizeof(cmd),RESTART_SELECTION_TIME_SYEVENT_NAME,pWanIfaceData->Name);
-	    sysevent_set(sysevent_fd, sysevent_token, cmd,"1",0);	    
+	    pWanIfaceData->ResetSelectionTimer = TRUE;
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
         }
     }
@@ -673,6 +670,7 @@ static WcPsPolicyState_t Transition_TearingDown (WanMgr_Policy_Controller_t * pW
             DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
             if(pWanController->GroupInst == pWanIfaceData->Selection.Group)
             {
+		WanMgr_ProcessTelemetryMarker(pWanIfaceData->VirtIfList,WAN_ERROR_WAN_DOWN);
                 pWanIfaceData->Selection.Status = WAN_IFACE_NOT_SELECTED;
                 /* set INVALID interfaces as DISABLED */
                 if (pWanIfaceData->VirtIfList->Status == WAN_IFACE_STATUS_INVALID)
