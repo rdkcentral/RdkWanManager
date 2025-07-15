@@ -399,7 +399,7 @@ static WcPsPolicyState_t Transition_SelectingInterface (WanMgr_Policy_Controller
                 }else
                 {
 		    CcspTraceInfo(("%s %d: KAVYA Sending WAN_ERROR_WAN_DOWN .\n",__FUNCTION__, __LINE__));
-		    WanMgr_ProcessTelemetryMarker(pWanIfaceData->AliasName,WAN_ERROR_WAN_DOWN);
+		    WanMgr_ProcessTelemetryMarker(WanMgr_getVirtualIfaceById( pWanIfaceData->VirtIfList,0),WAN_ERROR_WAN_DOWN);
                     pWanIfaceData->Selection.Status = WAN_IFACE_NOT_SELECTED;
                     pWanIfaceData->Selection.ActiveLink = FALSE;
                     DmlSetWanActiveLinkInPSMDB(uiLoopCount, FALSE);
@@ -671,7 +671,7 @@ static WcPsPolicyState_t Transition_TearingDown (WanMgr_Policy_Controller_t * pW
             if(pWanController->GroupInst == pWanIfaceData->Selection.Group)
             {
 		CcspTraceInfo(("%s %d: KAVYA Sending WAN_ERROR_WAN_DOWN .\n",__FUNCTION__, __LINE__));
-		WanMgr_ProcessTelemetryMarker(pWanIfaceData->AliasName,WAN_ERROR_WAN_DOWN);
+		WanMgr_ProcessTelemetryMarker(WanMgr_getVirtualIfaceById( pWanIfaceData->VirtIfList,0),WAN_ERROR_WAN_DOWN);
                 pWanIfaceData->Selection.Status = WAN_IFACE_NOT_SELECTED;
                 /* set INVALID interfaces as DISABLED */
                 if (pWanIfaceData->VirtIfList->Status == WAN_IFACE_STATUS_INVALID)
@@ -819,7 +819,7 @@ static WcPsPolicyState_t State_ScanningInterface (WanMgr_Policy_Controller_t * p
             {
                 DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
 		CcspTraceInfo(("%s %d: KAVYA Sending WAN_WARN_IP_OBTAIN_TIMER_EXPIRED .\n",__FUNCTION__, __LINE__));
-		WanMgr_ProcessTelemetryMarker(pWanIfaceData->AliasName,WAN_WARN_IP_OBTAIN_TIMER_EXPIRED);
+		WanMgr_ProcessTelemetryMarker(WanMgr_getVirtualIfaceById( pWanIfaceData->VirtIfList,0),WAN_WARN_IP_OBTAIN_TIMER_EXPIRED);
                 WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
             }
             //Telemetry end		    

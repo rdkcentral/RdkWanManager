@@ -83,7 +83,7 @@ ANSC_STATUS WanMgr_SetConnectivityCheckTypeToPSM(DML_VIRTUAL_IFACE* pVirtIf, CON
         result = ANSC_STATUS_FAILURE;
     }
     CcspTraceInfo(("%s %d: KAVYA Sending WAN_INFO_CONNECTIVITY_CHECK_TYPE .\n",__FUNCTION__, __LINE__));
-    WanMgr_ProcessTelemetryMarker(pVirtIf->Alias,WAN_INFO_CONNECTIVITY_CHECK_TYPE);
+    WanMgr_ProcessTelemetryMarker(pVirtIf,WAN_INFO_CONNECTIVITY_CHECK_TYPE);
     return result;
 }
 
@@ -1013,7 +1013,7 @@ ANSC_STATUS  WanMgr_RdkBus_ConfigureVlan(DML_VIRTUAL_IFACE* pVirtIf, BOOL VlanEn
     {
         CcspTraceError(("%s %d DM set %s %s failed\n", __FUNCTION__,__LINE__, acSetParamName, acSetParamValue));
 	CcspTraceInfo(("%s %d: KAVYA Sending WAN_ERROR_VLAN_CREATION_FAILED .\n",__FUNCTION__, __LINE__));
-	WanMgr_ProcessTelemetryMarker(pVirtIf->Alias,WAN_ERROR_VLAN_CREATION_FAILED);
+	WanMgr_ProcessTelemetryMarker(pVirtIf,WAN_ERROR_VLAN_CREATION_FAILED);
         return ANSC_STATUS_FAILURE;
     }
 

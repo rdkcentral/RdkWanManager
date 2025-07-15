@@ -706,7 +706,7 @@ static void * WanMgr_DhcpV6MsgHandler()
 				    if(pVirtIf != NULL)
 				    {
 					CcspTraceInfo(("%s %d: KAVYA Sending WAN_ERROR_MAPT_STATUS_FAILED .\n",__FUNCTION__, __LINE__));
-					WanMgr_ProcessTelemetryMarker(pVirtIf->Alias,WAN_ERROR_MAPT_STATUS_FAILED);
+					WanMgr_ProcessTelemetryMarker(pVirtIf,WAN_ERROR_MAPT_STATUS_FAILED);
 					WanMgr_VirtualIfaceData_release(pVirtIf);
 				    }
 				}
