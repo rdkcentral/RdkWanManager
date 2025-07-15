@@ -618,6 +618,7 @@ static ANSC_STATUS WanManager_ConfigureMarking(WanMgr_IfaceSM_Controller_t* pWan
     return ANSC_STATUS_SUCCESS;
 }
 
+kavya;
 void WanMgr_ProcessTelemetryMarker(char *Alias, WanMgr_TelemetryEvent_t telemetry_marker)
 {
     CcspTraceInfo(("%s %d: KAVYA Enter Alias = [%s], Marker = [%s].\n",__FUNCTION__, __LINE__,Alias,WanMgr_TelemetryEventStr[telemetry_marker]));
