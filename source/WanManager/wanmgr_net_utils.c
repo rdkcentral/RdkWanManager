@@ -599,20 +599,6 @@ int WanManager_StartDhcpv4Client(DML_VIRTUAL_IFACE* pVirtIf, char* baseInterface
         CcspTraceError(("%s %d: Invalid args \n", __FUNCTION__, __LINE__));
         return 0;
     }
-
-    //This is temporary HACK to make the virtual interface Up. This needs to be removed when WiFi side changes done
-    if ( 0 == strncmp(pVirtIf->Alias, HOTSPOT_ALIAS_NAME, strlen(HOTSPOT_ALIAS_NAME) ) )
-    {
-        char cmdInterfaceAction[128] = {0};
-
-        snprintf(cmdInterfaceAction, sizeof(cmdInterfaceAction), "ip link set dev %s up", pVirtIf->Name);
-        if (0 != WanManager_DoSystemActionWithStatus("start_dhcpc", cmdInterfaceAction))
-        {
-            CcspTraceError(("Failed to run: %s", cmdInterfaceAction));
-            return -1;
-        }
-    }
-
 #if  defined( FEATURE_RDKB_DHCP_MANAGER )
     char dmlName[256] = {0};
     WanMgr_SubscribeDhcpClientEvents(pVirtIf->IP.DHCPv4Iface);

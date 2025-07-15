@@ -171,13 +171,8 @@ void setActiveLinkToSysCfg(WanMgr_Policy_Controller_t *pWanController)
     {
         IfaceIndex = WAN_INDEX_ETHWAN;
     }
-    else if ( strstr(pActiveInterface->BaseInterface, "WiFi.EndPoint") )
-    {
-        IfaceIndex = 0;
-    }
 
     CcspTraceInfo(("%s %d:  last_wan_mode, curr_wan_mode set to %d\n", __FUNCTION__, __LINE__, IfaceIndex));
-
     snprintf(buf, sizeof(buf), "%d", IfaceIndex);
     syscfg_set_commit(NULL, "last_wan_mode", buf); 
     syscfg_set_commit(NULL, "curr_wan_mode", buf);
@@ -639,20 +634,12 @@ static WcAwPolicyState_t Transition_InterfaceSelected (WanMgr_Policy_Controller_
      * Setting SELECTED_OPERATIONAL_MODE DM to a mode will disable other stack. 
      * We have to set this DM to start Wan operation on a specific interface. 
      */
-    if (strstr(pActiveInterface->BaseInterface, "CableModem") || (strstr(pActiveInterface->BaseInterface, "Ethernet")) || strstr(pActiveInterface->BaseInterface, "WiFi.EndPoint"))
+    if (strstr(pActiveInterface->BaseInterface, "CableModem") || (strstr(pActiveInterface->BaseInterface, "Ethernet")))
     {    
         setActiveLinkToSysCfg(pWanController);
 #if defined(AUTOWAN_ENABLE)
         char operationalMode[64] ={0};
-
-        if( NULL != strstr(pActiveInterface->BaseInterface, "WiFi.EndPoint") )
-        {
-            strncpy(operationalMode, "Auto", sizeof(operationalMode));
-        }
-        else
-        {
-            strncpy(operationalMode, strstr(pActiveInterface->BaseInterface, "CableModem")?"DOCSIS":"Ethernet", sizeof(operationalMode));
-        }
+        strncpy(operationalMode, strstr(pActiveInterface->BaseInterface, "CableModem")?"DOCSIS":"Ethernet", sizeof(operationalMode));
 
         if (WanMgr_RdkBus_SetParamValues(ETH_COMPONENT_NAME, ETH_COMPONENT_PATH, SELECTED_OPERATIONAL_MODE, operationalMode, ccsp_string, TRUE) != ANSC_STATUS_SUCCESS)
         {

@@ -1249,7 +1249,7 @@ static int wan_setUpIPv4(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
         sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_WAN_STATUS, WAN_STATUS_STARTED, 0);
         CcspTraceInfo(("%s %d - wan-status event set to started \n", __FUNCTION__, __LINE__));
 
-        if(p_VirtIf->IP.Ipv4Data.ifname[0] != '\0' && pInterface->IfaceType != REMOTE_IFACE)
+        if(p_VirtIf->IP.Ipv4Data.ifname[0] != '\0' && pInterface->IfaceType != REMOTE_IFACE && (WAN_IFACE_CONN_TYPE_COLD_STANDBY != pInterface->IfaceConnectionType))
         {
             syscfg_set_commit(NULL, SYSCFG_WAN_INTERFACE_NAME, p_VirtIf->IP.Ipv4Data.ifname);
         }
@@ -1427,7 +1427,7 @@ static int wan_setUpIPv6(WanMgr_IfaceSM_Controller_t * pWanIfaceCtrl)
 
         /* Set the current WAN Interface name */
         sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_CURRENT_WAN_IFNAME, p_VirtIf->IP.Ipv6Data.ifname, 0);
-        if(p_VirtIf->IP.Ipv6Data.ifname[0] != '\0' && pInterface->IfaceType != REMOTE_IFACE)
+        if(p_VirtIf->IP.Ipv6Data.ifname[0] != '\0' && pInterface->IfaceType != REMOTE_IFACE && (WAN_IFACE_CONN_TYPE_COLD_STANDBY != pInterface->IfaceConnectionType) )
         {
             syscfg_set_commit(NULL, SYSCFG_WAN_INTERFACE_NAME, p_VirtIf->IP.Ipv6Data.ifname);
         }
