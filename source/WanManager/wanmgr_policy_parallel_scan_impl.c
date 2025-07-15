@@ -398,7 +398,8 @@ static WcPsPolicyState_t Transition_SelectingInterface (WanMgr_Policy_Controller
                     DmlSetWanActiveLinkInPSMDB(uiLoopCount, TRUE);
                 }else
                 {
-		    WanMgr_ProcessTelemetryMarker(pWanIfaceData->VirtIfList,WAN_ERROR_WAN_DOWN);
+		    CcspTraceInfo(("%s %d: KAVYA Sending WAN_ERROR_WAN_DOWN .\n",__FUNCTION__, __LINE__));
+		    WanMgr_ProcessTelemetryMarker(pWanIfaceData->AliasName,WAN_ERROR_WAN_DOWN);
                     pWanIfaceData->Selection.Status = WAN_IFACE_NOT_SELECTED;
                     pWanIfaceData->Selection.ActiveLink = FALSE;
                     DmlSetWanActiveLinkInPSMDB(uiLoopCount, FALSE);
@@ -615,7 +616,7 @@ static WcPsPolicyState_t Transition_RestartScan (WanMgr_Policy_Controller_t * pW
                     WanMgr_RdkBus_AddIntfToLanBridge(pWanIfaceData->BaseInterface, FALSE);
                 }
             }
-	    pWanIfaceData->ResetSelectionTimer = TRUE;
+	    pWanIfaceData->bResetSelectionTimer = TRUE;
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
         }
     }
@@ -669,7 +670,8 @@ static WcPsPolicyState_t Transition_TearingDown (WanMgr_Policy_Controller_t * pW
             DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
             if(pWanController->GroupInst == pWanIfaceData->Selection.Group)
             {
-		WanMgr_ProcessTelemetryMarker(pWanIfaceData->VirtIfList,WAN_ERROR_WAN_DOWN);
+		CcspTraceInfo(("%s %d: KAVYA Sending WAN_ERROR_WAN_DOWN .\n",__FUNCTION__, __LINE__));
+		WanMgr_ProcessTelemetryMarker(pWanIfaceData->AliasName,WAN_ERROR_WAN_DOWN);
                 pWanIfaceData->Selection.Status = WAN_IFACE_NOT_SELECTED;
                 /* set INVALID interfaces as DISABLED */
                 if (pWanIfaceData->VirtIfList->Status == WAN_IFACE_STATUS_INVALID)
@@ -816,7 +818,8 @@ static WcPsPolicyState_t State_ScanningInterface (WanMgr_Policy_Controller_t * p
             if(pWanDmlIfaceData != NULL)
             {
                 DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
-		WanMgr_ProcessTelemetryMarker(pWanIfaceData->VirtIfList,WAN_WARN_IP_OBTAIN_TIMER_EXPIRED);
+		CcspTraceInfo(("%s %d: KAVYA Sending WAN_WARN_IP_OBTAIN_TIMER_EXPIRED .\n",__FUNCTION__, __LINE__));
+		WanMgr_ProcessTelemetryMarker(pWanIfaceData->AliasName,WAN_WARN_IP_OBTAIN_TIMER_EXPIRED);
                 WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
             }
             //Telemetry end		    

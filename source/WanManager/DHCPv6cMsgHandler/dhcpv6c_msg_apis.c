@@ -705,7 +705,8 @@ static void * WanMgr_DhcpV6MsgHandler()
 				    DML_VIRTUAL_IFACE* pVirtIf = WanMgr_GetVIfByName_VISM_running_locked(dhcpv6_data.ifname);
 				    if(pVirtIf != NULL)
 				    {
-					WanMgr_ProcessTelemetryMarker(pVirtIf,WAN_ERROR_MAPT_STATUS_FAILED);
+					CcspTraceInfo(("%s %d: KAVYA Sending WAN_ERROR_MAPT_STATUS_FAILED .\n",__FUNCTION__, __LINE__));
+					WanMgr_ProcessTelemetryMarker(pVirtIf->Alias,WAN_ERROR_MAPT_STATUS_FAILED);
 					WanMgr_VirtualIfaceData_release(pVirtIf);
 				    }
 				}

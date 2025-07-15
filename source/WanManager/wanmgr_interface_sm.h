@@ -78,7 +78,7 @@ typedef struct WanMgr_IfaceSM_Ctrl_st
 
 
 void WanManager_UpdateInterfaceStatus(DML_VIRTUAL_IFACE* pVirtIf, wanmgr_iface_status_t iface_status);
-void WanMgr_ProcessTelemetryMarker(DML_VIRTUAL_IFACE* pVirtIf, WanMgr_TelemetryEvent_t telemetry_marker);
+void WanMgr_ProcessTelemetryMarker(char* Alias, WanMgr_TelemetryEvent_t telemetry_marker);
 void WanMgr_IfaceSM_Init(WanMgr_IfaceSM_Controller_t* pWanIfaceSMCtrl, INT iface_idx, INT VirIfIdx);
 int WanMgr_StartInterfaceStateMachine(WanMgr_IfaceSM_Controller_t *wanIf);
 BOOL WanMgr_Get_ISM_RunningStatus (UINT ifIndex);
