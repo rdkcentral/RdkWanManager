@@ -3067,8 +3067,6 @@ static eWanState_t wan_state_cold_standby_status_waiting(WanMgr_IfaceSM_Controll
             p_VirtIf->Enable == FALSE ||
             pInterface->Selection.Status == WAN_IFACE_NOT_SELECTED)
     {
-        //Stop scanning
-        WanManager_RdkBus_EnableInterface(pInterface, FALSE);
         return wan_transition_physical_interface_down(pWanIfaceCtrl);
     }
 
