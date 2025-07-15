@@ -620,7 +620,7 @@ static ANSC_STATUS WanManager_ConfigureMarking(WanMgr_IfaceSM_Controller_t* pWan
 
 void WanMgr_ProcessTelemetryMarker( DML_VIRTUAL_IFACE *pVirtIf , WanMgr_TelemetryEvent_t telemetry_marker)
 {
-    CcspTraceInfo(("%s %d: KAVYA Enter Alias = [%s]\n",__FUNCTION__, __LINE__,Alias));
+    CcspTraceInfo(("%s %d: KAVYA Enter ..\n",__FUNCTION__, __LINE__));
 
     if(pVirtIf == NULL)
     {
