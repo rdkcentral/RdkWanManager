@@ -618,10 +618,9 @@ static ANSC_STATUS WanManager_ConfigureMarking(WanMgr_IfaceSM_Controller_t* pWan
     return ANSC_STATUS_SUCCESS;
 }
 
-kavya;
 void WanMgr_ProcessTelemetryMarker(char *Alias, WanMgr_TelemetryEvent_t telemetry_marker)
 {
-    CcspTraceInfo(("%s %d: KAVYA Enter Alias = [%s], Marker = [%s].\n",__FUNCTION__, __LINE__,Alias,WanMgr_TelemetryEventStr[telemetry_marker]));
+    CcspTraceInfo(("%s %d: KAVYA Enter Alias = [%s]\n",__FUNCTION__, __LINE__,Alias));
 
     DML_VIRTUAL_IFACE *pVirtIf =  WanMgr_GetVirtIfDataByAlias_locked(Alias);
     if(pVirtIf == NULL)
@@ -749,7 +748,7 @@ void WanMgr_ProcessTelemetryMarker(char *Alias, WanMgr_TelemetryEvent_t telemetr
 	    if(pIntf->bResetSelectionTimer != TRUE)
 		return;
 
-	    pWanIfaceData->bResetSelectionTimer = FALSE;
+	    pIntf->bResetSelectionTimer = FALSE;
 	    break;
 
 	default:
