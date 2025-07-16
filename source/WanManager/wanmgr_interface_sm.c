@@ -3074,8 +3074,10 @@ static eWanState_t wan_transition_exit(WanMgr_IfaceSM_Controller_t* pWanIfaceCtr
     Update_Interface_Status();
     CcspTraceInfo(("%s %d - Interface '%s' - EXITING STATE MACHINE\n", __FUNCTION__, __LINE__, pInterface->Name));
 
+CcspTraceInfo(("%s %d: KAVYA Sending WAN_ERROR_WAN_DOWN .\n",__FUNCTION__, __LINE__));    
+    WanMgr_ProcessTelemetryMarker(p_VirtIf,WAN_ERROR_WAN_DOWN);
+
     p_VirtIf->Interface_SM_Running = FALSE;
-    
     return WAN_STATE_EXIT;
 }
 

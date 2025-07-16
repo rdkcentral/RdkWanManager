@@ -818,8 +818,8 @@ static WcAwPolicyState_t Transition_InterfaceDeselect (WanMgr_Policy_Controller_
 
     DML_WAN_IFACE * pActiveInterface = &(pWanController->pWanActiveIfaceData->data);
     CcspTraceInfo(("%s %d: Selection.Status set to NOT_SELECTED. Tearing down iface state machine\n", __FUNCTION__, __LINE__));
-    CcspTraceInfo(("%s %d: KAVYA Sending WAN_ERROR_WAN_DOWN .\n",__FUNCTION__, __LINE__));
-    WanMgr_ProcessTelemetryMarker(WanMgr_getVirtualIfaceById( pActiveInterface->VirtIfList,0),WAN_ERROR_WAN_DOWN);
+    //CcspTraceInfo(("%s %d: KAVYA Sending WAN_ERROR_WAN_DOWN .\n",__FUNCTION__, __LINE__));
+    //WanMgr_ProcessTelemetryMarker(WanMgr_getVirtualIfaceById( pActiveInterface->VirtIfList,0),WAN_ERROR_WAN_DOWN);
     pActiveInterface->Selection.Status = WAN_IFACE_NOT_SELECTED;
     return STATE_AUTO_WAN_INTERFACE_TEARDOWN;
 
@@ -948,8 +948,8 @@ static WcAwPolicyState_t Transition_ReconfigurePlatform (WanMgr_Policy_Controlle
 
     // set Selection.Status = WAN_IFACE_NOT_SELECTED, to tear down iface sm 
     DML_WAN_IFACE * pActiveInterface = &(pWanController->pWanActiveIfaceData->data);
-    CcspTraceInfo(("%s %d: KAVYA Sending WAN_ERROR_WAN_DOWN .\n",__FUNCTION__, __LINE__));
-    WanMgr_ProcessTelemetryMarker(WanMgr_getVirtualIfaceById( pActiveInterface->VirtIfList,0),WAN_ERROR_WAN_DOWN);
+    //CcspTraceInfo(("%s %d: KAVYA Sending WAN_ERROR_WAN_DOWN .\n",__FUNCTION__, __LINE__));
+    //WanMgr_ProcessTelemetryMarker(WanMgr_getVirtualIfaceById( pActiveInterface->VirtIfList,0),WAN_ERROR_WAN_DOWN);
     pActiveInterface->Selection.Status = WAN_IFACE_NOT_SELECTED;
     pActiveInterface->Selection.RebootTriggerStatus = TRUE;
     CcspTraceInfo(("%s %d: setting Selection.Status for interface:%d as NOT_SELECTED \n", __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
@@ -1026,8 +1026,8 @@ static WcAwPolicyState_t Transition_ResetSelectedInterface (WanMgr_Policy_Contro
 
     DML_WAN_IFACE* pWanIfaceData = &(pWanController->pWanActiveIfaceData->data);
 
-    CcspTraceInfo(("%s %d: KAVYA Sending WAN_ERROR_WAN_DOWN .\n",__FUNCTION__, __LINE__));
-    WanMgr_ProcessTelemetryMarker(WanMgr_getVirtualIfaceById( pWanIfaceData->VirtIfList,0),WAN_ERROR_WAN_DOWN);
+//    CcspTraceInfo(("%s %d: KAVYA Sending WAN_ERROR_WAN_DOWN .\n",__FUNCTION__, __LINE__));
+//    WanMgr_ProcessTelemetryMarker(WanMgr_getVirtualIfaceById( pWanIfaceData->VirtIfList,0),WAN_ERROR_WAN_DOWN);
     pWanIfaceData->Selection.Status = WAN_IFACE_NOT_SELECTED;
     CcspTraceInfo(("%s %d: Selection.Status set to NOT_SELECTED. moving to State_WaitingForIfaceTearDown()\n", __FUNCTION__, __LINE__));
     return STATE_AUTO_WAN_INTERFACE_TEARDOWN;
