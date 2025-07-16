@@ -1748,7 +1748,7 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
         pNewIpcMsg->addrAssigned = true;
         Ipv6DataNew.addrCmd = pDhcp6cInfoCur->addrCmd;
     }
-    else
+    else if(Ipv6DataNew.prefixAssigned)
     {
         /* In an IPv6 lease, if only IAPD is received and we never received IANA, 
          * We can use the received IAPD to construct a Ipv6 /128 address which can be used for managerment and voice ...

@@ -2574,6 +2574,15 @@ static eWanState_t wan_transition_ipv6_down(WanMgr_IfaceSM_Controller_t* pWanIfa
     }
 
     WanManager_UpdateInterfaceStatus (p_VirtIf, WANMGR_IFACE_CONNECTION_IPV6_DOWN);
+    //clear IPv6 lease from the interface data
+    memset(&(p_VirtIf->IP.Ipv6Data), 0, sizeof(WANMGR_IPV6_DATA));
+    if (p_VirtIf->IP.pIpcIpv6Data != NULL )
+    {
+        //free memory
+        free(p_VirtIf->IP.pIpcIpv6Data);
+        p_VirtIf->IP.pIpcIpv6Data = NULL;
+    }
+
 
 #if defined(FEATURE_464XLAT)
 	xlat_status = xlat_state_get();
