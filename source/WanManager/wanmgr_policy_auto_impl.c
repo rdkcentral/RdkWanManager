@@ -899,7 +899,7 @@ static WcAwPolicyState_t Transition_RestartSelectionInterface (WanMgr_Policy_Con
         CcspTraceInfo(("%s %d: Resetting FO scan thread\n", __FUNCTION__, __LINE__));
         pWanConfigData->data.ResetFailOverScan = TRUE;
 	DML_WAN_IFACE* pWanIfaceData = &(pWanConfigData->data);
-	pWanIfaceData->bResetSelectionTimer = TRUE;
+	pWanIfaceData->bSendSelectionTimerExpired = TRUE;
         WanMgrDml_GetConfigData_release(pWanConfigData);
     }
 

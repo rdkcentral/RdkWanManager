@@ -1938,8 +1938,10 @@ static void WanMgr_TandD_EventHandler(rbusHandle_t handle, rbusEvent_t const* ev
 	    }
 	    else if(res == WAN_CONNECTIVITY_DOWN)
 	    {
-		CcspTraceInfo(("%s %d: KAVYA Sending WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN .\n",__FUNCTION__, __LINE__));
-		WanMgr_ProcessTelemetryMarker(p_VirtIf,WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN);
+		CcspTraceInfo(("%s %d: KAVYA Sending WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN_IPV4 .\n",__FUNCTION__, __LINE__));
+		WanMgr_ProcessTelemetryMarker(p_VirtIf,WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN_IPV4);
+		CcspTraceInfo(("%s %d: KAVYA Sending WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN_IPV6 .\n",__FUNCTION__, __LINE__));
+		WanMgr_ProcessTelemetryMarker(p_VirtIf,WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN_IPV6);
 	    }
 
             p_VirtIf->IP.Ipv4ConnectivityStatus = res;

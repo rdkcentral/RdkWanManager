@@ -616,7 +616,7 @@ static WcPsPolicyState_t Transition_RestartScan (WanMgr_Policy_Controller_t * pW
                     WanMgr_RdkBus_AddIntfToLanBridge(pWanIfaceData->BaseInterface, FALSE);
                 }
             }
-	    pWanIfaceData->bResetSelectionTimer = TRUE;
+	    pWanIfaceData->bSendSelectionTimerExpired = TRUE;
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
         }
     }
