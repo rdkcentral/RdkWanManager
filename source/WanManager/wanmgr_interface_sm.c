@@ -620,12 +620,11 @@ static ANSC_STATUS WanManager_ConfigureMarking(WanMgr_IfaceSM_Controller_t* pWan
 
 ANSC_STATUS WanMgr_ProcessTelemetryMarker( DML_VIRTUAL_IFACE *pVirtIf , WanMgr_TelemetryEvent_t telemetry_marker)
 {
-    RETURN_STATUS ret = STATUS_SUCCESS;
     CcspTraceInfo(("%s %d: KAVYA Enter ..\n",__FUNCTION__, __LINE__));
 
     if(pVirtIf == NULL)
     {
-        return STATUS_FAILURE;
+        return ANSC_STATUS_FAILURE;
     }
     CcspTraceInfo(("%s %d: KAVYA ..\n",__FUNCTION__, __LINE__));
 
@@ -633,7 +632,7 @@ ANSC_STATUS WanMgr_ProcessTelemetryMarker( DML_VIRTUAL_IFACE *pVirtIf , WanMgr_T
     WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pVirtIf->baseIfIdx);
     if(pWanDmlIfaceData == NULL)
     {
-        return STATUS_FAILURE ;
+        return ANSC_STATUS_FAILURE;
     }
 
     pIntf = &(pWanDmlIfaceData->data);
@@ -650,13 +649,13 @@ CcspTraceInfo(("%s %d: KAVYA ..\n",__FUNCTION__, __LINE__));
         case WAN_ERROR_PHY_DOWN:
 CcspTraceInfo(("%s %d: KAVYA ..\n",__FUNCTION__, __LINE__));
 	    if(pIntf->BaseInterfaceStatus != WAN_IFACE_PHY_STATUS_UP)
-		return ret;
+		return ANSC_STATUS_SUCCESS;
 	    break;
 
 	case WAN_INFO_PHY_UP:
 CcspTraceInfo(("%s %d: KAVYA ..\n",__FUNCTION__, __LINE__));
 	    if(pIntf->BaseInterfaceStatus != WAN_IFACE_PHY_STATUS_DOWN)
-		return ret;
+		return ANSC_STATUS_SUCCESS;
 	    break;
 
 	case WAN_INFO_WAN_UP:
@@ -667,7 +666,7 @@ CcspTraceInfo(("%s %d: KAVYA ..\n",__FUNCTION__, __LINE__));
 CcspTraceInfo(("%s %d: KAVYA ..\n",__FUNCTION__, __LINE__));
 	    if(!(pIntf->Selection.Status == WAN_IFACE_VALIDATING || pIntf->Selection.Status == WAN_IFACE_SELECTED || pIntf->Selection.Status == WAN_IFACE_ACTIVE))
 	    {
-		return ret;
+		return ANSC_STATUS_SUCCESS;
 	    }
 	    break;
 
@@ -730,37 +729,37 @@ CcspTraceInfo(("%s %d: KAVYA ..\n",__FUNCTION__, __LINE__));
 	case WAN_INFO_IPv4_UP:
 CcspTraceInfo(("%s %d: KAVYA ..\n",__FUNCTION__, __LINE__));
 	    if(pVirtIf->IP.Ipv4Status != WAN_IFACE_IPV4_STATE_DOWN)
-		return ret;
+		return ANSC_STATUS_SUCCESS;
             break;
 
 	case WAN_ERROR_IPv4_DOWN:
 CcspTraceInfo(("%s %d: KAVYA ..\n",__FUNCTION__, __LINE__));
 	    if(pVirtIf->IP.Ipv4Status != WAN_IFACE_IPV4_STATE_UP)
-		return ret;
+		return ANSC_STATUS_SUCCESS;
             break;
 
 	case WAN_INFO_IPv6_UP:
 CcspTraceInfo(("%s %d: KAVYA ..\n",__FUNCTION__, __LINE__));
 	    if(pVirtIf->IP.Ipv6Status != WAN_IFACE_IPV6_STATE_DOWN)
-		return ret;
+		return ANSC_STATUS_SUCCESS;
             break;
 
 	case WAN_ERROR_IPv6_DOWN:
 CcspTraceInfo(("%s %d: KAVYA ..\n",__FUNCTION__, __LINE__));
 	    if(pVirtIf->IP.Ipv6Status != WAN_IFACE_IPV6_STATE_UP)
-		return ret;
+		return ANSC_STATUS_SUCCESS;
             break;
 
 	case WAN_INFO_MAPT_STATUS_UP:
 CcspTraceInfo(("%s %d: KAVYA ..\n",__FUNCTION__, __LINE__));
 	    if(pVirtIf->MAP.MaptStatus != WAN_IFACE_MAPT_STATE_DOWN)
-		return ret;
+		return ANSC_STATUS_SUCCESS;
 	    break;
 
 	case WAN_ERROR_MAPT_STATUS_DOWN:
 CcspTraceInfo(("%s %d: KAVYA ..\n",__FUNCTION__, __LINE__));
 	    if(pVirtIf->MAP.MaptStatus != WAN_IFACE_MAPT_STATE_UP)
-		return ret;
+		return ANSC_STATUS_SUCCESS;
 	    break;
 	    	
         case WAN_ERROR_MAPT_STATUS_FAILED:
@@ -770,7 +769,7 @@ CcspTraceInfo(("%s %d: KAVYA ..\n",__FUNCTION__, __LINE__));
 	case WAN_ERROR_VLAN_DOWN:
 CcspTraceInfo(("%s %d: KAVYA ..\n",__FUNCTION__, __LINE__));
 	    if(pVirtIf->VLAN.Status != WAN_IFACE_LINKSTATUS_UP)
-	        return ret;
+	        return ANSC_STATUS_SUCCESS;
 	    break;
 
 	case WAN_ERROR_VLAN_CREATION_FAILED:
@@ -780,7 +779,7 @@ CcspTraceInfo(("%s %d: KAVYA ..\n",__FUNCTION__, __LINE__));
         case WAN_WARN_IP_OBTAIN_TIMER_EXPIRED:
 CcspTraceInfo(("%s %d: KAVYA ..\n",__FUNCTION__, __LINE__));
 	    if(pIntf->bSendSelectionTimerExpired != TRUE)
-		return ret;
+		return ANSC_STATUS_SUCCESS;
 
 	    pIntf->bSendSelectionTimerExpired = FALSE;
 	    break;
@@ -792,7 +791,7 @@ CcspTraceInfo(("%s %d: KAVYA ..\n",__FUNCTION__, __LINE__));
     Marker.enTelemetryMarkerID = telemetry_marker;
     wanmgr_telemetry_event(&Marker);
 
-    return ret;
+    return ANSC_STATUS_SUCCESS;
 }
 /*********************************************************************************/
 /**************************** ACTIONS ********************************************/
