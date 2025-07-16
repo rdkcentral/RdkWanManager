@@ -1447,8 +1447,17 @@ static WcAwPolicyState_t State_WanInterfaceActive (WanMgr_Policy_Controller_t * 
         return Transition_ResetSelectedInterface (pWanController);
     }
 
-    // check if PHY is still UP
     DML_WAN_IFACE * pActiveInterface = &(pWanController->pWanActiveIfaceData->data);
+    
+    // Wait until exit of Interface State Machine for ColdStandby Interface
+    if( (pActiveInterface->VirtIfChanged == FALSE) &&
+        (WAN_IFACE_CONN_TYPE_COLD_STANDBY == pActiveInterface->IfaceConnectionType) && 
+        (WanMgr_Get_ISM_RunningStatus(pWanController->activeInterfaceIdx) == TRUE) )
+    {
+        return STATE_AUTO_WAN_INTERFACE_ACTIVE;
+    }
+
+    // check if PHY is still UP
     if (pActiveInterface->BaseInterfaceStatus != WAN_IFACE_PHY_STATUS_UP ||
             pActiveInterface->Selection.Enable == FALSE || 
             (WanMgr_Get_ISM_RunningStatus(pWanController->activeInterfaceIdx) != TRUE)) //TBC: This check is workaround to avoid the race condition of BaseInterfaceStatus notification reception
@@ -1511,7 +1520,7 @@ static WcAwPolicyState_t State_WanInterfaceDown (WanMgr_Policy_Controller_t * pW
 
     // check if PHY is UP
     DML_WAN_IFACE * pActiveInterface = &(pWanController->pWanActiveIfaceData->data);
-    if (((pActiveInterface->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_UP) || ((access("/tmp/wifi_dml_complete", F_OK) == 0) && (WAN_IFACE_CONN_TYPE_COLD_STANDBY == pActiveInterface->IfaceConnectionType))) &&
+    if (((pActiveInterface->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_UP) || (WAN_IFACE_CONN_TYPE_COLD_STANDBY == pActiveInterface->IfaceConnectionType)) &&
             pActiveInterface->Selection.Enable == TRUE)
     {
         if (WanMgr_SetGroupSelectedIface (pWanController->GroupInst, (pWanController->activeInterfaceIdx+1)) != ANSC_STATUS_SUCCESS)
