@@ -20,7 +20,6 @@
 
 #include "wanmgr_data.h"
 #include "wanmgr_rdkbus_apis.h"
-#include "wanmgr_telemetry.h"
 
 #if defined(WAN_MANAGER_UNIFICATION_ENABLED) && (defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_))
 extern ANSC_STATUS WanMgr_CheckAndResetV2PSMEntries(UINT IfaceCount);

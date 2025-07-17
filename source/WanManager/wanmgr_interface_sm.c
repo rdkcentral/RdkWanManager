@@ -663,7 +663,7 @@ CcspTraceInfo(("%s %d: KAVYA ..\n",__FUNCTION__, __LINE__));
 	    break;
 
 	case WAN_ERROR_WAN_DOWN:
-CcspTraceInfo(("%s %d: KAVYA ..\n",__FUNCTION__, __LINE__));
+CcspTraceInfo(("%s %d: KAVYA ..pIntf->Selection.Status = [%d]\n",__FUNCTION__, __LINE__,pIntf->Selection.Status));
 	    if(!(pIntf->Selection.Status == WAN_IFACE_VALIDATING || pIntf->Selection.Status == WAN_IFACE_SELECTED || pIntf->Selection.Status == WAN_IFACE_ACTIVE))
 	    {
 		return ANSC_STATUS_SUCCESS;
