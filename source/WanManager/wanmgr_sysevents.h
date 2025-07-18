@@ -132,6 +132,7 @@
 #define SYSCFG_NTP_ENABLED            "ntp_enabled"
 #define SYSCFG_WAN_INTERFACE_NAME     "wan_physical_ifname"
 #define SYSEVENT_WAN_ROUTED_STATUS    "routed-status"
+#define SYSCFG_WAN_INTERFACE          "wan_ifname"
 #if defined (RDKB_EXTENDER_ENABLED)
 #define SYSCFG_DEVICE_NETWORKING_MODE "Device_Mode"
 #endif /* RDKB_EXTENDER_ENABLED */
@@ -139,6 +140,8 @@
 //firewall restart
 #define SYSEVENT_FIREWALL_RESTART "firewall-restart"
 #define SYSEVENT_FIREWALL_STATUS "firewall-status"
+
+#define SYSEVENT_IGD_RESTART      "igd-restart"
 
 #define SYSEVENT_IPV4_LEASE_TIME  "ipv4_%s_lease_time"
 #define SYSEVENT_IPV4_DHCP_SERVER "ipv4_%s_dhcp_server"
