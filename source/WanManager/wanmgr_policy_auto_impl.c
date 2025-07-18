@@ -28,6 +28,7 @@
 #include "wanmgr_rdkbus_apis.h"
 #include "wanmgr_wan_failover.h"
 #include "wanmgr_net_utils.h"
+#include "wanmgr_telemetry.h"
 
 /* ---- Global Constants -------------------------- */
 #define SELECTION_PROCESS_LOOP_TIMEOUT 250000 // timeout in microseconds. This is the state machine loop interval
@@ -817,8 +818,9 @@ static WcAwPolicyState_t Transition_InterfaceDeselect (WanMgr_Policy_Controller_
 
     DML_WAN_IFACE * pActiveInterface = &(pWanController->pWanActiveIfaceData->data);
     CcspTraceInfo(("%s %d: Selection.Status set to NOT_SELECTED. Tearing down iface state machine\n", __FUNCTION__, __LINE__));
+    //CcspTraceInfo(("%s %d: KAVYA Sending WAN_ERROR_WAN_DOWN .\n",__FUNCTION__, __LINE__));
+    //WanMgr_ProcessTelemetryMarker(WanMgr_getVirtualIfaceById( pActiveInterface->VirtIfList,0),WAN_ERROR_WAN_DOWN);
     pActiveInterface->Selection.Status = WAN_IFACE_NOT_SELECTED;
-
     return STATE_AUTO_WAN_INTERFACE_TEARDOWN;
 
 }
@@ -896,6 +898,8 @@ static WcAwPolicyState_t Transition_RestartSelectionInterface (WanMgr_Policy_Con
     {
         CcspTraceInfo(("%s %d: Resetting FO scan thread\n", __FUNCTION__, __LINE__));
         pWanConfigData->data.ResetFailOverScan = TRUE;
+	DML_WAN_IFACE* pWanIfaceData = &(pWanConfigData->data);
+	pWanIfaceData->bSendSelectionTimerExpired = TRUE;
         WanMgrDml_GetConfigData_release(pWanConfigData);
     }
 
@@ -944,10 +948,11 @@ static WcAwPolicyState_t Transition_ReconfigurePlatform (WanMgr_Policy_Controlle
 
     // set Selection.Status = WAN_IFACE_NOT_SELECTED, to tear down iface sm 
     DML_WAN_IFACE * pActiveInterface = &(pWanController->pWanActiveIfaceData->data);
+    //CcspTraceInfo(("%s %d: KAVYA Sending WAN_ERROR_WAN_DOWN .\n",__FUNCTION__, __LINE__));
+    //WanMgr_ProcessTelemetryMarker(WanMgr_getVirtualIfaceById( pActiveInterface->VirtIfList,0),WAN_ERROR_WAN_DOWN);
     pActiveInterface->Selection.Status = WAN_IFACE_NOT_SELECTED;
     pActiveInterface->Selection.RebootTriggerStatus = TRUE;
     CcspTraceInfo(("%s %d: setting Selection.Status for interface:%d as NOT_SELECTED \n", __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
-
     return STATE_AUTO_WAN_REBOOT_PLATFORM;
 }
 
@@ -1021,9 +1026,10 @@ static WcAwPolicyState_t Transition_ResetSelectedInterface (WanMgr_Policy_Contro
 
     DML_WAN_IFACE* pWanIfaceData = &(pWanController->pWanActiveIfaceData->data);
 
+//    CcspTraceInfo(("%s %d: KAVYA Sending WAN_ERROR_WAN_DOWN .\n",__FUNCTION__, __LINE__));
+//    WanMgr_ProcessTelemetryMarker(WanMgr_getVirtualIfaceById( pWanIfaceData->VirtIfList,0),WAN_ERROR_WAN_DOWN);
     pWanIfaceData->Selection.Status = WAN_IFACE_NOT_SELECTED;
     CcspTraceInfo(("%s %d: Selection.Status set to NOT_SELECTED. moving to State_WaitingForIfaceTearDown()\n", __FUNCTION__, __LINE__));
-
     return STATE_AUTO_WAN_INTERFACE_TEARDOWN;
 }
 
@@ -1110,6 +1116,8 @@ static WcAwPolicyState_t State_WaitForInterface (WanMgr_Policy_Controller_t * pW
         // timer expired for selected iface but there is another interface that can be used
         CcspTraceInfo(("%s %d: Validation Timer expired for interface index:%d and there is another iface that can be possibly used as Wan interface\n", 
                     __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
+	CcspTraceInfo(("%s %d: KAVYA Sending WAN_WARN_IP_OBTAIN_TIMER_EXPIRED .\n",__FUNCTION__, __LINE__));
+	WanMgr_ProcessTelemetryMarker(WanMgr_getVirtualIfaceById( pActiveInterface->VirtIfList,0),WAN_WARN_IP_OBTAIN_TIMER_EXPIRED);
         return Transition_InterfaceInvalid(pWanController);
     }
 
@@ -1193,6 +1201,8 @@ static WcAwPolicyState_t State_ScanningInterface (WanMgr_Policy_Controller_t * p
         {
             CcspTraceInfo(("%s %d: Validation Timer expired for interface index:%d and there is another iface that can be possibly used as Wan interface\n", 
                         __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
+	    CcspTraceInfo(("%s %d: KAVYA Sending WAN_WARN_IP_OBTAIN_TIMER_EXPIRED .\n",__FUNCTION__, __LINE__));
+	    WanMgr_ProcessTelemetryMarker(WanMgr_getVirtualIfaceById( pActiveInterface->VirtIfList,0),WAN_WARN_IP_OBTAIN_TIMER_EXPIRED);
             return Transition_InterfaceDeselect(pWanController);
         }
     }

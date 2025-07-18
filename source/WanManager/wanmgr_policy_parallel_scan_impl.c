@@ -28,6 +28,7 @@
 #include "wanmgr_rdkbus_apis.h"
 #include "wanmgr_wan_failover.h"
 #include "wanmgr_net_utils.h"
+#include "wanmgr_telemetry.h"
 
 #define ETH_HW_CONFIGURATION_DM     "Device.Ethernet.Interface.%d.Upstream"
 #define ETH_PHY_PATH_DM             "Device.Ethernet.X_RDK_Interface.%d"
@@ -397,6 +398,8 @@ static WcPsPolicyState_t Transition_SelectingInterface (WanMgr_Policy_Controller
                     DmlSetWanActiveLinkInPSMDB(uiLoopCount, TRUE);
                 }else
                 {
+//		    CcspTraceInfo(("%s %d: KAVYA Sending WAN_ERROR_WAN_DOWN .\n",__FUNCTION__, __LINE__));
+//		    WanMgr_ProcessTelemetryMarker(WanMgr_getVirtualIfaceById( pWanIfaceData->VirtIfList,0),WAN_ERROR_WAN_DOWN);
                     pWanIfaceData->Selection.Status = WAN_IFACE_NOT_SELECTED;
                     pWanIfaceData->Selection.ActiveLink = FALSE;
                     DmlSetWanActiveLinkInPSMDB(uiLoopCount, FALSE);
@@ -613,6 +616,7 @@ static WcPsPolicyState_t Transition_RestartScan (WanMgr_Policy_Controller_t * pW
                     WanMgr_RdkBus_AddIntfToLanBridge(pWanIfaceData->BaseInterface, FALSE);
                 }
             }
+	    pWanIfaceData->bSendSelectionTimerExpired = TRUE;
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
         }
     }
@@ -666,6 +670,8 @@ static WcPsPolicyState_t Transition_TearingDown (WanMgr_Policy_Controller_t * pW
             DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
             if(pWanController->GroupInst == pWanIfaceData->Selection.Group)
             {
+//		CcspTraceInfo(("%s %d: KAVYA Sending WAN_ERROR_WAN_DOWN .\n",__FUNCTION__, __LINE__));
+//		WanMgr_ProcessTelemetryMarker(WanMgr_getVirtualIfaceById( pWanIfaceData->VirtIfList,0),WAN_ERROR_WAN_DOWN);
                 pWanIfaceData->Selection.Status = WAN_IFACE_NOT_SELECTED;
                 /* set INVALID interfaces as DISABLED */
                 if (pWanIfaceData->VirtIfList->Status == WAN_IFACE_STATUS_INVALID)
@@ -807,6 +813,16 @@ static WcPsPolicyState_t State_ScanningInterface (WanMgr_Policy_Controller_t * p
         {
             /*If timer expired select the highest priority active interface */
             CcspTraceInfo(("%s %d  SelectionTimeOut expired. Selecting Highest(available) priority interface id(%d)\n", __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
+             
+            WanMgr_Iface_Data_t*   pWanDmlIfaceData = WanMgr_GetIfaceData_locked(highPriorityValidIface);
+            if(pWanDmlIfaceData != NULL)
+            {
+                DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
+		CcspTraceInfo(("%s %d: KAVYA Sending WAN_WARN_IP_OBTAIN_TIMER_EXPIRED .\n",__FUNCTION__, __LINE__));
+		WanMgr_ProcessTelemetryMarker(WanMgr_getVirtualIfaceById( pWanIfaceData->VirtIfList,0),WAN_WARN_IP_OBTAIN_TIMER_EXPIRED);
+                WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+            }
+            //Telemetry end		    
             return Transition_SelectingInterface(pWanController);
         }else
         {

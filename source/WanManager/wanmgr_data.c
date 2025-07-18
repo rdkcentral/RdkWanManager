@@ -234,6 +234,7 @@ ANSC_STATUS WanMgr_VirtIfConfVLAN(DML_VIRTUAL_IFACE *p_VirtIf, UINT Ifid)
 ANSC_STATUS WanMgr_WanIfaceConfInit(WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl)
 {
     CcspTraceInfo(("%s %d Initialize Wan Iface Conf \n", __FUNCTION__, __LINE__));
+    
     if(pWanIfaceCtrl != NULL)
     {
         ANSC_STATUS result;
@@ -811,6 +812,7 @@ void WanMgr_IfaceData_Init(WanMgr_Iface_Data_t* pIfaceData, UINT iface_index)
 
         pWanDmlIface->NoOfVirtIfs = 1; 
         pWanDmlIface->Type = WAN_IFACE_TYPE_UNCONFIGURED;
+	pWanDmlIface->bSendSelectionTimerExpired = TRUE;
     }
 }
 
