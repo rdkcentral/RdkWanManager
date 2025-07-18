@@ -2103,16 +2103,23 @@ ANSC_STATUS WanMgr_Publish_WanStatus(UINT IfaceIndex, UINT VirId)
 {
     char param_name[256] = {0};
     static UINT PrevWanStatus = 0;
+    UINT tmpCurrWanStatus = 0,
+         tmpWanStatusSub  = 0;
     WanMgr_Iface_Data_t*   pWanDmlIfaceData = WanMgr_GetIfaceData_locked(IfaceIndex);
     if(pWanDmlIfaceData != NULL)
     {
         DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
         DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIfaceById(pWanIfaceData->VirtIfList, VirId);
+   
+        tmpCurrWanStatus = p_VirtIf->Status; 
+        tmpWanStatusSub  = pWanIfaceData->Sub.WanStatusSub;
 
-        if (p_VirtIf->Status != PrevWanStatus)
+        WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+
+        if (tmpCurrWanStatus != PrevWanStatus)
         {
-            PrevWanStatus = p_VirtIf->Status;
-            if (pWanIfaceData->Sub.WanStatusSub)
+            PrevWanStatus = tmpCurrWanStatus;
+            if (tmpWanStatusSub)
             {
                 memset(param_name, 0, sizeof(param_name));
                 _ansc_sprintf(param_name, WANMGR_IFACE_WAN_STATUS, (IfaceIndex+1), (VirId+1));
@@ -2127,7 +2134,6 @@ ANSC_STATUS WanMgr_Publish_WanStatus(UINT IfaceIndex, UINT VirId)
 #endif
             }
         }
-        WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
     }
     return ANSC_STATUS_SUCCESS;
 }
