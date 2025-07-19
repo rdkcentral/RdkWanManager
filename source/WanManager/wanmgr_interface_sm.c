@@ -82,7 +82,6 @@ static eWanState_t wan_state_mapt_active(WanMgr_IfaceSM_Controller_t* pWanIfaceC
 static eWanState_t wan_state_refreshing_wan(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
 static eWanState_t wan_state_deconfiguring_wan(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
 static eWanState_t wan_state_exit(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
-static eWanState_t wan_state_cold_standby_status_waiting(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
 static eWanState_t wan_state_phy_down(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
 
 /*WAN Manager Transitions*/
@@ -108,6 +107,7 @@ static eWanState_t wan_transition_mapt_up(WanMgr_IfaceSM_Controller_t* pWanIface
 static eWanState_t wan_transition_mapt_down(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
 extern int mapt_feature_enable_changed;
 #endif //FEATURE_MAPT
+static eWanState_t wan_transition_down(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
 static eWanState_t wan_transition_exit(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
 
 static ANSC_STATUS WanMgr_StartConnectivityCheck(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
@@ -1872,7 +1872,7 @@ static eWanState_t wan_transition_start(WanMgr_IfaceSM_Controller_t* pWanIfaceCt
 
     WanManager_PrintBootEvents (WAN_INIT_START);
 
-    return WAN_STATE_PHY_DOWN;
+    return WAN_STATE_DOWN;
 }
 
 static eWanState_t wan_transition_cold_standby_activation(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
@@ -1889,12 +1889,12 @@ static eWanState_t wan_transition_cold_standby_activation(WanMgr_IfaceSM_Control
     // Configure Interface
     if ( ANSC_STATUS_FAILURE == WanManager_RdkBus_EnableInterface(pInterface, TRUE) )
     {
-       return WAN_STATE_PHY_DOWN;
+       return WAN_STATE_DOWN;
     }
     
     CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION COLD STANDBY ACTIVATION\n", __FUNCTION__, __LINE__, pInterface->Name));
 
-    return WAN_STATE_WAIT_FOR_COLD_STANDBY;
+    return WAN_STATE_PHY_DOWN;
 }
 
 static eWanState_t wan_transition_vlan_configure(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
@@ -2900,6 +2900,20 @@ static eWanState_t wan_transition_mapt_down(WanMgr_IfaceSM_Controller_t* pWanIfa
 }
 #endif //FEATURE_MAPT
 
+static eWanState_t wan_transition_down(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
+{
+    CcspTraceInfo(("%s %d \n", __FUNCTION__, __LINE__));
+
+    if((pWanIfaceCtrl == NULL) || (pWanIfaceCtrl->pIfaceData == NULL))
+    {
+        return ANSC_STATUS_FAILURE;
+    }
+
+    CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION STATE DOWN\n", __FUNCTION__, __LINE__, pInterface->Name));
+    
+    return WAN_STATE_DOWN;
+}
+
 static eWanState_t wan_transition_exit(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
 {
     CcspTraceInfo(("%s %d \n", __FUNCTION__, __LINE__));
@@ -3023,7 +3037,7 @@ static eWanState_t wan_transition_standby_deconfig_ips(WanMgr_IfaceSM_Controller
 /*********************************************************************************/
 /**************************** STATES *********************************************/
 /*********************************************************************************/
-static eWanState_t wan_state_phy_down(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
+static eWanState_t wan_state_down(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
 {
     if((pWanIfaceCtrl == NULL) || (pWanIfaceCtrl->pIfaceData == NULL))
     {
@@ -3038,21 +3052,18 @@ static eWanState_t wan_state_phy_down(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl
             p_VirtIf->Enable == FALSE ||
             pInterface->Selection.Status == WAN_IFACE_NOT_SELECTED)
     {
-        return wan_transition_physical_interface_down(pWanIfaceCtrl);
+        return wan_transition_exit(pWanIfaceCtrl);
     }
 
-    // Move to Cold Standby activation if interface mode is cold standby
     if( WAN_IFACE_CONN_TYPE_COLD_STANDBY == pInterface->IfaceConnectionType )
     {
         return wan_transition_cold_standby_activation(pWanIfaceCtrl);
     }
-    else
-    {
-        return wan_transition_vlan_configure(pWanIfaceCtrl);
-    }
+    
+    return WAN_STATE_PHY_DOWN;
 }
 
-static eWanState_t wan_state_cold_standby_status_waiting(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
+static eWanState_t wan_state_phy_down(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
 {
     if((pWanIfaceCtrl == NULL) || (pWanIfaceCtrl->pIfaceData == NULL))
     {
@@ -3075,7 +3086,7 @@ static eWanState_t wan_state_cold_standby_status_waiting(WanMgr_IfaceSM_Controll
         return wan_transition_vlan_configure(pWanIfaceCtrl);
     }
 
-    return WAN_STATE_WAIT_FOR_COLD_STANDBY;
+    return WAN_STATE_PHY_DOWN;
 }
 
 static eWanState_t wan_state_vlan_configuring(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
@@ -4046,7 +4057,7 @@ static eWanState_t wan_state_deconfiguring_wan(WanMgr_IfaceSM_Controller_t* pWan
             return WAN_STATE_DECONFIGURING_WAN;
     }
 
-    return wan_transition_exit(pWanIfaceCtrl);
+    return wan_transition_down(pWanIfaceCtrl);
 }
 
 static eWanState_t wan_state_exit(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
@@ -4214,14 +4225,14 @@ static void* WanMgr_InterfaceSMThread( void *arg )
         // process state
         switch (iface_sm_state)
         {
+            case WAN_STATE_DOWN:
+                {
+                    iface_sm_state = wan_state_down(pWanIfaceCtrl);
+                    break;
+                }
             case WAN_STATE_PHY_DOWN:
                 {
                     iface_sm_state = wan_state_phy_down(pWanIfaceCtrl);
-                    break;
-                }
-            case WAN_STATE_WAIT_FOR_COLD_STANDBY:
-                {
-                    iface_sm_state = wan_state_cold_standby_status_waiting(pWanIfaceCtrl);
                     break;
                 }
             case WAN_STATE_VLAN_CONFIGURING:
