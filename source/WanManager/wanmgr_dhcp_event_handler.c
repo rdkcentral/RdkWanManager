@@ -23,7 +23,9 @@
 #include "wanmgr_interface_sm.h"
 #include "wanmgr_dhcp_client_events.h"
 #include "wanmgr_net_utils.h"
+#ifdef FEATURE_MAPE
 #include "wanmgr_map_apis.h"
+#endif
 
 static void copyDhcpv4Data(WANMGR_IPV4_DATA* pDhcpv4Data, const DHCP_MGR_IPV4_MSG* leaseInfo) 
 {
@@ -221,10 +223,12 @@ void* WanMgr_DhcpClientEventsHandler_Thread(void *arg)
                     }
                     else if (leaseInfo->mapeAssigned)
                     {
+#ifdef FEATURE_MAPE
                         CcspTraceInfo(("--------- Got a new event in Wanmanager for MAPE_CONFIG ---------"));
                         memcpy(&(pVirtIf->MAP.dhcp6cMAPparameters), &(leaseInfo->map), sizeof(ipc_map_data_t));
                         WanManager_UpdateInterfaceStatus(pVirtIf, WANMGR_IFACE_MAPE_START);
-                    }
+#endif
+		    }
                     else
                     {
                         if (leaseInfo->prefixAssigned && !IS_EMPTY_STRING(leaseInfo->sitePrefix) && leaseInfo->prefixPltime != 0 && leaseInfo->prefixVltime != 0)

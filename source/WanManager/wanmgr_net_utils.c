@@ -115,6 +115,7 @@ extern int stop_dhcpv4_client (dhcp_params * params);
 
 #define SET_MAX_RETRY_COUNT 10 // max. retry count for set requests
 
+#ifdef FEATURE_MAPE
 #define TUNNEL_MTU            1500
 #define TUNNEL_NAME           "ip6tnl"
 #define BUFF_SIZE_16          16
@@ -122,6 +123,7 @@ extern int stop_dhcpv4_client (dhcp_params * params);
 #define BUFF_SIZE_1024        1024
 #define IPV4_ADDR_LEN_IN_BITS 32
 #define BUF_LEN (10 * (sizeof(struct inotify_event) + 255 + 1))
+#endif
 
 /***************************************************************************
  * @brief API used to check the incoming ipv4 address is a valid ipv4 address
@@ -2741,6 +2743,7 @@ int  WanManager_send_and_receive_rs(DML_VIRTUAL_IFACE * p_VirtIf)
     return ret;
 }
 
+#ifdef FEATURE_MAPE
 ANSC_STATUS WanManager_MAPEConfiguration(ipc_map_data_t *dhcp6cMAPEMsgBody)
 {
     INT ret = 0;
@@ -2956,3 +2959,4 @@ VOID syscfg_SetDefault(VOID)
     syscfg_unset (NULL, "mape_ipv4_address");
     syscfg_unset (NULL, "mape_ipv4_address");
 }
+#endif
