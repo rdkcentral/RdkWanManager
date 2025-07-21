@@ -1091,10 +1091,7 @@ static WcAwPolicyState_t State_WaitForInterface (WanMgr_Policy_Controller_t * pW
     }
 
     // check if Phy is UP
-    if ( (pActiveInterface->Selection.Enable == TRUE)
-         /*(pActiveInterface->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_UP) ||
-         ((pActiveInterface->IfaceConnectionType == WAN_IFACE_CONN_TYPE_COLD_STANDBY) &&
-          (access("/tmp/wifi_dml_complete", F_OK) == 0)) */ )
+    if (pActiveInterface->Selection.Enable == TRUE)
     {
         // Phy is UP for selected iface
         CcspTraceInfo(("%s %d: selected interface index:%d is BaseInterface %s\n", __FUNCTION__, __LINE__,  pWanController->activeInterfaceIdx, (pActiveInterface->IfaceConnectionType == WAN_IFACE_CONN_TYPE_COLD_STANDBY) ? "status check can be skipped here for Cold Standby Interface" : "UP"));
@@ -1521,8 +1518,7 @@ static WcAwPolicyState_t State_WanInterfaceDown (WanMgr_Policy_Controller_t * pW
 
     // check if PHY is UP
     DML_WAN_IFACE * pActiveInterface = &(pWanController->pWanActiveIfaceData->data);
-    if (/*((pActiveInterface->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_UP) || (WAN_IFACE_CONN_TYPE_COLD_STANDBY == pActiveInterface->IfaceConnectionType)) && */
-            pActiveInterface->Selection.Enable == TRUE)
+    if (pActiveInterface->Selection.Enable == TRUE)
     {
         if (WanMgr_SetGroupSelectedIface (pWanController->GroupInst, (pWanController->activeInterfaceIdx+1)) != ANSC_STATUS_SUCCESS)
         {

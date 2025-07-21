@@ -83,6 +83,7 @@ static eWanState_t wan_state_refreshing_wan(WanMgr_IfaceSM_Controller_t* pWanIfa
 static eWanState_t wan_state_deconfiguring_wan(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
 static eWanState_t wan_state_exit(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
 static eWanState_t wan_state_phy_down(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
+static eWanState_t wan_state_cold_standby_configuring(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
 
 /*WAN Manager Transitions*/
 static eWanState_t wan_transition_start(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
@@ -100,6 +101,7 @@ static eWanState_t wan_transition_standby(WanMgr_IfaceSM_Controller_t* pWanIface
 static eWanState_t wan_transition_standby_deconfig_ips(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
 static eWanState_t wan_transition_cold_standby_activation(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
 static eWanState_t wan_transition_vlan_configure(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
+static eWanState_t wan_transition_cold_standby_configuring(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
 
 #if defined(FEATURE_MAPT) || defined(FEATURE_SUPPORT_MAPT_NAT46)
 static eWanState_t wan_transition_mapt_feature_refresh(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
@@ -1873,7 +1875,7 @@ static eWanState_t wan_transition_start(WanMgr_IfaceSM_Controller_t* pWanIfaceCt
 
     WanManager_PrintBootEvents (WAN_INIT_START);
 
-    return WAN_STATE_DOWN;
+    return WAN_STATE_COLD_STANDBY_CONFIGURING;
 }
 
 static eWanState_t wan_transition_cold_standby_activation(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
@@ -1890,7 +1892,7 @@ static eWanState_t wan_transition_cold_standby_activation(WanMgr_IfaceSM_Control
     // Configure Interface
     if ( ANSC_STATUS_FAILURE == WanManager_RdkBus_EnableInterface(pInterface, TRUE) )
     {
-       return WAN_STATE_DOWN;
+       return WAN_STATE_COLD_STANDBY_CONFIGURING;
     }
     
     CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION COLD STANDBY ACTIVATION\n", __FUNCTION__, __LINE__, pInterface->Name));
@@ -2901,7 +2903,7 @@ static eWanState_t wan_transition_mapt_down(WanMgr_IfaceSM_Controller_t* pWanIfa
 }
 #endif //FEATURE_MAPT
 
-static eWanState_t wan_transition_down(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
+static eWanState_t wan_transition_cold_standby_configuring(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
 {
     CcspTraceInfo(("%s %d \n", __FUNCTION__, __LINE__));
 
@@ -2910,9 +2912,9 @@ static eWanState_t wan_transition_down(WanMgr_IfaceSM_Controller_t* pWanIfaceCtr
         return ANSC_STATUS_FAILURE;
     }
 
-    CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION STATE DOWN\n", __FUNCTION__, __LINE__, pInterface->Name));
+    CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION STATE COLD STANDBY CONFIGURING\n", __FUNCTION__, __LINE__, pInterface->Name));
     
-    return WAN_STATE_DOWN;
+    return WAN_STATE_COLD_STANDBY_CONFIGURING;
 }
 
 static eWanState_t wan_transition_phy_down(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
@@ -3052,7 +3054,7 @@ static eWanState_t wan_transition_standby_deconfig_ips(WanMgr_IfaceSM_Controller
 /*********************************************************************************/
 /**************************** STATES *********************************************/
 /*********************************************************************************/
-static eWanState_t wan_state_down(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
+static eWanState_t wan_state_cold_standby_configuring(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
 {
     if((pWanIfaceCtrl == NULL) || (pWanIfaceCtrl->pIfaceData == NULL))
     {
@@ -4240,9 +4242,9 @@ static void* WanMgr_InterfaceSMThread( void *arg )
         // process state
         switch (iface_sm_state)
         {
-            case WAN_STATE_DOWN:
+            case WAN_STATE_COLD_STANDBY_CONFIGURING:
                 {
-                    iface_sm_state = wan_state_down(pWanIfaceCtrl);
+                    iface_sm_state = wan_state_cold_standby_configuringnIfaceCtrl);
                     break;
                 }
             case WAN_STATE_PHY_DOWN:
