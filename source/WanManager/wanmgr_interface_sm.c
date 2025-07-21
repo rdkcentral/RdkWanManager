@@ -108,6 +108,7 @@ static eWanState_t wan_transition_mapt_down(WanMgr_IfaceSM_Controller_t* pWanIfa
 extern int mapt_feature_enable_changed;
 #endif //FEATURE_MAPT
 static eWanState_t wan_transition_down(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
+static eWanState_t wan_transition_phy_down(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
 static eWanState_t wan_transition_exit(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
 
 static ANSC_STATUS WanMgr_StartConnectivityCheck(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
@@ -2914,6 +2915,20 @@ static eWanState_t wan_transition_down(WanMgr_IfaceSM_Controller_t* pWanIfaceCtr
     return WAN_STATE_DOWN;
 }
 
+static eWanState_t wan_transition_phy_down(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
+{
+    CcspTraceInfo(("%s %d \n", __FUNCTION__, __LINE__));
+
+    if((pWanIfaceCtrl == NULL) || (pWanIfaceCtrl->pIfaceData == NULL))
+    {
+        return ANSC_STATUS_FAILURE;
+    }
+
+    CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION STATE PHY DOWN\n", __FUNCTION__, __LINE__, pInterface->Name));
+    
+    return WAN_STATE_PHY_DOWN;
+}
+
 static eWanState_t wan_transition_exit(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
 {
     CcspTraceInfo(("%s %d \n", __FUNCTION__, __LINE__));
@@ -3060,7 +3075,7 @@ static eWanState_t wan_state_down(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
         return wan_transition_cold_standby_activation(pWanIfaceCtrl);
     }
     
-    return WAN_STATE_PHY_DOWN;
+    return wan_transition_phy_down(pWanIfaceCtrl);
 }
 
 static eWanState_t wan_state_phy_down(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
@@ -4057,7 +4072,7 @@ static eWanState_t wan_state_deconfiguring_wan(WanMgr_IfaceSM_Controller_t* pWan
             return WAN_STATE_DECONFIGURING_WAN;
     }
 
-    return wan_transition_down(pWanIfaceCtrl);
+    return wan_transition_phy_down(pWanIfaceCtrl);
 }
 
 static eWanState_t wan_state_exit(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
