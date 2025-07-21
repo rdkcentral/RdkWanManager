@@ -2911,6 +2911,7 @@ static eWanState_t wan_transition_cold_standby_configuring(WanMgr_IfaceSM_Contro
         return ANSC_STATUS_FAILURE;
     }
 
+    DML_WAN_IFACE* pInterface = pWanIfaceCtrl->pIfaceData;
     CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION STATE COLD STANDBY CONFIGURING\n", __FUNCTION__, __LINE__, pInterface->Name));
     
     return WAN_STATE_COLD_STANDBY_CONFIGURING;
@@ -2925,6 +2926,7 @@ static eWanState_t wan_transition_phy_down(WanMgr_IfaceSM_Controller_t* pWanIfac
         return ANSC_STATUS_FAILURE;
     }
 
+    DML_WAN_IFACE* pInterface = pWanIfaceCtrl->pIfaceData;
     CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION STATE PHY DOWN\n", __FUNCTION__, __LINE__, pInterface->Name));
     
     return WAN_STATE_PHY_DOWN;
@@ -4243,7 +4245,7 @@ static void* WanMgr_InterfaceSMThread( void *arg )
         {
             case WAN_STATE_COLD_STANDBY_CONFIGURING:
                 {
-                    iface_sm_state = wan_state_cold_standby_configuringnIfaceCtrl);
+                    iface_sm_state = wan_state_cold_standby_configuring(pWanIfaceCtrl);
                     break;
                 }
             case WAN_STATE_PHY_DOWN:
