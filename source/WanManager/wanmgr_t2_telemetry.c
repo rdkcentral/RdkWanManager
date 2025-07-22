@@ -120,7 +120,7 @@ ANSC_STATUS wanmgr_process_T2_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
             break;
 
         case WAN_INFO_IPv4_UP:
-            if(pVirtIf->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_UP)
+            if(pVirtIntf->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_UP)
 	    {
                 return ANSC_STATUS_SUCCESS;
 	    }
@@ -128,7 +128,7 @@ ANSC_STATUS wanmgr_process_T2_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
             break;
 
         case WAN_ERROR_IPv4_DOWN:
-            if(pVirtIf->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_DOWN)
+            if(pVirtIntf->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_DOWN)
 	    {
                 return ANSC_STATUS_SUCCESS;
 	    }
@@ -136,7 +136,7 @@ ANSC_STATUS wanmgr_process_T2_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
             break;
 
         case WAN_INFO_IPv6_UP:
-            if(pVirtIf->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_UP)
+            if(pVirtIntf->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_UP)
 	    {
                 return ANSC_STATUS_SUCCESS;
 	    }
@@ -144,7 +144,7 @@ ANSC_STATUS wanmgr_process_T2_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
             break;
 
         case WAN_ERROR_IPv6_DOWN:	  
-            if(pVirtIf->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_DOWN)
+            if(pVirtIntf->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_DOWN)
 	    {
                 return ANSC_STATUS_SUCCESS;
 	    }
@@ -152,7 +152,7 @@ ANSC_STATUS wanmgr_process_T2_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
             break;
 
         case WAN_INFO_MAPT_STATUS_UP:
-            if(pVirtIf->MAP.MaptStatus == WAN_IFACE_MAPT_STATE_UP)
+            if(pVirtIntf->MAP.MaptStatus == WAN_IFACE_MAPT_STATE_UP)
 	    {
                 return ANSC_STATUS_SUCCESS;
 	    }
@@ -160,7 +160,7 @@ ANSC_STATUS wanmgr_process_T2_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
             break;
 
         case WAN_ERROR_MAPT_STATUS_DOWN:
-            if(pVirtIf->MAP.MaptStatus == WAN_IFACE_MAPT_STATE_DOWN)
+            if(pVirtIntf->MAP.MaptStatus == WAN_IFACE_MAPT_STATE_DOWN)
 	    {
                 return ANSC_STATUS_SUCCESS;
 	    }
@@ -171,7 +171,7 @@ ANSC_STATUS wanmgr_process_T2_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
             break;
 
         case WAN_ERROR_VLAN_DOWN:
-            if(pVirtIf->VLAN.Status != WAN_IFACE_LINKSTATUS_UP)
+            if(pVirtIntf->VLAN.Status != WAN_IFACE_LINKSTATUS_UP)
 	    {
                 return ANSC_STATUS_SUCCESS;
 	    }

@@ -817,7 +817,6 @@ static WcPsPolicyState_t State_ScanningInterface (WanMgr_Policy_Controller_t * p
 		WanMgr_ProcessTelemetryMarker(WanMgr_getVirtualIfaceById( pWanIfaceData->VirtIfList,0),WAN_WARN_IP_OBTAIN_TIMER_EXPIRED);
                 WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
             }
-            //Telemetry end		    
             return Transition_SelectingInterface(pWanController);
         }else
         {
