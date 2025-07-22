@@ -620,13 +620,10 @@ static ANSC_STATUS WanManager_ConfigureMarking(WanMgr_IfaceSM_Controller_t* pWan
 
 ANSC_STATUS WanMgr_ProcessTelemetryMarker( DML_VIRTUAL_IFACE *pVirtIf , WanMgr_TelemetryEvent_t telemetry_marker)
 {
-    CcspTraceInfo(("%s %d: KAVYA Enter ..\n",__FUNCTION__, __LINE__));
-
     if(pVirtIf == NULL)
     {
         return ANSC_STATUS_FAILURE;
     }
-    CcspTraceInfo(("%s %d: KAVYA ..\n",__FUNCTION__, __LINE__));
 
     DML_WAN_IFACE *pIntf = NULL;
     WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pVirtIf->baseIfIdx);
@@ -637,162 +634,16 @@ ANSC_STATUS WanMgr_ProcessTelemetryMarker( DML_VIRTUAL_IFACE *pVirtIf , WanMgr_T
 
     pIntf = &(pWanDmlIfaceData->data);
     WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
-CcspTraceInfo(("%s %d: KAVYA ..\n",__FUNCTION__, __LINE__));
     
     WanMgr_Telemetry_Marker_t Marker = {0};
     Marker.pVirtInterface = pVirtIf;
     Marker.pInterface = pIntf;
-
-CcspTraceInfo(("%s %d: KAVYA ..\n",__FUNCTION__, __LINE__));
-    switch(telemetry_marker)
-    {
-        case WAN_ERROR_PHY_DOWN:
-CcspTraceInfo(("%s %d: KAVYA ..\n",__FUNCTION__, __LINE__));
-	    if(pIntf->BaseInterfaceStatus != WAN_IFACE_PHY_STATUS_UP)
-		return ANSC_STATUS_SUCCESS;
-	    break;
-
-	case WAN_INFO_PHY_UP:
-CcspTraceInfo(("%s %d: KAVYA ..\n",__FUNCTION__, __LINE__));
-	    if(pIntf->BaseInterfaceStatus != WAN_IFACE_PHY_STATUS_DOWN)
-		return ANSC_STATUS_SUCCESS;
-	    break;
-
-	case WAN_INFO_WAN_UP:
-CcspTraceInfo(("%s %d: KAVYA ..\n",__FUNCTION__, __LINE__));
-	    break;
-
-	case WAN_ERROR_WAN_DOWN:
-CcspTraceInfo(("%s %d: KAVYA ..pIntf->Selection.Status = [%d]\n",__FUNCTION__, __LINE__,pIntf->Selection.Status));
-	    if(!(pIntf->Selection.Status == WAN_IFACE_VALIDATING || pIntf->Selection.Status == WAN_IFACE_SELECTED || pIntf->Selection.Status == WAN_IFACE_ACTIVE))
-	    {
-		return ANSC_STATUS_SUCCESS;
-	    }
-	    break;
-
-	case WAN_INFO_WAN_STANDBY:
-CcspTraceInfo(("%s %d: KAVYA ..\n",__FUNCTION__, __LINE__));
-	    break;
-
-	case WAN_INFO_IPv4_CONFIG_TYPE:
-CcspTraceInfo(("%s %d: KAVYA ..\n",__FUNCTION__, __LINE__));
-            break;	    
-
-	case WAN_INFO_IPv6_CONFIG_TYPE:
-CcspTraceInfo(("%s %d: KAVYA ..\n",__FUNCTION__, __LINE__));
-            break;
-
-	case WAN_INFO_CONNECTIVITY_CHECK_TYPE:
-CcspTraceInfo(("%s %d: KAVYA ..\n",__FUNCTION__, __LINE__));
-	    break;
-
-	case WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP_IPV4:
-CcspTraceInfo(("%s %d: KAVYA ..\n",__FUNCTION__, __LINE__));
-//	    if(pVirtIf->IP.Ipv4ConnectivityStatus != WAN_CONNECTIVITY_DOWN)
-//		return;
-	    break;
-
-	case WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP_IPV6:
-CcspTraceInfo(("%s %d: KAVYA ..\n",__FUNCTION__, __LINE__));
-//	    if(pVirtIf->IP.Ipv6ConnectivityStatus != WAN_CONNECTIVITY_DOWN)
-//		return;
-	    break;
-
-	case WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN_IPV4:
-CcspTraceInfo(("%s %d: KAVYA ..\n",__FUNCTION__, __LINE__));
-	    break;
-	
-	case WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN_IPV6:
-CcspTraceInfo(("%s %d: KAVYA ..\n",__FUNCTION__, __LINE__));
-            break;
-
-	case WAN_WARN_CONNECTIVITY_CHECK_STATUS_FAILED_IPV4:
-CcspTraceInfo(("%s %d: KAVYA ..\n",__FUNCTION__, __LINE__));
-	    break;
-
-	case WAN_WARN_CONNECTIVITY_CHECK_STATUS_FAILED_IPV6:
-CcspTraceInfo(("%s %d: KAVYA ..\n",__FUNCTION__, __LINE__));
-	    break;
-
-	case WAN_WARN_CONNECTIVITY_CHECK_STATUS_IDLE_IPV4:
-CcspTraceInfo(("%s %d: KAVYA ..\n",__FUNCTION__, __LINE__));
-	    break;
-
-	case WAN_WARN_CONNECTIVITY_CHECK_STATUS_IDLE_IPV6:
-CcspTraceInfo(("%s %d: KAVYA ..\n",__FUNCTION__, __LINE__));
-	    break;
-
-	case WAN_INFO_IP_MODE:
-CcspTraceInfo(("%s %d: KAVYA ..\n",__FUNCTION__, __LINE__));
-	    break;
-
-	case WAN_INFO_IPv4_UP:
-CcspTraceInfo(("%s %d: KAVYA ..\n",__FUNCTION__, __LINE__));
-	    if(pVirtIf->IP.Ipv4Status != WAN_IFACE_IPV4_STATE_DOWN)
-		return ANSC_STATUS_SUCCESS;
-            break;
-
-	case WAN_ERROR_IPv4_DOWN:
-CcspTraceInfo(("%s %d: KAVYA ..\n",__FUNCTION__, __LINE__));
-	    if(pVirtIf->IP.Ipv4Status != WAN_IFACE_IPV4_STATE_UP)
-		return ANSC_STATUS_SUCCESS;
-            break;
-
-	case WAN_INFO_IPv6_UP:
-CcspTraceInfo(("%s %d: KAVYA ..\n",__FUNCTION__, __LINE__));
-	    if(pVirtIf->IP.Ipv6Status != WAN_IFACE_IPV6_STATE_DOWN)
-		return ANSC_STATUS_SUCCESS;
-            break;
-
-	case WAN_ERROR_IPv6_DOWN:
-CcspTraceInfo(("%s %d: KAVYA ..\n",__FUNCTION__, __LINE__));
-	    if(pVirtIf->IP.Ipv6Status != WAN_IFACE_IPV6_STATE_UP)
-		return ANSC_STATUS_SUCCESS;
-            break;
-
-	case WAN_INFO_MAPT_STATUS_UP:
-CcspTraceInfo(("%s %d: KAVYA ..\n",__FUNCTION__, __LINE__));
-	    if(pVirtIf->MAP.MaptStatus != WAN_IFACE_MAPT_STATE_DOWN)
-		return ANSC_STATUS_SUCCESS;
-	    break;
-
-	case WAN_ERROR_MAPT_STATUS_DOWN:
-CcspTraceInfo(("%s %d: KAVYA ..\n",__FUNCTION__, __LINE__));
-	    if(pVirtIf->MAP.MaptStatus != WAN_IFACE_MAPT_STATE_UP)
-		return ANSC_STATUS_SUCCESS;
-	    break;
-	    	
-        case WAN_ERROR_MAPT_STATUS_FAILED:
-CcspTraceInfo(("%s %d: KAVYA ..\n",__FUNCTION__, __LINE__));
-	    break;
-
-	case WAN_ERROR_VLAN_DOWN:
-CcspTraceInfo(("%s %d: KAVYA ..\n",__FUNCTION__, __LINE__));
-	    if(pVirtIf->VLAN.Status != WAN_IFACE_LINKSTATUS_UP)
-	        return ANSC_STATUS_SUCCESS;
-	    break;
-
-	case WAN_ERROR_VLAN_CREATION_FAILED:
-CcspTraceInfo(("%s %d: KAVYA ..\n",__FUNCTION__, __LINE__));
-	    break;
-
-        case WAN_WARN_IP_OBTAIN_TIMER_EXPIRED:
-CcspTraceInfo(("%s %d: KAVYA ..\n",__FUNCTION__, __LINE__));
-	    if(pIntf->bSendSelectionTimerExpired != TRUE)
-		return ANSC_STATUS_SUCCESS;
-
-	    pIntf->bSendSelectionTimerExpired = FALSE;
-	    break;
-
-	default:
-	    break;
-    }
-CcspTraceInfo(("%s %d: KAVYA ..\n",__FUNCTION__, __LINE__));
     Marker.enTelemetryMarkerID = telemetry_marker;
     wanmgr_telemetry_event(&Marker);
 
     return ANSC_STATUS_SUCCESS;
 }
+
 /*********************************************************************************/
 /**************************** ACTIONS ********************************************/
 /*********************************************************************************/
@@ -836,14 +687,12 @@ void WanManager_UpdateInterfaceStatus(DML_VIRTUAL_IFACE* pVirtIf, wanmgr_iface_s
                 sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_IPV4_TIME_ZONE, pVirtIf->IP.Ipv4Data.timeZone, 0);
             }
 #endif
-            CcspTraceInfo(("%s %d: KAVYA Sending WAN_INFO_IPv4_UP .\n",__FUNCTION__, __LINE__));
 	    WanMgr_ProcessTelemetryMarker(pVirtIf,WAN_INFO_IPv4_UP); 
             pVirtIf->IP.Ipv4Status = WAN_IFACE_IPV4_STATE_UP;
             break;
         }
         case WANMGR_IFACE_CONNECTION_DOWN:
         {
-	    CcspTraceInfo(("%s %d: KAVYA Sending WAN_ERROR_IPv4_DOWN .\n",__FUNCTION__, __LINE__));
 	    WanMgr_ProcessTelemetryMarker(pVirtIf,WAN_ERROR_IPv4_DOWN);
             pVirtIf->IP.Ipv4Status = WAN_IFACE_IPV4_STATE_DOWN;
             pVirtIf->IP.Ipv4Changed = FALSE;
@@ -853,16 +702,13 @@ void WanManager_UpdateInterfaceStatus(DML_VIRTUAL_IFACE* pVirtIf, wanmgr_iface_s
         }
         case WANMGR_IFACE_CONNECTION_IPV6_UP:
         {
-            CcspTraceInfo(("%s %d: KAVYA Sending WAN_INFO_IPv6_UP .\n",__FUNCTION__, __LINE__));
 	    WanMgr_ProcessTelemetryMarker(pVirtIf,WAN_INFO_IPv6_UP);
             pVirtIf->IP.Ipv6Status = WAN_IFACE_IPV6_STATE_UP;
             break;
         }
         case WANMGR_IFACE_CONNECTION_IPV6_DOWN:
         {
-	    CcspTraceInfo(("%s %d: KAVYA Sending WAN_ERROR_IPv6_DOWN .\n",__FUNCTION__, __LINE__));
 	    WanMgr_ProcessTelemetryMarker(pVirtIf,WAN_ERROR_IPv6_DOWN);
-	    CcspTraceInfo(("%s %d: KAVYA Sending WAN_ERROR_MAPT_STATUS_DOWN.\n",__FUNCTION__, __LINE__));
 	    WanMgr_ProcessTelemetryMarker(pVirtIf,WAN_ERROR_MAPT_STATUS_DOWN);
 
             pVirtIf->IP.Ipv6Status = WAN_IFACE_IPV6_STATE_DOWN;
@@ -881,7 +727,6 @@ void WanManager_UpdateInterfaceStatus(DML_VIRTUAL_IFACE* pVirtIf, wanmgr_iface_s
 #if defined(FEATURE_MAPT) || defined(FEATURE_SUPPORT_MAPT_NAT46)
         case WANMGR_IFACE_MAPT_START:
         {
-	    CcspTraceInfo(("%s %d: KAVYA Sending WAN_INFO_MAPT_STATUS_UP .\n",__FUNCTION__, __LINE__));
 	    WanMgr_ProcessTelemetryMarker(pVirtIf,WAN_INFO_MAPT_STATUS_UP);
             pVirtIf->MAP.MaptStatus = WAN_IFACE_MAPT_STATE_UP;
             CcspTraceInfo(("mapt: %s \n",
@@ -891,7 +736,6 @@ void WanManager_UpdateInterfaceStatus(DML_VIRTUAL_IFACE* pVirtIf, wanmgr_iface_s
         }
         case WANMGR_IFACE_MAPT_STOP:
         {
-	    CcspTraceInfo(("%s %d: KAVYA Sending WAN_ERROR_MAPT_STATUS_DOWN .\n",__FUNCTION__, __LINE__));
 	    WanMgr_ProcessTelemetryMarker(pVirtIf,WAN_ERROR_MAPT_STATUS_DOWN);
             pVirtIf->MAP.MaptStatus = WAN_IFACE_MAPT_STATE_DOWN;     // reset MAPT flag
             pVirtIf->MAP.MaptChanged = FALSE;                        // reset MAPT flag
@@ -1925,7 +1769,6 @@ static ANSC_STATUS WanMgr_SendMsgTo_ConnectivityCheck(WanMgr_IfaceSM_Controller_
             {
                 if(p_VirtIf->IP.Ipv4Renewed == TRUE && (strcmp(IHC_status, IPOE_STATUS_FAILED) == 0))
                 {
-		    CcspTraceInfo(("%s %d: KAVYA Sending  WAN_WARN_CONNECTIVITY_CHECK_STATUS_FAILED_IPV4.\n",__FUNCTION__, __LINE__));
 		    WanMgr_ProcessTelemetryMarker(p_VirtIf,WAN_WARN_CONNECTIVITY_CHECK_STATUS_FAILED_IPV4);
                     //Restarting firewall to add IPOE_HEALTH_CHECK firewall rules.
                     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, NULL, 0);
@@ -1949,7 +1792,6 @@ static ANSC_STATUS WanMgr_SendMsgTo_ConnectivityCheck(WanMgr_IfaceSM_Controller_
             {
                 if(p_VirtIf->IP.Ipv6Renewed == TRUE && (strcmp(IHC_status, IPOE_STATUS_FAILED) == 0))
                 {
- 		    CcspTraceInfo(("%s %d: KAVYA Sending WAN_WARN_CONNECTIVITY_CHECK_STATUS_FAILED_IPV6 .\n",__FUNCTION__, __LINE__));
 		    WanMgr_ProcessTelemetryMarker(p_VirtIf,WAN_WARN_CONNECTIVITY_CHECK_STATUS_FAILED_IPV6);
                     //Restarting firewall to add IPOE_HEALTH_CHECK firewall rules.
                     sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_FIREWALL_RESTART, NULL, 0);
@@ -2163,7 +2005,6 @@ static eWanState_t wan_transition_physical_interface_down(WanMgr_IfaceSM_Control
         if (pInterface->IfaceType != REMOTE_IFACE) //TODO NEW_DESIGN rework for remote interface
         {
             WanMgr_RdkBus_ConfigureVlan(p_VirtIf, FALSE);        
-	    CcspTraceInfo(("%s %d: KAVYA Sending  WAN_ERROR_VLAN_DOWN.\n",__FUNCTION__, __LINE__));
 	    WanMgr_ProcessTelemetryMarker(p_VirtIf,WAN_ERROR_VLAN_DOWN);
             /* VLAN link is not created yet if LinkStatus is CONFIGURING. Change it to down. */
             if( p_VirtIf->VLAN.Status == WAN_IFACE_LINKSTATUS_CONFIGURING )
@@ -2933,7 +2774,6 @@ static eWanState_t wan_transition_mapt_up(WanMgr_IfaceSM_Controller_t* pWanIface
     if (ret != RETURN_OK)
     {
         CcspTraceError(("%s %d - Failed to configure MAP-T \n", __FUNCTION__, __LINE__));
-	CcspTraceInfo(("%s %d: KAVYA Sending WAN_ERROR_MAPT_STATUS_FAILED .\n",__FUNCTION__, __LINE__));
 	WanMgr_ProcessTelemetryMarker(WanMgr_getVirtualIfaceById( pInterface->VirtIfList,0),WAN_ERROR_MAPT_STATUS_FAILED);
     }
 
@@ -3074,7 +2914,6 @@ static eWanState_t wan_transition_exit(WanMgr_IfaceSM_Controller_t* pWanIfaceCtr
     Update_Interface_Status();
     CcspTraceInfo(("%s %d - Interface '%s' - EXITING STATE MACHINE\n", __FUNCTION__, __LINE__, pInterface->Name));
 
-CcspTraceInfo(("%s %d: KAVYA Sending WAN_ERROR_WAN_DOWN .\n",__FUNCTION__, __LINE__));    
     WanMgr_ProcessTelemetryMarker(p_VirtIf,WAN_ERROR_WAN_DOWN);
 
     p_VirtIf->Interface_SM_Running = FALSE;
@@ -3103,7 +2942,6 @@ static eWanState_t wan_transition_standby(WanMgr_IfaceSM_Controller_t* pWanIface
 
     Update_Interface_Status();
     DmlSetVLANInUseToPSMDB(p_VirtIf);
-    CcspTraceInfo(("%s %d: KAVYA Sending WAN_INFO_WAN_STANDBY.\n",__FUNCTION__, __LINE__));
     WanMgr_ProcessTelemetryMarker(WanMgr_getVirtualIfaceById( pInterface->VirtIfList,0), WAN_INFO_WAN_STANDBY);
     CcspTraceInfo(("%s %d - TRANSITION WAN_STATE_STANDBY\n", __FUNCTION__, __LINE__));
     return WAN_STATE_STANDBY;

@@ -458,12 +458,10 @@ rbusError_t WanMgr_Interface_SetHandler(rbusHandle_t handle, rbusProperty_t prop
                 CcspTraceInfo(("%s-%d : %s BaseInterfaceStatus changed to %s\n", __FUNCTION__, __LINE__, pWanDmlIface->Name, String));
                 if (strncmp(String,"Down",strlen(String)) == 0) 
 		{		   
-		    CcspTraceInfo(("%s %d: KAVYA Sending WAN_ERROR_PHY_DOWN .\n",__FUNCTION__, __LINE__));
 		    WanMgr_ProcessTelemetryMarker(p_VirtIf,WAN_ERROR_PHY_DOWN);
 		}
 		else if (strncmp(String,"Up",strlen(String)) == 0) 
 		{
-		    CcspTraceInfo(("%s %d: KAVYA Sending WAN_INFO_PHY_UP .\n",__FUNCTION__, __LINE__));
 		    WanMgr_ProcessTelemetryMarker(p_VirtIf,WAN_INFO_PHY_UP);
 		}	    
                 WanMgr_StringToEnum(&pWanDmlIface->BaseInterfaceStatus, ENUM_PHY, String);
@@ -492,7 +490,6 @@ rbusError_t WanMgr_Interface_SetHandler(rbusHandle_t handle, rbusProperty_t prop
                 strncpy(String , rbusValue_GetString(value, NULL),sizeof(String)-1);
                 if(strncmp(String,"Down",strlen(String)) == 0)
 		{
-		    CcspTraceInfo(("%s %d: KAVYA Sending WAN_ERROR_VLAN_DOWN .\n",__FUNCTION__, __LINE__));
 		    WanMgr_ProcessTelemetryMarker(p_VirtIf,WAN_ERROR_VLAN_DOWN);
 		}				
                 WanMgr_StringToEnum(&p_VirtIf->VLAN.Status, ENUM_WAN_LINKSTATUS, String);
@@ -804,12 +801,10 @@ static void WanMgr_Rbus_EventReceiveHandler(rbusHandle_t handle, rbusEvent_t con
                 {
                     if(strncmp(pValue,"Down",strlen(pValue)) == 0)
                     {
-			CcspTraceInfo(("%s %d: KAVYA Sending WAN_ERROR_PHY_DOWN .\n",__FUNCTION__, __LINE__));
 			WanMgr_ProcessTelemetryMarker(WanMgr_getVirtualIfaceById( pWanIfaceData->VirtIfList,0),WAN_ERROR_PHY_DOWN);
                     }
                     else if (strncmp(pValue,"Up",strlen(pValue)) == 0)
                     {
-			CcspTraceInfo(("%s %d: KAVYA Sending WAN_INFO_PHY_UP .\n",__FUNCTION__, __LINE__));
 			WanMgr_ProcessTelemetryMarker(WanMgr_getVirtualIfaceById( pWanIfaceData->VirtIfList,0),WAN_INFO_PHY_UP);
                     }			
                     WanMgr_StringToEnum(&pWanIfaceData->BaseInterfaceStatus, ENUM_PHY, pValue);
@@ -818,7 +813,6 @@ static void WanMgr_Rbus_EventReceiveHandler(rbusHandle_t handle, rbusEvent_t con
                 {
    	            if (strncmp(pValue,"Down",strlen(pValue)) == 0 )
 		    {
-			CcspTraceInfo(("%s %d: KAVYA Sending WAN_ERROR_VLAN_DOWN .\n",__FUNCTION__, __LINE__));
 			WanMgr_ProcessTelemetryMarker(WanMgr_getVirtualIfaceById( pWanIfaceData->VirtIfList,0),WAN_ERROR_VLAN_DOWN);
 		    }					
                     WanMgr_StringToEnum(&pWanIfaceData->VirtIfList->VLAN.Status, ENUM_WAN_LINKSTATUS, pValue);
@@ -1631,14 +1625,9 @@ void *WanMgr_WanRemoteIfaceConfigure_thread(void *arg)
     if (pWanDmlIfaceData != NULL)
     {
         DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
-	CcspTraceInfo(("%s %d: KAVYA Sending config info for [%s].\n",__FUNCTION__, __LINE__,pWanDmlIface->DisplayName));
-	CcspTraceInfo(("%s %d: KAVYA Sending WAN_INFO_IPv4_CONFIG_TYPE .\n",__FUNCTION__, __LINE__));
 	WanMgr_ProcessTelemetryMarker(WanMgr_getVirtualIfaceById( pWanDmlIface->VirtIfList,0),WAN_INFO_IPv4_CONFIG_TYPE);
-	CcspTraceInfo(("%s %d: KAVYA Sending WAN_INFO_IPv6_CONFIG_TYPE .\n",__FUNCTION__, __LINE__));
 	WanMgr_ProcessTelemetryMarker(WanMgr_getVirtualIfaceById( pWanDmlIface->VirtIfList,0),WAN_INFO_IPv6_CONFIG_TYPE);
-	CcspTraceInfo(("%s %d: KAVYA Sending WAN_INFO_CONNECTIVITY_CHECK_TYPE .\n",__FUNCTION__, __LINE__));
 	WanMgr_ProcessTelemetryMarker(WanMgr_getVirtualIfaceById( pWanDmlIface->VirtIfList,0),WAN_INFO_CONNECTIVITY_CHECK_TYPE);
-	CcspTraceInfo(("%s %d: KAVYA Sending WAN_INFO_IP_MODE .\n",__FUNCTION__, __LINE__));
 	WanMgr_ProcessTelemetryMarker(WanMgr_getVirtualIfaceById( pWanDmlIface->VirtIfList,0),WAN_INFO_IP_MODE);
 	WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
     }
@@ -1746,12 +1735,10 @@ static void CPEInterface_AsyncMethodHandler(
                 {
                     if(strncmp(pValue,"Down",strlen(pValue)) == 0)
                     {
-			CcspTraceInfo(("%s %d: KAVYA Sending WAN_ERROR_PHY_DOWN .\n",__FUNCTION__, __LINE__));
 		 	WanMgr_ProcessTelemetryMarker(WanMgr_getVirtualIfaceById( pWanIfaceData->VirtIfList,0),WAN_ERROR_PHY_DOWN);
                     }
                     else if(strncmp(pValue,"Up",strlen(pValue)) == 0)
                     {
-			CcspTraceInfo(("%s %d: KAVYA Sending WAN_INFO_PHY_UP .\n",__FUNCTION__, __LINE__));
 			WanMgr_ProcessTelemetryMarker(WanMgr_getVirtualIfaceById( pWanIfaceData->VirtIfList,0),WAN_INFO_PHY_UP);
                     }			
                     WanMgr_StringToEnum(&pWanIfaceData->BaseInterfaceStatus, ENUM_PHY, pValue);
@@ -1760,7 +1747,6 @@ static void CPEInterface_AsyncMethodHandler(
                 {
  	 	    if(strncmp(pValue,"Down",strlen(pValue)) == 0)
 		    {
-			CcspTraceInfo(("%s %d: KAVYA Sending WAN_ERROR_VLAN_DOWN .\n",__FUNCTION__, __LINE__));
 			WanMgr_ProcessTelemetryMarker(WanMgr_getVirtualIfaceById( pWanIfaceData->VirtIfList,0),WAN_ERROR_VLAN_DOWN);
 		    }				
                     WanMgr_StringToEnum(&pWanIfaceData->VirtIfList->VLAN.Status, ENUM_WAN_LINKSTATUS, pValue);
@@ -1931,16 +1917,12 @@ static void WanMgr_TandD_EventHandler(rbusHandle_t handle, rbusEvent_t const* ev
         {            
 	    if(res == WAN_CONNECTIVITY_UP)
 	    {
-		CcspTraceInfo(("%s %d: KAVYA Sending WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP_IPV4 .\n",__FUNCTION__, __LINE__));
 		WanMgr_ProcessTelemetryMarker(p_VirtIf,WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP_IPV4);
-		CcspTraceInfo(("%s %d: KAVYA Sending WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP_IPV6 .\n",__FUNCTION__, __LINE__));
 		WanMgr_ProcessTelemetryMarker(p_VirtIf,WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP_IPV6);
 	    }
 	    else if(res == WAN_CONNECTIVITY_DOWN)
 	    {
-		CcspTraceInfo(("%s %d: KAVYA Sending WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN_IPV4 .\n",__FUNCTION__, __LINE__));
 		WanMgr_ProcessTelemetryMarker(p_VirtIf,WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN_IPV4);
-		CcspTraceInfo(("%s %d: KAVYA Sending WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN_IPV6 .\n",__FUNCTION__, __LINE__));
 		WanMgr_ProcessTelemetryMarker(p_VirtIf,WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN_IPV6);
 	    }
 

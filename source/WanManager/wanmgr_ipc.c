@@ -204,7 +204,6 @@ static ANSC_STATUS WanMgr_IpcNewIhcMsg(ipc_ihc_data_t *pIhcMsg)
                 DML_VIRTUAL_IFACE* pVirtIf = WanMgr_GetVIfByName_VISM_running_locked(pIhcMsg->ifName);
                 if(pVirtIf != NULL)
                 {
-		    CcspTraceInfo(("%s %d: KAVYA Sending WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP_IPV6 .\n",__FUNCTION__, __LINE__));
 		    WanMgr_ProcessTelemetryMarker(pVirtIf,WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP_IPV6);
                     WanMgr_VirtualIfaceData_release(pVirtIf);
 		}
@@ -226,7 +225,6 @@ static ANSC_STATUS WanMgr_IpcNewIhcMsg(ipc_ihc_data_t *pIhcMsg)
                 DML_VIRTUAL_IFACE* pVirtIf = WanMgr_GetVIfByName_VISM_running_locked(pIhcMsg->ifName);
                 if(pVirtIf != NULL)
                 {
-		    CcspTraceInfo(("%s %d: KAVYA Sending WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP_IPV4 .\n",__FUNCTION__, __LINE__));
 		    WanMgr_ProcessTelemetryMarker(pVirtIf,WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP_IPV4);		
                     WanMgr_VirtualIfaceData_release(pVirtIf);
 		}
@@ -238,7 +236,6 @@ static ANSC_STATUS WanMgr_IpcNewIhcMsg(ipc_ihc_data_t *pIhcMsg)
                 DML_VIRTUAL_IFACE* pVirtIf = WanMgr_GetVIfByName_VISM_running_locked(pIhcMsg->ifName);
                 if(pVirtIf != NULL)
                 {
-		    CcspTraceInfo(("%s %d: KAVYA Sending WAN_WARN_CONNECTIVITY_CHECK_STATUS_FAILED_IPV4 .\n",__FUNCTION__, __LINE__));
 		    WanMgr_ProcessTelemetryMarker(pVirtIf,WAN_WARN_CONNECTIVITY_CHECK_STATUS_FAILED_IPV4);
                     WanMgr_VirtualIfaceData_release(pVirtIf);
   	    	}
@@ -251,7 +248,6 @@ static ANSC_STATUS WanMgr_IpcNewIhcMsg(ipc_ihc_data_t *pIhcMsg)
                 DML_VIRTUAL_IFACE* pVirtIf = WanMgr_GetVIfByName_VISM_running_locked(pIhcMsg->ifName);
                 if(pVirtIf != NULL)
                 {
-		    CcspTraceInfo(("%s %d: KAVYA Sending WAN_WARN_CONNECTIVITY_CHECK_STATUS_FAILED_IPV6 .\n",__FUNCTION__, __LINE__));
 		    WanMgr_ProcessTelemetryMarker(pVirtIf,WAN_WARN_CONNECTIVITY_CHECK_STATUS_FAILED_IPV6);
                     WanMgr_VirtualIfaceData_release(pVirtIf);
 		}	    
@@ -264,7 +260,6 @@ static ANSC_STATUS WanMgr_IpcNewIhcMsg(ipc_ihc_data_t *pIhcMsg)
                 DML_VIRTUAL_IFACE* pVirtIf = WanMgr_GetVIfByName_VISM_running_locked(pIhcMsg->ifName);
                 if(pVirtIf != NULL)
 	        {
-		    CcspTraceInfo(("%s %d: KAVYA Sending WAN_WARN_CONNECTIVITY_CHECK_STATUS_IDLE_IPV4 .\n",__FUNCTION__, __LINE__));
 		    WanMgr_ProcessTelemetryMarker(pVirtIf,WAN_WARN_CONNECTIVITY_CHECK_STATUS_IDLE_IPV4);
                     WanMgr_VirtualIfaceData_release(pVirtIf);
 	        }
@@ -276,7 +271,6 @@ static ANSC_STATUS WanMgr_IpcNewIhcMsg(ipc_ihc_data_t *pIhcMsg)
                 DML_VIRTUAL_IFACE* pVirtIf = WanMgr_GetVIfByName_VISM_running_locked(pIhcMsg->ifName);
                 if(pVirtIf != NULL)
                 {
-	            CcspTraceInfo(("%s %d: KAVYA Sending WAN_WARN_CONNECTIVITY_CHECK_STATUS_IDLE_IPV6 .\n",__FUNCTION__, __LINE__));
 		    WanMgr_ProcessTelemetryMarker(pVirtIf,WAN_WARN_CONNECTIVITY_CHECK_STATUS_IDLE_IPV6);
                     WanMgr_VirtualIfaceData_release(pVirtIf);
                 }
