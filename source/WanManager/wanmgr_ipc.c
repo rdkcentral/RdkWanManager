@@ -86,9 +86,9 @@ static ANSC_STATUS WanMgr_IpcNewIpv4Msg(ipc_dhcpv4_data_t* pNewIpv4Msg)
                 {
                     // copy data
                     memcpy(pVirtIf->IP.pIpcIpv4Data, pNewIpv4Msg, sizeof(ipc_dhcpv4_data_t));
-		    CcspTraceInfo(("%s %d KAVYA Before setting IsExpired = [%d] \n", __FUNCTION__, __LINE__,p_VirtIf->IP.pIpcIpv4Data->isExpired));
-		    p_VirtIf->IP.pIpcIpv4Data->isExpired = FALSE;
-		    CcspTraceInfo(("%s %d KAVYA After setting isExpired = [%d] \n", __FUNCTION__, __LINE__,p_VirtIf->IP.pIpcIpv4Data->isExpired));
+		    CcspTraceInfo(("%s %d KAVYA Before setting IsExpired = [%d] \n", __FUNCTION__, __LINE__,pVirtIf->IP.pIpcIpv4Data->isExpired));
+		    pVirtIf->IP.pIpcIpv4Data->isExpired = FALSE;
+		    CcspTraceInfo(("%s %d KAVYA After setting isExpired = [%d] \n", __FUNCTION__, __LINE__,pVirtIf->IP.pIpcIpv4Data->isExpired));
                     retStatus = ANSC_STATUS_SUCCESS;
                 }
             }
