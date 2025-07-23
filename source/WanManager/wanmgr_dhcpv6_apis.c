@@ -1602,7 +1602,7 @@ static int WanMgr_CopyPreviousPrefix(WANMGR_IPV6_DATA* pOld, WANMGR_IPV6_DATA* p
  * - WAN IPv6 Address: "2a06:5906:13:d001::1/128"
  */
 #define WAN_SUFFIX 1
-static int wanmgr_construct_wan_address_from_IAPD(WANMGR_IPV6_DATA *pIpv6DataNew)
+int wanmgr_construct_wan_address_from_IAPD(WANMGR_IPV6_DATA *pIpv6DataNew)
 {
     int prefix_length;
     char iapd_prefix[128] = {0};
@@ -1652,6 +1652,8 @@ static int wanmgr_construct_wan_address_from_IAPD(WANMGR_IPV6_DATA *pIpv6DataNew
         inet_ntop(AF_INET6, &prefix, pIpv6DataNew->address, sizeof(pIpv6DataNew->address));
     }
     
+    pIpv6DataNew->addrAssigned = true;
+    pIpv6DataNew->addrCmd = IFADDRCONF_ADD;
 
     CcspTraceInfo(("%s %d Calculated WAN network IP %s/128 \n", __FUNCTION__, __LINE__, pIpv6DataNew->address));        
     //Since this address calculated by us, it will be assigned by the DHCPv6c client. Assign the address on the Wan interface
@@ -1757,9 +1759,7 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
 
         CcspTraceInfo(("IANA is not assigned by DHCPV6. Constructing WAN address from the IAPD for Wan Interface \n"));
         wanmgr_construct_wan_address_from_IAPD(&Ipv6DataNew);
-        Ipv6DataNew.addrAssigned = true;
         pNewIpcMsg->addrAssigned = true;
-        Ipv6DataNew.addrCmd = pDhcp6cInfoCur->addrCmd;
     }
 
 
