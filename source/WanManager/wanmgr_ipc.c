@@ -84,7 +84,6 @@ static ANSC_STATUS WanMgr_IpcNewIpv4Msg(ipc_dhcpv4_data_t* pNewIpv4Msg)
                 pVirtIf->IP.pIpcIpv4Data = (ipc_dhcpv4_data_t*) malloc(sizeof(ipc_dhcpv4_data_t));
                 if(pVirtIf->IP.pIpcIpv4Data != NULL)
                 {
-		    memset(&(pVirtIf->IP.pIpcIpv4Data),0,sizeof(pVirtIf->IP.pIpcIpv4Data));
                     // copy data
                     memcpy(pVirtIf->IP.pIpcIpv4Data, pNewIpv4Msg, sizeof(ipc_dhcpv4_data_t));
                     retStatus = ANSC_STATUS_SUCCESS;
@@ -373,7 +372,6 @@ static void* IpcServerThread( void *arg )
 
     while (bRunning)
     {
-        memset (&ipc_msg, 0, sizeof(ipc_msg_payload_t));
         bytes = nn_recv(ipcListenFd, (ipc_msg_payload_t *)&ipc_msg, msg_size, 0);
         if ((bytes == msg_size))
         {
