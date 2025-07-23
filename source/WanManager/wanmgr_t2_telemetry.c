@@ -1,21 +1,21 @@
 #include "wanmgr_t2_telemetry.h"
 #include "wanmgr_rdkbus_utils.h"
 
-static char buf[128] = {0};
+static char MarkerArguments[128] = {0};
 
 /*append api appends key value in pairs, separated by DELIMITER*/
 static void wanmgr_telemetry_append_key_value(char* key, const char* value)
 {
     if(value != NULL)
     {
-        if(strlen(buf)>0)
+        if(strlen(MarkerArguments)>0)
         {
-            strcat(buf,WANMGR_T2_TELEMETRY_MARKER_ARG_DELIMITER);
+            strncat(MarkerArguments,WANMGR_T2_TELEMETRY_MARKER_ARG_DELIMITER,sizeof(MarkerArguments));
         }
 
-        strcat(buf,key);
-        strcat(buf,WANMGR_T2_TELEMETRY_MARKER_KEY_VALUE_DELIMITER);
-        strcat(buf,value);
+        strncat(MarkerArguments,key,sizeof(MarkerArguments));
+        strncat(MarkerArguments,WANMGR_T2_TELEMETRY_MARKER_KEY_VALUE_DELIMITER,sizeof(MarkerArguments));
+        strncat(MarkerArguments,value,sizeof(MarkerArguments));
     }
 }
 
@@ -25,7 +25,7 @@ ANSC_STATUS wanmgr_process_T2_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
 {
     DML_WAN_IFACE *pIntf = Marker->pInterface;
     DML_VIRTUAL_IFACE *pVirtIntf = Marker->pVirtInterface;
-    memset(buf,0,sizeof(buf));
+    memset(MarkerArguments,0,sizeof(MarkerArguments));
     char tempStr[128] = {0};
 
     if(pIntf == NULL && pVirtIntf == NULL)
@@ -63,6 +63,10 @@ ANSC_STATUS wanmgr_process_T2_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
             break;
 
         case WAN_INFO_WAN_STANDBY:
+	    if(pVirtIntf->Status == WAN_IFACE_STATUS_STANDBY)
+	    {
+		return ANSC_STATUS_SUCCESS;
+	    }
             break;
 
         case WAN_INFO_IPv4_CONFIG_TYPE:
@@ -193,11 +197,10 @@ ANSC_STATUS wanmgr_process_T2_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
         default:
 	    ;
     }	    
-    strcat(buf,"\0");
 
-    t2_event_s(WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID],buf);
+    t2_event_s(WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID],MarkerArguments);
     //This log is added for our internal testing, to be removed	
-CcspTraceInfo(("%s %d: Successfully sent Telemetry event [%s] with arguments = [%s].\n",__FUNCTION__, __LINE__,WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID],buf));
+CcspTraceInfo(("%s %d: Successfully sent Telemetry event [%s] with arguments = [%s].\n",__FUNCTION__, __LINE__,WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID],MarkerArguments));
 
     return ANSC_STATUS_SUCCESS;
 }

@@ -456,13 +456,13 @@ rbusError_t WanMgr_Interface_SetHandler(rbusHandle_t handle, rbusProperty_t prop
                 char String[20] = {0};
                 strncpy(String , rbusValue_GetString(value, NULL),sizeof(String)-1);
                 CcspTraceInfo(("%s-%d : %s BaseInterfaceStatus changed to %s\n", __FUNCTION__, __LINE__, pWanDmlIface->Name, String));
-                if (strncmp(String,"Down",strlen(String)) == 0) 
-		{		   
+		if (strncmp(String,"Down",strlen(String)) == 0)
+                {
 		    WanMgr_ProcessTelemetryMarker(p_VirtIf,WAN_ERROR_PHY_DOWN);
 		}
 		else if (strncmp(String,"Up",strlen(String)) == 0) 
 		{
-		    WanMgr_ProcessTelemetryMarker(p_VirtIf,WAN_INFO_PHY_UP);
+                    WanMgr_ProcessTelemetryMarker(p_VirtIf,WAN_INFO_PHY_UP);
 		}	    
                 WanMgr_StringToEnum(&pWanDmlIface->BaseInterfaceStatus, ENUM_PHY, String);
                 if (pWanDmlIface->Sub.BaseInterfaceStatusSub)

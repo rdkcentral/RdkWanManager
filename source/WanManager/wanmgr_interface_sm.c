@@ -2931,6 +2931,8 @@ static eWanState_t wan_transition_standby(WanMgr_IfaceSM_Controller_t* pWanIface
     DML_WAN_IFACE* pInterface = pWanIfaceCtrl->pIfaceData;
     DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIfaceById(pInterface->VirtIfList, pWanIfaceCtrl->VirIfIdx);
 
+    WanMgr_ProcessTelemetryMarker(p_VirtIf, WAN_INFO_WAN_STANDBY);
+
     p_VirtIf->Status = WAN_IFACE_STATUS_STANDBY;
 
     if (pWanIfaceCtrl->interfaceIdx != -1)
@@ -2942,7 +2944,6 @@ static eWanState_t wan_transition_standby(WanMgr_IfaceSM_Controller_t* pWanIface
 
     Update_Interface_Status();
     DmlSetVLANInUseToPSMDB(p_VirtIf);
-    WanMgr_ProcessTelemetryMarker(WanMgr_getVirtualIfaceById( pInterface->VirtIfList,0), WAN_INFO_WAN_STANDBY);
     CcspTraceInfo(("%s %d - TRANSITION WAN_STATE_STANDBY\n", __FUNCTION__, __LINE__));
     return WAN_STATE_STANDBY;
 }
@@ -3001,6 +3002,8 @@ static eWanState_t wan_transition_standby_deconfig_ips(WanMgr_IfaceSM_Controller
     }
 
     WanMgr_Configure_accept_ra(p_VirtIf, FALSE);
+
+    WanMgr_ProcessTelemetryMarker(p_VirtIf, WAN_INFO_WAN_STANDBY);
 
     p_VirtIf->Status = WAN_IFACE_STATUS_STANDBY;
     if (pWanIfaceCtrl->interfaceIdx != -1)
