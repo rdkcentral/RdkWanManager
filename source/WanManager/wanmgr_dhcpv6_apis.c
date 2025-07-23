@@ -1701,6 +1701,7 @@ ANSC_STATUS wanmgr_handle_dhcpv6_event_data(DML_VIRTUAL_IFACE * pVirtIf)
                    pNewIpcMsg->dnsAssigned, pNewIpcMsg->nameserver, pNewIpcMsg->nameserver1, pNewIpcMsg->aftrAssigned, pNewIpcMsg->aftr, pNewIpcMsg->isExpired));
 
     WANMGR_IPV6_DATA Ipv6DataNew; // Holds the new lease from the IPC message
+    memset(&Ipv6DataNew, 0, sizeof(Ipv6DataNew));
     wanmgr_dchpv6_get_ipc_msg_info(&(Ipv6DataNew), pNewIpcMsg);
 
     /*Check lease expiry*/
