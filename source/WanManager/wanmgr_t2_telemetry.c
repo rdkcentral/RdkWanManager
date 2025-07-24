@@ -34,7 +34,9 @@ CcspTraceInfo(("%s %d: KAVYA.\n",__FUNCTION__, __LINE__));
 	    CcspTraceInfo(("%s %d: KAVYA.\n",__FUNCTION__, __LINE__));
         return ANSC_STATUS_FAILURE;
     }
-CcspTraceInfo(("%s %d: KAVYA.\n",__FUNCTION__, __LINE__));
+CcspTraceInfo(("%s %d: KAVYA pIntf = [%lu],pVirtIntf = [%lu].\n",__FUNCTION__, __LINE__,pIntf,pVirtIntf));
+CcspTraceInfo(("%s %d: KAVYA Displayname = [%s],Name = [%s].\n",__FUNCTION__, __LINE__,pIntf->DisplayName,pIntf->Name));
+
     wanmgr_telemetry_append_key_value(WANMGR_T2_PHY_INTERFACE_STRING,pIntf->DisplayName);
     wanmgr_telemetry_append_key_value(WANMGR_T2_WAN_INTERFACE_STRING,pIntf->Name);
 CcspTraceInfo(("%s %d: KAVYA.\n",__FUNCTION__, __LINE__));

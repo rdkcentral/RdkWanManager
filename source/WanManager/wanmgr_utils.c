@@ -1107,14 +1107,16 @@ CcspTraceInfo(("%s %d: KAVYA.\n",__FUNCTION__, __LINE__));
     }
 CcspTraceInfo(("%s %d: KAVYA.\n",__FUNCTION__, __LINE__));
     pIntf = &(pWanDmlIfaceData->data);
-    WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
-CcspTraceInfo(("%s %d: KAVYA.\n",__FUNCTION__, __LINE__));
+CcspTraceInfo(("%s %d: KAVYA. pIntf = [%lu]\n",__FUNCTION__, __LINE__,pIntf));
     WanMgr_Telemetry_Marker_t Marker = {0};
     Marker.pVirtInterface = pVirtIf;
     Marker.pInterface = pIntf;
     Marker.enTelemetryMarkerID = telemetry_marker;
+CcspTraceInfo(("%s %d: KAVYA pVirtInterface = [%lu].\n",__FUNCTION__, __LINE__,Marker.pVirtInterface));
+CcspTraceInfo(("%s %d: KAVYA pInterface  = [%lu].\n",__FUNCTION__, __LINE__,Marker.pInterface));
     wanmgr_telemetry_event(&Marker);
 CcspTraceInfo(("%s %d: KAVYA.\n",__FUNCTION__, __LINE__));
+    WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
     return ANSC_STATUS_SUCCESS;
 }	
 
