@@ -1891,12 +1891,12 @@ static eWanState_t wan_transition_cold_standby_activation(WanMgr_IfaceSM_Control
     // Configure Interface
     if ( ANSC_STATUS_FAILURE == WanManager_RdkBus_EnableInterface(pInterface, TRUE) )
     {
-       return WAN_STATE_COLD_STANDBY_CONFIGURING
+       return WAN_STATE_COLD_STANDBY_CONFIGURING;
     }
     
     CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION COLD STANDBY ACTIVATION\n", __FUNCTION__, __LINE__, pInterface->Name));
 
-    return WAN_STATE_PHY_DOWN
+    return WAN_STATE_PHY_DOWN;
 }
 
 static eWanState_t wan_transition_vlan_configure(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
