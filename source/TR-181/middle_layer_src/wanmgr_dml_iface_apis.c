@@ -1060,7 +1060,6 @@ BOOL WanIfCfg_SetParamBoolValue(ANSC_HANDLE hInsContext, char* ParamName, BOOL b
                     WanMgr_SetConnectivityCheckTypeToPSM(pWanDmlIface->VirtIfList, type);
                     pWanDmlIface->VirtIfList->IP.WCC_TypeChanged = TRUE;
                     pWanDmlIface->VirtIfList->IP.ConnectivityCheckType = type;
-                    WanMgr_ProcessTelemetryMarker(WanMgr_getVirtualIfaceById(pWanDmlIface->VirtIfList,0),WAN_INFO_CONNECTIVITY_CHECK_TYPE);
                     ret = TRUE;
                 }
             }

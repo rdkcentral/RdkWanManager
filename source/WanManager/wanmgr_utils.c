@@ -1090,3 +1090,29 @@ int sysctl_iface_set(const char *path, const char *ifname, const char *content)
 
     return 0;
 }
+
+ANSC_STATUS WanMgr_ProcessTelemetryMarker( DML_VIRTUAL_IFACE *pVirtIf , WanMgr_TelemetryEvent_t telemetry_marker)
+{
+    if(pVirtIf == NULL)
+    {
+        return ANSC_STATUS_FAILURE;
+    }
+
+    DML_WAN_IFACE *pIntf = NULL;
+    WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pVirtIf->baseIfIdx);
+    if(pWanDmlIfaceData == NULL)
+    {
+        return ANSC_STATUS_FAILURE;
+    }
+
+    pIntf = &(pWanDmlIfaceData->data);
+    WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+
+    WanMgr_Telemetry_Marker_t Marker = {0};
+    Marker.pVirtInterface = pVirtIf;
+    Marker.pInterface = pIntf;
+    Marker.enTelemetryMarkerID = telemetry_marker;
+    wanmgr_telemetry_event(&Marker);
+
+    return ANSC_STATUS_SUCCESS;
+}	

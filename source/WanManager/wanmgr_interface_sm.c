@@ -617,7 +617,7 @@ static ANSC_STATUS WanManager_ConfigureMarking(WanMgr_IfaceSM_Controller_t* pWan
     }
     return ANSC_STATUS_SUCCESS;
 }
-
+/*
 ANSC_STATUS WanMgr_ProcessTelemetryMarker( DML_VIRTUAL_IFACE *pVirtIf , WanMgr_TelemetryEvent_t telemetry_marker)
 {
     if(pVirtIf == NULL)
@@ -643,7 +643,7 @@ ANSC_STATUS WanMgr_ProcessTelemetryMarker( DML_VIRTUAL_IFACE *pVirtIf , WanMgr_T
 
     return ANSC_STATUS_SUCCESS;
 }
-
+*/
 /*********************************************************************************/
 /**************************** ACTIONS ********************************************/
 /*********************************************************************************/

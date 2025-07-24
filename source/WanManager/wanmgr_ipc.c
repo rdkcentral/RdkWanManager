@@ -26,6 +26,7 @@
 #include "wanmgr_sysevents.h"
 #include "wanmgr_dhcpv4_apis.h"
 #include "wanmgr_telemetry.h"
+#include "wanmgr_utils.h"
 
 #define WANMGR_MAX_IPC_PROCCESS_TRY             5
 #define WANMGR_IPC_PROCCESS_TRY_WAIT_TIME       100000 //us

@@ -29,7 +29,7 @@
 #include "wanmgr_wan_failover.h"
 #include "wanmgr_net_utils.h"
 #include "wanmgr_telemetry.h"
-
+#include "wanmgr_utils.h"
 /* ---- Global Constants -------------------------- */
 #define SELECTION_PROCESS_LOOP_TIMEOUT 250000 // timeout in microseconds. This is the state machine loop interval
 
