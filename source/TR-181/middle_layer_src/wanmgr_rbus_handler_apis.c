@@ -48,6 +48,12 @@ rbusError_t WanMgr_Interface_SetHandler(rbusHandle_t handle, rbusProperty_t prop
 static void CPEInterface_AsyncMethodHandler( rbusHandle_t handle, char const* methodName, rbusError_t error, rbusObject_t params);
 static int WanMgr_Remote_IfaceData_index(const char *macAddress);
 
+rbusError_t WanMgr_Interface_StartWan(rbusHandle_t handle, char const* methodName, rbusObject_t inParams, rbusObject_t outParams, rbusMethodAsyncHandle_t asyncHandle);
+rbusError_t WanMgr_Interface_StopWan(rbusHandle_t handle, char const* methodName, rbusObject_t inParams, rbusObject_t outParams, rbusMethodAsyncHandle_t asyncHandle);
+rbusError_t WanMgr_Interface_ActivateWan(rbusHandle_t handle, char const* methodName, rbusObject_t inParams, rbusObject_t outParams, rbusMethodAsyncHandle_t asyncHandle);
+rbusError_t WanMgr_Interface_DeactivateWan(rbusHandle_t handle, char const* methodName, rbusObject_t inParams, rbusObject_t outParams, rbusMethodAsyncHandle_t asyncHandle);
+
+
 typedef struct
 {
     char* name;
@@ -97,6 +103,10 @@ rbusDataElement_t wanMgrIfacePublishElements[] = {
 #endif /** WAN_MANAGER_UNIFICATION_ENABLED */
     {WANMGR_INFACE_WAN_STATUS, RBUS_ELEMENT_TYPE_PROPERTY, {WanMgr_Interface_GetHandler, WanMgr_Interface_SetHandler, NULL, NULL, wanMgrDmlPublishEventHandler, NULL}},
     {WANMGR_INFACE_WAN_LINKSTATUS, RBUS_ELEMENT_TYPE_PROPERTY, {WanMgr_Interface_GetHandler, WanMgr_Interface_SetHandler, NULL, NULL, wanMgrDmlPublishEventHandler, NULL}},
+    { "Device.X_RDK_WanManager.Interface.{i}.WanStart()", RBUS_ELEMENT_TYPE_METHOD, {NULL, NULL, NULL, NULL, NULL, WanMgr_Interface_StartWan} },
+    { "Device.X_RDK_WanManager.Interface.{i}.WanStop()", RBUS_ELEMENT_TYPE_METHOD, {NULL, NULL, NULL, NULL, NULL, WanMgr_Interface_StopWan} },
+    { "Device.X_RDK_WanManager.Interface.{i}.Activate()", RBUS_ELEMENT_TYPE_METHOD, {NULL, NULL, NULL, NULL, NULL, WanMgr_Interface_ActivateWan} },
+    { "Device.X_RDK_WanManager.Interface.{i}.Deactivate()", RBUS_ELEMENT_TYPE_METHOD, {NULL, NULL, NULL, NULL, NULL, WanMgr_Interface_DeactivateWan} },
 };
 
 RemoteDM_list RemoteDMs[] = {
@@ -2047,4 +2057,243 @@ void *WanMgr_Configure_WCC_Thread(void *arg)
     free(pTADEvent);
     pthread_exit(NULL);
     return NULL;
+}
+
+/**
+ * @brief Starts the WAN interface state machine for the specified interface.
+ *
+ * This handler checks if the requested WAN interface is disabled. If it is not disabled,
+ * it initiates the state machine for the interface. The API expects the alias name to be
+ * provided in the methodName parameter.
+ *
+ * @param handle        The rbus handle.
+ * @param methodName    The name of the method, expected to contain the interface alias.
+ * @param inParams      Input parameters as an rbus object.
+ * @param outParams     Output parameters as an rbus object.
+ * @param asyncHandle   Handle for asynchronous method invocation.
+ * @return              rbusError_t indicating success or failure of the operation.
+ */
+
+rbusError_t WanMgr_Interface_StartWan(rbusHandle_t handle, char const* name, rbusObject_t inParams, rbusObject_t outParams, rbusMethodAsyncHandle_t asyncHandle)
+{
+    (void)handle;
+    (void)inParams;
+    (void)outParams;
+    (void)asyncHandle;
+    rbusError_t ret = RBUS_ERROR_SUCCESS;
+    UINT index = 0; //Set default  interface index
+    char AliasName[64] = {0};
+
+    sscanf(name, WANMGR_INFACE_TABLE".%d.", &index);
+    if(index  == 0)
+    {
+        sscanf(name, WANMGR_INFACE_TABLE".%63s.", &AliasName);
+        index = WanMgr_GetIfaceIndexByAliasName(AliasName);
+    }
+    if(index <= 0)
+    {
+        CcspTraceError(("%s %d - Invalid index\n", __FUNCTION__, __LINE__));
+        return RBUS_ERROR_INVALID_INPUT;
+    }
+    if(index <= 0)
+    {
+        CcspTraceError(("%s %d - Invalid index\n", __FUNCTION__, __LINE__));
+        return RBUS_ERROR_INVALID_INPUT;
+    }
+
+    WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked((index - 1));
+    if(pWanDmlIfaceData != NULL)
+    {
+        DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
+        if(pWanDmlIface->Selection.Enable == FALSE)
+        {
+            CcspTraceInfo(("%s %d: Interface %d is disabled. not Starting WAN interface SM\n", __FUNCTION__, __LINE__, index));
+            ret = RBUS_ERROR_BUS_ERROR;
+        }
+        else
+        {
+            CcspTraceInfo(("%s %d: Starting WAN interface SM for Interface %d\n", __FUNCTION__, __LINE__, index));
+         //  WanMgr_StartWanInterfaceStateMachine(pWanDmlIfaceData);
+        }
+
+        WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+    }
+    return ret;
+}
+
+
+/**
+ * @brief Handles the RBUS method call to stop a WAN interface.
+ *
+ * This function is invoked when an RBUS method call is received to stop a specific WAN interface.
+ * It processes the input parameters, performs the necessary operations to stop the WAN interface,
+ * and populates the output parameters with the result.
+ *
+ * @param[in] handle         The RBUS handle associated with the current session.
+ * @param[in] methodName     The name of the RBUS method being invoked.
+ * @param[in] inParams       The input parameters for the method call.
+ * @param[out] outParams     The output parameters to be populated with the result.
+ * @param[in] asyncHandle    The handle for asynchronous method invocation, if applicable.
+ *
+ * @return rbusError_t       Returns RBUS error code indicating success or failure of the operation.
+ */
+rbusError_t WanMgr_Interface_StopWan(rbusHandle_t handle, char const* name, rbusObject_t inParams, rbusObject_t outParams, rbusMethodAsyncHandle_t asyncHandle)
+{
+     (void)handle;
+    (void)inParams;
+    (void)outParams;
+    (void)asyncHandle;
+    rbusError_t ret = RBUS_ERROR_SUCCESS;
+    UINT index = 0; //Set default  interface index
+    char AliasName[64] = {0};
+
+    sscanf(name, WANMGR_INFACE_TABLE".%d.", &index);
+    if(index  == 0)
+    {
+        sscanf(name, WANMGR_INFACE_TABLE".%63s.", &AliasName);
+        index = WanMgr_GetIfaceIndexByAliasName(AliasName);
+    }
+    if(index <= 0)
+    {
+        CcspTraceError(("%s %d - Invalid index\n", __FUNCTION__, __LINE__));
+        return RBUS_ERROR_INVALID_INPUT;
+    }
+    if(index <= 0)
+    {
+        CcspTraceError(("%s %d - Invalid index\n", __FUNCTION__, __LINE__));
+        return RBUS_ERROR_INVALID_INPUT;
+    }
+
+    WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked((index - 1));
+    if(pWanDmlIfaceData != NULL)
+    {
+        DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
+        {
+            CcspTraceInfo(("%s %d: Stoping WAN interface SM for Interface %d\n", __FUNCTION__, __LINE__, index));
+         //  WanMgr_STopWanInterfaceStateMachine(pWanDmlIfaceData);
+        }
+
+        WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+    }
+
+    //TODO : wait for the state machine thread if to complete
+
+    return ret;
+}
+
+
+/**
+ * @brief Handles the RBUS method call to activate a WAN interface.
+ *
+ * This function is invoked when an RBUS method call is received to activate a specific WAN interface.
+ * It processes the input parameters, performs the necessary operations to activate the WAN interface,
+ * and returns the appropriate RBUS error code.
+ *
+ * @param[in] handle         The RBUS handle associated with the current session.
+ * @param[in] methodName     The name of the RBUS method being invoked.
+ * @param[in] inParams       The input parameters for the method call.
+ * @param[out] outParams     The output parameters to be populated with the result.
+ * @param[in] asyncHandle    The handle for asynchronous method invocation, if applicable.
+ *
+ * @return rbusError_t       Returns RBUS error code indicating success or failure of the operation.
+ */
+rbusError_t WanMgr_Interface_ActivateWan(rbusHandle_t handle, char const* methodName, rbusObject_t inParams, rbusObject_t outParams, rbusMethodAsyncHandle_t asyncHandle)
+{
+    (void)handle;
+    (void)inParams;
+    (void)outParams;
+    (void)asyncHandle;
+    rbusError_t ret = RBUS_ERROR_SUCCESS;
+    UINT index = 0;
+    char AliasName[64] = {0};
+    const char* name = methodName;
+
+    sscanf(name, WANMGR_INFACE_TABLE".%d.", &index);
+    if(index == 0)
+    {
+        sscanf(name, WANMGR_INFACE_TABLE".%63s.", AliasName);
+        index = WanMgr_GetIfaceIndexByAliasName(AliasName);
+    }
+    if(index <= 0)
+    {
+        CcspTraceError(("%s %d - Invalid index\n", __FUNCTION__, __LINE__));
+        return RBUS_ERROR_INVALID_INPUT;
+    }
+
+    WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked((index - 1));
+    if(pWanDmlIfaceData != NULL)
+    {
+        DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
+        if(pWanDmlIface->Selection.Enable == FALSE)
+        {
+            //TODO : check if it is ready to activate
+            CcspTraceInfo(("%s %d: Interface %d is disabled. not Activating WAN interface\n", __FUNCTION__, __LINE__, index));
+            ret = RBUS_ERROR_BUS_ERROR;
+        }
+        else
+        {
+            CcspTraceInfo(("%s %d: Activating WAN interface for Interface %d\n", __FUNCTION__, __LINE__, index));
+            // WanMgr_ActivateWanInterface(pWanDmlIfaceData);
+        }
+        WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+    }
+    return ret;
+}
+
+/**
+ * @brief Handles the RBUS method call to deactivate a WAN interface.
+ *
+ * This function is invoked when an RBUS method call is received to deactivate a specific WAN interface.
+ * It processes the input parameters, performs the necessary operations to deactivate the WAN interface,
+ * and returns the appropriate RBUS error code.
+ *
+ * @param[in] handle         The RBUS handle associated with the current session.
+ * @param[in] methodName     The name of the RBUS method being invoked.
+ * @param[in] inParams       The input parameters for the method call.
+ * @param[out] outParams     The output parameters to be populated with the result.
+ * @param[in] asyncHandle    The handle for asynchronous method invocation, if applicable.
+ *
+ * @return rbusError_t       Returns RBUS error code indicating success or failure of the operation.
+ */
+rbusError_t WanMgr_Interface_DeactivateWan(rbusHandle_t handle, char const* methodName, rbusObject_t inParams, rbusObject_t outParams, rbusMethodAsyncHandle_t asyncHandle)
+{
+    (void)handle;
+    (void)inParams;
+    (void)outParams;
+    (void)asyncHandle;
+    rbusError_t ret = RBUS_ERROR_SUCCESS;
+    UINT index = 0;
+    char AliasName[64] = {0};
+    const char* name = methodName;
+
+    sscanf(name, WANMGR_INFACE_TABLE".%d.", &index);
+    if(index == 0)
+    {
+        sscanf(name, WANMGR_INFACE_TABLE".%63s.", AliasName);
+        index = WanMgr_GetIfaceIndexByAliasName(AliasName);
+    }
+    if(index <= 0)
+    {
+        CcspTraceError(("%s %d - Invalid index\n", __FUNCTION__, __LINE__));
+        return RBUS_ERROR_INVALID_INPUT;
+    }
+
+    WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked((index - 1));
+    if(pWanDmlIfaceData != NULL)
+    {
+        DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
+        if(pWanDmlIface->Selection.Enable == FALSE)
+        {
+            //TODO : check if it is ready to deactivate
+            CcspTraceInfo(("%s %d: Interface %d is disabled. not Deactivating WAN interface\n", __FUNCTION__, __LINE__, index));
+            ret = RBUS_ERROR_BUS_ERROR;
+        }
+        else
+        {
+            CcspTraceInfo(("%s %d: Deactivating WAN interface for Interface %d\n", __FUNCTION__, __LINE__, index));
+            // WanMgr_DeactivateWanInterface(pWanDmlIfaceData);
+        }
+        WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+    }
+    return ret;
 }
