@@ -40,9 +40,9 @@
 #include "wanmgr_dhcpv4_apis.h"
 #include "wanmgr_dhcpv6_apis.h"
 #include "wanmgr_data.h"
-#if defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_)
+//#if defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_)
 #include "wanmgr_utils.h"
-#endif
+//#endif
 #include "wanmgr_telemetry.h"
 
 extern WANMGR_DATA_ST gWanMgrDataBase;
