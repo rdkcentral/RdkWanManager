@@ -159,7 +159,6 @@ extern token_t sysevent_token;
 ANSC_STATUS WanMgr_RdkBus_SetParamValues( char *pComponent, char *pBus, char *pParamName, char *pParamVal, enum dataType_e type, BOOLEAN bCommit );
 ANSC_STATUS WanMgr_RdkBus_GetParamValues( char *pComponent, char *pBus, char *pParamName, char *pReturnVal );
 ANSC_STATUS WanMgr_RdkBus_GetParamValueFromAnyComp( char * pQuery, char *pValue);
-ANSC_STATUS WanMgr_RdkBus_SetParamValueToAnyComp( char *pParam, char *pValue, enum dataType_e type, BOOLEAN bCommit);
 
 int WanMgr_RdkBus_GetParamValuesFromDB( char *pParamName, char *pReturnVal, int ReturnValLength );
 int WanMgr_RdkBus_SetParamValuesToDB( char *pParamName, char *pParamVal );
