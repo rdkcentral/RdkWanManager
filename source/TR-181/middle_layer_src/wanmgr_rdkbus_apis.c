@@ -328,6 +328,7 @@ int get_Virtual_Interface_FromPSM(ULONG instancenum, ULONG virtInsNum ,DML_VIRTU
     if (retPsmGet == CCSP_SUCCESS)
     {
         _ansc_sscanf(param_value, "%d", &(pVirtIf->IP.Mode));
+	CcspTraceInfo(("%s %d: KAVYA.\n",__FUNCTION__, __LINE__));
 	WanMgr_ProcessTelemetryMarker(pVirtIf,WAN_INFO_IP_MODE);
     }
 
@@ -338,6 +339,7 @@ int get_Virtual_Interface_FromPSM(ULONG instancenum, ULONG virtInsNum ,DML_VIRTU
     if(retPsmGet == CCSP_SUCCESS)
     {
         _ansc_sscanf(param_value, "%d", &(pVirtIf->IP.IPv4Source));
+	CcspTraceInfo(("%s %d: KAVYA.\n",__FUNCTION__, __LINE__));
 	WanMgr_ProcessTelemetryMarker(pVirtIf,WAN_INFO_IPv4_CONFIG_TYPE);
     }
 
@@ -354,6 +356,7 @@ int get_Virtual_Interface_FromPSM(ULONG instancenum, ULONG virtInsNum ,DML_VIRTU
     if(retPsmGet == CCSP_SUCCESS)
     {
         _ansc_sscanf(param_value, "%d", &(pVirtIf->IP.IPv6Source));
+	CcspTraceInfo(("%s %d: KAVYA.\n",__FUNCTION__, __LINE__));
 	WanMgr_ProcessTelemetryMarker(pVirtIf,WAN_INFO_IPv6_CONFIG_TYPE);
     }
 
@@ -389,6 +392,7 @@ int get_Virtual_Interface_FromPSM(ULONG instancenum, ULONG virtInsNum ,DML_VIRTU
     if(retPsmGet == CCSP_SUCCESS)
     {
         _ansc_sscanf(param_value, "%d", &(pVirtIf->IP.ConnectivityCheckType));
+	CcspTraceInfo(("%s %d: KAVYA.\n",__FUNCTION__, __LINE__));
 	WanMgr_ProcessTelemetryMarker(pVirtIf,WAN_INFO_CONNECTIVITY_CHECK_TYPE);
     }
 }
