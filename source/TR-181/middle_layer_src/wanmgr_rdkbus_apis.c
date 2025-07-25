@@ -328,7 +328,7 @@ int get_Virtual_Interface_FromPSM(ULONG instancenum, ULONG virtInsNum ,DML_VIRTU
     if (retPsmGet == CCSP_SUCCESS)
     {
         _ansc_sscanf(param_value, "%d", &(pVirtIf->IP.Mode));
-	CcspTraceInfo(("%s %d: KAVYA.\n",__FUNCTION__, __LINE__));
+	CcspTraceInfo(("%s %d: KAVYA.pVirtIf->Name = [%s], pVirtIf = [%lu]\n",__FUNCTION__, __LINE__,pVirtIf->Name,pVirtIf));
 	WanMgr_ProcessTelemetryMarker(pVirtIf,WAN_INFO_IP_MODE);
     }
 

@@ -29,7 +29,12 @@ ANSC_STATUS wanmgr_process_T2_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
     memset(MarkerArguments,0,sizeof(MarkerArguments));
     char tempStr[128] = {0};
 CcspTraceInfo(("%s %d: KAVYA.\n",__FUNCTION__, __LINE__));
-    if(pIntf == NULL && pVirtIntf == NULL)
+    if(pIntf == NULL)
+    {
+	    CcspTraceInfo(("%s %d: KAVYA.\n",__FUNCTION__, __LINE__));
+        return ANSC_STATUS_FAILURE;
+    }
+    if(pVirtIntf == NULL)
     {
 	    CcspTraceInfo(("%s %d: KAVYA.\n",__FUNCTION__, __LINE__));
         return ANSC_STATUS_FAILURE;
