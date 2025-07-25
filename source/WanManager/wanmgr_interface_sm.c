@@ -617,7 +617,7 @@ static ANSC_STATUS WanManager_ConfigureMarking(WanMgr_IfaceSM_Controller_t* pWan
     }
     return ANSC_STATUS_SUCCESS;
 }
-
+/*
 ANSC_STATUS WanMgr_ProcessTelemetryMarker( DML_VIRTUAL_IFACE *pVirtIf , WanMgr_TelemetryEvent_t telemetry_marker)
 {
 	CcspTraceInfo(("%s %d: KAVYA.\n",__FUNCTION__, __LINE__));
@@ -648,6 +648,7 @@ CcspTraceInfo(("%s %d: KAVYA.\n",__FUNCTION__, __LINE__));
 CcspTraceInfo(("%s %d: KAVYA.\n",__FUNCTION__, __LINE__));
     return ANSC_STATUS_SUCCESS;
 }
+*/
 
 /*********************************************************************************/
 /**************************** ACTIONS ********************************************/
