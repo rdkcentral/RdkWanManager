@@ -43,6 +43,5 @@ typedef struct _WANMGR_TELEMETRY_MARKER_
     DML_VIRTUAL_IFACE *pVirtInterface;
 } WanMgr_Telemetry_Marker_t;
 
-//ANSC_STATUS wanmgr_telemetry_event(WanMgr_Telemetry_Marker_t *Marker);
 ANSC_STATUS WanMgr_ProcessTelemetryMarker(DML_VIRTUAL_IFACE* pVirtIf, WanMgr_TelemetryEvent_t telemetry_marker);
 #endif //_WAN_TELEMETRY_MARKER_H_

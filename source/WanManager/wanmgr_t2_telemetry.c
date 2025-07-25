@@ -23,28 +23,19 @@ static void wanmgr_telemetry_append_key_value(char* key, const char* value)
  * gets the data required to send to T2 marker*/
 ANSC_STATUS wanmgr_process_T2_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
 {
-	CcspTraceInfo(("%s %d: KAVYA.\n",__FUNCTION__, __LINE__));
     DML_WAN_IFACE *pIntf = Marker->pInterface;
     DML_VIRTUAL_IFACE *pVirtIntf = Marker->pVirtInterface;
     memset(MarkerArguments,0,sizeof(MarkerArguments));
     char tempStr[128] = {0};
-CcspTraceInfo(("%s %d: KAVYA.\n",__FUNCTION__, __LINE__));
-    if(pIntf == NULL)
+
+    if(pIntf == NULL || pVirtIntf == NULL)
     {
-	    CcspTraceInfo(("%s %d: KAVYA.\n",__FUNCTION__, __LINE__));
         return ANSC_STATUS_FAILURE;
     }
-    if(pVirtIntf == NULL)
-    {
-	    CcspTraceInfo(("%s %d: KAVYA.\n",__FUNCTION__, __LINE__));
-        return ANSC_STATUS_FAILURE;
-    }
-CcspTraceInfo(("%s %d: KAVYA pIntf = [%lu],pVirtIntf = [%lu].\n",__FUNCTION__, __LINE__,pIntf,pVirtIntf));
-CcspTraceInfo(("%s %d: KAVYA Displayname = [%s],Name = [%s].\n",__FUNCTION__, __LINE__,pIntf->DisplayName,pIntf->Name));
 
     wanmgr_telemetry_append_key_value(WANMGR_T2_PHY_INTERFACE_STRING,pIntf->DisplayName);
     wanmgr_telemetry_append_key_value(WANMGR_T2_WAN_INTERFACE_STRING,pIntf->Name);
-CcspTraceInfo(("%s %d: KAVYA.\n",__FUNCTION__, __LINE__));
+
     switch(Marker->enTelemetryMarkerID)
     {        
 	case WAN_ERROR_PHY_DOWN:
@@ -129,7 +120,6 @@ CcspTraceInfo(("%s %d: KAVYA.\n",__FUNCTION__, __LINE__));
             break;
 
         case WAN_INFO_IP_MODE:
-	    CcspTraceInfo(("%s %d: KAVYA.\n",__FUNCTION__, __LINE__));
 	    wanmgr_telemetry_append_key_value(WANMGR_T2_WANMGR_SPLIT_VAL_STRING,WanMgr_Telemetry_IpModeStr[pVirtIntf->IP.Mode]);
             break;
 
@@ -207,10 +197,8 @@ CcspTraceInfo(("%s %d: KAVYA.\n",__FUNCTION__, __LINE__));
         default:
 	    ;
     }	    
-CcspTraceInfo(("%s %d: KAVYA.\n",__FUNCTION__, __LINE__));
     t2_event_s(WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID],MarkerArguments);
     //This log is added for our internal testing, to be removed	
 CcspTraceInfo(("%s %d: Successfully sent Telemetry event [%s] with arguments = [%s].\n",__FUNCTION__, __LINE__,WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID],MarkerArguments));
-CcspTraceInfo(("%s %d: KAVYA.\n",__FUNCTION__, __LINE__));
     return ANSC_STATUS_SUCCESS;
 }
