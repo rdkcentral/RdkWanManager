@@ -2089,16 +2089,6 @@ static void WanMgr_InterfaceStatus_EventHandler(rbusHandle_t handle, rbusEvent_t
 
                 CcspTraceInfo(("%s %d: Prefix Value %s, phy status %d\n", __FUNCTION__, __LINE__, acStatus, pWanIfaceData->BaseInterfaceStatus));
 
-                DML_VIRTUAL_IFACE* pVirtIf = WanMgr_GetVirtualIfaceByName_locked(pWanIfaceData->Name);
-                if(pVirtIf != NULL)
-                {
-                    pVirtIf->VLAN.Status = ( 0 == strncmp(acStatus, "Up", strlen("Up")) ) ?  WAN_IFACE_LINKSTATUS_UP : WAN_IFACE_LINKSTATUS_DOWN;
-
-                    CcspTraceInfo(("%s %d: Prefix Value %s, link status %d\n", __FUNCTION__, __LINE__, acStatus, pVirtIf->VLAN.Status));
-
-                    WanMgr_VirtualIfaceData_release(pVirtIf);
-                }
-
                 bIsIfaceFound = TRUE;
             }   
 

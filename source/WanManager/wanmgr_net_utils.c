@@ -630,7 +630,7 @@ int WanManager_StartDhcpv4Client(DML_VIRTUAL_IFACE* pVirtIf, char* baseInterface
     memset (&params, 0, sizeof(dhcp_params));
     params.ifname = pVirtIf->Name;
     params.baseIface = baseInterface;
-    params.ifType = ( 0 == strncmp(pVirtIf->Alias, HOTSPOT_ALIAS_NAME, strlen(HOTSPOT_ALIAS_NAME) ) ) ? REMOTE_IFACE : IfaceType;
+    params.ifType = IfaceType;
 
     CcspTraceInfo(("Starting DHCPv4 Client for iface: %s \n", params.ifname));
     pid = start_dhcpv4_client(&params);
