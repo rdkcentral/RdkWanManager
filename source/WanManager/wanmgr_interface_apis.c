@@ -36,7 +36,51 @@
  */
 int WanMgr_StartWan(int interfaceIndex, WANMGR_IFACE_SELECTION selectionStatus)
 {
+    int ret = 0;
 
+    CcspTraceInfo(("%s %d: Entering WanMgr_StartWan for interfaceIndex=%d, selectionStatus=%d\n", __FUNCTION__, __LINE__, interfaceIndex, selectionStatus));
+    WanMgr_Iface_Data_t*   pWanDmlIfaceData = WanMgr_GetIfaceData_locked(IfaceId);
+    if(pWanDmlIfaceData != NULL)
+    {
+        DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
+        pWanIfaceData->Selection.Status = selectionStatus;
+        pWanIfaceData->VirtIfChanged = FALSE;
+
+        for(int VirtId=0; VirtId < pWanIfaceData->NoOfVirtIfs; VirtId++)
+        {
+            DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIface_locked(IfaceId, VirtId);
+            if(p_VirtIf != NULL)
+            {
+                if (p_VirtIf->Enable == FALSE)
+                {
+                    CcspTraceError(("%s %d: virtual if(%d) : %s is not enabled. Not starting VISM\n", __FUNCTION__, __LINE__,p_VirtIf->VirIfIdx, p_VirtIf->Alias));
+                    WanMgr_VirtualIfaceData_release(p_VirtIf);
+                    continue;
+                }
+                WanMgr_VirtualIfaceData_release(p_VirtIf);
+            }
+
+            if(p_VirtIf->Interface_SM_Running == TRUE)
+            {
+                CcspTraceInfo(("%s %d: Interface SM is already running for virtual interface %d \n", __FUNCTION__, __LINE__, VirtId));
+                WanMgr_VirtualIfaceData_release(p_VirtIf);
+                continue;
+            }
+
+            /*Start virtual Interface SM */
+            WanMgr_IfaceSM_Controller_t wanIfCtrl;
+            WanMgr_IfaceSM_Init(&wanIfCtrl, IfaceId, VirtId);
+
+            if (WanMgr_StartInterfaceStateMachine(&wanIfCtrl) != 0)
+            {
+                CcspTraceError(("%s %d: Unable to start interface state machine \n", __FUNCTION__, __LINE__));
+                ret = -1;
+            }
+        }
+        WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+    }
+
+    return ret;
 }
 
 
