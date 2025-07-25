@@ -24,8 +24,6 @@
 #include "wanmgr_rdkbus_apis.h"
 #include "dmsb_tr181_psm_definitions.h"
 #include "wanmgr_telemetry.h"
-#include "wanmgr_interface_sm.h"
-#include "wanmgr_utils.h"
 enum {
 ENUM_PHY = 1,
 ENUM_WAN_STATUS,
@@ -1545,6 +1543,7 @@ void *WanMgr_WanRemoteIfaceConfigure_thread(void *arg)
                             __FUNCTION__, __LINE__, cpeInterfaceIndex));
             pWanDmlIface->Selection.Enable = FALSE;
             pWanDmlIface->BaseInterfaceStatus = WAN_IFACE_PHY_STATUS_DOWN;
+
             free(pDeviceChangeEvent);
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
             pthread_mutex_unlock(&RemoteIfaceConfigure_mutex);

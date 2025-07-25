@@ -28,7 +28,6 @@
 #include <time.h>
 #include "wanmgr_rdkbus_common.h"
 #include "wanmgr_data.h"
-#include "wanmgr_telemetry.h"
 
 #define WAN_STATUS_UP   "up"
 #define WAN_STATUS_DOWN "down"
@@ -78,6 +77,7 @@ typedef struct WanMgr_IfaceSM_Ctrl_st
 
 
 void WanManager_UpdateInterfaceStatus(DML_VIRTUAL_IFACE* pVirtIf, wanmgr_iface_status_t iface_status);
+
 void WanMgr_IfaceSM_Init(WanMgr_IfaceSM_Controller_t* pWanIfaceSMCtrl, INT iface_idx, INT VirIfIdx);
 int WanMgr_StartInterfaceStateMachine(WanMgr_IfaceSM_Controller_t *wanIf);
 BOOL WanMgr_Get_ISM_RunningStatus (UINT ifIndex);

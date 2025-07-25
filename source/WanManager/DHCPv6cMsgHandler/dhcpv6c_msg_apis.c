@@ -56,8 +56,7 @@
 #include "wanmgr_dml.h"
 #include "wanmgr_data.h"
 #include "dhcpv6c_msg_apis.h"
-#include "wanmgr_interface_sm.h"
-#include "wanmgr_utils.h"
+#include "wanmgr_telemetry.h"
 /*
  * Macro definitions
  */

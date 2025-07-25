@@ -235,7 +235,6 @@ ANSC_STATUS WanMgr_VirtIfConfVLAN(DML_VIRTUAL_IFACE *p_VirtIf, UINT Ifid)
 ANSC_STATUS WanMgr_WanIfaceConfInit(WanMgr_IfaceCtrl_Data_t* pWanIfaceCtrl)
 {
     CcspTraceInfo(("%s %d Initialize Wan Iface Conf \n", __FUNCTION__, __LINE__));
-    
     if(pWanIfaceCtrl != NULL)
     {
         ANSC_STATUS result;

@@ -35,6 +35,7 @@
 #include "wanmgr_dhcpv4_apis.h"
 #include "wanmgr_dhcpv6_apis.h"
 #include "secure_wrapper.h"
+#include "wanmgr_telemetry.h"
 #ifdef ENABLE_FEATURE_TELEMETRY2_0
 #include <telemetry_busmessage_sender.h>
 #endif
@@ -2891,6 +2892,7 @@ static eWanState_t wan_transition_exit(WanMgr_IfaceSM_Controller_t* pWanIfaceCtr
     WanMgr_ProcessTelemetryMarker(p_VirtIf,WAN_ERROR_WAN_DOWN);
 
     p_VirtIf->Interface_SM_Running = FALSE;
+
     return WAN_STATE_EXIT;
 }
 
