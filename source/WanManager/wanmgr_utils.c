@@ -1101,14 +1101,13 @@ ANSC_STATUS WanMgr_ProcessTelemetryMarker( DML_VIRTUAL_IFACE *pVirtIf , WanMgr_T
 CcspTraceInfo(("%s %d: KAVYA. pVirtIf = [%lu] \n",__FUNCTION__, __LINE__,pVirtIf));
 CcspTraceInfo(("%s %d: KAVYA. pVirtIf->Name = [%s] \n",__FUNCTION__, __LINE__,pVirtIf->Name));
 CcspTraceInfo(("%s %d: KAVYA. pVirtIf->baseIfIdx = [%d] \n",__FUNCTION__, __LINE__,pVirtIf->baseIfIdx));
-    DML_WAN_IFACE *pIntf = NULL;
     WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pVirtIf->baseIfIdx);
     if(pWanDmlIfaceData == NULL)
     {
         return ANSC_STATUS_FAILURE;
     }
 CcspTraceInfo(("%s %d: KAVYA.\n",__FUNCTION__, __LINE__));
-    pIntf = &(pWanDmlIfaceData->data);
+    DML_WAN_IFACE *pIntf = &(pWanDmlIfaceData->data);
     WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
 CcspTraceInfo(("%s %d: KAVYA. pIntf = [%lu]\n",__FUNCTION__, __LINE__,pIntf));
 CcspTraceInfo(("%s %d: KAVYA pIntf->DisplayName  = [%s].\n",__FUNCTION__, __LINE__,pIntf->DisplayName));
