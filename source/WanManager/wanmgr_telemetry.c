@@ -45,11 +45,11 @@ CcspTraceInfo(("%s %d: KAVYA Marker.pInterface->Name  = [%s].\n",__FUNCTION__, _
     CcspTraceInfo(("%s %d: KAVYA.\n",__FUNCTION__, __LINE__));
     if(ANSC_STATUS_FAILURE == wanmgr_process_T2_telemetry_event(&Marker))
     {
-        CcspTraceError(("%s %d: ERROR processing telemetry event %s.\n",__FUNCTION__, __LINE__,WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID]));
+        CcspTraceError(("%s %d: ERROR processing telemetry event %s.\n",__FUNCTION__, __LINE__,WanMgr_TelemetryEventStr[Marker.enTelemetryMarkerID]));
     }
     else
     {
-        CcspTraceInfo(("%s %d: SUCCESS processing telemetry event %s.\n",__FUNCTION__, __LINE__,WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID]));
+        CcspTraceInfo(("%s %d: SUCCESS processing telemetry event %s.\n",__FUNCTION__, __LINE__,WanMgr_TelemetryEventStr[Marker.enTelemetryMarkerID]));
     }
 #endif
     
