@@ -12,7 +12,6 @@ static void wanmgr_telemetry_append_key_value(char* key, const char* value)
         {
             strncat(MarkerArguments,WANMGR_T2_TELEMETRY_MARKER_ARG_DELIMITER,sizeof(MarkerArguments));
         }
-
         strncat(MarkerArguments,key,sizeof(MarkerArguments));
         strncat(MarkerArguments,WANMGR_T2_TELEMETRY_MARKER_KEY_VALUE_DELIMITER,sizeof(MarkerArguments));
         strncat(MarkerArguments,value,sizeof(MarkerArguments));
@@ -38,35 +37,37 @@ ANSC_STATUS wanmgr_process_T2_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
 
     switch(Marker->enTelemetryMarkerID)
     {        
-	case WAN_ERROR_PHY_DOWN:
+        case WAN_ERROR_PHY_DOWN:
             if(pIntf->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_DOWN)
-	    {
+            {
                 return ANSC_STATUS_SUCCESS;
-	    }
+            }
             break;
 
         case WAN_INFO_PHY_UP:
             if(pIntf->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_UP)
-	    {
+            {
                 return ANSC_STATUS_SUCCESS;
-	    }
+            }
             break;
 
         case WAN_INFO_WAN_UP:
             break;
 
         case WAN_ERROR_WAN_DOWN:
-            if(!(pIntf->Selection.Status == WAN_IFACE_VALIDATING || pIntf->Selection.Status == WAN_IFACE_SELECTED || pIntf->Selection.Status == WAN_IFACE_ACTIVE))
+            if(!(pIntf->Selection.Status == WAN_IFACE_VALIDATING || 
+                pIntf->Selection.Status == WAN_IFACE_SELECTED ||
+                pIntf->Selection.Status == WAN_IFACE_ACTIVE))
             {
                 return ANSC_STATUS_SUCCESS;
             }
             break;
 
         case WAN_INFO_WAN_STANDBY:
-	    if(pVirtIntf->Status == WAN_IFACE_STATUS_STANDBY)
-	    {
-		return ANSC_STATUS_SUCCESS;
-	    }
+            if(pVirtIntf->Status == WAN_IFACE_STATUS_STANDBY)
+            {
+                return ANSC_STATUS_SUCCESS;
+            }
             break;
 
         case WAN_INFO_IPv4_CONFIG_TYPE:
@@ -88,87 +89,87 @@ ANSC_STATUS wanmgr_process_T2_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
             break;
 
         case WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP_IPV4:
-	    wanmgr_telemetry_append_key_value(WANMGR_T2_WANMGR_SPLIT_VAL_STRING,"IPv4");
+            wanmgr_telemetry_append_key_value(WANMGR_T2_WANMGR_SPLIT_VAL_STRING,"IPv4");
             break;
 
         case WAN_INFO_CONNECTIVITY_CHECK_STATUS_UP_IPV6:
-	    wanmgr_telemetry_append_key_value(WANMGR_T2_WANMGR_SPLIT_VAL_STRING,"IPv6");
+            wanmgr_telemetry_append_key_value(WANMGR_T2_WANMGR_SPLIT_VAL_STRING,"IPv6");
             break;
 
         case WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN_IPV4:
-	    wanmgr_telemetry_append_key_value(WANMGR_T2_WANMGR_SPLIT_VAL_STRING,"IPv4");
+            wanmgr_telemetry_append_key_value(WANMGR_T2_WANMGR_SPLIT_VAL_STRING,"IPv4");
             break;
 
         case WAN_ERROR_CONNECTIVITY_CHECK_STATUS_DOWN_IPV6:
-	    wanmgr_telemetry_append_key_value(WANMGR_T2_WANMGR_SPLIT_VAL_STRING,"IPv6");
+            wanmgr_telemetry_append_key_value(WANMGR_T2_WANMGR_SPLIT_VAL_STRING,"IPv6");
             break;
 
         case WAN_WARN_CONNECTIVITY_CHECK_STATUS_FAILED_IPV4:
-	    wanmgr_telemetry_append_key_value(WANMGR_T2_WANMGR_SPLIT_VAL_STRING,"IPv4");
+            wanmgr_telemetry_append_key_value(WANMGR_T2_WANMGR_SPLIT_VAL_STRING,"IPv4");
             break;
-			
-	case WAN_WARN_CONNECTIVITY_CHECK_STATUS_FAILED_IPV6:
-	    wanmgr_telemetry_append_key_value(WANMGR_T2_WANMGR_SPLIT_VAL_STRING,"IPv6");
+
+        case WAN_WARN_CONNECTIVITY_CHECK_STATUS_FAILED_IPV6:
+            wanmgr_telemetry_append_key_value(WANMGR_T2_WANMGR_SPLIT_VAL_STRING,"IPv6");
             break;
 
         case WAN_WARN_CONNECTIVITY_CHECK_STATUS_IDLE_IPV4:
-	    wanmgr_telemetry_append_key_value(WANMGR_T2_WANMGR_SPLIT_VAL_STRING,"IPv4");
+            wanmgr_telemetry_append_key_value(WANMGR_T2_WANMGR_SPLIT_VAL_STRING,"IPv4");
             break;
 
         case WAN_WARN_CONNECTIVITY_CHECK_STATUS_IDLE_IPV6:
-	    wanmgr_telemetry_append_key_value(WANMGR_T2_WANMGR_SPLIT_VAL_STRING,"IPv6");
+            wanmgr_telemetry_append_key_value(WANMGR_T2_WANMGR_SPLIT_VAL_STRING,"IPv6");
             break;
 
         case WAN_INFO_IP_MODE:
-	    wanmgr_telemetry_append_key_value(WANMGR_T2_WANMGR_SPLIT_VAL_STRING,WanMgr_Telemetry_IpModeStr[pVirtIntf->IP.Mode]);
+            wanmgr_telemetry_append_key_value(WANMGR_T2_WANMGR_SPLIT_VAL_STRING,WanMgr_Telemetry_IpModeStr[pVirtIntf->IP.Mode]);
             break;
 
         case WAN_INFO_IPv4_UP:
             if(pVirtIntf->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_UP)
-	    {
+            {
                 return ANSC_STATUS_SUCCESS;
-	    }
-	    wanmgr_telemetry_append_key_value(WANMGR_T2_SELECTION_STATUS_STRING,(pIntf->Selection.Status == WAN_IFACE_ACTIVE) ? "Active" : (pIntf->Selection.Status == WAN_IFACE_VALIDATING) ? "Validating" : (pIntf->Selection.Status == WAN_IFACE_SELECTED ) ? "Selected" : "Standby");
+            }
+            wanmgr_telemetry_append_key_value(WANMGR_T2_SELECTION_STATUS_STRING,(pIntf->Selection.Status == WAN_IFACE_ACTIVE) ? "Active" : (pIntf->Selection.Status == WAN_IFACE_VALIDATING) ? "Validating" : (pIntf->Selection.Status == WAN_IFACE_SELECTED ) ? "Selected" : "Standby");
             break;
 
         case WAN_ERROR_IPv4_DOWN:
             if(pVirtIntf->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_DOWN)
-	    {
+            {
                 return ANSC_STATUS_SUCCESS;
-	    }
-	    wanmgr_telemetry_append_key_value(WANMGR_T2_SELECTION_STATUS_STRING,(pIntf->Selection.Status == WAN_IFACE_ACTIVE) ? "Active" : (pIntf->Selection.Status == WAN_IFACE_VALIDATING) ? "Validating" : (pIntf->Selection.Status == WAN_IFACE_SELECTED ) ? "Selected" : "Standby");
+            }
+            wanmgr_telemetry_append_key_value(WANMGR_T2_SELECTION_STATUS_STRING,(pIntf->Selection.Status == WAN_IFACE_ACTIVE) ? "Active" : (pIntf->Selection.Status == WAN_IFACE_VALIDATING) ? "Validating" : (pIntf->Selection.Status == WAN_IFACE_SELECTED ) ? "Selected" : "Standby");
             break;
 
         case WAN_INFO_IPv6_UP:
             if(pVirtIntf->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_UP)
-	    {
+            {
                 return ANSC_STATUS_SUCCESS;
-	    }
-	    wanmgr_telemetry_append_key_value(WANMGR_T2_SELECTION_STATUS_STRING,(pIntf->Selection.Status == WAN_IFACE_ACTIVE) ? "Active" : (pIntf->Selection.Status == WAN_IFACE_VALIDATING) ? "Validating" : (pIntf->Selection.Status == WAN_IFACE_SELECTED ) ? "Selected" : "Standby");
+            }
+            wanmgr_telemetry_append_key_value(WANMGR_T2_SELECTION_STATUS_STRING,(pIntf->Selection.Status == WAN_IFACE_ACTIVE) ? "Active" : (pIntf->Selection.Status == WAN_IFACE_VALIDATING) ? "Validating" : (pIntf->Selection.Status == WAN_IFACE_SELECTED ) ? "Selected" : "Standby");
             break;
 
         case WAN_ERROR_IPv6_DOWN:	  
             if(pVirtIntf->IP.Ipv6Status == WAN_IFACE_IPV6_STATE_DOWN)
-	    {
+            {
                 return ANSC_STATUS_SUCCESS;
-	    }
-	    wanmgr_telemetry_append_key_value(WANMGR_T2_SELECTION_STATUS_STRING,(pIntf->Selection.Status == WAN_IFACE_ACTIVE) ? "Active" : (pIntf->Selection.Status == WAN_IFACE_VALIDATING) ? "Validating" : (pIntf->Selection.Status == WAN_IFACE_SELECTED ) ? "Selected" : "Standby");
+            }
+            wanmgr_telemetry_append_key_value(WANMGR_T2_SELECTION_STATUS_STRING,(pIntf->Selection.Status == WAN_IFACE_ACTIVE) ? "Active" : (pIntf->Selection.Status == WAN_IFACE_VALIDATING) ? "Validating" : (pIntf->Selection.Status == WAN_IFACE_SELECTED ) ? "Selected" : "Standby");
             break;
 
         case WAN_INFO_MAPT_STATUS_UP:
             if(pVirtIntf->MAP.MaptStatus == WAN_IFACE_MAPT_STATE_UP)
-	    {
+            {
                 return ANSC_STATUS_SUCCESS;
-	    }
-	    wanmgr_telemetry_append_key_value(WANMGR_T2_SELECTION_STATUS_STRING,(pIntf->Selection.Status == WAN_IFACE_ACTIVE) ? "Active" : (pIntf->Selection.Status == WAN_IFACE_VALIDATING) ? "Validating" : (pIntf->Selection.Status == WAN_IFACE_SELECTED ) ? "Selected" : "Standby");
+            }
+            wanmgr_telemetry_append_key_value(WANMGR_T2_SELECTION_STATUS_STRING,(pIntf->Selection.Status == WAN_IFACE_ACTIVE) ? "Active" : (pIntf->Selection.Status == WAN_IFACE_VALIDATING) ? "Validating" : (pIntf->Selection.Status == WAN_IFACE_SELECTED ) ? "Selected" : "Standby");
             break;
 
         case WAN_ERROR_MAPT_STATUS_DOWN:
             if(pVirtIntf->MAP.MaptStatus == WAN_IFACE_MAPT_STATE_DOWN)
-	    {
+            {
                 return ANSC_STATUS_SUCCESS;
-	    }
-	    wanmgr_telemetry_append_key_value(WANMGR_T2_SELECTION_STATUS_STRING,(pIntf->Selection.Status == WAN_IFACE_ACTIVE) ? "Active" : (pIntf->Selection.Status == WAN_IFACE_VALIDATING) ? "Validating" : (pIntf->Selection.Status == WAN_IFACE_SELECTED ) ? "Selected" : "Standby");
+            }
+            wanmgr_telemetry_append_key_value(WANMGR_T2_SELECTION_STATUS_STRING,(pIntf->Selection.Status == WAN_IFACE_ACTIVE) ? "Active" : (pIntf->Selection.Status == WAN_IFACE_VALIDATING) ? "Validating" : (pIntf->Selection.Status == WAN_IFACE_SELECTED ) ? "Selected" : "Standby");
             break;
 
         case WAN_ERROR_MAPT_STATUS_FAILED:
@@ -176,29 +177,28 @@ ANSC_STATUS wanmgr_process_T2_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
 
         case WAN_ERROR_VLAN_DOWN:
             if(pVirtIntf->VLAN.Status != WAN_IFACE_LINKSTATUS_UP)
-	    {
+            {
                 return ANSC_STATUS_SUCCESS;
-	    }
-	    wanmgr_telemetry_append_key_value(WANMGR_T2_VIRT_WAN_INTERFACE_STRING,pVirtIntf->Name);				
+            }
+            wanmgr_telemetry_append_key_value(WANMGR_T2_VIRT_WAN_INTERFACE_STRING,pVirtIntf->Name);				
             break;
 
         case WAN_ERROR_VLAN_CREATION_FAILED:
-	    wanmgr_telemetry_append_key_value(WANMGR_T2_VIRT_WAN_INTERFACE_STRING,pVirtIntf->Name);
+            wanmgr_telemetry_append_key_value(WANMGR_T2_VIRT_WAN_INTERFACE_STRING,pVirtIntf->Name);
             break;
 
         case WAN_WARN_IP_OBTAIN_TIMER_EXPIRED:
             if(pIntf->bSendSelectionTimerExpired != TRUE)
-	    {
+            {
                 return ANSC_STATUS_SUCCESS;
-	    }
+            }
             pIntf->bSendSelectionTimerExpired = FALSE;
             break;
 
         default:
-	    ;
+            ;
     }	    
     t2_event_s(WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID],MarkerArguments);
-    //This log is added for our internal testing, to be removed	
-CcspTraceInfo(("%s %d: Successfully sent Telemetry event [%s] with arguments = [%s].\n",__FUNCTION__, __LINE__,WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID],MarkerArguments));
+    CcspTraceInfo(("%s %d: Successfully sent Telemetry event [%s] with arguments = [%s].\n",__FUNCTION__, __LINE__,WanMgr_TelemetryEventStr[Marker->enTelemetryMarkerID],MarkerArguments));
     return ANSC_STATUS_SUCCESS;
 }

@@ -28,6 +28,7 @@
 
 #include "wanmgr_utils.h"
 #include "ipc_msg.h"
+
 /* amount of time to sleep between collect process attempt if timeout was specified. */
 #define COLLECT_WAIT_INTERVAL_MS 40
 #define APP_TERMINATE_TIMEOUT (5 * MSECS_IN_SEC)

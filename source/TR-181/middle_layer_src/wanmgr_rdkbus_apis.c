@@ -327,7 +327,7 @@ int get_Virtual_Interface_FromPSM(ULONG instancenum, ULONG virtInsNum ,DML_VIRTU
     if (retPsmGet == CCSP_SUCCESS)
     {
         _ansc_sscanf(param_value, "%d", &(pVirtIf->IP.Mode));
-	WanMgr_ProcessTelemetryMarker(pVirtIf,WAN_INFO_IP_MODE);
+        WanMgr_ProcessTelemetryMarker(pVirtIf,WAN_INFO_IP_MODE);
     }
 
     _ansc_memset(param_name, 0, sizeof(param_name));
@@ -337,7 +337,7 @@ int get_Virtual_Interface_FromPSM(ULONG instancenum, ULONG virtInsNum ,DML_VIRTU
     if(retPsmGet == CCSP_SUCCESS)
     {
         _ansc_sscanf(param_value, "%d", &(pVirtIf->IP.IPv4Source));
-	WanMgr_ProcessTelemetryMarker(pVirtIf,WAN_INFO_IPv4_CONFIG_TYPE);
+        WanMgr_ProcessTelemetryMarker(pVirtIf,WAN_INFO_IPv4_CONFIG_TYPE);
     }
 
     _ansc_memset(param_name, 0, sizeof(param_name));
@@ -353,7 +353,7 @@ int get_Virtual_Interface_FromPSM(ULONG instancenum, ULONG virtInsNum ,DML_VIRTU
     if(retPsmGet == CCSP_SUCCESS)
     {
         _ansc_sscanf(param_value, "%d", &(pVirtIf->IP.IPv6Source));
-	WanMgr_ProcessTelemetryMarker(pVirtIf,WAN_INFO_IPv6_CONFIG_TYPE);
+        WanMgr_ProcessTelemetryMarker(pVirtIf,WAN_INFO_IPv6_CONFIG_TYPE);
     }
 
     _ansc_memset(param_name, 0, sizeof(param_name));
@@ -388,7 +388,7 @@ int get_Virtual_Interface_FromPSM(ULONG instancenum, ULONG virtInsNum ,DML_VIRTU
     if(retPsmGet == CCSP_SUCCESS)
     {
         _ansc_sscanf(param_value, "%d", &(pVirtIf->IP.ConnectivityCheckType));
-	WanMgr_ProcessTelemetryMarker(pVirtIf,WAN_INFO_CONNECTIVITY_CHECK_TYPE);
+        WanMgr_ProcessTelemetryMarker(pVirtIf,WAN_INFO_CONNECTIVITY_CHECK_TYPE);
     }
 }
 
@@ -404,7 +404,7 @@ int get_Remote_Virtual_Interface_FromPSM(ULONG instancenum, ULONG virtInsNum ,DM
     if(retPsmGet == CCSP_SUCCESS)
     {
         _ansc_sscanf(param_value, "%d", &(pVirtIf->IP.ConnectivityCheckType));
-	WanMgr_ProcessTelemetryMarker(pVirtIf,WAN_INFO_CONNECTIVITY_CHECK_TYPE);
+        WanMgr_ProcessTelemetryMarker(pVirtIf,WAN_INFO_CONNECTIVITY_CHECK_TYPE);
     }
 }
 
@@ -2049,7 +2049,7 @@ ANSC_STATUS Update_Interface_Status()
                 DML_VIRTUAL_IFACE* pVirtIf = WanMgr_GetVIfByName_VISM_running_locked(CurrentActiveInterface);
                 if(pVirtIf != NULL)
                 {
-		    WanMgr_ProcessTelemetryMarker(pVirtIf,WAN_INFO_WAN_UP);
+                    WanMgr_ProcessTelemetryMarker(pVirtIf,WAN_INFO_WAN_UP);
                     WanMgr_VirtualIfaceData_release(pVirtIf);
                 }		
 #ifdef RBUS_BUILD_FLAG_ENABLE

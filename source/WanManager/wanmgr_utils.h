@@ -32,8 +32,6 @@
 
 
 #include "wanmgr_rdkbus_common.h"
-#include "wanmgr_telemetry.h"
-#include "wanmgr_dml.h"
 //#include "ipc_msg.h"
 
 
@@ -166,4 +164,5 @@ ANSC_STATUS WanMgr_RestartUpdateCfg (const char * param, int idx, char * output,
 ANSC_STATUS WanMgr_RestartUpdateCfg_Bool (const char * param, int idx, BOOL* output);
 
 int sysctl_iface_set(const char *path, const char *ifname, const char *content);
+
 #endif /* _WANMGR_UTILS_H_ */

@@ -143,7 +143,7 @@ ANSC_STATUS  WanMgr_SetDnsConnectivityCheck(BOOL Enable)
                         p_VirtIf->IP.ConnectivityCheckType = type;
                         p_VirtIf->IP.WCC_TypeChanged = TRUE;
                         retStatus = ANSC_STATUS_SUCCESS;
-			WanMgr_ProcessTelemetryMarker(p_VirtIf,WAN_INFO_CONNECTIVITY_CHECK_TYPE);
+                        WanMgr_ProcessTelemetryMarker(p_VirtIf,WAN_INFO_CONNECTIVITY_CHECK_TYPE);
                         CcspTraceInfo(("%s-%d: RFC- DNS Connectivity Check %s, Type=%s", __FUNCTION__, __LINE__,
                                         (Enable? "Enabled":"Disabled"), (Enable? "TAD":"None")));
                     }
@@ -1011,7 +1011,7 @@ ANSC_STATUS  WanMgr_RdkBus_ConfigureVlan(DML_VIRTUAL_IFACE* pVirtIf, BOOL VlanEn
     if(ret != ANSC_STATUS_SUCCESS)
     {
         CcspTraceError(("%s %d DM set %s %s failed\n", __FUNCTION__,__LINE__, acSetParamName, acSetParamValue));
-	WanMgr_ProcessTelemetryMarker(pVirtIf,WAN_ERROR_VLAN_CREATION_FAILED);
+        WanMgr_ProcessTelemetryMarker(pVirtIf,WAN_ERROR_VLAN_CREATION_FAILED);
         return ANSC_STATUS_FAILURE;
     }
 

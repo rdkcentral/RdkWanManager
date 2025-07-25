@@ -43,7 +43,6 @@
 #if defined (_XB6_PRODUCT_REQ_) || defined (_CBR2_PRODUCT_REQ_) || defined(_PLATFORM_RASPBERRYPI_)
 #include "wanmgr_utils.h"
 #endif
-#include "wanmgr_interface_sm.h"
 #include "wanmgr_telemetry.h"
 
 extern WANMGR_DATA_ST gWanMgrDataBase;
@@ -2113,8 +2112,7 @@ BOOL WanIfIpCfg_SetParamUlongValue(ANSC_HANDLE hInsContext, char* ParamName, ULO
                 p_VirtIf->IP.IPv6Source = uValue;
                 p_VirtIf->IP.RefreshDHCP = TRUE;
                 CcspTraceInfo(("%s %d IP.%s changed for %s to %d. Refreshing DHCP \n", __FUNCTION__, __LINE__, ParamName, p_VirtIf->Name,p_VirtIf->IP.IPv6Source));
-                WanMgr_ProcessTelemetryMarker(p_VirtIf,WAN_INFO_IPv6_CONFIG_TYPE);
-		
+                WanMgr_ProcessTelemetryMarker(p_VirtIf,WAN_INFO_IPv6_CONFIG_TYPE);		
             }
             ret = TRUE;
         }
