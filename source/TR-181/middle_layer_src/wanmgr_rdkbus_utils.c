@@ -61,6 +61,7 @@
 #include "wanmgr_dhcpv6_apis.h"
 #include "wanmgr_telemetry.h"
 #include "wanmgr_utils.h"
+#include "wanmgr_interface_sm.h"
 
 #define UPSTREAM_SET_MAX_RETRY_COUNT 10 // max. retry count for Upstream set requests
 #define DATAMODEL_PARAM_LENGTH 256

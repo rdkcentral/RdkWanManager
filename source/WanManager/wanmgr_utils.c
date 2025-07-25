@@ -1090,7 +1090,7 @@ int sysctl_iface_set(const char *path, const char *ifname, const char *content)
 
     return 0;
 }
-
+/*
 ANSC_STATUS WanMgr_ProcessTelemetryMarker( DML_VIRTUAL_IFACE *pVirtIf , WanMgr_TelemetryEvent_t telemetry_marker)
 {
 	CcspTraceInfo(("%s %d: KAVYA.\n",__FUNCTION__, __LINE__));
@@ -1125,4 +1125,4 @@ CcspTraceInfo(("%s %d: KAVYA.\n",__FUNCTION__, __LINE__));
     WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
     return ANSC_STATUS_SUCCESS;
 }	
-
+*/

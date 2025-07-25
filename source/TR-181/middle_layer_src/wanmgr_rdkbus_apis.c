@@ -43,6 +43,7 @@
 #include "wanmgr_rbus_handler_apis.h"
 #endif //RBUS_BUILD_FLAG_ENABLE
 #include "wanmgr_telemetry.h"
+#include "wanmgr_interface_sm.h"
 
 #define PSM_ENABLE_STRING_TRUE  "TRUE"
 #define PSM_ENABLE_STRING_FALSE  "FALSE"

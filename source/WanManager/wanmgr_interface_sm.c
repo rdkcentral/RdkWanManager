@@ -617,33 +617,38 @@ static ANSC_STATUS WanManager_ConfigureMarking(WanMgr_IfaceSM_Controller_t* pWan
     }
     return ANSC_STATUS_SUCCESS;
 }
-/*
+
 ANSC_STATUS WanMgr_ProcessTelemetryMarker( DML_VIRTUAL_IFACE *pVirtIf , WanMgr_TelemetryEvent_t telemetry_marker)
 {
+	CcspTraceInfo(("%s %d: KAVYA.\n",__FUNCTION__, __LINE__));
     if(pVirtIf == NULL)
     {
         return ANSC_STATUS_FAILURE;
     }
-
+CcspTraceInfo(("%s %d: KAVYA.pVirtIf = [%lu]\n",__FUNCTION__, __LINE__,pVirtIf));
+CcspTraceInfo(("%s %d: KAVYA.pVirtIf->Name = [%s]\n",__FUNCTION__, __LINE__,pVirtIf->Name));
     DML_WAN_IFACE *pIntf = NULL;
     WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pVirtIf->baseIfIdx);
     if(pWanDmlIfaceData == NULL)
     {
         return ANSC_STATUS_FAILURE;
     }
-
+CcspTraceInfo(("%s %d: KAVYA.\n",__FUNCTION__, __LINE__));
     pIntf = &(pWanDmlIfaceData->data);
     WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
-    
+    CcspTraceInfo(("%s %d: KAVYA. pIntf = [%lu]\n",__FUNCTION__, __LINE__,pIntf));
+    CcspTraceInfo(("%s %d: KAVYA. pIntf->DisplayName = [%s]\n",__FUNCTION__, __LINE__,pIntf->DisplayName));
+    CcspTraceInfo(("%s %d: KAVYA. pIntf->Name = [%s]\n",__FUNCTION__, __LINE__,pIntf->Name));
     WanMgr_Telemetry_Marker_t Marker = {0};
     Marker.pVirtInterface = pVirtIf;
     Marker.pInterface = pIntf;
     Marker.enTelemetryMarkerID = telemetry_marker;
+    CcspTraceInfo(("%s %d: KAVYA.\n",__FUNCTION__, __LINE__));
     wanmgr_telemetry_event(&Marker);
-
+CcspTraceInfo(("%s %d: KAVYA.\n",__FUNCTION__, __LINE__));
     return ANSC_STATUS_SUCCESS;
 }
-*/
+
 /*********************************************************************************/
 /**************************** ACTIONS ********************************************/
 /*********************************************************************************/

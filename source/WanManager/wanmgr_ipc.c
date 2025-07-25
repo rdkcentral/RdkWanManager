@@ -28,6 +28,7 @@
 #include "wanmgr_telemetry.h"
 #include "wanmgr_utils.h"
 
+#include "wanmgr_interface_sm.h"
 #define WANMGR_MAX_IPC_PROCCESS_TRY             5
 #define WANMGR_IPC_PROCCESS_TRY_WAIT_TIME       100000 //us
 
