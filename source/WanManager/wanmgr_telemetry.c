@@ -19,7 +19,7 @@ ANSC_STATUS WanMgr_ProcessTelemetryMarker( DML_VIRTUAL_IFACE *pVirtIf , WanMgr_T
     WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(pVirtIf->baseIfIdx);
     if(pWanDmlIfaceData == NULL)
     {
-        return ANSC_STATUS_FAILURE
+        return ANSC_STATUS_FAILURE;
     }
     DML_WAN_IFACE *pIntf = &(pWanDmlIfaceData->data);
     WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
