@@ -2046,9 +2046,11 @@ ANSC_STATUS Update_Interface_Status()
                 strncpy(prevCurrentActiveInterface,pWanDmlData->CurrentActiveInterface, sizeof(prevCurrentActiveInterface) - 1);
                 memset(pWanDmlData->CurrentActiveInterface, 0, sizeof(pWanDmlData->CurrentActiveInterface));
                 strncpy(pWanDmlData->CurrentActiveInterface,CurrentActiveInterface, sizeof(pWanDmlData->CurrentActiveInterface) - 1);
-                DML_VIRTUAL_IFACE* pVirtIf = WanMgr_GetVIfByName_VISM_running_locked(CurrentActiveInterface);
+		CcspTraceInfo(("%s %d: KAVYA CurrentActiveInterface = [%s].\n",__FUNCTION__, __LINE__,(devMode == GATEWAY_MODE) ? CurrentActiveInterface : CELLULARMGR_WAN_NAME));
+                DML_VIRTUAL_IFACE* pVirtIf = WanMgr_GetVIfByName_VISM_running_locked((devMode == GATEWAY_MODE) ? CurrentActiveInterface : CELLULARMGR_WAN_NAME);
                 if(pVirtIf != NULL)
                 {
+		CcspTraceInfo(("%s %d: KAVYA pVirtIf->Name = [%s].\n",__FUNCTION__, __LINE__,pVirtIf->Name));
                     WanMgr_ProcessTelemetryMarker(pVirtIf,WAN_INFO_WAN_UP);
                     WanMgr_VirtualIfaceData_release(pVirtIf);
                 }		
