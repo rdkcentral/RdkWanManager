@@ -105,9 +105,49 @@ int WanMgr_StartWan(int interfaceIndex, WANMGR_IFACE_SELECTION selectionStatus)
  * This function stops the WAN interface state machine and sets the selection status to not selected.
  *
  * @param[in] interfaceIndex Index of the WAN interface to deactivate.
+ * @param[in] waitForTermination If true, waits for the interface state machine to terminate before returning.
  * @return Status of the operation.
  */
-int WanMgr_StopWan(int interfaceIndex);
+int WanMgr_StopWan(int interfaceIndex, bool waitForTermination)
+{
+    int ret = 0;
+
+    CcspTraceInfo(("%s %d: Entering WanMgr_StopWan for interfaceIndex=%d waitForTermination=%d\n", __FUNCTION__, __LINE__, interfaceIndex, waitForTermination));
+    WanMgr_Iface_Data_t*   pWanDmlIfaceData = WanMgr_GetIfaceData_locked(interfaceIndex);
+    if(pWanDmlIfaceData != NULL)
+    {
+        DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
+        //Set Selection.Status to “NOT_SELECTED”, to teardown the  the iface sm thread 
+        CcspTraceInfo(("%s %d: Selection.Status set to NOT_SELECTED. Tearing down iface state machine\n", __FUNCTION__, __LINE__));
+        pWanIfaceData->Selection.Status = WAN_IFACE_NOT_SELECTED;
+
+        WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);   
+    }
+
+    if(waitForTermination)
+    {
+        // Wait for the interface state machine to terminate for 10 seconds
+        CcspTraceInfo(("%s %d: Waiting for interface state machine to terminate\n", __FUNCTION__, __LINE__));
+        int waited_ms = 0;
+        while (waited_ms < 10000)
+        {
+            if (WanMgr_Get_ISM_RunningStatus(interfaceIndex) == FALSE)
+            {
+                break;
+            }
+            usleep(200 * 1000); // 200 ms
+            waited_ms += 200;
+        }
+
+        if (WanMgr_Get_ISM_RunningStatus(interfaceIndex) == TRUE)
+        {
+            CcspTraceError(("%s %d: Failed to stop interface state machine for interfaceIndex=%d within 10 seconds\n", __FUNCTION__, __LINE__, interfaceIndex));
+            ret = -1;
+        }
+    }
+
+    return ret;
+}
 
 /**
  * @brief Activates the WAN interface specified by the given index.
