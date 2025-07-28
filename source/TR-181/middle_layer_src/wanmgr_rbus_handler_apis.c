@@ -2060,6 +2060,34 @@ void *WanMgr_Configure_WCC_Thread(void *arg)
     return NULL;
 }
 
+UINT WanMgr_ParseIndexFromAPIName(const char *name)
+{
+    UINT index = 0; //Set default  interface index
+    char AliasName[64] = {0};
+
+    if(name == NULL)
+    {
+        CcspTraceError(("%s %d - Invalid input parameters\n", __FUNCTION__, __LINE__));
+        return 0;
+    }
+    
+    sscanf(name, WANMGR_INFACE_TABLE".%d.", &index);
+    if(index  == 0)
+    {
+        sscanf(name, WANMGR_INFACE_TABLE".%63s.", &AliasName);
+        index = WanMgr_GetIfaceIndexByAliasName(AliasName);
+    }
+
+    sscanf(name, WANMGR_INFACE_TABLE".%d.", &index);
+
+    if(index == 0)
+    {
+        CcspTraceError(("%s %d - Invalid index in API name: %s\n", __FUNCTION__, __LINE__, name));
+        return -1;
+    }
+    return index;
+}
+
 /**
  * @brief Starts the WAN interface state machine for the specified interface.
  *
@@ -2082,20 +2110,8 @@ rbusError_t WanMgr_Interface_StartWan(rbusHandle_t handle, char const* name, rbu
     (void)outParams;
     (void)asyncHandle;
     rbusError_t ret = RBUS_ERROR_SUCCESS;
-    UINT index = 0; //Set default  interface index
-    char AliasName[64] = {0};
-
-    sscanf(name, WANMGR_INFACE_TABLE".%d.", &index);
-    if(index  == 0)
-    {
-        sscanf(name, WANMGR_INFACE_TABLE".%63s.", &AliasName);
-        index = WanMgr_GetIfaceIndexByAliasName(AliasName);
-    }
-    if(index <= 0)
-    {
-        CcspTraceError(("%s %d - Invalid index\n", __FUNCTION__, __LINE__));
-        return RBUS_ERROR_INVALID_INPUT;
-    }
+    UINT index = WanMgr_ParseIndexFromAPIName(name);
+    
     if(index <= 0)
     {
         CcspTraceError(("%s %d - Invalid index\n", __FUNCTION__, __LINE__));
@@ -2135,39 +2151,20 @@ rbusError_t WanMgr_Interface_StopWan(rbusHandle_t handle, char const* name, rbus
     (void)outParams;
     (void)asyncHandle;
     rbusError_t ret = RBUS_ERROR_SUCCESS;
-    UINT index = 0; //Set default  interface index
-    char AliasName[64] = {0};
-
-    sscanf(name, WANMGR_INFACE_TABLE".%d.", &index);
-    if(index  == 0)
-    {
-        sscanf(name, WANMGR_INFACE_TABLE".%63s.", &AliasName);
-        index = WanMgr_GetIfaceIndexByAliasName(AliasName);
-    }
-    if(index <= 0)
-    {
-        CcspTraceError(("%s %d - Invalid index\n", __FUNCTION__, __LINE__));
-        return RBUS_ERROR_INVALID_INPUT;
-    }
+    UINT index = WanMgr_ParseIndexFromAPIName(name);
+    
     if(index <= 0)
     {
         CcspTraceError(("%s %d - Invalid index\n", __FUNCTION__, __LINE__));
         return RBUS_ERROR_INVALID_INPUT;
     }
 
-    WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked((index - 1));
-    if(pWanDmlIfaceData != NULL)
+    CcspTraceInfo(("%s %d: Calling WanMgr_StopWan for interface %d\n", __FUNCTION__, __LINE__, index));
+    if(WanMgr_StopWan(index - 1, true) != 0)
     {
-        DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
-        {
-            CcspTraceInfo(("%s %d: Stoping WAN interface SM for Interface %d\n", __FUNCTION__, __LINE__, index));
-         //  WanMgr_STopWanInterfaceStateMachine(pWanDmlIfaceData);
-        }
-
-        WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+        CcspTraceError(("%s %d: Failed to stop WAN for interface %d \n", __FUNCTION__, __LINE__, index));
+        ret = RBUS_ERROR_BUS_ERROR;
     }
-
-    //TODO : wait for the state machine thread if to complete
 
     return ret;
 }
@@ -2181,30 +2178,23 @@ rbusError_t WanMgr_Interface_StopWan(rbusHandle_t handle, char const* name, rbus
  * and returns the appropriate RBUS error code.
  *
  * @param[in] handle         The RBUS handle associated with the current session.
- * @param[in] methodName     The name of the RBUS method being invoked.
+ * @param[in] name           The name of the RBUS method being invoked.
  * @param[in] inParams       The input parameters for the method call.
  * @param[out] outParams     The output parameters to be populated with the result.
  * @param[in] asyncHandle    The handle for asynchronous method invocation, if applicable.
  *
  * @return rbusError_t       Returns RBUS error code indicating success or failure of the operation.
  */
-rbusError_t WanMgr_Interface_ActivateWan(rbusHandle_t handle, char const* methodName, rbusObject_t inParams, rbusObject_t outParams, rbusMethodAsyncHandle_t asyncHandle)
+rbusError_t WanMgr_Interface_ActivateWan(rbusHandle_t handle, char const* name, rbusObject_t inParams, rbusObject_t outParams, rbusMethodAsyncHandle_t asyncHandle)
 {
     (void)handle;
     (void)inParams;
     (void)outParams;
     (void)asyncHandle;
-    rbusError_t ret = RBUS_ERROR_SUCCESS;
-    UINT index = 0;
-    char AliasName[64] = {0};
-    const char* name = methodName;
 
-    sscanf(name, WANMGR_INFACE_TABLE".%d.", &index);
-    if(index == 0)
-    {
-        sscanf(name, WANMGR_INFACE_TABLE".%63s.", AliasName);
-        index = WanMgr_GetIfaceIndexByAliasName(AliasName);
-    }
+    rbusError_t ret = RBUS_ERROR_SUCCESS;
+    UINT index = WanMgr_ParseIndexFromAPIName(name);
+    
     if(index <= 0)
     {
         CcspTraceError(("%s %d - Invalid index\n", __FUNCTION__, __LINE__));
@@ -2239,30 +2229,22 @@ rbusError_t WanMgr_Interface_ActivateWan(rbusHandle_t handle, char const* method
  * and returns the appropriate RBUS error code.
  *
  * @param[in] handle         The RBUS handle associated with the current session.
- * @param[in] methodName     The name of the RBUS method being invoked.
+ * @param[in] name           The name of the RBUS method being invoked.
  * @param[in] inParams       The input parameters for the method call.
  * @param[out] outParams     The output parameters to be populated with the result.
  * @param[in] asyncHandle    The handle for asynchronous method invocation, if applicable.
  *
  * @return rbusError_t       Returns RBUS error code indicating success or failure of the operation.
  */
-rbusError_t WanMgr_Interface_DeactivateWan(rbusHandle_t handle, char const* methodName, rbusObject_t inParams, rbusObject_t outParams, rbusMethodAsyncHandle_t asyncHandle)
+rbusError_t WanMgr_Interface_DeactivateWan(rbusHandle_t handle, char const* name, rbusObject_t inParams, rbusObject_t outParams, rbusMethodAsyncHandle_t asyncHandle)
 {
     (void)handle;
     (void)inParams;
     (void)outParams;
     (void)asyncHandle;
     rbusError_t ret = RBUS_ERROR_SUCCESS;
-    UINT index = 0;
-    char AliasName[64] = {0};
-    const char* name = methodName;
-
-    sscanf(name, WANMGR_INFACE_TABLE".%d.", &index);
-    if(index == 0)
-    {
-        sscanf(name, WANMGR_INFACE_TABLE".%63s.", AliasName);
-        index = WanMgr_GetIfaceIndexByAliasName(AliasName);
-    }
+    UINT index = WanMgr_ParseIndexFromAPIName(name);
+    
     if(index <= 0)
     {
         CcspTraceError(("%s %d - Invalid index\n", __FUNCTION__, __LINE__));

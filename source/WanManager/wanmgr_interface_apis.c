@@ -104,7 +104,7 @@ int WanMgr_StartWan(int interfaceIndex, WANMGR_IFACE_SELECTION selectionStatus)
  *
  * This function stops the WAN interface state machine and sets the selection status to not selected.
  *
- * @param[in] interfaceIndex Index of the WAN interface to deactivate.
+ * @param[in] interfaceIndex Index of the WAN interface to Stop WAN.
  * @param[in] waitForTermination If true, waits for the interface state machine to terminate before returning.
  * @return Status of the operation.
  */
