@@ -249,6 +249,7 @@ int WanMgr_DeactivateInterface(int interfaceIndex)
     // Deactivate the WAN interface
     pWanIfaceData->Selection.Status = WAN_IFACE_SELECTED; // Move back to standby state
     CcspTraceInfo(("%s %d: Deactivating WAN interface %d [%s]\n", __FUNCTION__, __LINE__, interfaceIndex, pWanIfaceData->AliasName));
+    WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
 
     return 0; // Success
 }
