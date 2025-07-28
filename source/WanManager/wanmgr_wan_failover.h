@@ -50,6 +50,7 @@ typedef  struct _WANMGR_FAILOVER_CONTROLLER_
     eWanState_t             ActiveIfaceState;
     TelemetryEvent_t        TelemetryEvent; 
     BOOL                    AllowRemoteInterfaces;
+    BOOL                    ExternalControlRequested;
 } WanMgr_FailOver_Controller_t;
 
 
@@ -58,6 +59,7 @@ typedef enum {
     STATE_FAILOVER_GROUP_ACTIVE,
     STATE_FAILOVER_RESTORATION_WAIT,
     STATE_FAILOVER_DEACTIVATE_GROUP,
+    STATE_FAILOVER_IDLE_MONITOR,
     STATE_FAILOVER_EXIT,
     STATE_FAILOVER_ERROR,
 } WcFailOverState_t;

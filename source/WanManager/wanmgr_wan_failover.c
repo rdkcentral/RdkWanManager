@@ -36,6 +36,7 @@ static WcFailOverState_t State_ScanningGroup (WanMgr_FailOver_Controller_t * pFa
 static WcFailOverState_t State_GroupActive (WanMgr_FailOver_Controller_t * pFailOverController);
 static WcFailOverState_t State_RestorationWait (WanMgr_FailOver_Controller_t * pFailOverController);
 static WcFailOverState_t State_DeactivateGroup (WanMgr_FailOver_Controller_t * pFailOverController);
+static WcFailOverState_t State_IdleMonitor (WanMgr_FailOver_Controller_t * pFailOverController);
 
 
 /* TRANSITIONS */
@@ -45,6 +46,7 @@ static WcFailOverState_t Transition_Restoration (WanMgr_FailOver_Controller_t * 
 static WcFailOverState_t Transition_DeactivateGroup (WanMgr_FailOver_Controller_t * pFailOverController);
 static WcFailOverState_t Transition_RestorationFail (WanMgr_FailOver_Controller_t * pFailOverController);
 static WcFailOverState_t Transition_ResetScan (WanMgr_FailOver_Controller_t * pFailOverController);
+static WcFailOverState_t Transition_Idle (WanMgr_FailOver_Controller_t * pFailOverController);
 
 ANSC_STATUS MarkHighPriorityGroup (WanMgr_FailOver_Controller_t* pFailOverController, bool WaitForHigherGroup);
 
@@ -116,6 +118,7 @@ ANSC_STATUS WanMgr_FailOverCtrlInit(WanMgr_FailOver_Controller_t* pFailOverContr
     pFailOverController->AllowRemoteInterfaces = FALSE;
     pFailOverController->ActiveIfaceState = -1;
     pFailOverController->PhyState = WAN_IFACE_PHY_STATUS_UNKNOWN;
+    pFailOverController->ExternalControlRequested = FALSE;
     /* Update group Interface */
     UINT TotalIfaces = WanMgr_IfaceData_GetTotalWanIface();
     for (int i = 0 ; i < TotalIfaces; i++)
@@ -128,6 +131,13 @@ ANSC_STATUS WanMgr_FailOverCtrlInit(WanMgr_FailOver_Controller_t* pFailOverContr
             if (pWanIfaceGroup != NULL)
             {
                 pWanIfaceGroup->InterfaceAvailable |= (1<<i);
+                char param_value[256] = {0};
+                WanMgr_RdkBus_GetParamValuesFromDB(PSM_WANMANAGER_GROUP_EXTERNAL_CONTROL,param_value,sizeof(param_value));
+                if(strcmp(param_value, "TRUE") == 0)
+                {
+                    CcspTraceWarning(("%s %d: External control enabled for group %d. WFO policy will not control this Group and its interfaces. \n", __FUNCTION__, __LINE__, pWanIfaceData->Selection.Group));
+                    pWanIfaceGroup->ExternalControl = TRUE;
+                }
                 WanMgrDml_GetIfaceGroup_release();
             }
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
@@ -168,6 +178,7 @@ static void WanMgr_UpdateFOControllerData (WanMgr_FailOver_Controller_t* pFailOv
         pFailOverController->ResetScan = pWanConfigData->data.ResetFailOverScan;
         pFailOverController->AllowRemoteInterfaces = pWanConfigData->data.AllowRemoteInterfaces;
         pWanConfigData->data.ResetFailOverScan = false; //Reset Global data
+        pFailOverController->ExternalControlRequested = pWanConfigData->data.ExternalControlRequested;
 
         WanMgrDml_GetConfigData_release(pWanConfigData);
     }
@@ -237,7 +248,7 @@ static void WanMgr_FO_IfaceGroupMonitor()
         WANMGR_IFACE_GROUP* pWanIfaceGroup = WanMgr_GetIfaceGroup_locked((i));
         if (pWanIfaceGroup != NULL)
         {
-            if( pWanIfaceGroup->InterfaceAvailable && pWanIfaceGroup->State != STATE_GROUP_RUNNING && pWanIfaceGroup->State != STATE_GROUP_DEACTIVATED)
+            if( pWanIfaceGroup->InterfaceAvailable && pWanIfaceGroup->State != STATE_GROUP_RUNNING && pWanIfaceGroup->State != STATE_GROUP_DEACTIVATED && pWanIfaceGroup->ExternalControl == FALSE)
             {
                 pWanIfaceGroup->SelectionTimeOut = 0;
                 pWanIfaceGroup->InitialScanComplete = FALSE;
@@ -660,6 +671,43 @@ static WcFailOverState_t Transition_ResetScan (WanMgr_FailOver_Controller_t * pF
 
     return STATE_FAILOVER_SCANNING_GROUP;
 }
+
+/**
+ * @brief Sets the externally controlled group as the active group and transitions to the idle state.
+ *
+ * @param[in,out] pFailOverController Pointer to the WAN failover controller structure.
+ *
+ * @return The new failover state after the transition (idle).
+ */
+static WcFailOverState_t Transition_Idle (WanMgr_FailOver_Controller_t * pFailOverController)
+{
+    CcspTraceInfo(("%s %d  External control requested\n", __FUNCTION__, __LINE__));
+
+    if(pFailOverController == NULL)
+    {
+        CcspTraceError(("%s %d pFWController object is NULL \n", __FUNCTION__, __LINE__));
+        return STATE_FAILOVER_ERROR;
+    }
+
+    //If we are in Idle state, Set the externally controlled group as the current active group.
+    for(int i = 0; i < WanMgr_GetTotalNoOfGroups(); i++)
+    {
+        WANMGR_IFACE_GROUP* pWanIfaceGroup = WanMgr_GetIfaceGroup_locked((i));
+        if (pWanIfaceGroup != NULL)
+        {
+            if(pWanIfaceGroup->ExternalControl == TRUE)
+            {
+                CcspTraceInfo(("%s %d: Setting CurrentActiveGroup and HighestValidGroup to group index %d (ExternalControl enabled)\n", __FUNCTION__, __LINE__, i + 1));
+                pFailOverController->CurrentActiveGroup =  i + 1; //Set CurrentActiveGroup to the group with ExternalControl enabled
+                pFailOverController->HighestValidGroup = i + 1; //Set HighestValidGroup to the group with ExternalControl enabled
+            }
+            WanMgrDml_GetIfaceGroup_release();
+        }
+    }
+    
+    return STATE_FAILOVER_IDLE_MONITOR;
+}
+
 /*********************************************************************************/
 /**************************** STATES *********************************************/
 /*********************************************************************************/
@@ -675,6 +723,11 @@ static WcFailOverState_t State_ScanningGroup (WanMgr_FailOver_Controller_t * pFa
     if(pFailOverController->WanEnable == FALSE)
     {
         return STATE_FAILOVER_EXIT;
+    }
+
+    if (pFailOverController->ExternalControlRequested == TRUE)
+    {
+        return Transition_Idle(pFailOverController);
     }
 
     MarkHighPriorityGroup(pFailOverController, true);
@@ -695,7 +748,7 @@ static WcFailOverState_t State_GroupActive (WanMgr_FailOver_Controller_t * pFail
         return STATE_FAILOVER_ERROR;
     }
 
-    if(pFailOverController->WanEnable == FALSE )
+    if(pFailOverController->WanEnable == FALSE || (pFailOverController->ExternalControlRequested == TRUE))
     {
         return Transition_DeactivateGroup(pFailOverController);
     }
@@ -756,7 +809,7 @@ static WcFailOverState_t State_RestorationWait (WanMgr_FailOver_Controller_t * p
         return STATE_FAILOVER_ERROR;
     }
 
-    if(pFailOverController->WanEnable == FALSE )
+    if(pFailOverController->WanEnable == FALSE || (pFailOverController->ExternalControlRequested == TRUE))
     {
         return Transition_DeactivateGroup(pFailOverController);
     }
@@ -841,14 +894,49 @@ static WcFailOverState_t State_DeactivateGroup (WanMgr_FailOver_Controller_t * p
         if(pFailOverController->WanEnable == FALSE)
         {
             return STATE_FAILOVER_EXIT;
+        } 
+        else if (pFailOverController->ExternalControlRequested == TRUE)
+        {
+            return Transition_Idle(pFailOverController);
         }
+        
         return Transition_ActivateGroup(pFailOverController);
     }
 
     return STATE_FAILOVER_DEACTIVATE_GROUP;
 }
 
+/**
+ * @brief Handles the Idle Monitor state in the WAN Failover Controller state machine.
+ *
+ * Monitors the ExternalControl variable. If the control is released,
+ * resets the selection and moves to the scanning state.
+ *
+ * @param[in,out] pFailOverController Pointer to the WAN FailOver Controller structure.
+ *
+ * @return The next state to transition to, as a value of WcFailOverState_t.
+ */
+static WcFailOverState_t State_IdleMonitor (WanMgr_FailOver_Controller_t * pFailOverController)
+{
+    if(pFailOverController == NULL)
+    {
+        CcspTraceError(("%s %d pFWController object is NULL \n", __FUNCTION__, __LINE__));
+        return STATE_FAILOVER_ERROR;
+    }
 
+    if(pFailOverController->WanEnable == FALSE)
+    {
+        return STATE_FAILOVER_EXIT;
+    }
+
+    if(pFailOverController->ExternalControlRequested == FALSE)
+    {
+        CcspTraceInfo(("%s %d: ExternalControl Released. Resetting scan and returning to scanning state.\n", __FUNCTION__, __LINE__));
+        return Transition_ResetScan(pFailOverController);
+    }
+
+    return STATE_FAILOVER_IDLE_MONITOR;
+}
 /*********************************************************************************/
 /**************************** SM THREAD ******************************************/
 /*********************************************************************************/
@@ -910,6 +998,9 @@ ANSC_STATUS WanMgr_FailOverThread (void)
                 break;
             case STATE_FAILOVER_DEACTIVATE_GROUP:
                 fo_sm_state = State_DeactivateGroup(&FWController);
+                break;
+            case STATE_FAILOVER_IDLE_MONITOR:
+                fo_sm_state = State_IdleMonitor(&FWController);
                 break;
             case STATE_FAILOVER_EXIT:
                 bRunning = false;

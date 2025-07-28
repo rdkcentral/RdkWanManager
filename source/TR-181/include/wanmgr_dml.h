@@ -481,6 +481,7 @@ typedef struct _WANMGR_IFACE_GROUP_DATA_
     BOOLEAN            ConfigChanged;
     BOOLEAN            ResetSelectedInterface;
     BOOLEAN            InitialScanComplete;
+    BOOLEAN            ExternalControl;
 }WANMGR_IFACE_GROUP;
 
 typedef struct _WANMGR_IFACE_GROUP_
@@ -591,6 +592,7 @@ typedef struct _DML_WANMGR_CONFIG_
     DEVICE_NETWORKING_MODE DeviceNwMode;
     BOOLEAN DeviceNwModeChanged;    // Set if DeviceNwMode is changed and config needs to be applied
     BOOLEAN ResetFailOverScan;
+    BOOLEAN ExternalControlRequested;
     BOOLEAN AllowRemoteInterfaces;
     BOOLEAN BootToWanUp;            // Set if Wan was UP after boot
     CHAR    InterfaceAvailableStatus[BUFLEN_64];

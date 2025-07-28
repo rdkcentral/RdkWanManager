@@ -75,6 +75,7 @@
 #define PSM_WANMANAGER_IF_VIRIF_ENABLE_DSLITE               "dmsb.wanmanager.if.%d.VirtualInterface.%d.EnableDSLite"
 
 #define PSM_WANMANAGER_GROUP_POLICY                         "dmsb.wanmanager.group.%d.policy"
+#define PSM_WANMANAGER_GROUP_EXTERNAL_CONTROL               "dmsb.wanmanager.group.%d.ExternalControl"
 #define PSM_WANMANAGER_WANIFCOUNT                           "dmsb.wanmanager.wan.interfacecount"
 
 #else
