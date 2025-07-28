@@ -23,6 +23,7 @@
 #include "wanmgr_rbus_handler_apis.h"
 #include "wanmgr_rdkbus_apis.h"
 #include "dmsb_tr181_psm_definitions.h"
+#include "wanmgr_interface_apis.h"
 
 enum {
 ENUM_PHY = 1,
@@ -2101,23 +2102,13 @@ rbusError_t WanMgr_Interface_StartWan(rbusHandle_t handle, char const* name, rbu
         return RBUS_ERROR_INVALID_INPUT;
     }
 
-    WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked((index - 1));
-    if(pWanDmlIfaceData != NULL)
+    CcspTraceInfo(("%s %d: Starting WAN interface SM for Interface %d\n", __FUNCTION__, __LINE__, index));
+    if(WanMgr_StartWan(index, WAN_IFACE_SELECTED) != 0)
     {
-        DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
-        if(pWanDmlIface->Selection.Enable == FALSE)
-        {
-            CcspTraceInfo(("%s %d: Interface %d is disabled. not Starting WAN interface SM\n", __FUNCTION__, __LINE__, index));
-            ret = RBUS_ERROR_BUS_ERROR;
-        }
-        else
-        {
-            CcspTraceInfo(("%s %d: Starting WAN interface SM for Interface %d\n", __FUNCTION__, __LINE__, index));
-         //  WanMgr_StartWanInterfaceStateMachine(pWanDmlIfaceData);
-        }
-
-        WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+        CcspTraceError(("%s %d: Failed to start WAN for interface %d \n", __FUNCTION__, __LINE__, index));
+        ret = RBUS_ERROR_BUS_ERROR;
     }
+    
     return ret;
 }
 

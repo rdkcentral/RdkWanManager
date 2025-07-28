@@ -28,6 +28,8 @@
 #include "wanmgr_rdkbus_apis.h"
 #include "wanmgr_wan_failover.h"
 #include "wanmgr_net_utils.h"
+#include "wanmgr_interface_apis.h"
+
 
 /* ---- Global Constants -------------------------- */
 #define SELECTION_PROCESS_LOOP_TIMEOUT 250000 // timeout in microseconds. This is the state machine loop interval
@@ -501,48 +503,6 @@ static bool WanMgr_CheckIfSelectedIfaceOnlyPossibleWanLink (WanMgr_Policy_Contro
 }
 
 /*
- * WanMgr_StartIfaceStateMachine()
- * - starts the interface state machine
- * - if successful returns TRUE, else FALSE
- */
-static int WanMgr_StartIfaceStateMachine (WanMgr_Policy_Controller_t * pWanController)
-{
-    if ((pWanController == NULL) || (pWanController->pWanActiveIfaceData == NULL))
-    {
-        CcspTraceError(("%s %d: Invalid args \n", __FUNCTION__, __LINE__));
-        return ANSC_STATUS_FAILURE;
-    }
-
-    DML_WAN_IFACE* pIfaceData = &(pWanController->pWanActiveIfaceData->data);
-
-    for(int VirtId=0; VirtId < pIfaceData->NoOfVirtIfs; VirtId++)
-    {
-        DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIface_locked(pWanController->activeInterfaceIdx, VirtId);
-        if(p_VirtIf != NULL)
-        {
-            if (p_VirtIf->Enable == FALSE)
-            {
-                CcspTraceError(("%s %d: virtual if(%d) : %s is not enabled. Not starting VISM\n", __FUNCTION__, __LINE__,p_VirtIf->VirIfIdx, p_VirtIf->Alias));
-                WanMgr_VirtualIfaceData_release(p_VirtIf);
-                continue;
-            }
-            WanMgr_VirtualIfaceData_release(p_VirtIf);
-        }
-
-        WanMgr_IfaceSM_Controller_t wanIfCtrl;
-        WanMgr_IfaceSM_Init(&wanIfCtrl, pWanController->activeInterfaceIdx, VirtId); 
-        if (WanMgr_StartInterfaceStateMachine(&wanIfCtrl) != 0)
-        {
-            CcspTraceError(("%s %d: Unable to start interface state machine \n", __FUNCTION__, __LINE__));
-            return ANSC_STATUS_FAILURE;
-        }
-    }
-    pIfaceData->VirtIfChanged = FALSE;
-    return ANSC_STATUS_SUCCESS;
-
-}
-
-/*
  * Transition_Start()
  * - If the ActiveLink flag of any interface is set to TRUE, then that interface is selected and moved out of bridge
  * - else, all interfaces are moved out of LAN bridge and the interface with the highest priority in the table ("0" is the highest) will be selected
@@ -777,11 +737,11 @@ static WcAwPolicyState_t Transition_InterfaceFound (WanMgr_Policy_Controller_t *
 
     // Set Selection.Status = SELECTED & start Interface State Machine
     DML_WAN_IFACE * pActiveInterface = &(pWanController->pWanActiveIfaceData->data);
-    pActiveInterface->Selection.Status = WAN_IFACE_SELECTED;
 
-    if (WanMgr_StartIfaceStateMachine (pWanController) != ANSC_STATUS_SUCCESS)
+    if(WanMgr_StartWan(pWanController->activeInterfaceIdx, WAN_IFACE_SELECTED) != 0)
     {
-        CcspTraceError(("%s %d: unable to start interface state machine\n", __FUNCTION__, __LINE__));
+        CcspTraceError(("%s %d: Failed to start WAN for interface %d \n", __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
+        return STATE_AUTO_WAN_ERROR;
     }
 
 #ifdef WAN_MANAGER_SELECTION_SCAN_TIMEOUT_DISABLE
@@ -996,9 +956,10 @@ static WcAwPolicyState_t Transistion_WanInterfaceUp (WanMgr_Policy_Controller_t 
     }
     else
     {
-        if (WanMgr_StartIfaceStateMachine (pWanController) != ANSC_STATUS_SUCCESS)
+        if(WanMgr_StartWan(pWanController->activeInterfaceIdx, WAN_IFACE_SELECTED) != 0)
         {
-            CcspTraceError(("%s %d: unable to start interface state machine\n", __FUNCTION__, __LINE__));
+            CcspTraceError(("%s %d: Failed to start WAN for interface %d \n", __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
+            return STATE_AUTO_WAN_ERROR;
         }
     }
 
@@ -1461,23 +1422,10 @@ static WcAwPolicyState_t State_WanInterfaceActive (WanMgr_Policy_Controller_t * 
 
     if(pActiveInterface->VirtIfChanged == TRUE)
     {
-        for(int VirtId=0; VirtId < pActiveInterface->NoOfVirtIfs; VirtId++)
+        if(WanMgr_StartWan(pWanController->activeInterfaceIdx, WAN_IFACE_SELECTED) != 0)
         {
-            DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIface_locked(pWanController->activeInterfaceIdx, VirtId);
-            if(p_VirtIf != NULL )
-            {
-                if(p_VirtIf->Enable == TRUE && p_VirtIf->Interface_SM_Running == FALSE)
-                {
-                    CcspTraceInfo(("%s %d Starting virtual InterfaceStateMachine for %d \n", __FUNCTION__, __LINE__, VirtId));
-                    WanMgr_IfaceSM_Controller_t wanIfCtrl;
-                    WanMgr_IfaceSM_Init(&wanIfCtrl, pWanController->activeInterfaceIdx, VirtId);
-                    if (WanMgr_StartInterfaceStateMachine(&wanIfCtrl) != 0)
-                    {
-                        CcspTraceError(("%s %d: Unable to start interface state machine \n", __FUNCTION__, __LINE__));
-                    }
-                }
-                WanMgr_VirtualIfaceData_release(p_VirtIf);
-            }
+            CcspTraceError(("%s %d: Failed to start WAN for interface %d \n", __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
+            return STATE_AUTO_WAN_ERROR;
         }
         pActiveInterface->VirtIfChanged = FALSE;
     }

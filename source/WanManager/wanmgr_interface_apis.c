@@ -39,16 +39,31 @@ int WanMgr_StartWan(int interfaceIndex, WANMGR_IFACE_SELECTION selectionStatus)
     int ret = 0;
 
     CcspTraceInfo(("%s %d: Entering WanMgr_StartWan for interfaceIndex=%d, selectionStatus=%d\n", __FUNCTION__, __LINE__, interfaceIndex, selectionStatus));
-    WanMgr_Iface_Data_t*   pWanDmlIfaceData = WanMgr_GetIfaceData_locked(IfaceId);
+    WanMgr_Iface_Data_t*   pWanDmlIfaceData = WanMgr_GetIfaceData_locked(interfaceIndex);
     if(pWanDmlIfaceData != NULL)
     {
         DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
-        pWanIfaceData->Selection.Status = selectionStatus;
+        if(pWanIfaceData->Selection.Enable == FALSE)
+        {
+            CcspTraceInfo(("%s %d: Interface %d is disabled. not Starting WAN interface SM\n", __FUNCTION__, __LINE__, interfaceIndex));
+            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+            return -1;
+        }
+
+        if(selectionStatus != WAN_IFACE_UNKNOWN && selectionStatus != WAN_IFACE_NOT_SELECTED)
+        {
+            CcspTraceInfo(("%s %d: Setting Selection.Status = %d for interfaceIndex=%d\n", __FUNCTION__, __LINE__, selectionStatus, interfaceIndex));
+            pWanIfaceData->Selection.Status = selectionStatus;
+        }
+        else
+        {
+            CcspTraceError(("%s %d: Invalid selection status %d for interfaceIndex=%d\n", __FUNCTION__, __LINE__, selectionStatus, interfaceIndex));
+        }
         pWanIfaceData->VirtIfChanged = FALSE;
 
         for(int VirtId=0; VirtId < pWanIfaceData->NoOfVirtIfs; VirtId++)
         {
-            DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIface_locked(IfaceId, VirtId);
+            DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIface_locked(interfaceIndex, VirtId);
             if(p_VirtIf != NULL)
             {
                 if (p_VirtIf->Enable == FALSE)
@@ -57,23 +72,23 @@ int WanMgr_StartWan(int interfaceIndex, WANMGR_IFACE_SELECTION selectionStatus)
                     WanMgr_VirtualIfaceData_release(p_VirtIf);
                     continue;
                 }
-                WanMgr_VirtualIfaceData_release(p_VirtIf);
-            }
 
-            if(p_VirtIf->Interface_SM_Running == TRUE)
-            {
-                CcspTraceInfo(("%s %d: Interface SM is already running for virtual interface %d \n", __FUNCTION__, __LINE__, VirtId));
+                if(p_VirtIf->Interface_SM_Running == TRUE)
+                {
+                    CcspTraceWarning(("%s %d: Virtual Interface SM is already running for virtual interface %d \n", __FUNCTION__, __LINE__, VirtId));
+                    WanMgr_VirtualIfaceData_release(p_VirtIf);
+                    continue;
+                }
                 WanMgr_VirtualIfaceData_release(p_VirtIf);
-                continue;
             }
 
             /*Start virtual Interface SM */
             WanMgr_IfaceSM_Controller_t wanIfCtrl;
-            WanMgr_IfaceSM_Init(&wanIfCtrl, IfaceId, VirtId);
+            WanMgr_IfaceSM_Init(&wanIfCtrl, interfaceIndex, VirtId);
 
             if (WanMgr_StartInterfaceStateMachine(&wanIfCtrl) != 0)
             {
-                CcspTraceError(("%s %d: Unable to start interface state machine \n", __FUNCTION__, __LINE__));
+                CcspTraceError(("%s %d: Unable to start Virtual interface state machine \n", __FUNCTION__, __LINE__));
                 ret = -1;
             }
         }
