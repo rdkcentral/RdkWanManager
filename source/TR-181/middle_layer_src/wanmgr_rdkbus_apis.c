@@ -1524,6 +1524,16 @@ ANSC_STATUS WanMgr_Read_GroupConf_FromPSM(WANMGR_IFACE_GROUP *pGroup, UINT group
 
     _ansc_memset(param_name, 0, sizeof(param_name));
     _ansc_memset(param_value, 0, sizeof(param_value));
+    _ansc_sprintf(param_name, PSM_WANMANAGER_GROUP_EXTERNAL_CONTROL, (groupId + 1));
+    retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
+    if (retPsmGet == CCSP_SUCCESS && strcmp(param_value, PSM_ENABLE_STRING_TRUE) == 0)
+    {
+        CcspTraceWarning(("%s %d: External control enabled for group %d. WFO policy will not control this Group and its interfaces. \n", __FUNCTION__, __LINE__, (groupId + 1)));
+         pGroup->ExternalControl = TRUE;
+    }
+
+    _ansc_memset(param_name, 0, sizeof(param_name));
+    _ansc_memset(param_value, 0, sizeof(param_value));
     _ansc_sprintf(param_name, PSM_WANMANAGER_GROUP_PERSIST_SELECTED_IFACE, (groupId + 1));
     retPsmGet = WanMgr_RdkBus_GetParamValuesFromDB(param_name,param_value,sizeof(param_value));
     if (retPsmGet == CCSP_SUCCESS && strcmp(param_value, PSM_ENABLE_STRING_TRUE) == 0)

@@ -131,13 +131,6 @@ ANSC_STATUS WanMgr_FailOverCtrlInit(WanMgr_FailOver_Controller_t* pFailOverContr
             if (pWanIfaceGroup != NULL)
             {
                 pWanIfaceGroup->InterfaceAvailable |= (1<<i);
-                char param_value[256] = {0};
-                WanMgr_RdkBus_GetParamValuesFromDB(PSM_WANMANAGER_GROUP_EXTERNAL_CONTROL,param_value,sizeof(param_value));
-                if(strcmp(param_value, "TRUE") == 0)
-                {
-                    CcspTraceWarning(("%s %d: External control enabled for group %d. WFO policy will not control this Group and its interfaces. \n", __FUNCTION__, __LINE__, pWanIfaceData->Selection.Group));
-                    pWanIfaceGroup->ExternalControl = TRUE;
-                }
                 WanMgrDml_GetIfaceGroup_release();
             }
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
