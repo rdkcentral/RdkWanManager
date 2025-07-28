@@ -59,10 +59,10 @@ int WanMgr_StopWan(int interfaceIndex, bool waitForTermination);
 /**
  * @brief Activates the WAN interface specified by the given index.
  *
- * If the interface already has a WAN lease(STANDBY), this function activates it by configuring
+ * If the interface is not already active, this function activates it by configuring
  * the default route, firewall, DNS, and MAP-T settings of the device based on the lease,
- * and transitions the interface to the active state. If the interface does not have a WAN IP,
- * the function returns a failure.
+ * and transitions the interface to the active state. 
+ * If a different interface is already active, it returns failure.
  *
  * @param interfaceIndex The index of the WAN interface to activate.
  * @return Returns 0 on success, or a negative error code on failure.

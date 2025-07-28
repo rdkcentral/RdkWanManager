@@ -49,10 +49,10 @@ rbusError_t WanMgr_Interface_SetHandler(rbusHandle_t handle, rbusProperty_t prop
 static void CPEInterface_AsyncMethodHandler( rbusHandle_t handle, char const* methodName, rbusError_t error, rbusObject_t params);
 static int WanMgr_Remote_IfaceData_index(const char *macAddress);
 
-rbusError_t WanMgr_Interface_StartWan(rbusHandle_t handle, char const* methodName, rbusObject_t inParams, rbusObject_t outParams, rbusMethodAsyncHandle_t asyncHandle);
-rbusError_t WanMgr_Interface_StopWan(rbusHandle_t handle, char const* methodName, rbusObject_t inParams, rbusObject_t outParams, rbusMethodAsyncHandle_t asyncHandle);
-rbusError_t WanMgr_Interface_ActivateWan(rbusHandle_t handle, char const* methodName, rbusObject_t inParams, rbusObject_t outParams, rbusMethodAsyncHandle_t asyncHandle);
-rbusError_t WanMgr_Interface_DeactivateWan(rbusHandle_t handle, char const* methodName, rbusObject_t inParams, rbusObject_t outParams, rbusMethodAsyncHandle_t asyncHandle);
+rbusError_t WanMgr_rbusMethod_Iface_StartWan(rbusHandle_t handle, char const* methodName, rbusObject_t inParams, rbusObject_t outParams, rbusMethodAsyncHandle_t asyncHandle);
+rbusError_t WanMgr_rbusMethod_Iface_StopWan(rbusHandle_t handle, char const* methodName, rbusObject_t inParams, rbusObject_t outParams, rbusMethodAsyncHandle_t asyncHandle);
+rbusError_t WanMgr_rbusMethod_Iface_ActivateWan(rbusHandle_t handle, char const* methodName, rbusObject_t inParams, rbusObject_t outParams, rbusMethodAsyncHandle_t asyncHandle);
+rbusError_t WanMgr_rbusMethod_Iface_DeactivateWan(rbusHandle_t handle, char const* methodName, rbusObject_t inParams, rbusObject_t outParams, rbusMethodAsyncHandle_t asyncHandle);
 
 
 typedef struct
@@ -104,10 +104,10 @@ rbusDataElement_t wanMgrIfacePublishElements[] = {
 #endif /** WAN_MANAGER_UNIFICATION_ENABLED */
     {WANMGR_INFACE_WAN_STATUS, RBUS_ELEMENT_TYPE_PROPERTY, {WanMgr_Interface_GetHandler, WanMgr_Interface_SetHandler, NULL, NULL, wanMgrDmlPublishEventHandler, NULL}},
     {WANMGR_INFACE_WAN_LINKSTATUS, RBUS_ELEMENT_TYPE_PROPERTY, {WanMgr_Interface_GetHandler, WanMgr_Interface_SetHandler, NULL, NULL, wanMgrDmlPublishEventHandler, NULL}},
-    { "Device.X_RDK_WanManager.Interface.{i}.WanStart()", RBUS_ELEMENT_TYPE_METHOD, {NULL, NULL, NULL, NULL, NULL, WanMgr_Interface_StartWan} },
-    { "Device.X_RDK_WanManager.Interface.{i}.WanStop()", RBUS_ELEMENT_TYPE_METHOD, {NULL, NULL, NULL, NULL, NULL, WanMgr_Interface_StopWan} },
-    { "Device.X_RDK_WanManager.Interface.{i}.Activate()", RBUS_ELEMENT_TYPE_METHOD, {NULL, NULL, NULL, NULL, NULL, WanMgr_Interface_ActivateWan} },
-    { "Device.X_RDK_WanManager.Interface.{i}.Deactivate()", RBUS_ELEMENT_TYPE_METHOD, {NULL, NULL, NULL, NULL, NULL, WanMgr_Interface_DeactivateWan} },
+    { "Device.X_RDK_WanManager.Interface.{i}.WanStart()", RBUS_ELEMENT_TYPE_METHOD, {NULL, NULL, NULL, NULL, NULL, WanMgr_rbusMethod_Iface_StartWan} },
+    { "Device.X_RDK_WanManager.Interface.{i}.WanStop()", RBUS_ELEMENT_TYPE_METHOD, {NULL, NULL, NULL, NULL, NULL, WanMgr_rbusMethod_Iface_StopWan} },
+    { "Device.X_RDK_WanManager.Interface.{i}.Activate()", RBUS_ELEMENT_TYPE_METHOD, {NULL, NULL, NULL, NULL, NULL, WanMgr_rbusMethod_Iface_ActivateWan} },
+    { "Device.X_RDK_WanManager.Interface.{i}.Deactivate()", RBUS_ELEMENT_TYPE_METHOD, {NULL, NULL, NULL, NULL, NULL, WanMgr_rbusMethod_Iface_DeactivateWan} },
 };
 
 RemoteDM_list RemoteDMs[] = {
@@ -2103,7 +2103,7 @@ UINT WanMgr_ParseIndexFromAPIName(const char *name)
  * @return              rbusError_t indicating success or failure of the operation.
  */
 
-rbusError_t WanMgr_Interface_StartWan(rbusHandle_t handle, char const* name, rbusObject_t inParams, rbusObject_t outParams, rbusMethodAsyncHandle_t asyncHandle)
+rbusError_t WanMgr_rbusMethod_Iface_StartWan(rbusHandle_t handle, char const* name, rbusObject_t inParams, rbusObject_t outParams, rbusMethodAsyncHandle_t asyncHandle)
 {
     (void)handle;
     (void)inParams;
@@ -2144,7 +2144,7 @@ rbusError_t WanMgr_Interface_StartWan(rbusHandle_t handle, char const* name, rbu
  *
  * @return rbusError_t       Returns RBUS error code indicating success or failure of the operation.
  */
-rbusError_t WanMgr_Interface_StopWan(rbusHandle_t handle, char const* name, rbusObject_t inParams, rbusObject_t outParams, rbusMethodAsyncHandle_t asyncHandle)
+rbusError_t WanMgr_rbusMethod_Iface_StopWan(rbusHandle_t handle, char const* name, rbusObject_t inParams, rbusObject_t outParams, rbusMethodAsyncHandle_t asyncHandle)
 {
      (void)handle;
     (void)inParams;
@@ -2185,7 +2185,7 @@ rbusError_t WanMgr_Interface_StopWan(rbusHandle_t handle, char const* name, rbus
  *
  * @return rbusError_t       Returns RBUS error code indicating success or failure of the operation.
  */
-rbusError_t WanMgr_Interface_ActivateWan(rbusHandle_t handle, char const* name, rbusObject_t inParams, rbusObject_t outParams, rbusMethodAsyncHandle_t asyncHandle)
+rbusError_t WanMgr_rbusMethod_Iface_ActivateWan(rbusHandle_t handle, char const* name, rbusObject_t inParams, rbusObject_t outParams, rbusMethodAsyncHandle_t asyncHandle)
 {
     (void)handle;
     (void)inParams;
@@ -2201,23 +2201,13 @@ rbusError_t WanMgr_Interface_ActivateWan(rbusHandle_t handle, char const* name, 
         return RBUS_ERROR_INVALID_INPUT;
     }
 
-    WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked((index - 1));
-    if(pWanDmlIfaceData != NULL)
+    CcspTraceInfo(("%s %d: Activating WAN interface for Interface %d\n", __FUNCTION__, __LINE__, index));
+    if( WanMgr_ActivateInterface(index - 1) != 0)
     {
-        DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
-        if(pWanDmlIface->Selection.Enable == FALSE)
-        {
-            //TODO : check if it is ready to activate
-            CcspTraceInfo(("%s %d: Interface %d is disabled. not Activating WAN interface\n", __FUNCTION__, __LINE__, index));
-            ret = RBUS_ERROR_BUS_ERROR;
-        }
-        else
-        {
-            CcspTraceInfo(("%s %d: Activating WAN interface for Interface %d\n", __FUNCTION__, __LINE__, index));
-            // WanMgr_ActivateWanInterface(pWanDmlIfaceData);
-        }
-        WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+        CcspTraceError(("%s %d: Failed to activate WAN for interface %d \n", __FUNCTION__, __LINE__, index));
+        ret = RBUS_ERROR_BUS_ERROR;
     }
+
     return ret;
 }
 
@@ -2236,7 +2226,7 @@ rbusError_t WanMgr_Interface_ActivateWan(rbusHandle_t handle, char const* name, 
  *
  * @return rbusError_t       Returns RBUS error code indicating success or failure of the operation.
  */
-rbusError_t WanMgr_Interface_DeactivateWan(rbusHandle_t handle, char const* name, rbusObject_t inParams, rbusObject_t outParams, rbusMethodAsyncHandle_t asyncHandle)
+rbusError_t WanMgr_rbusMethod_Iface_DeactivateWan(rbusHandle_t handle, char const* name, rbusObject_t inParams, rbusObject_t outParams, rbusMethodAsyncHandle_t asyncHandle)
 {
     (void)handle;
     (void)inParams;
@@ -2251,22 +2241,11 @@ rbusError_t WanMgr_Interface_DeactivateWan(rbusHandle_t handle, char const* name
         return RBUS_ERROR_INVALID_INPUT;
     }
 
-    WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked((index - 1));
-    if(pWanDmlIfaceData != NULL)
+    CcspTraceInfo(("%s %d: Deactivating WAN interface for Interface %d\n", __FUNCTION__, __LINE__, index));
+    if(WanMgr_DeactivateInterface(index - 1) != 0)
     {
-        DML_WAN_IFACE* pWanDmlIface = &(pWanDmlIfaceData->data);
-        if(pWanDmlIface->Selection.Enable == FALSE)
-        {
-            //TODO : check if it is ready to deactivate
-            CcspTraceInfo(("%s %d: Interface %d is disabled. not Deactivating WAN interface\n", __FUNCTION__, __LINE__, index));
-            ret = RBUS_ERROR_BUS_ERROR;
-        }
-        else
-        {
-            CcspTraceInfo(("%s %d: Deactivating WAN interface for Interface %d\n", __FUNCTION__, __LINE__, index));
-            // WanMgr_DeactivateWanInterface(pWanDmlIfaceData);
-        }
-        WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+        CcspTraceError(("%s %d: Failed to deactivate WAN for interface %d \n", __FUNCTION__, __LINE__, index));
+        ret = RBUS_ERROR_BUS_ERROR;
     }
     return ret;
 }

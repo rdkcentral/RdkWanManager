@@ -90,8 +90,14 @@ int WanMgr_StartWan(int interfaceIndex, WANMGR_IFACE_SELECTION selectionStatus)
             {
                 CcspTraceError(("%s %d: Unable to start Virtual interface state machine \n", __FUNCTION__, __LINE__));
                 ret = -1;
-            }
+            } 
         }
+
+        if( ret == 0)
+        {
+            CcspTraceInfo(("%s %d: Successfully started WAN interface state machine for interfaceIndex=%d [%s]\n", __FUNCTION__, __LINE__, interfaceIndex, pWanIfaceData->AliasName));
+        }
+        
         WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
     }
 
@@ -100,9 +106,8 @@ int WanMgr_StartWan(int interfaceIndex, WANMGR_IFACE_SELECTION selectionStatus)
 
 
 /**
- * @brief Stop WAN .
- *
- * This function stops the WAN interface state machine and sets the selection status to not selected.
+ * @brief This function stops the WAN interface state machine and sets the selection status to not selected.
+ * It also waits for the interface state machine to terminate if specified.
  *
  * @param[in] interfaceIndex Index of the WAN interface to Stop WAN.
  * @param[in] waitForTermination If true, waits for the interface state machine to terminate before returning.
@@ -117,16 +122,16 @@ int WanMgr_StopWan(int interfaceIndex, bool waitForTermination)
     if(pWanDmlIfaceData != NULL)
     {
         DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
-        //Set Selection.Status to “NOT_SELECTED”, to teardown the  the iface sm thread 
-        CcspTraceInfo(("%s %d: Selection.Status set to NOT_SELECTED. Tearing down iface state machine\n", __FUNCTION__, __LINE__));
+        //Set Selection.Status to “NOT_SELECTED”, to teardown the  the iface sm thread
+        CcspTraceInfo(("%s %d: Selection.Status set to NOT_SELECTED for interface %d [%s]\n", __FUNCTION__, __LINE__, interfaceIndex, pWanIfaceData->AliasName));
         pWanIfaceData->Selection.Status = WAN_IFACE_NOT_SELECTED;
 
         WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);   
     }
 
+    // Wait for the interface state machine to terminate for 10 seconds
     if(waitForTermination)
     {
-        // Wait for the interface state machine to terminate for 10 seconds
         CcspTraceInfo(("%s %d: Waiting for interface state machine to terminate\n", __FUNCTION__, __LINE__));
         int waited_ms = 0;
         while (waited_ms < 10000)
@@ -152,15 +157,67 @@ int WanMgr_StopWan(int interfaceIndex, bool waitForTermination)
 /**
  * @brief Activates the WAN interface specified by the given index.
  *
- * If the interface already has a WAN lease(STANDBY), this function activates it by configuring
+ * If the interface is not already active, this function activates it by configuring
  * the default route, firewall, DNS, and MAP-T settings of the device based on the lease,
- * and transitions the interface to the active state. If the interface does not have a WAN IP,
- * the function returns a failure.
+ * and transitions the interface to the active state. 
+ * If a different interface is already active, it returns failure.
  *
  * @param interfaceIndex The index of the WAN interface to activate.
  * @return Returns 0 on success, or a negative error code on failure.
  */
-int WanMgr_ActivateInterface(int interfaceIndex);
+int WanMgr_ActivateInterface(int interfaceIndex)
+{
+    //Only single interface activation is supported. If a different interface is already active, return failure.
+    CcspTraceInfo(("%s %d: Entering WanMgr_ActivateInterface for interfaceIndex=%d\n", __FUNCTION__, __LINE__, interfaceIndex));
+
+    UINT ifaceCount = WanMgr_IfaceData_GetTotalWanIface();
+    int ret = 0;
+    for (int uiLoopCount = 0; uiLoopCount < ifaceCount; uiLoopCount++)
+    {
+        WanMgr_Iface_Data_t*   pWanDmlIfaceData = WanMgr_GetIfaceData_locked(uiLoopCount);
+        if(pWanDmlIfaceData != NULL)
+        {
+            DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
+            if(pWanIfaceData->Selection.Status == WAN_IFACE_ACTIVE)
+            {
+                if (uiLoopCount != interfaceIndex)
+                {
+                    CcspTraceError(("%s %d: Another interface %d [%s] is already active. Cannot activate interface %d\n", __FUNCTION__, __LINE__, uiLoopCount, pWanIfaceData->AliasName, interfaceIndex));
+                    WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+                    return -1; // Another interface is already active
+                } 
+                else
+                {
+                    CcspTraceInfo(("%s %d: Interface %d [%s] is already active. No action needed\n", __FUNCTION__, __LINE__, interfaceIndex, pWanIfaceData->AliasName));
+                    WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+                    return 0; // Interface is already active
+                }
+            }
+            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+        }
+    }
+
+    WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(interfaceIndex);
+    if (pWanDmlIfaceData != NULL)
+    {
+        DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
+        if(pWanIfaceData->Selection.Enable == FALSE)
+        {
+            CcspTraceInfo(("%s %d: Interface %d is disabled. not Starting WAN interface SM\n", __FUNCTION__, __LINE__, interfaceIndex));
+            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+            return -1;
+        }
+        //TODO: Do we need to check if the interface has wan connection? We could activate an interface without a WAN connection.
+        if(pWanIfaceData->Selection.Status == WAN_IFACE_SELECTED) 
+        {
+            CcspTraceInfo(("%s %d: Activating WAN interface %d [%s]\n", __FUNCTION__, __LINE__, interfaceIndex, pWanIfaceData->AliasName));
+            pWanIfaceData->Selection.Status = WAN_IFACE_ACTIVE;
+        }
+        WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+    }
+
+    return ret;
+}
 
 /**
  * @brief Deactivates the WAN interface and deconfigures the default route, firewall, DNS, and WAN IP, moving the interface back to the standby state.
@@ -170,5 +227,29 @@ int WanMgr_ActivateInterface(int interfaceIndex);
  * @param[in] interfaceIndex The index of the WAN interface to deactivate.
  * @return 0 on success, or a negative error code on failure.
  */
-int WanMgr_DeactivateInterface(int interfaceIndex);
+int WanMgr_DeactivateInterface(int interfaceIndex)
+{
+    CcspTraceInfo(("%s %d: Entering WanMgr_DeactivateInterface for interfaceIndex=%d\n", __FUNCTION__, __LINE__, interfaceIndex));
+
+    WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked(interfaceIndex);
+    if (pWanDmlIfaceData == NULL)
+    {
+        CcspTraceError(("%s %d: Failed to get WAN interface data for index %d\n", __FUNCTION__, __LINE__, interfaceIndex));
+        return -1; // Failed to get WAN interface data
+    }
+
+    DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
+    if (pWanIfaceData->Selection.Status != WAN_IFACE_ACTIVE)
+    {
+        CcspTraceInfo(("%s %d: Interface %d is not active. No action needed\n", __FUNCTION__, __LINE__, interfaceIndex));
+        WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+        return 0; // Interface is not active
+    }
+
+    // Deactivate the WAN interface
+    pWanIfaceData->Selection.Status = WAN_IFACE_SELECTED; // Move back to standby state
+    CcspTraceInfo(("%s %d: Deactivating WAN interface %d [%s]\n", __FUNCTION__, __LINE__, interfaceIndex, pWanIfaceData->AliasName));
+
+    return 0; // Success
+}
 

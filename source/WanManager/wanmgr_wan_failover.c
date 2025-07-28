@@ -192,7 +192,7 @@ int WanMgr_SetGroupSelectedIface (UINT GroupInst, UINT IfaceInst)
 }
 
 /* WanMgr_DeactivateGroup()
- * Set the selected interface to WAN_IFACE_SELECTED if it is set to WAN_IFACE_ACTIVE
+ * Calls WanMgr_DeactivateInterface for the selected interface in the group.
  */
 static ANSC_STATUS WanMgr_DeactivateGroup(UINT groupId)
 {
@@ -200,26 +200,14 @@ static ANSC_STATUS WanMgr_DeactivateGroup(UINT groupId)
     WANMGR_IFACE_GROUP* pWanIfaceGroup = WanMgr_GetIfaceGroup_locked((groupId - 1));
     if (pWanIfaceGroup != NULL)
     {
-        if (pWanIfaceGroup->SelectedInterface)
-        {
-            WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked((pWanIfaceGroup->SelectedInterface - 1));
-            if (pWanDmlIfaceData != NULL)
-            {
-                DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
-                if(pWanIfaceData->Selection.Status == WAN_IFACE_ACTIVE)
-                {
-                    pWanIfaceData->Selection.Status = WAN_IFACE_SELECTED;
-                }
-                WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
-            }
-        }
+        WanMgr_DeactivateInterface(pWanIfaceGroup->SelectedInterface - 1);
         WanMgrDml_GetIfaceGroup_release();
     }
     return ANSC_STATUS_SUCCESS;
 }
 
 /* WanMgr_ActivateGroup()
- * Set the selected interface to WAN_IFACE_ACTIVE if it is set to WAN_IFACE_SELECTED
+ * Calls WanMgr_ActivateInterface for the selected interface in the group.
  */
 static ANSC_STATUS WanMgr_ActivateGroup(UINT groupId)
 {
@@ -230,17 +218,10 @@ static ANSC_STATUS WanMgr_ActivateGroup(UINT groupId)
     {
         if (pWanIfaceGroup->SelectedInterface)
         {
-            WanMgr_Iface_Data_t* pWanDmlIfaceData = WanMgr_GetIfaceData_locked((pWanIfaceGroup->SelectedInterface - 1));
-            if (pWanDmlIfaceData != NULL)
+            if(WanMgr_ActivateInterface(pWanIfaceGroup->SelectedInterface - 1) == 0)
             {
-                DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
-                if(pWanIfaceData->Selection.Status == WAN_IFACE_SELECTED)
-                {
-                    pWanIfaceData->Selection.Status = WAN_IFACE_ACTIVE;
-                    pWanIfaceGroup->ActivationCount++; //update group activation count
-                    CcspTraceInfo(("%s %d Group %d ActivationCount : %d\n", __FUNCTION__, __LINE__, groupId,pWanIfaceGroup->ActivationCount));
-                }
-                WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+                pWanIfaceGroup->ActivationCount++; //update group activation count
+                CcspTraceInfo(("%s %d Group %d ActivationCount : %d\n", __FUNCTION__, __LINE__, groupId,pWanIfaceGroup->ActivationCount));
             }
         }
         WanMgrDml_GetIfaceGroup_release();
