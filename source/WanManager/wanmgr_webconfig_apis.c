@@ -34,7 +34,7 @@
 #include "wanmgr_data.h"
 #include "wanmgr_dml_apis.h"
 #include "messagebus_interface_helper.h"
-
+#include "wanmgr_dml_iface_v2_apis.h"
 
 /* WanMgr_Process_Webconfig_Request: */
 /**
