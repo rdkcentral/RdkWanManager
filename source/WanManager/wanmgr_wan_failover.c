@@ -932,6 +932,7 @@ static WcFailOverState_t State_IdleMonitor (WanMgr_FailOver_Controller_t * pFail
     if(pFailOverController->ExternalControlRequested == FALSE)
     {
         CcspTraceInfo(("%s %d: ExternalControl Released. Resetting scan and returning to scanning state.\n", __FUNCTION__, __LINE__));
+        pFailOverController->CurrentActiveGroup =  0; // Reset CurrentActiveGroup
         return Transition_ResetScan(pFailOverController);
     }
 

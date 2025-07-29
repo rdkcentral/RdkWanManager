@@ -1939,10 +1939,10 @@ ANSC_STATUS Update_Interface_Status()
                     snprintf(newIface->ActiveStatus, sizeof(newIface->ActiveStatus), "%s,0", pWanIfaceData->DisplayName);
 
                 if((pWanIfaceData->IfaceType == REMOTE_IFACE &&
-                     p_VirtIf->Status == WAN_IFACE_STATUS_UP &&
+                     (p_VirtIf->Status == WAN_IFACE_STATUS_UP || p_VirtIf->Status == WAN_IFACE_STATUS_STANDBY || p_VirtIf->Status == WAN_IFACE_STATUS_VALID) &&
                      p_VirtIf->RemoteStatus == WAN_IFACE_STATUS_UP) ||
                     (pWanIfaceData->IfaceType == LOCAL_IFACE &&
-                     p_VirtIf->Status == WAN_IFACE_STATUS_UP)) 
+                     (p_VirtIf->Status == WAN_IFACE_STATUS_UP || p_VirtIf->Status == WAN_IFACE_STATUS_STANDBY || p_VirtIf->Status == WAN_IFACE_STATUS_VALID))) 
                 {
                     snprintf(newIface->InterfaceWanUpStatus, sizeof(newIface->InterfaceWanUpStatus), "%s,1", pWanIfaceData->DisplayName);
                 }else
