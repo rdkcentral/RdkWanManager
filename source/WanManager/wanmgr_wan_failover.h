@@ -51,6 +51,7 @@ typedef  struct _WANMGR_FAILOVER_CONTROLLER_
     TelemetryEvent_t        TelemetryEvent; 
     BOOL                    AllowRemoteInterfaces;
     BOOL                    ExternalControlRequested;
+    BOOL                    InitialScanCompleted;
 } WanMgr_FailOver_Controller_t;
 
 

@@ -777,7 +777,7 @@ static WcAwPolicyState_t Transition_InterfaceDeselect (WanMgr_Policy_Controller_
     }
 
     CcspTraceInfo(("%s %d: Calling WanMgr_StopWan for interface %d\n", __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
-    WanMgr_StopWan(pWanController->activeInterfaceIdx, false);
+    WanMgr_StopWan(pWanController->activeInterfaceIdx);
 
     return STATE_AUTO_WAN_INTERFACE_TEARDOWN;
 
@@ -905,7 +905,7 @@ static WcAwPolicyState_t Transition_ReconfigurePlatform (WanMgr_Policy_Controlle
     //  Call WanMgr_StopWan() to stop the interface state machine
     DML_WAN_IFACE * pActiveInterface = &(pWanController->pWanActiveIfaceData->data);
     CcspTraceInfo(("%s %d: Calling WanMgr_StopWan for interface %d\n", __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
-    WanMgr_StopWan(pWanController->activeInterfaceIdx, false); 
+    WanMgr_StopWan(pWanController->activeInterfaceIdx); 
     pActiveInterface->Selection.RebootTriggerStatus = TRUE;
     
 
@@ -933,7 +933,7 @@ static WcAwPolicyState_t Transition_AutoWanTearDown (WanMgr_Policy_Controller_t 
     // Call WanMgr_StopWan() to stop the interface state machine
     DML_WAN_IFACE * pActiveInterface = &(pWanController->pWanActiveIfaceData->data);
     CcspTraceInfo(("%s %d: Calling WanMgr_StopWan for interface %d\n", __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
-    WanMgr_StopWan(pWanController->activeInterfaceIdx, false);
+    WanMgr_StopWan(pWanController->activeInterfaceIdx);
     
     return STATE_AUTO_WAN_TEARING_DOWN;
     
@@ -1009,7 +1009,7 @@ static WcAwPolicyState_t Transition_ResetSelectedInterface (WanMgr_Policy_Contro
     }
 
     CcspTraceInfo(("%s %d: Calling WanMgr_StopWan for interface %d. moving to State_WaitingForIfaceTearDown()\n", __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
-    WanMgr_StopWan(pWanController->activeInterfaceIdx, false); 
+    WanMgr_StopWan(pWanController->activeInterfaceIdx); 
 
     return STATE_AUTO_WAN_INTERFACE_TEARDOWN;
 }

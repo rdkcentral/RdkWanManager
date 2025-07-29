@@ -373,7 +373,7 @@ static WcPsPolicyState_t Transition_SelectingInterface (WanMgr_Policy_Controller
                 }else
                 {
                     CcspTraceInfo(("%s %d: Calling WanMgr_StopWan for interface %d\n", __FUNCTION__, __LINE__, uiLoopCount));
-                    WanMgr_StopWan(uiLoopCount, false);
+                    WanMgr_StopWan(uiLoopCount);
                     pWanIfaceData->Selection.ActiveLink = FALSE;
                     DmlSetWanActiveLinkInPSMDB(uiLoopCount, FALSE);
                 }
@@ -623,7 +623,7 @@ static WcPsPolicyState_t Transition_TearingDown (WanMgr_Policy_Controller_t * pW
             if(pWanController->GroupInst == pWanIfaceData->Selection.Group)
             {
                 CcspTraceInfo(("%s %d: Calling WanMgr_StopWan for interface %d\n", __FUNCTION__, __LINE__, uiLoopCount));
-                WanMgr_StopWan(uiLoopCount, false);
+                WanMgr_StopWan(uiLoopCount);
                 /* set INVALID interfaces as DISABLED */
                 if (pWanIfaceData->VirtIfList->Status == WAN_IFACE_STATUS_INVALID)
                 {

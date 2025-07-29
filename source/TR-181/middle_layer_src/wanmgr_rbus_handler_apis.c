@@ -87,6 +87,8 @@ rbusDataElement_t wanMgrRbusDataElements[] = {
     {WANMGR_CONFIG_WAN_INTERFACEAVAILABLESTATUS,RBUS_ELEMENT_TYPE_PROPERTY, {WanMgr_Rbus_getHandler, NULL, NULL, NULL, WanMgr_Rbus_SubscribeHandler, NULL}},
     {WANMGR_CONFIG_WAN_INTERFACEACTIVESTATUS,    RBUS_ELEMENT_TYPE_PROPERTY, {WanMgr_Rbus_getHandler, NULL, NULL, NULL, WanMgr_Rbus_SubscribeHandler, NULL}},
     {WANMGR_CONFIG_WAN_CURRENTACTIVEDNS,    RBUS_ELEMENT_TYPE_PROPERTY, {WanMgr_Rbus_getHandler, NULL, NULL, NULL, WanMgr_Rbus_SubscribeHandler, NULL}},
+    {WANMGR_EVENT_INITIAL_SCAN_COMPLETED,    RBUS_ELEMENT_TYPE_EVENT, {NULL, NULL, NULL, NULL, WanMgr_Rbus_SubscribeHandler, NULL}},
+    {WANMGR_EVENT_WAN_INTERFACEWANUPSTATUS,    RBUS_ELEMENT_TYPE_EVENT, {NULL, NULL, NULL, NULL, WanMgr_Rbus_SubscribeHandler, NULL}},
 };
 
 rbusDataElement_t wanMgrIfacePublishElements[] = {
@@ -2164,7 +2166,7 @@ rbusError_t WanMgr_rbusMethod_Iface_StopWan(rbusHandle_t handle, char const* nam
     }
 
     CcspTraceInfo(("%s %d: Calling WanMgr_StopWan for interface %d\n", __FUNCTION__, __LINE__, index));
-    if(WanMgr_StopWan(index - 1, true) != 0)
+    if(WanMgr_StopWan(index - 1) != 0)
     {
         CcspTraceError(("%s %d: Failed to stop WAN for interface %d \n", __FUNCTION__, __LINE__, index));
         ret = RBUS_ERROR_BUS_ERROR;

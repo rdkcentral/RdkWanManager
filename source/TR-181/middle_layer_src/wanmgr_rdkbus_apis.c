@@ -1873,6 +1873,7 @@ ANSC_STATUS Update_Interface_Status()
     struct IFACE_INFO *head = NULL;
     DEVICE_NETWORKING_MODE devMode = GATEWAY_MODE;
     CHAR    InterfaceAvailableStatus[BUFLEN_64]  = {0};
+    CHAR    InterfaceWanUpStatus[BUFLEN_64]  = {0};
     CHAR    InterfaceActiveStatus[BUFLEN_64]     = {0};
     CHAR    CurrentActiveInterface[BUFLEN_64] = {0};
     CHAR    CurrentStandbyInterface[BUFLEN_64] = {0};
@@ -1937,6 +1938,16 @@ ANSC_STATUS Update_Interface_Status()
                 }else
                     snprintf(newIface->ActiveStatus, sizeof(newIface->ActiveStatus), "%s,0", pWanIfaceData->DisplayName);
 
+                if((pWanIfaceData->IfaceType == REMOTE_IFACE &&
+                     p_VirtIf->Status == WAN_IFACE_STATUS_UP &&
+                     p_VirtIf->RemoteStatus == WAN_IFACE_STATUS_UP) ||
+                    (pWanIfaceData->IfaceType == LOCAL_IFACE &&
+                     p_VirtIf->Status == WAN_IFACE_STATUS_UP)) 
+                {
+                    snprintf(newIface->InterfaceWanUpStatus, sizeof(newIface->InterfaceWanUpStatus), "%s,1", pWanIfaceData->DisplayName);
+                }else
+                    snprintf(newIface->InterfaceWanUpStatus, sizeof(newIface->InterfaceWanUpStatus), "%s,0", pWanIfaceData->DisplayName);
+
                 /*
                  * In Gateway Mode, CurrentActiveInterface should be an actual virtual Interface Name
                  * In Modem/Extender Mode, CurrentActiveInterface should be always Mesh Interface Name
@@ -1996,7 +2007,11 @@ ANSC_STATUS Update_Interface_Status()
             strcat(InterfaceActiveStatus,"|");
         }
         strcat(InterfaceActiveStatus,pHead->ActiveStatus);
-
+        if(strlen(InterfaceWanUpStatus)>0 && strlen(pHead->InterfaceWanUpStatus)>0)
+        {
+            strcat(InterfaceWanUpStatus,"|");
+        }
+        strcat(InterfaceWanUpStatus,pHead->InterfaceWanUpStatus);
         tmp = pHead->next;
         free(pHead);
         pHead = tmp;
@@ -2024,6 +2039,15 @@ ANSC_STATUS Update_Interface_Status()
             publishActiveStatus = TRUE;
 #endif
         }
+
+        if(strcmp(pWanDmlData->InterfaceWanUpStatus,InterfaceWanUpStatus) != 0)
+        {
+#ifdef RBUS_BUILD_FLAG_ENABLE
+            WanMgr_Rbus_String_EventPublish_OnValueChange(WANMGR_EVENT_WAN_INTERFACEWANUPSTATUS, pWanDmlData->InterfaceWanUpStatus, InterfaceWanUpStatus);
+#endif
+            strncpy(pWanDmlData->InterfaceWanUpStatus,InterfaceWanUpStatus, sizeof(pWanDmlData->InterfaceWanUpStatus)-1);
+        }
+
     	if(RETURN_OK == Update_Current_ActiveDNS(CurrentActiveDNS))
     	{
             if(strcmp(pWanDmlData->CurrentActiveDNS,CurrentActiveDNS) != 0)

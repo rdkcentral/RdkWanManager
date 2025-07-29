@@ -119,6 +119,7 @@ ANSC_STATUS WanMgr_FailOverCtrlInit(WanMgr_FailOver_Controller_t* pFailOverContr
     pFailOverController->ActiveIfaceState = -1;
     pFailOverController->PhyState = WAN_IFACE_PHY_STATUS_UNKNOWN;
     pFailOverController->ExternalControlRequested = FALSE;
+    pFailOverController->InitialScanCompleted = FALSE;
     /* Update group Interface */
     UINT TotalIfaces = WanMgr_IfaceData_GetTotalWanIface();
     for (int i = 0 ; i < TotalIfaces; i++)
@@ -518,6 +519,12 @@ ANSC_STATUS MarkHighPriorityGroup (WanMgr_FailOver_Controller_t* pFailOverContro
                 {
                     WanMgrDml_GetIfaceGroup_release();
                     break;
+                }
+                if(pFailOverController->InitialScanCompleted == FALSE )
+                {
+                    pFailOverController->InitialScanCompleted = TRUE; //Initial scan completed
+                    CcspTraceInfo(("%s %d: Initial Scan Completed. \n", __FUNCTION__, __LINE__));
+                    WanMgr_Rbus_EventPublishHandler(WANMGR_EVENT_INITIAL_SCAN_COMPLETED, &(pFailOverController->InitialScanCompleted), RBUS_BOOLEAN);
                 }
             }
 
