@@ -1982,7 +1982,7 @@ static eWanState_t wan_transition_physical_interface_down(WanMgr_IfaceSM_Control
             WanMgr_RdkBus_ConfigureVlan(p_VirtIf, FALSE);        
             WanMgr_ProcessTelemetryMarker(p_VirtIf,WAN_ERROR_VLAN_DOWN);
             /* VLAN link is not created yet if LinkStatus is CONFIGURING. Change it to down. */
-            if( p_VirtIf->VLAN.Status == WAN_IFACE_LINKSTATUS_CONFIGURING )
+            if( p_VirtIf->VLAN.Status == WAN_IFACE_LINKSTATUS_CONFIGURING || p_VirtIf->VLAN.Status == WAN_IFACE_LINKSTATUS_UP )
             {
                 CcspTraceInfo(("%s %d: LinkStatus is still CONFIGURING. Set to down\n", __FUNCTION__, __LINE__));
                 p_VirtIf->VLAN.Status = WAN_IFACE_LINKSTATUS_DOWN;

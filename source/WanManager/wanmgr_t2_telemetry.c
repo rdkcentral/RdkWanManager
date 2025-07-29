@@ -1,12 +1,13 @@
 #include "wanmgr_t2_telemetry.h"
 #include "wanmgr_rdkbus_utils.h"
 
-static char MarkerArguments[256] = {0};
+#define BUFFER_LENGTH_256 256
+static char MarkerArguments[BUFFER_LENGTH_256] = {0};
 
 /*append api appends key value in pairs, separated by DELIMITER*/
 static void wanmgr_telemetry_append_key_value(char* key, const char* value)
 {
-    if(value != NULL)
+    if(value != NULL && strlen(MarkerArguments) < BUFFER_LENGTH_256 )
     {
         if(strlen(MarkerArguments)>0)
         {
@@ -25,7 +26,7 @@ ANSC_STATUS wanmgr_process_T2_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
     DML_WAN_IFACE *pIntf = Marker->pInterface;
     DML_VIRTUAL_IFACE *pVirtIntf = Marker->pVirtInterface;
     memset(MarkerArguments,0,sizeof(MarkerArguments));
-    char tempStr[256] = {0};
+    char tempStr[128] = {0};
 
     if(pIntf == NULL || pVirtIntf == NULL)
     {
@@ -176,7 +177,7 @@ ANSC_STATUS wanmgr_process_T2_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
             break;
 
         case WAN_ERROR_VLAN_DOWN:
-            if(pVirtIntf->VLAN.Status != WAN_IFACE_LINKSTATUS_UP)
+            if(pVirtIntf->VLAN.Status == WAN_IFACE_LINKSTATUS_DOWN)
             {
                 return ANSC_STATUS_SUCCESS;
             }
