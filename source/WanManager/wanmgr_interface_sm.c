@@ -39,6 +39,8 @@
 #include <telemetry_busmessage_sender.h>
 #endif
 
+#define HOTSPOT_IFACE_NAME                 "brww0"
+
 #define IF_SIZE      32
 #define LOOP_TIMEOUT 50000 // timeout in microseconds. This is the state machine loop interval
 #define RESOLV_CONF_FILE "/etc/resolv.conf"
@@ -2892,7 +2894,7 @@ static eWanState_t wan_transition_phy_down(WanMgr_IfaceSM_Controller_t* pWanIfac
         // Configure Interface
         if ( ANSC_STATUS_FAILURE == WanManager_RdkBus_EnableInterface(pInterface, TRUE) )
         {
-            //CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION PHY CONFIGURING\n", __FUNCTION__, __LINE__, pInterface->Name));
+            CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION PHY CONFIGURING\n", __FUNCTION__, __LINE__, pInterface->Name));
             return WAN_STATE_PHY_CONFIGURING;
         }
     }
@@ -3064,6 +3066,13 @@ static eWanState_t wan_state_phy_configuring(WanMgr_IfaceSM_Controller_t* pWanIf
         return wan_transition_exit(pWanIfaceCtrl);
     }
     
+    //TBC: Workaround, Return failure if the component not ready
+    if((0 == strncmp(pInterface->Name,HOTSPOT_IFACE_NAME, strlen(HOTSPOT_IFACE_NAME))) &&
+       (access("/tmp/wifi_dml_complete", F_OK) != 0))
+    {
+        return WAN_STATE_PHY_CONFIGURING;
+    }
+
     return wan_transition_phy_down(pWanIfaceCtrl);
 }
 
