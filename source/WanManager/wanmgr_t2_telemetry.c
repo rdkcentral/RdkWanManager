@@ -1,7 +1,7 @@
 #include "wanmgr_t2_telemetry.h"
 #include "wanmgr_rdkbus_utils.h"
 
-static char MarkerArguments[128] = {0};
+static char MarkerArguments[256] = {0};
 
 /*append api appends key value in pairs, separated by DELIMITER*/
 static void wanmgr_telemetry_append_key_value(char* key, const char* value)
@@ -25,7 +25,7 @@ ANSC_STATUS wanmgr_process_T2_telemetry_event(WanMgr_Telemetry_Marker_t *Marker)
     DML_WAN_IFACE *pIntf = Marker->pInterface;
     DML_VIRTUAL_IFACE *pVirtIntf = Marker->pVirtInterface;
     memset(MarkerArguments,0,sizeof(MarkerArguments));
-    char tempStr[128] = {0};
+    char tempStr[256] = {0};
 
     if(pIntf == NULL || pVirtIntf == NULL)
     {
