@@ -67,6 +67,8 @@ extern token_t sysevent_token;
 
 #include <syscfg/syscfg.h>
 
+#define HOTSPOT_IFACE_NAME                 "brww0"
+
 #define UPSTREAM_DM_SUFFIX                  ".Upstream"
 #define WAN_CONFIG_PORT_DM_SUFFIX           ".WanConfigPort"
 

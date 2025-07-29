@@ -2892,7 +2892,7 @@ static eWanState_t wan_transition_phy_down(WanMgr_IfaceSM_Controller_t* pWanIfac
         // Configure Interface
         if ( ANSC_STATUS_FAILURE == WanManager_RdkBus_EnableInterface(pInterface, TRUE) )
         {
-            CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION PHY CONFIGURING\n", __FUNCTION__, __LINE__, pInterface->Name));
+            //CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION PHY CONFIGURING\n", __FUNCTION__, __LINE__, pInterface->Name));
             return WAN_STATE_PHY_CONFIGURING;
         }
     }

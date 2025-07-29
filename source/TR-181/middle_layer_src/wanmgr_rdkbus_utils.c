@@ -59,6 +59,7 @@
 #include "wanmgr_data.h"
 #include "wanmgr_dhcpv4_apis.h"
 #include "wanmgr_dhcpv6_apis.h"
+#include <unistd.h>
 
 #define UPSTREAM_SET_MAX_RETRY_COUNT 10 // max. retry count for Upstream set requests
 #define DATAMODEL_PARAM_LENGTH 256
@@ -1198,6 +1199,13 @@ ANSC_STATUS WanManager_RdkBus_EnableInterface(DML_WAN_IFACE* pInterface, BOOL En
     char acSetParamName[256]  = {0};
     char acSetParamValue[256] = {0};
     ANSC_STATUS ret = ANSC_STATUS_FAILURE;
+
+    //TBC: Workaround, Return failure if the component not ready
+    if((0 == strncmp(pInterface->Name,HOTSPOT_IFACE_NAME, strlen(HOTSPOT_IFACE_NAME))) &&
+       (access("/tmp/wifi_dml_complete", F_OK) != 0))
+    {
+        return ANSC_STATUS_FAILURE;
+    }
 
     //Manage Subcription for Interface Status
     snprintf( acSetParamName, DATAMODEL_PARAM_LENGTH, "%s.Status", pInterface->BaseInterface );
