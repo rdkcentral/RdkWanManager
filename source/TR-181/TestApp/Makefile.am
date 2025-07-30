@@ -17,4 +17,12 @@
 # limitations under the License.
 ##########################################################################
 
-SUBDIRS = middle_layer_src netmonitor TestApp
+bin_PROGRAMS = igniteTestApp
+
+ACLOCAL_AMFLAGS = -I m4
+
+
+
+igniteTestApp_CFLAGS =  $(SYSTEMD_CFLAGS)
+igniteTestApp_SOURCES = testAppMain.c
+igniteTestApp_LDADD = -lccsp_common -lrbus $(SYSTEMD_LDFLAGS) -lpthread 

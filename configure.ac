@@ -131,6 +131,7 @@ AC_CONFIG_FILES([Makefile
 		source/TR-181/Makefile
 		source/TR-181/middle_layer_src/Makefile
 		source/TR-181/netmonitor/Makefile
+    source/TR-181/TestApp/Makefile
 		source/WanManager/Makefile])
 AC_SUBST(GTEST_ENABLE_FLAG)
 
