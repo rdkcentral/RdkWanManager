@@ -481,7 +481,6 @@ typedef struct _WANMGR_IFACE_GROUP_DATA_
     BOOLEAN            ConfigChanged;
     BOOLEAN            ResetSelectedInterface;
     BOOLEAN            InitialScanComplete;
-    BOOLEAN            ExternalControl;
 }WANMGR_IFACE_GROUP;
 
 typedef struct _WANMGR_IFACE_GROUP_

@@ -159,7 +159,6 @@ ANSC_STATUS WanMgr_Group_Configure()
                 pWanIfacegroup->Group[i].PersistSelectedIface = FALSE;
                 pWanIfacegroup->Group[i].ResetSelectedInterface = FALSE;
                 pWanIfacegroup->Group[i].InitialScanComplete = FALSE;
-                pWanIfacegroup->Group[i].ExternalControl = FALSE;
                 pWanIfacegroup->Group[i].Policy = AUTOWAN_MODE;
                 WanMgr_Read_GroupConf_FromPSM(&(pWanIfacegroup->Group[i]), i);
                 CcspTraceInfo(("%s %d Group[%d] Policy : %d \n", __FUNCTION__, __LINE__, i, pWanIfacegroup->Group[i].Policy));

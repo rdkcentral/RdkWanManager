@@ -1529,7 +1529,7 @@ ANSC_STATUS WanMgr_Read_GroupConf_FromPSM(WANMGR_IFACE_GROUP *pGroup, UINT group
     if (retPsmGet == CCSP_SUCCESS && strcmp(param_value, PSM_ENABLE_STRING_TRUE) == 0)
     {
         CcspTraceWarning(("%s %d: External control enabled for group %d. WFO policy will not control this Group and its interfaces. \n", __FUNCTION__, __LINE__, (groupId + 1)));
-         pGroup->ExternalControl = TRUE;
+        pGroup->State = STATE_GROUP_DEACTIVATED;
     }
 
     _ansc_memset(param_name, 0, sizeof(param_name));

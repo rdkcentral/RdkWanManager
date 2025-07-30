@@ -242,7 +242,7 @@ static void WanMgr_FO_IfaceGroupMonitor()
         WANMGR_IFACE_GROUP* pWanIfaceGroup = WanMgr_GetIfaceGroup_locked((i));
         if (pWanIfaceGroup != NULL)
         {
-            if( pWanIfaceGroup->InterfaceAvailable && pWanIfaceGroup->State != STATE_GROUP_RUNNING && pWanIfaceGroup->State != STATE_GROUP_DEACTIVATED && pWanIfaceGroup->ExternalControl == FALSE)
+            if( pWanIfaceGroup->InterfaceAvailable && pWanIfaceGroup->State != STATE_GROUP_RUNNING && pWanIfaceGroup->State != STATE_GROUP_DEACTIVATED )
             {
                 pWanIfaceGroup->SelectionTimeOut = 0;
                 pWanIfaceGroup->InitialScanComplete = FALSE;
@@ -688,23 +688,7 @@ static WcFailOverState_t Transition_Idle (WanMgr_FailOver_Controller_t * pFailOv
         CcspTraceError(("%s %d pFWController object is NULL \n", __FUNCTION__, __LINE__));
         return STATE_FAILOVER_ERROR;
     }
-
-    //If we are in Idle state, Set the externally controlled group as the current active group.
-    for(int i = 0; i < WanMgr_GetTotalNoOfGroups(); i++)
-    {
-        WANMGR_IFACE_GROUP* pWanIfaceGroup = WanMgr_GetIfaceGroup_locked((i));
-        if (pWanIfaceGroup != NULL)
-        {
-            if(pWanIfaceGroup->ExternalControl == TRUE)
-            {
-                CcspTraceInfo(("%s %d: Setting CurrentActiveGroup and HighestValidGroup to group index %d (ExternalControl enabled)\n", __FUNCTION__, __LINE__, i + 1));
-                pFailOverController->CurrentActiveGroup =  i + 1; //Set CurrentActiveGroup to the group with ExternalControl enabled
-                pFailOverController->HighestValidGroup = i + 1; //Set HighestValidGroup to the group with ExternalControl enabled
-            }
-            WanMgrDml_GetIfaceGroup_release();
-        }
-    }
-    
+   
     return STATE_FAILOVER_IDLE_MONITOR;
 }
 
@@ -932,8 +916,28 @@ static WcFailOverState_t State_IdleMonitor (WanMgr_FailOver_Controller_t * pFail
     if(pFailOverController->ExternalControlRequested == FALSE)
     {
         CcspTraceInfo(("%s %d: ExternalControl Released. Resetting scan and returning to scanning state.\n", __FUNCTION__, __LINE__));
-        pFailOverController->CurrentActiveGroup =  0; // Reset CurrentActiveGroup
         return Transition_ResetScan(pFailOverController);
+    }
+
+    // Check if any interface has been externally activated.
+    // If found, update the controller's active and highest valid group accordingly.
+    UINT TotalIfaces = WanMgr_IfaceData_GetTotalWanIface();
+    for (int i = 0 ; i < TotalIfaces; i++)
+    {
+        WanMgr_Iface_Data_t*   pWanDmlIfaceData = WanMgr_GetIfaceData_locked(i);
+        if(pWanDmlIfaceData != NULL)
+        {
+            DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
+            if(pWanIfaceData->Selection.Status == WAN_IFACE_ACTIVE && pWanIfaceData->Selection.Group != pFailOverController->CurrentActiveGroup)
+            {
+                //Ideally this group should be external controlled group.
+                CcspTraceInfo(("%s %d: Found Active Interface (%s) in group %d. Setting it as CurrentActiveGroup.\n", __FUNCTION__, __LINE__, pWanIfaceData->DisplayName, pWanIfaceData->Selection.Group));
+                pFailOverController->CurrentActiveGroup = pWanIfaceData->Selection.Group; //Set CurrentActiveGroup to the group of the active interface
+                pFailOverController->HighestValidGroup = pWanIfaceData->Selection.Group; // Set HighestValidGroup to the group of the active interface
+                WanMgr_SetGroupSelectedIface (pWanIfaceData->Selection.Group, i+1);
+            }
+            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+        }
     }
 
     return STATE_FAILOVER_IDLE_MONITOR;
