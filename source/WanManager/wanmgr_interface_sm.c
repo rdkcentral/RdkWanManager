@@ -39,8 +39,6 @@
 #include <telemetry_busmessage_sender.h>
 #endif
 
-#define HOTSPOT_IFACE_NAME                 "brww0"
-
 #define IF_SIZE      32
 #define LOOP_TIMEOUT 50000 // timeout in microseconds. This is the state machine loop interval
 #define RESOLV_CONF_FILE "/etc/resolv.conf"
@@ -110,7 +108,8 @@ static eWanState_t wan_transition_mapt_down(WanMgr_IfaceSM_Controller_t* pWanIfa
 extern int mapt_feature_enable_changed;
 #endif //FEATURE_MAPT
 static eWanState_t wan_transition_phy_down(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
-static eWanState_t wan_transition_phy_configuring(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
+static eWanState_t wan_transition_phy_deconfiguring(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
+static eWanState_t wan_transition_wan_deconfigured(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
 static eWanState_t wan_transition_exit(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
 
 static ANSC_STATUS WanMgr_StartConnectivityCheck(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
@@ -1946,8 +1945,6 @@ static eWanState_t wan_transition_physical_interface_down(WanMgr_IfaceSM_Control
     }
 #endif
 
-    wan_transition_phy_configuring(pWanIfaceCtrl);
-
     if(p_VirtIf->IP.Ipv4Status == WAN_IFACE_IPV4_STATE_UP)
     {
         wan_transition_ipv4_down(pWanIfaceCtrl);
@@ -2903,7 +2900,7 @@ static eWanState_t wan_transition_phy_down(WanMgr_IfaceSM_Controller_t* pWanIfac
     return WAN_STATE_PHY_DOWN;
 }
 
-static eWanState_t wan_transition_phy_configuring(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
+static eWanState_t wan_transition_phy_deconfiguring(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
 {
     CcspTraceInfo(("%s %d \n", __FUNCTION__, __LINE__));
 
@@ -2923,6 +2920,21 @@ static eWanState_t wan_transition_phy_configuring(WanMgr_IfaceSM_Controller_t* p
 
     CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION STATE PHY CONFIGURING\n", __FUNCTION__, __LINE__, pInterface->Name));
     return WAN_STATE_PHY_CONFIGURING;
+}
+
+static eWanState_t wan_transition_wan_deconfigured(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
+{
+    CcspTraceInfo(("%s %d \n", __FUNCTION__, __LINE__));
+
+    if((pWanIfaceCtrl == NULL) || (pWanIfaceCtrl->pIfaceData == NULL))
+    {
+        return ANSC_STATUS_FAILURE;
+    }
+
+    DML_WAN_IFACE* pInterface = pWanIfaceCtrl->pIfaceData;
+
+    CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION STATE PHY DOWN\n", __FUNCTION__, __LINE__, pInterface->Name));
+    return WAN_STATE_PHY_DOWN;
 }
 
 static eWanState_t wan_transition_exit(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
@@ -3067,7 +3079,7 @@ static eWanState_t wan_state_phy_configuring(WanMgr_IfaceSM_Controller_t* pWanIf
     }
     
     //TBC: Workaround, Return failure if the component not ready
-    if((0 == strncmp(pInterface->Name,HOTSPOT_IFACE_NAME, strlen(HOTSPOT_IFACE_NAME))) &&
+    if((0 == strncmp(pInterface->BaseInterface,WIFI_BASE_IFACE_PATH, strlen(WIFI_BASE_IFACE_PATH))) &&
        (access("/tmp/wifi_dml_complete", F_OK) != 0))
     {
         return WAN_STATE_PHY_CONFIGURING;
@@ -3091,7 +3103,7 @@ static eWanState_t wan_state_phy_down(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl
             p_VirtIf->Enable == FALSE ||
             pInterface->Selection.Status == WAN_IFACE_NOT_SELECTED)
     {
-        return wan_transition_phy_configuring(pWanIfaceCtrl);
+        return wan_transition_phy_deconfiguring(pWanIfaceCtrl);
     }
 
     if ( pInterface->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_UP )
@@ -4070,7 +4082,7 @@ static eWanState_t wan_state_deconfiguring_wan(WanMgr_IfaceSM_Controller_t* pWan
             return WAN_STATE_DECONFIGURING_WAN;
     }
 
-    return wan_transition_phy_down(pWanIfaceCtrl);
+    return wan_transition_wan_deconfigured(pWanIfaceCtrl);
 }
 
 static eWanState_t wan_state_exit(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)

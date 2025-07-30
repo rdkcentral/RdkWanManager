@@ -32,6 +32,7 @@
 #define REMOTE_INTERFACE_GROUP        2
 #define MAX_INTERFACE_GROUP           2
 #define WAN_MANAGER_VERSION         "1.5"
+#define WIFI_BASE_IFACE_PATH        "Device.WiFi.EndPoint."
 
 typedef enum _WANMGR_IFACE_SELECTION_STATUS
 {
