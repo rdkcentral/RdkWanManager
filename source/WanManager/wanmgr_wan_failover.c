@@ -688,6 +688,14 @@ static WcFailOverState_t Transition_Idle (WanMgr_FailOver_Controller_t * pFailOv
         CcspTraceError(("%s %d pFWController object is NULL \n", __FUNCTION__, __LINE__));
         return STATE_FAILOVER_ERROR;
     }
+
+    pFailOverController->CurrentActiveGroup = 0;
+    pFailOverController->HighestValidGroup = 0;
+    
+    //Update LED
+    wanmgr_setWanLedState(WAN_STATE_EXIT); 
+    pFailOverController->ActiveIfaceState = -1;
+    pFailOverController->PhyState = WAN_IFACE_PHY_STATUS_UNKNOWN;
    
     return STATE_FAILOVER_IDLE_MONITOR;
 }
@@ -921,6 +929,7 @@ static WcFailOverState_t State_IdleMonitor (WanMgr_FailOver_Controller_t * pFail
 
     // Check if any interface has been externally activated.
     // If found, update the controller's active and highest valid group accordingly.
+    BOOL activeInterfaceFound = FALSE;
     UINT TotalIfaces = WanMgr_IfaceData_GetTotalWanIface();
     for (int i = 0 ; i < TotalIfaces; i++)
     {
@@ -928,16 +937,32 @@ static WcFailOverState_t State_IdleMonitor (WanMgr_FailOver_Controller_t * pFail
         if(pWanDmlIfaceData != NULL)
         {
             DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
-            if(pWanIfaceData->Selection.Status == WAN_IFACE_ACTIVE && pWanIfaceData->Selection.Group != pFailOverController->CurrentActiveGroup)
+            if(pWanIfaceData->Selection.Status == WAN_IFACE_ACTIVE )
             {
-                //Ideally this group should be external controlled group.
-                CcspTraceInfo(("%s %d: Found Active Interface (%s) in group %d. Setting it as CurrentActiveGroup.\n", __FUNCTION__, __LINE__, pWanIfaceData->DisplayName, pWanIfaceData->Selection.Group));
-                pFailOverController->CurrentActiveGroup = pWanIfaceData->Selection.Group; //Set CurrentActiveGroup to the group of the active interface
-                pFailOverController->HighestValidGroup = pWanIfaceData->Selection.Group; // Set HighestValidGroup to the group of the active interface
-                WanMgr_SetGroupSelectedIface (pWanIfaceData->Selection.Group, i+1);
+                if(pWanIfaceData->Selection.Group != pFailOverController->CurrentActiveGroup)
+                {
+                    //Ideally this group should be external controlled group.
+                    CcspTraceInfo(("%s %d: Found Active Interface (%s) in group %d. Setting it as CurrentActiveGroup.\n", __FUNCTION__, __LINE__, pWanIfaceData->DisplayName, pWanIfaceData->Selection.Group));
+                    pFailOverController->CurrentActiveGroup = pWanIfaceData->Selection.Group; //Set CurrentActiveGroup to the group of the active interface
+                    pFailOverController->HighestValidGroup = pWanIfaceData->Selection.Group; // Set HighestValidGroup to the group of the active interface
+                    WanMgr_SetGroupSelectedIface (pWanIfaceData->Selection.Group, i+1);
+                }
+                activeInterfaceFound = TRUE;
             }
             WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
         }
+    }
+    
+    if(!activeInterfaceFound && pFailOverController->CurrentActiveGroup !=0)
+    {
+        //If no active interface found, reset the CurrentActiveGroup and HighestValidGroup
+        CcspTraceInfo(("%s %d: No Active Interface found. Resetting CurrentActiveGroup and HighestValidGroup.\n", __FUNCTION__, __LINE__));
+        pFailOverController->CurrentActiveGroup = 0;
+        pFailOverController->HighestValidGroup = 0;
+        //Update LED
+        wanmgr_setWanLedState(WAN_STATE_EXIT); 
+        pFailOverController->ActiveIfaceState = -1;
+        pFailOverController->PhyState = WAN_IFACE_PHY_STATUS_UNKNOWN;
     }
 
     return STATE_FAILOVER_IDLE_MONITOR;

@@ -37,6 +37,7 @@
 
 #define PSM_WANMANAGER_GROUP_COUNT                          "dmsb.wanmanager.group.Count"
 #define PSM_WANMANAGER_GROUP_PERSIST_SELECTED_IFACE         "dmsb.wanmanager.group.%d.PersistSelectedInterface"
+#define PSM_WANMANAGER_GROUP_EXTERNAL_CONTROL               "dmsb.wanmanager.group.%d.ExternalControl"
 #define PSM_WANMANAGER_IF_NAME                              "dmsb.wanmanager.if.%d.Name"
 #define PSM_WANMANAGER_IF_DISPLAY_NAME                      "dmsb.wanmanager.if.%d.DisplayName"
 #define PSM_WANMANAGER_IF_ALIAS                             "dmsb.wanmanager.if.%d.AliasName"
@@ -75,7 +76,6 @@
 #define PSM_WANMANAGER_IF_VIRIF_ENABLE_DSLITE               "dmsb.wanmanager.if.%d.VirtualInterface.%d.EnableDSLite"
 
 #define PSM_WANMANAGER_GROUP_POLICY                         "dmsb.wanmanager.group.%d.policy"
-#define PSM_WANMANAGER_GROUP_EXTERNAL_CONTROL               "dmsb.wanmanager.group.%d.ExternalControl"
 #define PSM_WANMANAGER_WANIFCOUNT                           "dmsb.wanmanager.wan.interfacecount"
 
 #else
