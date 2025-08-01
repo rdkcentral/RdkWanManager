@@ -1298,7 +1298,7 @@ static WcAwPolicyState_t State_WanInterfaceActive (WanMgr_Policy_Controller_t * 
 
     DML_WAN_IFACE * pActiveInterface = &(pWanController->pWanActiveIfaceData->data);
     
-    // Wait until exit of Interface State Machine for ColdStandby Interface
+    // Wait until exit of Interface State Machine
     if( (pActiveInterface->VirtIfChanged == FALSE) &&
         (WanMgr_Get_ISM_RunningStatus(pWanController->activeInterfaceIdx) == TRUE) )
     {

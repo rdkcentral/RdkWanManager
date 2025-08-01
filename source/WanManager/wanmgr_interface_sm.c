@@ -107,7 +107,7 @@ static eWanState_t wan_transition_mapt_up(WanMgr_IfaceSM_Controller_t* pWanIface
 static eWanState_t wan_transition_mapt_down(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
 extern int mapt_feature_enable_changed;
 #endif //FEATURE_MAPT
-static eWanState_t wan_transition_phy_down(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
+static eWanState_t wan_transition_configuring_interface(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
 static eWanState_t wan_transition_phy_deconfiguring(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
 static eWanState_t wan_transition_wan_deconfigured(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
 static eWanState_t wan_transition_exit(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl);
@@ -2874,7 +2874,7 @@ static eWanState_t wan_transition_mapt_down(WanMgr_IfaceSM_Controller_t* pWanIfa
 }
 #endif //FEATURE_MAPT
 
-static eWanState_t wan_transition_phy_down(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
+static eWanState_t wan_transition_configuring_interface(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
 {
     CcspTraceInfo(("%s %d \n", __FUNCTION__, __LINE__));
 
@@ -3085,7 +3085,7 @@ static eWanState_t wan_state_phy_configuring(WanMgr_IfaceSM_Controller_t* pWanIf
         return WAN_STATE_PHY_CONFIGURING;
     }
 
-    return wan_transition_phy_down(pWanIfaceCtrl);
+    return wan_transition_configuring_interface(pWanIfaceCtrl);
 }
 
 static eWanState_t wan_state_phy_down(WanMgr_IfaceSM_Controller_t* pWanIfaceCtrl)
