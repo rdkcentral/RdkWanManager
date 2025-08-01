@@ -523,7 +523,7 @@ ANSC_STATUS MarkHighPriorityGroup (WanMgr_FailOver_Controller_t* pFailOverContro
                 break;
             }
 
-            if(WaitForHigherGroup)
+            if(WaitForHigherGroup && pWanIfaceGroup->State == STATE_GROUP_RUNNING)
             {
                 /* get the current time */
                 memset(&(CurrentTime), 0, sizeof(struct timespec));

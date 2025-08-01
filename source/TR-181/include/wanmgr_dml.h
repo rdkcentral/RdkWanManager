@@ -32,6 +32,7 @@
 #define REMOTE_INTERFACE_GROUP        2
 #define MAX_INTERFACE_GROUP           2
 #define WAN_MANAGER_VERSION         "1.5"
+#define WIFI_BASE_IFACE_PATH        "Device.WiFi.EndPoint."
 
 typedef enum _WANMGR_IFACE_SELECTION_STATUS
 {
@@ -77,6 +78,12 @@ typedef enum _DML_WAN_IFACE_STATUS
     WAN_IFACE_STATUS_STANDBY
 } DML_WAN_IFACE_STATUS;
 
+typedef enum _WANMGR_IFACE_CONNECTION_TYPE
+{
+    WAN_IFACE_CONN_TYPE_PRIMARY = 0,
+    WAN_IFACE_CONN_TYPE_COLD_STANDBY,
+    WAN_IFACE_CONN_TYPE_HOT_STANDBY
+} WANMGR_IFACE_CONNECTION_TYPE;
 
 typedef enum _DML_WAN_IFACE_SCAN_STATUS
 {
@@ -454,6 +461,8 @@ typedef struct _DML_WANIFACE_SUBSCRIBE
 typedef enum
 {
     WAN_STATE_EXIT = 0,
+    WAN_STATE_PHY_CONFIGURING,
+    WAN_STATE_PHY_DOWN,
     WAN_STATE_VLAN_CONFIGURING,
     WAN_STATE_PPP_CONFIGURING,
     WAN_STATE_VALIDATING_WAN,
@@ -569,6 +578,7 @@ typedef struct _DML_WAN_INTERFACE
     BOOL                        WanConfigEnabled;
     BOOL                        VirtIfChanged;
     BOOL                        CustomConfigEnable;
+    WANMGR_IFACE_CONNECTION_TYPE IfaceConnectionType;
     CHAR                        CustomConfigPath[BUFLEN_128];
     DML_WAN_IFACE_SCAN_STATUS   InterfaceScanStatus;
     CHAR                        RemoteCPEMac[BUFLEN_128];
