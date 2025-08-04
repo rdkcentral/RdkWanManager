@@ -2075,8 +2075,6 @@ static void WanMgr_InterfaceStatus_EventHandler(rbusHandle_t handle, rbusEvent_t
         {
             DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data); 
 
-            CcspTraceInfo(("%s %d: Prefix event %s base %s iface %s\n", __FUNCTION__, __LINE__, eventName, pWanIfaceData->BaseInterface, pWanIfaceData->Name));
-
             if( 0 == strncmp( eventName, pWanIfaceData->BaseInterface, strlen(pWanIfaceData->BaseInterface) ) )    
             {
                 rbusValue_t value;

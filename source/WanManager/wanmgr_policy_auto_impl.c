@@ -1297,34 +1297,7 @@ static WcAwPolicyState_t State_WanInterfaceActive (WanMgr_Policy_Controller_t * 
     }
 
     DML_WAN_IFACE * pActiveInterface = &(pWanController->pWanActiveIfaceData->data);
-    
-    // Wait until exit of Interface State Machine
-    if( (pActiveInterface->VirtIfChanged == FALSE) &&
-        (WanMgr_Get_ISM_RunningStatus(pWanController->activeInterfaceIdx) == TRUE) )
-    {
-        return STATE_AUTO_WAN_INTERFACE_ACTIVE;
-    }
-
-    if ( (pActiveInterface->VirtIfChanged == FALSE) &&
-         (pActiveInterface->Selection.Enable == TRUE) &&
-         (WanMgr_Get_ISM_RunningStatus(pWanController->activeInterfaceIdx) == FALSE) )
-    {
-        if (WanMgr_SetGroupSelectedIface (pWanController->GroupInst, (pWanController->activeInterfaceIdx+1)) != ANSC_STATUS_SUCCESS)
-        {
-            CcspTraceError(("%s %d: Failed to set GroupSelectedInterface %d \n",
-                        __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
-        }
-
-        if (WanMgr_StartIfaceStateMachine (pWanController) != ANSC_STATUS_SUCCESS)
-        {
-            CcspTraceError(("%s %d: unable to start interface state machine\n", __FUNCTION__, __LINE__));
-        }
-
-        CcspTraceInfo(("%s %d: Started interface state machine for interface '%d'\n", __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
-        return STATE_AUTO_WAN_INTERFACE_ACTIVE;
-    }
-
-    if(pActiveInterface->VirtIfChanged == TRUE)
+    if((pActiveInterface->VirtIfChanged == TRUE) || (pActiveInterface->Selection.Enable == TRUE))
     {
         for(int VirtId=0; VirtId < pActiveInterface->NoOfVirtIfs; VirtId++)
         {
