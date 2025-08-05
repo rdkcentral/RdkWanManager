@@ -811,6 +811,7 @@ void WanMgr_IfaceData_Init(WanMgr_Iface_Data_t* pIfaceData, UINT iface_index)
 
         pWanDmlIface->NoOfVirtIfs = 1; 
         pWanDmlIface->Type = WAN_IFACE_TYPE_UNCONFIGURED;
+        pWanDmlIface->IfaceConnectionType = WAN_IFACE_CONN_TYPE_PRIMARY;
     }
 }
 
