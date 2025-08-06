@@ -197,7 +197,7 @@ static BOOL WanMgr_CheckRescanRequired(WanMgr_Policy_Controller_t* pWanControlle
     UINT uiLoopCount;
     DML_WAN_IFACE * pActiveInterface = &(pWanController->pWanActiveIfaceData->data);
 
-    if(pActiveInterface->BaseInterfaceStatus != WAN_IFACE_PHY_STATUS_UP || pActiveInterface->VirtIfList->Status != WAN_IFACE_STATUS_UP)
+    if(pActiveInterface->VirtIfList->Status != WAN_IFACE_STATUS_UP)
     {
         CcspTraceInfo(("%s %d: ActiveIface %s is not UP. Rescan required\n", __FUNCTION__, __LINE__,pActiveInterface->DisplayName));
         return TRUE;
@@ -780,7 +780,6 @@ static WcPsPolicyState_t State_ScanningInterface (WanMgr_Policy_Controller_t * p
             DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data);
             if(pWanController->GroupInst == pWanIfaceData->Selection.Group && 
                     pWanIfaceData->Selection.Enable == TRUE &&
-                    pWanIfaceData->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_UP &&
                     pWanIfaceData->VirtIfList->Status == WAN_IFACE_STATUS_DISABLED &&
                     /* If GroupPersistSelectedIface is TRUE and we have a last selected interface, don't start VISM for other interfaces */
                     (!(pWanController->GroupPersistSelectedIface == TRUE && lastSelectedIfaceFound == TRUE && pWanIfaceData->Selection.ActiveLink == FALSE)))
@@ -879,7 +878,7 @@ static WcPsPolicyState_t State_SelectedInterfaceUp (WanMgr_Policy_Controller_t *
     }
 
     DML_WAN_IFACE * pActiveInterface = &(pWanController->pWanActiveIfaceData->data);
-    if (pActiveInterface->BaseInterfaceStatus != WAN_IFACE_PHY_STATUS_UP || pActiveInterface->Selection.Enable == FALSE)
+    if (pActiveInterface->Selection.Enable == FALSE)
     {
         return Transition_SelectedInterfaceDown(pWanController);
     }
@@ -929,7 +928,7 @@ static WcPsPolicyState_t State_SelectedInterfaceDown (WanMgr_Policy_Controller_t
         return STATE_PARALLEL_SCAN_SELECTED_INTERFACE_DOWN;
     }
 
-    if(pActiveInterface->BaseInterfaceStatus == WAN_IFACE_PHY_STATUS_UP && pActiveInterface->Selection.Enable == TRUE)
+    if(pActiveInterface->Selection.Enable == TRUE)
     {
         return Transition_SelectedInterfaceUp(pWanController);
     }

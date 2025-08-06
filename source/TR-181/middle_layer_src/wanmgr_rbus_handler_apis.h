@@ -192,6 +192,7 @@ void WanMgr_Rbus_SubscribeDML(void);
 void WanMgr_Rbus_UnSubscribeDML(void);
 ANSC_STATUS WanMgr_RestartUpdateRemoteIface();
 ANSC_STATUS WanMgr_WanRemoteIfaceConfigure(WanMgr_DeviceChangeEvent * pDeviceChangeEvent);
+ANSC_STATUS WanManager_ManageInterfaceStatusSubscription(char *pParam, bool bSubscribeFlag);
 #endif //RBUS_BUILD_FLAG_ENABLE
 void WanMgr_Rbus_SubscribeWanReady();
 /* WCC - Wan Connectivity Check*/

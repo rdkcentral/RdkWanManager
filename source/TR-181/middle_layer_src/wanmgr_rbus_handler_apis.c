@@ -2326,3 +2326,90 @@ rbusError_t WanMgr_rbusMethod_SelectionControlRelease(rbusHandle_t handle, char 
 
     return RBUS_ERROR_SUCCESS;
 }
+
+static void WanMgr_InterfaceStatus_EventHandler(rbusHandle_t handle, rbusEvent_t const* event, rbusEventSubscription_t* subscription)
+{
+    (void)handle;
+    (void)subscription;
+
+    const char* eventName = event->name;
+
+    if((eventName == NULL))
+    {
+        CcspTraceError(("%s %d : FAILED , value is NULL\n",__FUNCTION__, __LINE__));
+        return;
+    }
+
+    CcspTraceInfo(("%s %d: Received %s\n", __FUNCTION__, __LINE__, eventName));
+
+    UINT uiLoopCount;
+    UINT TotalIfaces = WanMgr_IfaceData_GetTotalWanIface();
+    BOOL bIsIfaceFound = FALSE;
+
+    for( uiLoopCount = 0; uiLoopCount < TotalIfaces; uiLoopCount++ )
+    {
+        WanMgr_Iface_Data_t*   pWanDmlIfaceData = WanMgr_GetIfaceData_locked(uiLoopCount);
+        if(pWanDmlIfaceData != NULL)
+        {
+            DML_WAN_IFACE* pWanIfaceData = &(pWanDmlIfaceData->data); 
+
+            if( 0 == strncmp( eventName, pWanIfaceData->BaseInterface, strlen(pWanIfaceData->BaseInterface) ) )    
+            {
+                rbusValue_t value;
+                value = rbusObject_GetValue(event->data, NULL);
+
+                char acStatus[16] = {0};
+                strncpy(acStatus , rbusValue_GetString(value, NULL),sizeof(acStatus)-1);
+                
+                pWanIfaceData->BaseInterfaceStatus = ( 0 == strncmp(acStatus, "Up", strlen("Up")) ) ?  WAN_IFACE_PHY_STATUS_UP : WAN_IFACE_PHY_STATUS_DOWN;
+
+                CcspTraceInfo(("%s %d: Prefix Value %s, phy status %d\n", __FUNCTION__, __LINE__, acStatus, pWanIfaceData->BaseInterfaceStatus));
+
+                bIsIfaceFound = TRUE;
+            }   
+
+            WanMgrDml_GetIfaceData_release(pWanDmlIfaceData);
+
+            if( bIsIfaceFound )
+            {
+                break;
+            }
+        }
+    } 
+}
+
+ANSC_STATUS WanManager_ManageInterfaceStatusSubscription(char *pParam, bool bSubscribeFlag)
+{
+    char acSetParamName[256]  = {0};
+    char acSetParamValue[256] = {0};
+    rbusError_t rc = RBUS_ERROR_SUCCESS;
+
+    if( NULL == pParam )
+    {
+        CcspTraceError(("%s %d - Invalid Parameter Value NULL\n", __FUNCTION__, __LINE__));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    //Manage Subcription for Interface Status
+    if( bSubscribeFlag )
+    {
+        rc = rbusEvent_Subscribe(rbusHandle, pParam, WanMgr_InterfaceStatus_EventHandler, NULL, 60);
+        if(rc != RBUS_ERROR_SUCCESS)
+        {
+            CcspTraceError(("%s %d - Failed to Subscribe %s, Error=%s \n", __FUNCTION__, __LINE__, pParam, rbusError_ToString(rc)));
+            return ANSC_STATUS_FAILURE;
+        }
+    }
+    else
+    {
+        rc = rbusEvent_Unsubscribe(rbusHandle, pParam);
+        if(rc != RBUS_ERROR_SUCCESS)
+        {
+            CcspTraceError(("%s %d - Failed to Unsubscribe %s, Error=%s \n", __FUNCTION__, __LINE__, pParam, rbusError_ToString(rc)));
+            return ANSC_STATUS_FAILURE;
+        }
+    }
+
+    CcspTraceInfo(("%s %d DM %s %s Successful\n", __FUNCTION__,__LINE__, pParam, ((bSubscribeFlag) ? "Subscribe": "Unsubscribe" )));
+    return ANSC_STATUS_SUCCESS;
+}
