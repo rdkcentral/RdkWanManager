@@ -3080,8 +3080,9 @@ static eWanState_t wan_state_phy_configuring(WanMgr_IfaceSM_Controller_t* pWanIf
     
     //TBC: Workaround, Return failure if the component not ready
     if((0 == strncmp(pInterface->BaseInterface,WIFI_BASE_IFACE_PATH, strlen(WIFI_BASE_IFACE_PATH))) &&
-       (access("/tmp/wifi_dml_complete", F_OK) != 0))
+       (access("/tmp/wifi_ready_to_process", F_OK) != 0))
     {
+        CcspTraceInfo(("%s %d - /tmp/wifi_ready_to_process is not available to wait in WAN_STATE_PHY_CONFIGURING state\n", __FUNCTION__, __LINE__));
         return WAN_STATE_PHY_CONFIGURING;
     }
 
