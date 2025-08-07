@@ -1285,10 +1285,23 @@ static WcAwPolicyState_t State_WanInterfaceActive (WanMgr_Policy_Controller_t * 
     DML_WAN_IFACE * pActiveInterface = &(pWanController->pWanActiveIfaceData->data);
     if((pActiveInterface->VirtIfChanged == TRUE) || (pActiveInterface->Selection.Enable == TRUE))
     {
-        if(WanMgr_StartWan(pWanController->activeInterfaceIdx, WAN_IFACE_SELECTED) != 0)
+        
+        for(int VirtId=0; VirtId < pActiveInterface->NoOfVirtIfs; VirtId++)
         {
-            CcspTraceError(("%s %d: Failed to start WAN for interface %d \n", __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
-            return STATE_AUTO_WAN_ERROR;
+            DML_VIRTUAL_IFACE* p_VirtIf = WanMgr_getVirtualIface_locked(pWanController->activeInterfaceIdx, VirtId);
+            if(p_VirtIf != NULL )
+            {
+                if(p_VirtIf->Enable == TRUE && p_VirtIf->Interface_SM_Running == FALSE)
+                {
+                    CcspTraceInfo(("%s %d Starting virtual InterfaceStateMachine for %d \n", __FUNCTION__, __LINE__, VirtId));
+                    if(WanMgr_StartWan(pWanController->activeInterfaceIdx, WAN_IFACE_SELECTED) != 0)
+                    {
+                        CcspTraceError(("%s %d: Failed to start WAN for interface %d \n", __FUNCTION__, __LINE__, pWanController->activeInterfaceIdx));
+                        return STATE_AUTO_WAN_ERROR;
+                    }
+                }
+                WanMgr_VirtualIfaceData_release(p_VirtIf);
+            }
         }
         pActiveInterface->VirtIfChanged = FALSE;
     }
