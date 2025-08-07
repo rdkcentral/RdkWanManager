@@ -50,7 +50,7 @@ typedef  struct _WANMGR_FAILOVER_CONTROLLER_
     eWanState_t             ActiveIfaceState;
     TelemetryEvent_t        TelemetryEvent; 
     BOOL                    AllowRemoteInterfaces;
-    BOOL                    ExternalControlRequested;
+    BOOL                    DisableAutoRouting;
     BOOL                    InitialScanCompleted;
 } WanMgr_FailOver_Controller_t;
 

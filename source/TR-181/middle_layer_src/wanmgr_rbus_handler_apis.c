@@ -53,8 +53,8 @@ rbusError_t WanMgr_rbusMethod_Iface_StartWan(rbusHandle_t handle, char const* me
 rbusError_t WanMgr_rbusMethod_Iface_StopWan(rbusHandle_t handle, char const* methodName, rbusObject_t inParams, rbusObject_t outParams, rbusMethodAsyncHandle_t asyncHandle);
 rbusError_t WanMgr_rbusMethod_Iface_ActivateWan(rbusHandle_t handle, char const* methodName, rbusObject_t inParams, rbusObject_t outParams, rbusMethodAsyncHandle_t asyncHandle);
 rbusError_t WanMgr_rbusMethod_Iface_DeactivateWan(rbusHandle_t handle, char const* methodName, rbusObject_t inParams, rbusObject_t outParams, rbusMethodAsyncHandle_t asyncHandle);
-rbusError_t WanMgr_rbusMethod_SelectionControlRequest(rbusHandle_t handle, char const* methodName, rbusObject_t inParams, rbusObject_t outParams, rbusMethodAsyncHandle_t asyncHandle);
-rbusError_t WanMgr_rbusMethod_SelectionControlRelease(rbusHandle_t handle, char const* methodName, rbusObject_t inParams, rbusObject_t outParams, rbusMethodAsyncHandle_t asyncHandle);
+rbusError_t WanMgr_rbusMethod_DisableAutoRouting(rbusHandle_t handle, char const* methodName, rbusObject_t inParams, rbusObject_t outParams, rbusMethodAsyncHandle_t asyncHandle);
+rbusError_t WanMgr_rbusMethod_EnableAutoRouting(rbusHandle_t handle, char const* methodName, rbusObject_t inParams, rbusObject_t outParams, rbusMethodAsyncHandle_t asyncHandle);
 
 
 typedef struct
@@ -112,8 +112,8 @@ rbusDataElement_t wanMgrIfacePublishElements[] = {
     { "Device.X_RDK_WanManager.Interface.{i}.WanStop()", RBUS_ELEMENT_TYPE_METHOD, {NULL, NULL, NULL, NULL, NULL, WanMgr_rbusMethod_Iface_StopWan} },
     { "Device.X_RDK_WanManager.Interface.{i}.Activate()", RBUS_ELEMENT_TYPE_METHOD, {NULL, NULL, NULL, NULL, NULL, WanMgr_rbusMethod_Iface_ActivateWan} },
     { "Device.X_RDK_WanManager.Interface.{i}.Deactivate()", RBUS_ELEMENT_TYPE_METHOD, {NULL, NULL, NULL, NULL, NULL, WanMgr_rbusMethod_Iface_DeactivateWan} },
-    { "Device.X_RDK_WanManager.SelectionControlRequest()", RBUS_ELEMENT_TYPE_METHOD, {NULL, NULL, NULL, NULL, NULL, WanMgr_rbusMethod_SelectionControlRequest} },
-    { "Device.X_RDK_WanManager.SelectionControlRelease()", RBUS_ELEMENT_TYPE_METHOD, {NULL, NULL, NULL, NULL, NULL, WanMgr_rbusMethod_SelectionControlRelease} },
+    { "Device.X_RDK_WanManager.DisableAutoRouting()", RBUS_ELEMENT_TYPE_METHOD, {NULL, NULL, NULL, NULL, NULL, WanMgr_rbusMethod_DisableAutoRouting} },
+    { "Device.X_RDK_WanManager.EnableAutoRouting()", RBUS_ELEMENT_TYPE_METHOD, {NULL, NULL, NULL, NULL, NULL, WanMgr_rbusMethod_EnableAutoRouting} },
 };
 
 RemoteDM_list RemoteDMs[] = {
@@ -2258,10 +2258,10 @@ rbusError_t WanMgr_rbusMethod_Iface_DeactivateWan(rbusHandle_t handle, char cons
 
 
 /**
- * @brief Handles SelectionControlRequest RBUS method for WAN Manager.
+ * @brief Handles DisableAutoRouting RBUS method for WAN Manager.
  *
  * This function is used to request or take control from the WAN failover policy
- * to activate or deactivate a group. It processes the SelectionControlRequest
+ * to activate or deactivate a group. It processes the DisableAutoRouting
  * RBUS method, handling the input and output parameters as required.
  *
  * @param[in] handle         The RBUS handle for the current session.
@@ -2272,19 +2272,19 @@ rbusError_t WanMgr_rbusMethod_Iface_DeactivateWan(rbusHandle_t handle, char cons
  *
  * @return rbusError_t       Returns RBUS error code indicating success or failure.
  */
-rbusError_t WanMgr_rbusMethod_SelectionControlRequest(rbusHandle_t handle, char const* methodName, rbusObject_t inParams, rbusObject_t outParams, rbusMethodAsyncHandle_t asyncHandle)
+rbusError_t WanMgr_rbusMethod_DisableAutoRouting(rbusHandle_t handle, char const* methodName, rbusObject_t inParams, rbusObject_t outParams, rbusMethodAsyncHandle_t asyncHandle)
 {
     (void)handle;
     (void)inParams;
     (void)outParams;
     (void)asyncHandle;
 
-    CcspTraceInfo(("%s %d - SelectionControlRequest called for method: %s\n", __FUNCTION__, __LINE__, methodName));
+    CcspTraceInfo(("%s %d - DisableAutoRouting called for method: %s\n", __FUNCTION__, __LINE__, methodName));
 
     WanMgr_Config_Data_t*   pWanConfigData = WanMgr_GetConfigData_locked();
     if(pWanConfigData != NULL)
     {
-        pWanConfigData->data.ExternalControlRequested = TRUE;
+        pWanConfigData->data.DisableAutoRouting = TRUE;
         WanMgrDml_GetConfigData_release(pWanConfigData);
     }
     CcspTraceInfo(("%s %d - SelectionControl Requested\n", __FUNCTION__, __LINE__));
@@ -2296,7 +2296,7 @@ rbusError_t WanMgr_rbusMethod_SelectionControlRequest(rbusHandle_t handle, char 
  * @brief Releases control back to the WAN failover policy.
  *
  * This function handles the RBUS method call to release control from a external component
- * and returns it to the WAN failover policy. It processes the SelectionControlRelease RBUS method,
+ * and returns it to the WAN failover policy. It processes the EnableAutoRouting RBUS method,
  * handling the input and output parameters as required.
  *
  * @param[in] handle         The RBUS handle for the current session.
@@ -2307,19 +2307,19 @@ rbusError_t WanMgr_rbusMethod_SelectionControlRequest(rbusHandle_t handle, char 
  *
  * @return rbusError_t       Returns RBUS error code indicating success or failure.
  */
-rbusError_t WanMgr_rbusMethod_SelectionControlRelease(rbusHandle_t handle, char const* methodName, rbusObject_t inParams, rbusObject_t outParams, rbusMethodAsyncHandle_t asyncHandle)
+rbusError_t WanMgr_rbusMethod_EnableAutoRouting(rbusHandle_t handle, char const* methodName, rbusObject_t inParams, rbusObject_t outParams, rbusMethodAsyncHandle_t asyncHandle)
 {
     (void)handle;
     (void)inParams;
     (void)outParams;
     (void)asyncHandle;
 
-    CcspTraceInfo(("%s %d - SelectionControlRelease called for method: %s\n", __FUNCTION__, __LINE__, methodName));
+    CcspTraceInfo(("%s %d - EnableAutoRouting called for method: %s\n", __FUNCTION__, __LINE__, methodName));
 
     WanMgr_Config_Data_t*   pWanConfigData = WanMgr_GetConfigData_locked();
     if(pWanConfigData != NULL)
     {
-        pWanConfigData->data.ExternalControlRequested = FALSE;
+        pWanConfigData->data.DisableAutoRouting = FALSE;
         WanMgrDml_GetConfigData_release(pWanConfigData);
     }
     CcspTraceInfo(("%s %d - SelectionControl Released\n", __FUNCTION__, __LINE__));

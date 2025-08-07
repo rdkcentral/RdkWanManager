@@ -118,7 +118,7 @@ ANSC_STATUS WanMgr_FailOverCtrlInit(WanMgr_FailOver_Controller_t* pFailOverContr
     pFailOverController->AllowRemoteInterfaces = FALSE;
     pFailOverController->ActiveIfaceState = -1;
     pFailOverController->PhyState = WAN_IFACE_PHY_STATUS_UNKNOWN;
-    pFailOverController->ExternalControlRequested = FALSE;
+    pFailOverController->DisableAutoRouting = FALSE;
     pFailOverController->InitialScanCompleted = FALSE;
     /* Update group Interface */
     UINT TotalIfaces = WanMgr_IfaceData_GetTotalWanIface();
@@ -172,7 +172,7 @@ static void WanMgr_UpdateFOControllerData (WanMgr_FailOver_Controller_t* pFailOv
         pFailOverController->ResetScan = pWanConfigData->data.ResetFailOverScan;
         pFailOverController->AllowRemoteInterfaces = pWanConfigData->data.AllowRemoteInterfaces;
         pWanConfigData->data.ResetFailOverScan = false; //Reset Global data
-        pFailOverController->ExternalControlRequested = pWanConfigData->data.ExternalControlRequested;
+        pFailOverController->DisableAutoRouting = pWanConfigData->data.DisableAutoRouting;
 
         WanMgrDml_GetConfigData_release(pWanConfigData);
     }
@@ -717,7 +717,7 @@ static WcFailOverState_t State_ScanningGroup (WanMgr_FailOver_Controller_t * pFa
         return STATE_FAILOVER_EXIT;
     }
 
-    if (pFailOverController->ExternalControlRequested == TRUE)
+    if (pFailOverController->DisableAutoRouting == TRUE)
     {
         return Transition_Idle(pFailOverController);
     }
@@ -740,7 +740,7 @@ static WcFailOverState_t State_GroupActive (WanMgr_FailOver_Controller_t * pFail
         return STATE_FAILOVER_ERROR;
     }
 
-    if(pFailOverController->WanEnable == FALSE || (pFailOverController->ExternalControlRequested == TRUE))
+    if(pFailOverController->WanEnable == FALSE || (pFailOverController->DisableAutoRouting == TRUE))
     {
         return Transition_DeactivateGroup(pFailOverController);
     }
@@ -801,7 +801,7 @@ static WcFailOverState_t State_RestorationWait (WanMgr_FailOver_Controller_t * p
         return STATE_FAILOVER_ERROR;
     }
 
-    if(pFailOverController->WanEnable == FALSE || (pFailOverController->ExternalControlRequested == TRUE))
+    if(pFailOverController->WanEnable == FALSE || (pFailOverController->DisableAutoRouting == TRUE))
     {
         return Transition_DeactivateGroup(pFailOverController);
     }
@@ -887,7 +887,7 @@ static WcFailOverState_t State_DeactivateGroup (WanMgr_FailOver_Controller_t * p
         {
             return STATE_FAILOVER_EXIT;
         } 
-        else if (pFailOverController->ExternalControlRequested == TRUE)
+        else if (pFailOverController->DisableAutoRouting == TRUE)
         {
             return Transition_Idle(pFailOverController);
         }
@@ -921,7 +921,7 @@ static WcFailOverState_t State_IdleMonitor (WanMgr_FailOver_Controller_t * pFail
         return STATE_FAILOVER_EXIT;
     }
 
-    if(pFailOverController->ExternalControlRequested == FALSE)
+    if(pFailOverController->DisableAutoRouting == FALSE)
     {
         CcspTraceInfo(("%s %d: ExternalControl Released. Resetting scan and returning to scanning state.\n", __FUNCTION__, __LINE__));
         return Transition_ResetScan(pFailOverController);
