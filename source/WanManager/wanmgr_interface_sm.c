@@ -2916,6 +2916,7 @@ static eWanState_t wan_transition_phy_deconfiguring(WanMgr_IfaceSM_Controller_t*
     {
        // Configure Interface
        WanManager_RdkBus_EnableInterface(pInterface, FALSE);
+       pInterface->BaseInterfaceStatus = WAN_IFACE_PHY_STATUS_DOWN;
     }
 
     CcspTraceInfo(("%s %d - Interface '%s' - TRANSITION STATE PHY CONFIGURING\n", __FUNCTION__, __LINE__, pInterface->Name));
@@ -3078,7 +3079,7 @@ static eWanState_t wan_state_phy_configuring(WanMgr_IfaceSM_Controller_t* pWanIf
         return wan_transition_exit(pWanIfaceCtrl);
     }
     
-    //TBC: Workaround, Return failure if the component not ready
+    //TBC: Workaround, Wait in current state if the component not ready
     if((0 == strncmp(pInterface->BaseInterface,WIFI_BASE_IFACE_PATH, strlen(WIFI_BASE_IFACE_PATH))) &&
        (access("/tmp/wifi_ready_to_process", F_OK) != 0))
     {
